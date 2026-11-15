@@ -20,6 +20,7 @@ Aplicação web desenvolvida com **HTML5**, **CSS3** e **JavaScript puro** no fo
   - **10 botões de gravação rápida à direita + botão amarelo compacto**: sinalizam por cor se o slot está livre (azul) ou utilizado (verde), permitindo gravar/carregar com um clique ou abrir o editor no visor pelo botão amarelo para alterar nome/apelido ou remover registros salvos em `localStorage`.
 - **Estilização CSS e Experiência Pokédex 3D**:
   - Uso explícito de `background-color`, `padding`, `margin` e `display: flex`.
+  - **Acabamento realista em metal, plástico, vidro e telas eletrônicas (`oklch` + SVG inline)**: carcaça externa em metal vermelho granulado semi-opaco com reflexo sutil ao ponteiro (`@property --luz-x/--luz-y` via `requestAnimationFrame`, incluindo a dobradiça lateral quando fechada e respeitando `prefers-reduced-motion`), moldura esquerda em cinza metálico (`#painel-busca`), relevos em plástico ABS fosco texturizado (`feDiffuseLighting`), câmera com lente de safira/vidro e LEDs luminosos, botões de slot inferiores com tampa de plástico transparente iluminado por baixo e visores internos com moldura rebaixada e textura LCD sutil que preserva a legibilidade.
   - **Cards giratórios em 3D (`preserve-3d`) sobrepostos com dimensões travadas**: a capa fechada e a ala esquerda (módulo de busca + lista) ocupam as duas faces do mesmo card giratório (`rotateY(-180deg)` no desktop / `rotateX(180deg)` no mobile) acima do card sólido do visor de resultados, mantendo as duas alas simétricas e com abertura/fechamento cadenciados.
   - **Proteção de scroll e fechamento intuitivo**: clicar e rolar dentro do visor de resultados (incluindo arraste pela barra de rolagem) não fecha o aparelho; clicar em partes externas às telas e controles ou pressionar `Escape` gira a tampa de volta.
   - **4 cenários em alta resolução** (`2500px` a `4096px`) em `assets/backgrounds/` com seletor discreto no canto superior direito e alternância automática configurável.
@@ -31,7 +32,7 @@ Aplicação web desenvolvida com **HTML5**, **CSS3** e **JavaScript puro** no fo
 ## Estrutura de Arquivos
 
 ```text
-recuperacao-frontend/
+pokedex-frontend/
 ├── assets/
 │   ├── backgrounds/
 │   └── favicon.svg
@@ -43,6 +44,14 @@ recuperacao-frontend/
 ├── index.html
 └── README.md
 ```
+
+### Decisão arquitetural: por que manter 3 arquivos principais?
+
+O projeto foi estruturado intencionalmente com apenas **`index.html`**, **`css/style.css`** e **`js/app.js`** (sem dividir o código em dezenas de módulos ou pastas de componentes) pelos seguintes motivos técnicos:
+
+- **Compatibilidade universal (`file://` e servidor HTTP):** diferentemente de *ES Modules* nativos (`<script type="module">`), que são bloqueados por política de segurança **CORS** nos navegadores quando abertos diretamente via protocolo `file://`, o carregamento clássico (`<link>` + `<script defer>`) garante que o projeto funcione tanto por duplo clique no `index.html` quanto em servidores HTTP (*Live Server*, GitHub Pages, Vercel) sem etapa de *build* nem *bundler*.
+- **Encapsulamento sem vazar escopo global:** dividir JavaScript sem *ES Modules* e sem empacotador obrigaria usar múltiplos `<script>` compartilhando estado em escopo global (`globalThis`). Manter um único `js/app.js` com `"use strict"` preserva o isolamento interno com funções pequenas e coesas por domínio (cenários, giro 3D, catálogo/busca *fuzzy*, slots, PokéAPI, renderização do visor, controles RPG e iluminação dinâmica).
+- **CSS em cascata única previsível:** `css/style.css` centraliza design tokens (`:root`), texturas inline e componentes ordenados por `@layer reset, base, components, utilities;`, evitando carregamentos em cascata de `@import` e reduzindo o número de requisições de rede na carga inicial.
 
 ## Como Executar
 

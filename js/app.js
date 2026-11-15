@@ -2288,6 +2288,48 @@ inputPokemon.addEventListener("input", () => {
   sincronizarCursorRpg(false);
 });
 
+function inicializarIluminacaoDinamica() {
+  if (!pokedexAparelho || prefereMovimentoReduzido()) return;
+  if (globalThis.matchMedia?.("(hover: hover)")?.matches === false) return;
+
+  let quadroAgendado = 0;
+  let luzPendenteX = 28;
+  let luzPendenteY = 20;
+
+  const aplicarLuzPendente = () => {
+    quadroAgendado = 0;
+    pokedexAparelho.style.setProperty("--luz-x", `${luzPendenteX.toFixed(1)}%`);
+    pokedexAparelho.style.setProperty("--luz-y", `${luzPendenteY.toFixed(1)}%`);
+  };
+
+  pokedexAparelho.addEventListener("pointermove", (evento) => {
+    if (alternandoTampa || prefereMovimentoReduzido()) return;
+    const ret = pokedexAparelho.getBoundingClientRect?.();
+    if (!ret || ret.width <= 0 || ret.height <= 0) return;
+
+    const pctX = ((evento.clientX - ret.left) / ret.width) * 100;
+    const pctY = ((evento.clientY - ret.top) / ret.height) * 100;
+    luzPendenteX = Math.max(8, Math.min(92, pctX));
+    luzPendenteY = Math.max(8, Math.min(92, pctY));
+    pokedexAparelho.classList.add("is-luz-ativa");
+
+    if (!quadroAgendado) {
+      quadroAgendado = requestAnimationFrame(aplicarLuzPendente);
+    }
+  });
+
+  pokedexAparelho.addEventListener("pointerleave", () => {
+    if (quadroAgendado) {
+      cancelAnimationFrame(quadroAgendado);
+      quadroAgendado = 0;
+    }
+    pokedexAparelho.classList.remove("is-luz-ativa");
+    pokedexAparelho.style.removeProperty("--luz-x");
+    pokedexAparelho.style.removeProperty("--luz-y");
+  });
+}
+
 inicializarCenarios();
 carregarSlotsSalvos();
+inicializarIluminacaoDinamica();
 document.title = TITULO_PADRAO;
