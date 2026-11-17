@@ -63,3 +63,19 @@ Não há dependências externas nem etapa de build:
 2. Clique na **capa fechada da Pokédex** (ou pressione `Enter`) para abri-la no movimento 3D.
 3. Digite o nome ou número de um Pokémon, use o direcional para navegar pela lista e pressione o botão circular à direita ou **Buscar Pokémon**; salve seus favoritos nas teclas azuis e gerencie-os pelo botão amarelo.
 4. Para fechar e voltar a visualizar o cenário inteiro, clique em qualquer área da carcaça fora das telas e controles (ou fora da Pokédex) ou pressione `Escape`.
+
+## Arquitetura da Plataforma Full-Stack (`docs/`)
+
+Documentação técnica das decisões planejadas para expandir este projeto em uma plataforma Full-Stack (Angular + Phaser 3/PixiJS + Three.js + NestJS + PostgreSQL/Prisma + Redis + Apache Kafka/Redpanda + MinIO/S3), preservando a Pokédex 3D atual como primeiro módulo integrado:
+
+- [00 — Visão Geral, Regras de Acesso e Roadmap](docs/00-visao-geral-e-roadmap.md)
+- [01 — Arquitetura do Monorepo e Padrões de Engenharia](docs/01-arquitetura-monorepo-e-padroes.md)
+- [02 — Front-end Angular, HUD de Jogo e Gerenciamento de Estado](docs/02-frontend-angular-hud-e-estado.md)
+- [03 — Motores Gráficos: Phaser 3 e Three.js (WebGL2/GLSL)](docs/03-motores-graficos-phaser-e-threejs.md)
+- [04 — Back-end NestJS, Autenticação e Segurança](docs/04-backend-nestjs-auth-e-seguranca.md)
+- [05 — Banco de Dados PostgreSQL e Prisma ORM](docs/05-banco-de-dados-postgresql-e-prisma.md)
+- [06 — Cache com Redis e Mensageria com Apache Kafka / Redpanda](docs/06-cache-redis-e-eventos-kafka.md)
+- [07 — Arcade Retrô 3D (WebAssembly) e Cloud Save States](docs/07-arcade-retro-wasm-e-cloud-saves.md)
+- [08 — Museu das Regiões, Lore e Pokédex Holocron 3D](docs/08-museu-lore-e-holocron-pokedex.md)
+- [09 — Arena de Batalha (PvE/PvP), Team Builder e Mini-Games](docs/09-arena-batalha-teambuilder-e-minigames.md)
+- [10 — Infraestrutura Docker, Observabilidade e CI/CD](docs/10-infraestrutura-docker-ci-cd-e-deploy.md)
