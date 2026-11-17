@@ -527,7 +527,7 @@
 
   .pokedex-aparelho {
     --wing-w: min(23.5rem, calc(100vw - 1.5rem));
-    --wing-h: clamp(36.5rem, 76dvh, 43.5rem);
+    --wing-h: clamp(41.5rem, 86dvh, 45.5rem);
     display: flex;
     justify-content: center;
     padding-top: 0;

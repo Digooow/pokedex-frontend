@@ -183,7 +183,7 @@ Dentro de `.pokedex-palco-3d` (`perspective: 1800px`) existe `.pokedex-livro` (`
   - Ao abrir (`[data-aberta="true"]`), `.pokedex-aba-giratoria` gira de `0deg` para `rotateY(-180deg)`, abrindo para a esquerda e desvirando `.aba-face--verso` perfeitamente de frente para o usuário!
   - Ao mesmo tempo, `.pokedex-livro` desliza para a direita em `translateX(calc(var(--wing-w) / 2))` com `transition-delay: 60ms` (e `70ms` ao fechar), mantendo a Pokédex inteira (agora com `2 * --wing-w` de largura) exatamente no meio da tela, em movimento orgânico ("cadência humana": `1240ms` no giro, `1160ms` no deslize, curva `cubic-bezier(0.28, 0.72, 0.28, 1)`).
 - **No Mobile (`< 880px`):**
-  - Cada ala recebe altura generosa (`--wing-h: clamp(36.5rem, 76dvh, 43.5rem)`) para comportar integralmente o módulo de busca, lista rolável e D-Pad na ala superior e o visor + slots na ala inferior, usando a rolagem vertical natural da página do navegador para navegar entre as duas alas.
+  - Cada ala recebe altura generosa (`--wing-h: clamp(41.5rem, 86dvh, 45.5rem)`) para comportar integralmente o módulo de busca, lista rolável e D-Pad na ala superior e o visor + slots na ala inferior, usando a rolagem vertical natural da página do navegador para navegar entre as duas alas.
   - A aba gira na dobradiça superior (`transform-origin: top center`; `rotateX(180deg)`), enquanto `padding-top: var(--wing-h)` é reservado de forma estática (sem transição animada, portanto sem reflow por frame) já no início da animação (`.is-animando`) e no estado aberto (`[data-aberta="true"]`).
   - Em dispositivos classificados no perfil `lite` (ou com `prefers-reduced-motion`), a abertura ocorre instantaneamente no modo plano 2D para preservar responsividade.
 
