@@ -83,9 +83,9 @@
   --metal-carcaca-base: oklch(0.44 0.19 24);
   --metal-carcaca-sombra: oklch(0.29 0.13 20);
   --metal-carcaca-rebote: oklch(0.40 0.16 23);
-  --metal-topo-claro: oklch(0.49 0.17 22);
-  --metal-topo-base: oklch(0.41 0.15 21);
-  --metal-topo-escuro: oklch(0.34 0.12 20);
+  --plastico-topo-claro: oklch(0.45 0.16 22);
+  --plastico-topo-base: oklch(0.37 0.14 21);
+  --plastico-topo-escuro: oklch(0.28 0.11 20);
   --metal-cromo-claro: oklch(0.95 0.01 250);
   --metal-cromo-medio: oklch(0.70 0.02 250);
   --metal-cromo-escuro: oklch(0.32 0.03 250);
@@ -622,9 +622,9 @@
     position: absolute;
     inset: 0;
     background-image: var(--textura-metal-floco);
-    background-size: 96px 96px;
+    background-size: 128px 128px;
     mix-blend-mode: soft-light;
-    opacity: 0.56;
+    opacity: 0.16;
     pointer-events: none;
     z-index: 0;
   }
@@ -746,9 +746,9 @@
       position: absolute;
       inset: 0;
       background-image: var(--textura-metal-floco);
-      background-size: 96px 96px;
+      background-size: 128px 128px;
       mix-blend-mode: soft-light;
-      opacity: 0.52;
+      opacity: 0.15;
       pointer-events: none;
     }
 
@@ -894,24 +894,18 @@
     min-height: 4.15rem;
     padding: var(--espaco-2) var(--espaco-3);
     background-color: var(--bg-carcaca-topo);
-    background-image:
-      radial-gradient(
-        circle at var(--luz-x) var(--luz-y),
-        rgba(255, 236, 240, 0.08) 0%,
-        transparent 36%
-      ),
-      linear-gradient(
-        180deg,
-        var(--metal-topo-claro) 0%,
-        var(--metal-topo-base) 56%,
-        var(--metal-topo-escuro) 100%
-      );
+    background-image: linear-gradient(
+      176deg,
+      var(--plastico-topo-claro) 0%,
+      var(--plastico-topo-base) 56%,
+      var(--plastico-topo-escuro) 100%
+    );
     color: var(--texto-sobre-destaque);
     border: 2px solid var(--borda-carcaca-escura);
     border-radius: var(--raio-medio);
     box-shadow:
-      inset 0 1px 0 rgba(255, 232, 236, 0.3),
-      inset 0 -1px 0 rgba(255, 212, 218, 0.08),
+      inset 0 1px 0 rgba(255, 232, 236, 0.24),
+      inset 0 -2px 4px rgba(15, 2, 5, 0.42),
       0 2px 6px rgba(15, 2, 5, 0.35);
     flex-shrink: 0;
     overflow: hidden;
@@ -921,10 +915,10 @@
     content: "";
     position: absolute;
     inset: 0;
-    background-image: var(--textura-metal-floco);
-    background-size: 96px 96px;
-    mix-blend-mode: soft-light;
-    opacity: 0.54;
+    background-image: var(--textura-plastico-grao);
+    background-size: 128px 128px;
+    mix-blend-mode: overlay;
+    opacity: 0.26;
     pointer-events: none;
     z-index: 0;
   }
@@ -942,18 +936,12 @@
     border-bottom: 2px solid var(--borda-carcaca-escura);
     border-radius: 0;
     padding: var(--espaco-3) var(--espaco-4);
-    background-image:
-      radial-gradient(
-        circle at var(--luz-x) var(--luz-y),
-        rgba(255, 236, 240, 0.09) 0%,
-        transparent 36%
-      ),
-      linear-gradient(
-        176deg,
-        var(--metal-topo-claro) 0%,
-        var(--metal-topo-base) 68%,
-        var(--metal-topo-escuro) 100%
-      );
+    background-image: linear-gradient(
+      176deg,
+      var(--plastico-topo-claro) 0%,
+      var(--plastico-topo-base) 64%,
+      var(--plastico-topo-escuro) 100%
+    );
     box-shadow:
       inset 0 1px 0 rgba(255, 238, 242, 0.36),
       inset 0 -1px 0 rgba(255, 215, 222, 0.14),
@@ -1295,9 +1283,9 @@
     position: absolute;
     inset: 0;
     background-image: var(--textura-metal-floco);
-    background-size: 96px 96px;
+    background-size: 128px 128px;
     mix-blend-mode: soft-light;
-    opacity: 0.56;
+    opacity: 0.16;
     pointer-events: none;
     z-index: 0;
   }
@@ -1409,9 +1397,9 @@
     position: absolute;
     inset: 0;
     background-image: var(--textura-plastico-grao);
-    background-size: 96px 96px;
+    background-size: 128px 128px;
     mix-blend-mode: overlay;
-    opacity: 0.46;
+    opacity: 0.34;
     pointer-events: none;
     z-index: 0;
   }
@@ -1467,9 +1455,9 @@
     position: absolute;
     inset: 0;
     background-image: var(--textura-plastico-grao);
-    background-size: 96px 96px;
+    background-size: 128px 128px;
     mix-blend-mode: overlay;
-    opacity: 0.44;
+    opacity: 0.32;
     pointer-events: none;
     z-index: 0;
   }
@@ -1551,7 +1539,7 @@
     background-image:
       var(--textura-plastico-grao),
       linear-gradient(150deg, #ef4444 0%, #b91c1c 56%, #7f1d1d 100%);
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
     border: 4px solid #e2e8f0;
     box-shadow:
@@ -1706,9 +1694,9 @@
     position: absolute;
     inset: 0;
     background-image: var(--textura-metal-floco);
-    background-size: 96px 96px;
+    background-size: 128px 128px;
     mix-blend-mode: soft-light;
-    opacity: 0.56;
+    opacity: 0.28;
     pointer-events: none;
     z-index: 0;
   }
@@ -2207,9 +2195,9 @@
     inset: 0;
     border-radius: inherit;
     background-image: var(--textura-plastico-grao);
-    background-size: 96px 96px;
+    background-size: 128px 128px;
     mix-blend-mode: overlay;
-    opacity: 0.45;
+    opacity: 0.32;
     pointer-events: none;
     z-index: 0;
   }
@@ -2251,7 +2239,7 @@
         var(--plastico-preto-base) 56%,
         var(--plastico-preto-escuro) 100%
       );
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
     border: 2px solid #070b12;
     border-radius: 0.22rem;
@@ -2310,7 +2298,7 @@
         var(--plastico-preto-base) 56%,
         var(--plastico-preto-escuro) 100%
       );
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
     border: 0;
     border-radius: 0.15rem;
@@ -2371,7 +2359,7 @@
     background-image:
       var(--textura-plastico-grao),
       linear-gradient(180deg, #ef4444 0%, #b91c1c 56%, #7f1d1d 100%);
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
   }
 
@@ -2380,7 +2368,7 @@
     background-image:
       var(--textura-plastico-grao),
       linear-gradient(180deg, #38bdf8 0%, #0284c7 56%, #075985 100%);
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
   }
 
@@ -2402,7 +2390,7 @@
         var(--plastico-preto-base) 54%,
         var(--plastico-preto-escuro) 100%
       );
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
     border: 3px solid #070b12;
     border-radius: 999px;
@@ -2425,7 +2413,7 @@
     background-image:
       var(--textura-plastico-grao),
       radial-gradient(circle at 66% 66%, #334155 0%, #111827 52%, #030712 100%);
-    background-size: 96px 96px, 100% 100%;
+    background-size: 128px 128px, 100% 100%;
     background-blend-mode: overlay, normal;
     box-shadow:
       inset 2px 2px 4px rgba(0, 0, 0, 0.88),
@@ -3430,6 +3418,8 @@
   }
 
   html[data-perf-tier="lite"] .pokedex-ala::before,
+  html[data-perf-tier="lite"] .ala-topo::before,
+  html[data-perf-tier="lite"] .tampa-superficie::before,
   html[data-perf-tier="lite"] .tampa-dobradica-lateral::before,
   html[data-perf-tier="lite"] .painel-busca::before,
   html[data-perf-tier="lite"] .tampa-placa-frontal::before,
@@ -3437,8 +3427,7 @@
   html[data-perf-tier="lite"] .tampa-rodape-hardware::before,
   html[data-perf-tier="lite"] .tampa-emblema::before,
   html[data-perf-tier="lite"] .pokedex-controles-fisicos::before,
-  html[data-perf-tier="lite"] .pokedex-rodape-direito::before,
-  html[data-perf-tier="lite"] .dpad-miolo::before {
+  html[data-perf-tier="lite"] .pokedex-rodape-direito::before {
     display: none;
   }
 
