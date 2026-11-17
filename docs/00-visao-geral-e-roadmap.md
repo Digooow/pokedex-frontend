@@ -123,3 +123,4 @@ Cada fase foi desenhada para resultar em uma aplicação **executável, testáve
 - [09 — Arena de Batalha (PvE/PvP), Team Builder e Mini-Games](09-arena-batalha-teambuilder-e-minigames.md)
 - [10 — Infraestrutura Docker, Observabilidade e CI/CD](10-infraestrutura-docker-ci-cd-e-deploy.md)
 - [11 — Desempenho Ponta a Ponta, Detecção de Hardware, Mobile e Release Gates](11-performance-hardware-gates-e-mobile.md)
+- [12 — Pokédex 2.0: Catálogo Completo da PokéAPI v2 e Controles sem Novos Botões](12-pokedex-2-0-pokeapi-e-controles.md)
