@@ -6,6 +6,8 @@ O **PokéVerse OS** transforma o repositório [pokedex-frontend](../README.md) e
 
 A Pokédex 3D skeuomórfica existente ([index.html](../index.html), [css/style.css](../css/style.css) e [js/app.js](../js/app.js)) **não é descartada**: ela é preservada como o **Módulo 01 (Dispositivo de Campo)**, abrindo dentro do ecossistema como um equipamento oficial do treinador e evoluindo de persistência local (`localStorage`) para sincronização em nuvem quando autenticada.
 
+> **Evolução Orientada a Evidências (Desempenho & Mobile-First):** após um *post-mortem* real de travamento em smartphone na versão estática inicial (causado por 4 imagens 4K simultâneas de `9,34 MB`, transição com *reflow* via `padding-top`, filtros SVG `feTurbulence` e `backdrop-filter`), a plataforma nasceu com **Detecção Automática de Hardware (`ULTRA` / `BALANCED` / `LITE`)**, **versão Lite para PCs e celulares modestos**, telemetria registrável e **Release Gates automatizados** cobrindo gráficos, APIs, PostgreSQL, Redis e Kafka (ver [11 — Desempenho Ponta a Ponta](11-performance-hardware-gates-e-mobile.md)).
+
 ---
 
 ## 2. Diagrama de Contexto da Plataforma

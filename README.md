@@ -22,10 +22,11 @@ Aplicação web desenvolvida com **HTML5**, **CSS3** e **JavaScript puro** no fo
   - **10 botões de gravação rápida à direita + botão amarelo compacto**: sinalizam por cor se o slot está livre (azul) ou utilizado (verde), permitindo gravar/carregar com um clique ou abrir o editor no visor pelo botão amarelo para alterar nome/apelido ou remover registros salvos em `localStorage`.
 - **Estilização CSS e Experiência Pokédex 3D**:
   - Uso explícito de `background-color`, `padding`, `margin` e `display: flex`.
-  - **Acabamento realista em metal, plástico, vidro e telas eletrônicas (`oklch` + SVG inline)**: carcaça externa em metal vermelho granulado semi-opaco com reflexo sutil ao ponteiro (`@property --luz-x/--luz-y` via `requestAnimationFrame`, incluindo a dobradiça lateral quando fechada e respeitando `prefers-reduced-motion`), moldura esquerda em cinza metálico (`#painel-busca`), relevos em plástico ABS fosco texturizado (`feDiffuseLighting`), câmera com lente de safira/vidro e LEDs luminosos, botões de slot inferiores com tampa de plástico transparente iluminado por baixo e visores internos com moldura rebaixada e textura LCD sutil que preserva a legibilidade.
-  - **Cards giratórios em 3D (`preserve-3d`) sobrepostos com dimensões travadas**: a capa fechada e a ala esquerda (módulo de busca + lista) ocupam as duas faces do mesmo card giratório (`rotateY(-180deg)` no desktop / `rotateX(180deg)` no mobile) acima do card sólido do visor de resultados, mantendo as duas alas simétricas e com abertura/fechamento cadenciados.
+  - **Acabamento realista em metal, plástico, vidro e telas eletrônicas (`oklch` + microtexturas WebP pré-assadas)**: carcaça externa em metal vermelho granulado semi-opaco com reflexo sutil ao ponteiro (`@property --luz-x/--luz-y` via `requestAnimationFrame`, incluindo a dobradiça lateral quando fechada e respeitando `prefers-reduced-motion`), moldura esquerda em cinza metálico (`#painel-busca`), relevos em plástico ABS fosco texturizado (`assets/textures/*.webp`), câmera com lente de safira/vidro e LEDs luminosos, botões de slot inferiores com tampa de plástico transparente iluminado por baixo e visores internos com moldura rebaixada e textura LCD sutil que preserva a legibilidade.
+  - **Cards giratórios em 3D (`preserve-3d`) sobrepostos sem reflow no mobile**: a capa fechada e a ala esquerda ocupam as duas faces do mesmo card giratório (`rotateY(-180deg)` com `translateX` no desktop / `rotateX(180deg)` com `translateY` na GPU no mobile), eliminando reflows por quadro no celular.
+  - **Detecção Automática de Hardware & Modo Lite (`Perf: Auto`)**: identifica automaticamente RAM, núcleos de CPU, rede (`saveData`) e tela touch para escolher entre os perfis **Ultra**, **Equilibrado** ou **Lite**, além de monitorar quadros (`requestAnimationFrame`) durante transições para rebaixar efeitos pesados automaticamente em celulares e PCs modestos (com alternância manual pelo botão no topo).
   - **Proteção de scroll e fechamento intuitivo**: clicar e rolar dentro do visor de resultados (incluindo arraste pela barra de rolagem) não fecha o aparelho; clicar em partes externas às telas e controles ou pressionar `Escape` gira a tampa de volta.
-  - **4 cenários em alta resolução** (`2500px` a `4096px`) em `assets/backgrounds/` com seletor discreto no canto superior direito e alternância automática configurável.
+  - **4 cenários responsivos em WebP sob demanda** (`assets/backgrounds/*-desktop.webp` `1920px` e `*-mobile.webp` `820px`) carregando apenas o cenário ativo na GPU e descartando inativos fora do modo Ultra, substituindo `9,34 MB` de JPEGs 4K simultâneos para rodar liso em celulares.
 - **Tratamento de situações**:
   - Validação para campo vazio ou somente espaços.
   - Mensagem dedicada quando o Pokémon não é encontrado (HTTP `404`), com sugestões clicáveis *"Você quis dizer"* baseadas na lista da API.
@@ -36,10 +37,12 @@ Aplicação web desenvolvida com **HTML5**, **CSS3** e **JavaScript puro** no fo
 ```text
 pokedex-frontend/
 ├── assets/
-│   ├── backgrounds/
+│   ├── backgrounds/               # 4 cenários otimizados (-desktop.webp / -mobile.webp)
+│   ├── textures/                  # Microtexturas granuladas pré-assadas (metal-floco / plastico-grao)
 │   └── favicon.svg
 ├── css/
 │   └── style.css
+├── docs/                          # Documentação arquitetural Full-Stack + Performance Gates
 ├── js/
 │   └── app.js
 ├── GUIA-DE-ESTUDOS-POKEDEX.md

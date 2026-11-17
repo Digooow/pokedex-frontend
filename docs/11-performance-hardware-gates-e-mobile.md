@@ -1,10 +1,20 @@
 # 11 — Desempenho Ponta a Ponta, Detecção de Hardware, Mobile e Release Gates
 
-## 1. Objetivo Arquitetural
+## 1. Objetivo Arquitetural & Origem Real (Post-Mortem Mobile)
 
 Desempenho no **PokéVerse OS** não é otimização opcional de fim de projeto: é um **requisito funcional bloqueante** em todas as camadas — gráficos WebGL2/2D, CSS mobile, APIs NestJS, PostgreSQL, Redis, Apache Kafka e pipeline de CI/CD.
 
-Todo código novo deve rodar com fluidez tanto em **desktops dedicados** quanto em **smartphones de entrada com pouca memória RAM**, com métricas registradas em tempo real e validadas automaticamente antes de cada deploy. **Qualquer funcionalidade que violar os orçamentos definidos nesta especificação reprova no Release Gate e volta para refatoração.**
+### Por que esta arquitetura nasceu? (Post-Mortem de Campo)
+Na versão inicial da Pokédex 3D publicada no GitHub Pages, o desempenho parecia fluido em desktops potentes, mas **testes reais em smartphone revelaram travamentos severos** durante carregamento e abertura. A investigação técnica apontou 4 gargalos concretos no código:
+
+| Gargalo Medido na Versão Original | Impacto Real no Celular | Solução Aplicada & Regra Arquitetural Derivada |
+| :--- | :--- | :--- |
+| **4 JPEGs 4K simultâneos no DOM** (`3840×2160` e `4096×2316`, totalizando `9,34 MB`) | Mais de `100 MB` em texturas RGBA decodificadas na GPU mobile desde o boot | Imagens responsivas `.webp` (`1920px` desktop / `820px` mobile de `50,7–104,5 KB`) + carga sob demanda mantendo **apenas 1 cenário decodificado** (`-99%` bytes iniciais) |
+| **Transição de `padding-top` no mobile** (`1160ms` abrindo a tampa 3D) | *Reflow* + *repaint* da página inteira em todo quadro (~60x/s) | Substituída durante `.is-animando` por **`transform: translateY()`** na *compositor thread* da GPU (`0` reflows por quadro) |
+| **Filtros SVG `feTurbulence` + `mix-blend-mode` + `backdrop-filter: blur(6px)`** em layers 3D | Rasterização pesada por CPU/GPU móvel em cada rotação/rolagem | Microtexturas pré-assadas em `.webp` leves (`6,90 KB` e `9,23 KB`), blur removido no mobile e `content-visibility: auto` nas listas |
+| **Animações `filter` + `box-shadow`** nos LEDs + falta de perfil adaptado | Repaint contínuo por quadro em aparelhos de entrada | Keyframes migrados para `opacity` + `transform` e criação de **Detecção Automática de Hardware (`ULTRA` / `BALANCED` / `LITE`)** já em produção no módulo |
+
+Essa experiência real motivou estender a mesma disciplina de desempenho — **orçamentos numéricos, detecção de hardware, telemetria registrável e portas de bloqueio automatizadas no CI/CD** — para o front-end WebGL2/2D, APIs NestJS, queries SQL/Prisma, cache Redis e filas Kafka. **Qualquer funcionalidade que violar os orçamentos definidos nesta especificação reprova no Release Gate e volta para refatoração.**
 
 ---
 

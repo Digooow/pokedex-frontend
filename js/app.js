@@ -4,7 +4,11 @@ const POKEAPI_BASE_URL = "https://pokeapi.co/api/v2/pokemon/";
 const POKEAPI_CATALOGO_URL = "https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0";
 const TEMPO_LIMITE_MS = 10000;
 const TEMPO_TROCA_CENARIO_MS = 12000;
+const TEMPO_LIMPEZA_CENARIO_MS = 960;
 const DURACAO_GIRO_POKEDEX_MS = 1260;
+const FRAME_BUDGET_REBAIXE_MS = 30;
+const MIN_FRAMES_WATCHDOG = 6;
+const BREAKPOINT_MOBILE_MAX = 879;
 const TAMANHO_LOTE_CATALOGO = 150;
 const MAX_RESULTADOS_FILTRADOS = 120;
 const TOTAL_SLOTS_AZUIS = 10;
@@ -12,7 +16,24 @@ const TITULO_PADRAO = "Pokédex — Pesquisa de Pokémon";
 const CENARIOS_IDS = ["hoenn", "cidade", "vila", "floresta"];
 const CHAVE_CENARIO_SALVO = "pokedex_cenario_ativo";
 const CHAVE_AUTO_SALVO = "pokedex_cenario_auto";
+const CHAVE_PERF_PREF = "pokedex_perf_preferencia";
 const CHAVE_SLOTS_SALVOS = "pokedex_slots_salvos";
+const PERF_MODO_AUTO = "auto";
+const TIER_ULTRA = "ultra";
+const TIER_BALANCED = "balanced";
+const TIER_LITE = "lite";
+const PERF_CICLO_MODOS = [PERF_MODO_AUTO, TIER_ULTRA, TIER_BALANCED, TIER_LITE];
+const ROTULOS_PERF = {
+  [TIER_ULTRA]: "Ultra",
+  [TIER_BALANCED]: "Equil.",
+  [TIER_LITE]: "Lite"
+};
+const ATTR_SRC = "src";
+const ATTR_SRCSET = "srcset";
+const ATTR_SIZES = "sizes";
+const CLASSE_LUZ_ATIVA = "is-luz-ativa";
+const VAR_LUZ_X = "--luz-x";
+const VAR_LUZ_Y = "--luz-y";
 const SELETOR_AREAS_INTERNAS_POKEDEX =
   ".painel-busca, .painel-resultado, .controle-interativo";
 const SELETOR_AREAS_PRESERVADAS =
@@ -93,6 +114,7 @@ const btnConfigSlots = document.getElementById("btn-config-slots");
 const imagensCenario = [...document.querySelectorAll(".cenario-imagem")];
 const botoesCenario = [...document.querySelectorAll(".btn-cenario")];
 const btnAutoCenario = document.getElementById("btn-auto-cenario");
+const btnPerfTier = document.getElementById("btn-perf-tier");
 
 const anunciadorErroCampo = document.createElement("div");
 anunciadorErroCampo.setAttribute("aria-live", "polite");
@@ -110,6 +132,10 @@ let erroJaAnunciado = false;
 let cenarioAtualId = CENARIOS_IDS[0];
 let modoAutoAtivo = true;
 let temporizadorCenario = null;
+let temporizadorLimpezaCenario = null;
+let perfPreferencia = PERF_MODO_AUTO;
+let tierAtivo = TIER_BALANCED;
+let watchdogRafId = 0;
 let alternandoTampa = false;
 let temporizadorTampa = null;
 let ponteiroIniciouEmAreaPreservada = false;
@@ -166,14 +192,116 @@ function pertenceArea(alvo, seletor) {
   return typeof alvo?.closest === TIPO_FUNCAO && Boolean(alvo.closest(seletor));
 }
 
+function detectarHardwareTier() {
+  if (prefereMovimentoReduzido()) return TIER_LITE;
+  const conexao = navigator.connection;
+  const tipoRede = conexao?.effectiveType;
+  if (conexao?.saveData || tipoRede === "slow-2g" || tipoRede === "2g" || tipoRede === "3g") {
+    return TIER_LITE;
+  }
+  const memoriaGb = Number(navigator.deviceMemory ?? 0);
+  const nucleos = Number(navigator.hardwareConcurrency ?? 0);
+  const isTouchMobile = Boolean(
+    globalThis.matchMedia?.("(hover: none) and (pointer: coarse)")?.matches
+  );
+  if ((memoriaGb > 0 && memoriaGb <= 3) || (isTouchMobile && nucleos > 0 && nucleos <= 4)) {
+    return TIER_LITE;
+  }
+  if (isTouchMobile || (memoriaGb > 0 && memoriaGb <= 4) || (nucleos > 0 && nucleos <= 4)) {
+    return TIER_BALANCED;
+  }
+  return TIER_ULTRA;
+}
+
+function atualizarBotaoPerfTier() {
+  document.documentElement.dataset.perfTier = tierAtivo;
+  if (!btnPerfTier) return;
+
+  const nomeTier = ROTULOS_PERF[tierAtivo] ?? ROTULOS_PERF[TIER_BALANCED];
+  const prefixo = perfPreferencia === PERF_MODO_AUTO ? "Perf: Auto (" + nomeTier + ")" : "Perf: " + nomeTier;
+  btnPerfTier.textContent = prefixo;
+  btnPerfTier.dataset.perfMode = tierAtivo;
+  btnPerfTier.setAttribute(ATTR_ARIA_LABEL, "Qualidade gráfica atual: " + nomeTier);
+}
+
+function obterChaveVarianteCenario() {
+  const larguraTela = globalThis.innerWidth || 1024;
+  const usarMobile =
+    larguraTela <= BREAKPOINT_MOBILE_MAX ||
+    tierAtivo === TIER_LITE ||
+    Boolean(navigator.connection?.saveData);
+  return usarMobile ? "srcMobile" : "srcDesktop";
+}
+
+function carregarSrcCenario(imagem) {
+  const chaveSrc = obterChaveVarianteCenario();
+  const destino = imagem.dataset[chaveSrc];
+  if (!destino) return;
+
+  if (chaveSrc === "srcMobile" && imagem.hasAttribute(ATTR_SRCSET)) {
+    imagem.removeAttribute(ATTR_SRCSET);
+    imagem.removeAttribute(ATTR_SIZES);
+  }
+  if (imagem.getAttribute(ATTR_SRC) !== destino) {
+    imagem.setAttribute(ATTR_SRC, destino);
+  }
+}
+
+function agendarLimpezaCenariosInativos() {
+  clearTimeout(temporizadorLimpezaCenario);
+  if (tierAtivo === TIER_ULTRA) return;
+
+  temporizadorLimpezaCenario = setTimeout(() => {
+    for (const imagem of imagensCenario) {
+      if (imagem.dataset.cenarioId !== cenarioAtualId) {
+        imagem.removeAttribute(ATTR_SRC);
+        imagem.removeAttribute(ATTR_SRCSET);
+        imagem.removeAttribute(ATTR_SIZES);
+      }
+    }
+  }, TEMPO_LIMPEZA_CENARIO_MS);
+}
+
+function resetarIluminacaoDinamica() {
+  if (!pokedexAparelho) return;
+  pokedexAparelho.classList.remove(CLASSE_LUZ_ATIVA);
+  pokedexAparelho.style.removeProperty(VAR_LUZ_X);
+  pokedexAparelho.style.removeProperty(VAR_LUZ_Y);
+}
+
+function aplicarPreferenciaPerf(modoSolicitado, salvar) {
+  perfPreferencia = PERF_CICLO_MODOS.includes(modoSolicitado) ? modoSolicitado : PERF_MODO_AUTO;
+  tierAtivo = perfPreferencia === PERF_MODO_AUTO ? detectarHardwareTier() : perfPreferencia;
+  atualizarBotaoPerfTier();
+
+  if (tierAtivo === TIER_LITE) {
+    resetarIluminacaoDinamica();
+  }
+
+  if (salvar) {
+    salvarPreferencia(CHAVE_PERF_PREF, perfPreferencia);
+  }
+
+  const imagemAtiva = imagensCenario.find((img) => img.dataset.cenarioId === cenarioAtualId);
+  if (imagemAtiva) {
+    carregarSrcCenario(imagemAtiva);
+  }
+  agendarLimpezaCenariosInativos();
+}
+
 function aplicarCenario(cenarioId) {
   const idValido = CENARIOS_IDS.includes(cenarioId) ? cenarioId : CENARIOS_IDS[0];
   cenarioAtualId = idValido;
 
   for (const imagem of imagensCenario) {
     const ativa = imagem.dataset.cenarioId === idValido;
+    if (ativa) {
+      carregarSrcCenario(imagem);
+    }
     imagem.classList.toggle("is-active", ativa);
   }
+
+  agendarLimpezaCenariosInativos();
 
   for (const botao of botoesCenario) {
     const ativo = botao.dataset.cenario === idValido;
@@ -211,22 +339,67 @@ function definirModoAuto(ativo) {
 }
 
 function inicializarCenarios() {
+  const perfSalva = lerPreferencia(CHAVE_PERF_PREF) ?? PERF_MODO_AUTO;
   const cenarioSalvo = lerPreferencia(CHAVE_CENARIO_SALVO);
   const autoSalvo = lerPreferencia(CHAVE_AUTO_SALVO);
 
+  aplicarPreferenciaPerf(perfSalva, false);
   aplicarCenario(cenarioSalvo ?? CENARIOS_IDS[0]);
 
   if (autoSalvo !== null) {
     definirModoAuto(autoSalvo === "true");
   } else {
-    definirModoAuto(!prefereMovimentoReduzido());
+    definirModoAuto(!prefereMovimentoReduzido() && tierAtivo !== TIER_LITE);
   }
+}
+
+function encerrarWatchdogAnimacao() {
+  if (watchdogRafId) {
+    cancelAnimationFrame(watchdogRafId);
+    watchdogRafId = 0;
+  }
+}
+
+function rebaixarTierAutomatico() {
+  if (perfPreferencia !== PERF_MODO_AUTO || tierAtivo === TIER_LITE) return;
+  tierAtivo = tierAtivo === TIER_ULTRA ? TIER_BALANCED : TIER_LITE;
+  atualizarBotaoPerfTier();
+  agendarLimpezaCenariosInativos();
+}
+
+function iniciarWatchdogAnimacao() {
+  encerrarWatchdogAnimacao();
+  if (perfPreferencia !== PERF_MODO_AUTO || tierAtivo === TIER_LITE) return;
+  if (typeof globalThis.requestAnimationFrame !== TIPO_FUNCAO) return;
+
+  let ultimoQuadro = performance.now();
+  let totalFrames = 0;
+  let somaDeltas = 0;
+
+  const medirQuadro = (agora) => {
+    watchdogRafId = 0;
+    if (!alternandoTampa || document.hidden) return;
+    const delta = agora - ultimoQuadro;
+    ultimoQuadro = agora;
+    if (delta > 0 && delta < 250) {
+      totalFrames += 1;
+      somaDeltas += delta;
+    }
+    if (totalFrames >= MIN_FRAMES_WATCHDOG && somaDeltas / totalFrames > FRAME_BUDGET_REBAIXE_MS) {
+      rebaixarTierAutomatico();
+      return;
+    }
+    watchdogRafId = requestAnimationFrame(medirQuadro);
+  };
+
+  watchdogRafId = requestAnimationFrame(medirQuadro);
 }
 
 function executarGiroPokedex(alterarEstadoDom, aoFinalizar) {
   clearTimeout(temporizadorTampa);
+  encerrarWatchdogAnimacao();
 
-  if (prefereMovimentoReduzido()) {
+  if (prefereMovimentoReduzido() || tierAtivo === TIER_LITE) {
     pokedexAparelho.classList.remove(CLASSE_TRANSICIONANDO, CLASSE_ANIMANDO);
     alterarEstadoDom();
     alternandoTampa = false;
@@ -241,8 +414,10 @@ function executarGiroPokedex(alterarEstadoDom, aoFinalizar) {
   alterarEstadoDom();
 
   alternandoTampa = true;
+  iniciarWatchdogAnimacao();
   temporizadorTampa = setTimeout(() => {
     alternandoTampa = false;
+    encerrarWatchdogAnimacao();
     pokedexAparelho.classList.remove(CLASSE_TRANSICIONANDO, CLASSE_ANIMANDO);
     aoFinalizar();
   }, DURACAO_GIRO_POKEDEX_MS);
@@ -2167,6 +2342,14 @@ if (btnAutoCenario) {
   });
 }
 
+if (btnPerfTier) {
+  btnPerfTier.addEventListener("click", () => {
+    const indiceAtual = PERF_CICLO_MODOS.indexOf(perfPreferencia);
+    const proximoModo = PERF_CICLO_MODOS[(indiceAtual + 1) % PERF_CICLO_MODOS.length];
+    aplicarPreferenciaPerf(proximoModo, true);
+  });
+}
+
 if (btnRecarregarCatalogo) {
   btnRecarregarCatalogo.addEventListener("click", (evento) => {
     evento.stopPropagation?.();
@@ -2298,12 +2481,12 @@ function inicializarIluminacaoDinamica() {
 
   const aplicarLuzPendente = () => {
     quadroAgendado = 0;
-    pokedexAparelho.style.setProperty("--luz-x", `${luzPendenteX.toFixed(1)}%`);
-    pokedexAparelho.style.setProperty("--luz-y", `${luzPendenteY.toFixed(1)}%`);
+    pokedexAparelho.style.setProperty(VAR_LUZ_X, `${luzPendenteX.toFixed(1)}%`);
+    pokedexAparelho.style.setProperty(VAR_LUZ_Y, `${luzPendenteY.toFixed(1)}%`);
   };
 
   pokedexAparelho.addEventListener("pointermove", (evento) => {
-    if (alternandoTampa || prefereMovimentoReduzido()) return;
+    if (alternandoTampa || prefereMovimentoReduzido() || tierAtivo === TIER_LITE) return;
     const ret = pokedexAparelho.getBoundingClientRect?.();
     if (!ret || ret.width <= 0 || ret.height <= 0) return;
 
@@ -2311,7 +2494,7 @@ function inicializarIluminacaoDinamica() {
     const pctY = ((evento.clientY - ret.top) / ret.height) * 100;
     luzPendenteX = Math.max(8, Math.min(92, pctX));
     luzPendenteY = Math.max(8, Math.min(92, pctY));
-    pokedexAparelho.classList.add("is-luz-ativa");
+    pokedexAparelho.classList.add(CLASSE_LUZ_ATIVA);
 
     if (!quadroAgendado) {
       quadroAgendado = requestAnimationFrame(aplicarLuzPendente);
@@ -2323,9 +2506,7 @@ function inicializarIluminacaoDinamica() {
       cancelAnimationFrame(quadroAgendado);
       quadroAgendado = 0;
     }
-    pokedexAparelho.classList.remove("is-luz-ativa");
-    pokedexAparelho.style.removeProperty("--luz-x");
-    pokedexAparelho.style.removeProperty("--luz-y");
+    resetarIluminacaoDinamica();
   });
 }
 

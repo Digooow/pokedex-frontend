@@ -15,7 +15,11 @@
     <img
       class="cenario-imagem is-active"
       data-cenario-id="hoenn"
-      src="assets/backgrounds/mirante-hoenn.jpg"
+      data-src-mobile="assets/backgrounds/mirante-hoenn-mobile.webp"
+      data-src-desktop="assets/backgrounds/mirante-hoenn-desktop.webp"
+      srcset="assets/backgrounds/mirante-hoenn-mobile.webp 820w, assets/backgrounds/mirante-hoenn-desktop.webp 1920w"
+      sizes="100vw"
+      src="assets/backgrounds/mirante-hoenn-desktop.webp"
       alt=""
       decoding="async"
       fetchpriority="high"
@@ -23,21 +27,24 @@
     <img
       class="cenario-imagem"
       data-cenario-id="cidade"
-      src="assets/backgrounds/cidade-anime.jpg"
+      data-src-mobile="assets/backgrounds/cidade-anime-mobile.webp"
+      data-src-desktop="assets/backgrounds/cidade-anime-desktop.webp"
       alt=""
       decoding="async"
     >
     <img
       class="cenario-imagem"
       data-cenario-id="vila"
-      src="assets/backgrounds/vila-pallet.jpg"
+      data-src-mobile="assets/backgrounds/vila-pallet-mobile.webp"
+      data-src-desktop="assets/backgrounds/vila-pallet-desktop.webp"
       alt=""
       decoding="async"
     >
     <img
       class="cenario-imagem"
       data-cenario-id="floresta"
-      src="assets/backgrounds/floresta-sol.jpg"
+      data-src-mobile="assets/backgrounds/floresta-sol-mobile.webp"
+      data-src-desktop="assets/backgrounds/floresta-sol-desktop.webp"
       alt=""
       decoding="async"
     >
@@ -68,6 +75,15 @@
         title="Alternar cenários automaticamente"
       >
         Auto: ON
+      </button>
+      <button
+        type="button"
+        id="btn-perf-tier"
+        class="btn-cenario-perf"
+        aria-label="Modo de desempenho gráfico: automático"
+        title="Alternar qualidade gráfica (Auto / Ultra / Equilibrado / Lite)"
+      >
+        Perf: Auto
       </button>
     </div>
   </nav>
