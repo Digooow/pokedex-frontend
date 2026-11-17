@@ -79,3 +79,4 @@ Documentação técnica das decisões planejadas para expandir este projeto em u
 - [08 — Museu das Regiões, Lore e Pokédex Holocron 3D](docs/08-museu-lore-e-holocron-pokedex.md)
 - [09 — Arena de Batalha (PvE/PvP), Team Builder e Mini-Games](docs/09-arena-batalha-teambuilder-e-minigames.md)
 - [10 — Infraestrutura Docker, Observabilidade e CI/CD](docs/10-infraestrutura-docker-ci-cd-e-deploy.md)
+- [11 — Desempenho Ponta a Ponta, Detecção de Hardware, Mobile e Release Gates](docs/11-performance-hardware-gates-e-mobile.md)

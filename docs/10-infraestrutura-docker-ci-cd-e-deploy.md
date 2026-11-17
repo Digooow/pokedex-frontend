@@ -145,24 +145,38 @@ Proibido `console.log("erro no usuario " + id)` em texto solto. Toda aplicação
 
 ---
 
-## 4. Topologia Cloud e Pipeline CI/CD
+## 4. Topologia Cloud 100% Gratuita (Free Tiers + Benefícios de Estudante) e CI/CD
+
+Para publicar a plataforma Full-Stack completa sem custo mensal fixo, a arquitetura combina **Free Tiers permanentes** (sem expiração de 30 dias) com **créditos do GitHub Student Developer Pack / e-mail acadêmico**:
 
 ```mermaid
 flowchart LR
-  User["Navegador (WebGL2 + WASM + Angular)"] -->|"HTTPS / CDN"| Vercel["Vercel / Cloudflare Pages (apps/web)"]
-  User -->|"HTTPS REST + WSS"| APIHost["Railway / Fly.io (apps/api + Workers)"]
-  APIHost --> Neon[("Neon Serverless Postgres")]
-  APIHost --> Upstash[("Upstash Redis")]
-  APIHost --> RedpandaCloud[["Redpanda Serverless (Kafka)"]]
-  APIHost --> R2[("Cloudflare R2 / AWS S3 (ROMs & Saves)")]
+  User["Navegador Desktop & Mobile (Angular + WebGL2 + WASM)"] -->|"HTTPS / CDN Ilimitada"| CF["Cloudflare Pages / Vercel Hobby (apps/web)"]
+  User -->|"HTTPS REST + WSS"| APIHost["Azure for Students / Heroku Student / OCI ARM / Render (apps/api + Workers)"]
+  APIHost --> Neon[("Neon Serverless Postgres (Free Permanente)")]
+  APIHost --> Upstash[("Upstash Redis (Free Permanente)")]
+  APIHost --> Aiven[["Aiven Apache Kafka Free (5 Tópicos / Sem Cartão)"]]
+  APIHost --> R2[("Cloudflare R2 (10 GB Free + $0 Egresso)")]
   User -->|"Presigned URL 60s"| R2
 ```
 
-### Pipeline CI/CD (GitHub Actions)
-- **Trigger em Pull Requests para `main`:**
-  1. `lint` + validação de formatação + checagem de segurança de dependências;
-  2. `typecheck` compartilhado (`packages/shared`, `apps/web`, `apps/api`);
-  3. Testes unitários (algoritmos de busca, Team Builder, cálculo de dano, regras de domínio) e testes de integração com Postgres/Redis;
-  4. Build completo de produção do Angular e do NestJS.
+### Matriz de Hospedagem Custo Zero
+
+| Camada | Provedor Gratuito Recomendado | Benefício / Limite Atual | Notas de Arquitetura |
+| :--- | :--- | :--- | :--- |
+| **Front-end Angular + WASM** | **Cloudflare Pages** (ou **Vercel Hobby**) | Gratuito permanente; banda estática ilimitada no Cloudflare Pages | *Cloudflare for Students* também isenta `$5/mês` do Workers Paid por 12 meses |
+| **PostgreSQL** | **Neon** (ou **Supabase**) | Free Tier permanente sem cartão | Evitar Postgres gratuito do Render porque expira após 30 dias |
+| **Redis** | **Upstash Redis** | Free Tier serverless permanente sem cartão | Ideal para cache da PokéAPI, sessões anti-cheat e *Sorted Sets* |
+| **Storage ROMs & Saves** | **Cloudflare R2** | `10 GB` grátis sempre com **`$0` de taxa de tráfego (egress)** | Compatível com SDK S3; impede cobranças por downloads repetidos de ROMs |
+| **Apache Kafka** | **Aiven for Apache Kafka Free** (ou **CloudAMQP Free** se optar por AMQP) | Até `5` tópicos (`2` partições cada, retenção `3d`) sem cartão | Tópicos consolidados em `4` de domínio + `1` DLQ unificada (ver [doc 06](06-cache-redis-e-eventos-kafka.md)) |
+| **Back-end NestJS + Workers** | **Azure for Students** / **Heroku Student Pack** / **Oracle Always Free** / **Render Free** | Azure: `$100` por 12m sem cartão; Heroku Student: `$13/mês` por 24m; Oracle: VM ARM Always Free; Render: 750h/mês com *spin-down* 15m | Azure/Heroku Student mantêm WebSockets ativos 24/7 sem hibernação; DigitalOcean/Fly/Koyeb não possuem mais free tier equivalente |
+| **Domínio Customizado** | **Namecheap / Name.com** (GitHub Student Pack) | `1` ano gratuito (`.me` ou `.tech`) | HTTPS automático via Cloudflare DNS |
+
+### Pipeline CI/CD & Performance Release Gates (GitHub Actions)
+- **Trigger em Pull Requests para `main` (portões obrigatórios de bloqueio descritos em [doc 11](11-performance-hardware-gates-e-mobile.md)):**
+  1. `lint` + validação de formatação + checagem de vulnerabilidades;
+  2. `typecheck` compartilhado (`packages/shared`, `apps/web`, `apps/api`) + verificação de orçamentos de bundle;
+  3. Testes unitários, de integração com Postgres/Redis (contagem anti-N+1 + `EXPLAIN ANALYZE`) e suíte Playwright (FPS mobile + zero vazamento WebGL);
+  4. **Lighthouse CI (perfil mobile lento)** + teste de carga **`k6`** e resiliência — qualquer regressão acima dos SLOs **reprova automaticamente o build e bloqueia o deploy até refatoração**.
 - **Trigger em Merge na `main`:**
-  - Executa migrations seguras do Prisma (`prisma migrate deploy`), atualiza container da API/Workers e publica nova versão do front-end com verificação automática de `/health/ready`.
+  - Executa migrations seguras do Prisma (`prisma migrate deploy`), atualiza container da API/Workers e publica nova versão do front-end validando `/health/ready`.

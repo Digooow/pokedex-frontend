@@ -86,6 +86,7 @@ export class AuthStore {
 | **`ArcadeStore`** | Catálogo de ROMs disponíveis, jogo ativo no console 3D, progresso do download e slots de Save State | NestJS `/arcade/roms` + MinIO Stream + WebAssembly |
 | **`BattleStore`** | Fila de matchmaking PvP, estado turno-a-turno da partida, HP, buffs, log de combate e times salvos | WebSocket `BattleGateway` + NestJS `/teams` |
 | **`AudioStore`** | Controle de volume mestre, trilha ambiente de tela de título/museu/mapa e reprodução de *cries* | Web Audio API + preferência local não sensível |
+| **`QualityStore`** | Perfil gráfico detectado automaticamente (`ULTRA`, `BALANCED`, `LITE`), override manual do usuário e watchdog de FPS | `HardwareDetectorService` + `FpsWatchdog` + preferência local |
 
 ---
 

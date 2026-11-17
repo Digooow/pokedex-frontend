@@ -58,16 +58,15 @@ sequenceDiagram
 
 ## 3. Catálogo Oficial de Tópicos Kafka
 
-Todos os tópicos seguem versionamento explícito (`.v1`), chave de partição determinística para manter ordem por entidade e tópico irmão **Dead Letter Queue (`.dlq.v1`)**:
+Para operar tanto em **Redpanda local** quanto em **planos gratuitos gerenciados em nuvem (como o Free Tier da Aiven for Apache Kafka, que permite até `5` tópicos com `2` partições cada sem cartão de crédito)**, a topologia é consolidada em **4 tópicos de domínio + 1 tópico unificado de Dead Letter Queue (`5` tópicos no total)**:
 
 | Tópico | Chave de Partição | Produtor | Consumidores | Propósito |
 | :--- | :--- | :--- | :--- | :--- |
-| **`pokeverse.world.events.v1`** | `trainerId` | `Pokedex`, `Battle`, `Minigames` | `WorldGateway` (WebSocket) | Transmitir capturas nos slots, vitórias contra Líderes e recordes para o Ticker ao vivo |
-| **`pokeverse.arcade.savestate.v1`** | `trainerId:romId` | `ArcadeModule` | `ArcadeSaveWorker` | Validar integridade SHA-256, comprimir/arquivar revisões anteriores no MinIO e notificar sucesso |
+| **`pokeverse.world.events.v1`** | `trainerId` | `Pokedex`, `Battle`, `Minigames`, `Teams` | `WorldGateway` + `TeamAnalyzerWorker` | Eventos sociais (slots, conquistas, recordes) e gatilhos de análise assíncrona de times (diferenciados por header `eventType`) |
+| **`pokeverse.arcade.savestate.v1`** | `trainerId:romId` | `ArcadeModule` | `ArcadeSaveWorker` | Validar integridade SHA-256, gerenciar revisões antigas no MinIO/R2 e confirmar cloud save |
 | **`pokeverse.battle.matchmaking.v1`** | `formatRule` | `BattleModule` | `MatchmakerWorker` | Parear treinadores na fila PvP por faixa de `eloRating` e abrir sala no Redis + WebSocket |
 | **`pokeverse.battle.results.v1`** | `matchId` | `BattleModule` | `StatsWorker` + `WorldGateway` | Atualizar ELO no Postgres + Redis Sorted Set e publicar resultado no feed global |
-| **`pokeverse.team.analysis.v1`** | `teamId` | `TeamsModule` | `TeamAnalyzerWorker` | Calcular matriz de fraquezas/cobertura 18x18 e atualizar `synergyScore` assincronamente |
-| **`pokeverse.*.dlq.v1`** | Original | Consumers em falha | Alerta & Inspeção | Isolar eventos inválidos ou falhos após limite de retentativas com payload + erro preservados |
+| **`pokeverse.dlq.v1`** | Original | Consumers em falha | Alerta & Inspeção | **DLQ unificada**: isola eventos inválidos ou falhos após limite de tentativas preservando header `originalTopic`, `trace_id`, payload e erro |
 
 ---
 

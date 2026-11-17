@@ -64,7 +64,8 @@ Vazamentos de memória em WebGL são a principal causa de travamentos em apps 3D
 1. **Pausa Automática por Visibilidade (`visibilitychange` e troca de rota):** ao sair da aba do navegador ou abrir um modal sobreposto, o *ticker* suspende atualizações pesadas.
 2. **Descarte Explícito no `ngOnDestroy()` (`DisposableRegistry`):**
    - Chamada obrigatória de `geometry.dispose()`, `material.dispose()`, `texture.dispose()`, `composer.dispose()` e `renderer.dispose()` ao desmontar módulos pesados como o Arcade ou o Holocron fora da cache de cena.
-3. **Detecção de Capacidade & Degradação Graciosa:**
-   - Redução automática de `devicePixelRatio` máximo para `Math.min(window.devicePixelRatio, 2)` evitando sobrecarga em telas 4K.
+3. **Detecção de Capacidade, Mobile-First & Degradação Graciosa (Ver [doc 11](11-performance-hardware-gates-e-mobile.md)):**
+   - O `HardwareDetectorService` classifica o dispositivo automaticamente entre **`ULTRA`**, **`BALANCED`** e **`LITE`** (`deviceMemory`, `hardwareConcurrency`, `saveData`, suporte WebGL2 e interface touch), ajustando `devicePixelRatio` (`2.0` / `1.5` / `1.0`), contagem de partículas e *post-processing* Bloom.
+   - Em tempo de execução, um *FpsWatchdog* rebaixa o perfil automaticamente se a média cair abaixo de `45 FPS` por mais de 3 segundos em celulares modestos; o modo `LITE` oferece fallback em CSS/2D leve quando não houver WebGL2 adequado.
    - Modo `prefers-reduced-motion: reduce`: desliga rotação automática de câmera, tremor de tela, partículas contínuas e transições longas GSAP.
-   - Fallback para renderização reduzida caso o dispositivo tenha WebGL limitado ou `webglcontextlost`.
+   - Fallback seguro caso ocorra `webglcontextlost`, além de joysticks/botões virtuais touch `>= 44×44px` no Overworld e Arcade em telas móveis.
