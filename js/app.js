@@ -221,7 +221,7 @@ function atualizarBotaoPerfTier() {
   const prefixo = perfPreferencia === PERF_MODO_AUTO ? "Perf: Auto (" + nomeTier + ")" : "Perf: " + nomeTier;
   btnPerfTier.textContent = prefixo;
   btnPerfTier.dataset.perfMode = tierAtivo;
-  btnPerfTier.setAttribute(ATTR_ARIA_LABEL, "Qualidade gráfica atual: " + nomeTier);
+  btnPerfTier.title = prefixo + " — alternar qualidade gráfica (Auto / Ultra / Equil. / Lite)";
 }
 
 function obterChaveVarianteCenario() {

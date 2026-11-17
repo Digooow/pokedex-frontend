@@ -527,7 +527,7 @@
 
   .pokedex-aparelho {
     --wing-w: min(23.5rem, calc(100vw - 1.5rem));
-    --wing-h: clamp(25rem, 42dvh, 28.5rem);
+    --wing-h: clamp(36.5rem, 76dvh, 43.5rem);
     display: flex;
     justify-content: center;
     padding-top: 0;
@@ -757,7 +757,8 @@
     }
   }
 
-  .pokedex-aparelho[data-aberta="true"]:not(.is-animando) {
+  .pokedex-aparelho[data-aberta="true"],
+  .pokedex-aparelho.is-animando {
     padding-top: var(--wing-h);
   }
 
@@ -771,10 +772,6 @@
 
   .pokedex-aparelho[data-aberta="false"] .pokedex-livro {
     transition-delay: 70ms;
-  }
-
-  .pokedex-aparelho[data-aberta="true"].is-animando .pokedex-livro {
-    transform: translateY(calc(var(--wing-h) / 2));
   }
 
   .pokedex-aparelho[data-aberta="true"] .pokedex-aba-giratoria {
@@ -801,7 +798,8 @@
   }
 
   @media (min-width: 880px) {
-    .pokedex-aparelho[data-aberta="true"]:not(.is-animando) {
+    .pokedex-aparelho[data-aberta="true"],
+    .pokedex-aparelho.is-animando {
       padding-top: 0;
     }
 
