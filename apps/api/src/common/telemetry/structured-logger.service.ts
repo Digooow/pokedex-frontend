@@ -29,7 +29,7 @@ export class StructuredLoggerService implements LoggerService {
     this.emit('error', message, {
       context,
       errorCode: 'INTERNAL_LOG_ERROR',
-      traceId: trace && trace.length === 32 ? trace : null,
+      traceId: trace?.length === 32 ? trace : null,
     });
   }
 

@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const PokeApiNamedResourceSchema = z.object({
   name: z.string().min(1),
-  url: z.string().url(),
+  url: z.url(),
 });
 
 export const PokeApiCatalogResponseSchema = z.object({
@@ -39,14 +39,14 @@ export const PokemonDetailSchema = z.object({
   abilities: z.array(PokemonAbilitySlotSchema),
   stats: z.array(PokemonStatEntrySchema),
   sprites: z.object({
-    front_default: z.string().url().nullable().optional(),
-    front_shiny: z.string().url().nullable().optional(),
+    front_default: z.url().nullable().optional(),
+    front_shiny: z.url().nullable().optional(),
     other: z
       .object({
         'official-artwork': z
           .object({
-            front_default: z.string().url().nullable().optional(),
-            front_shiny: z.string().url().nullable().optional(),
+            front_default: z.url().nullable().optional(),
+            front_shiny: z.url().nullable().optional(),
           })
           .optional(),
       })
@@ -54,8 +54,8 @@ export const PokemonDetailSchema = z.object({
   }),
   cries: z
     .object({
-      latest: z.string().url().nullable().optional(),
-      legacy: z.string().url().nullable().optional(),
+      latest: z.url().nullable().optional(),
+      legacy: z.url().nullable().optional(),
     })
     .optional(),
 });

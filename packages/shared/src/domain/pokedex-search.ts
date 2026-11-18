@@ -43,6 +43,39 @@ export function buildPhoneticKey(text: string): string {
     .replaceAll(/(.)\1+/g, '$1');
 }
 
+function computeDamerauCell(
+  dp: Int32Array,
+  stride: number,
+  source: string,
+  target: string,
+  i: number,
+  j: number,
+  maxDistance: number,
+): number {
+  const srcChar = source.charAt(i - 1);
+  const tgtChar = target.charAt(j - 1);
+  const cost = srcChar === tgtChar ? 0 : 1;
+
+  const up = (dp[(i - 1) * stride + j] ?? maxDistance) + 1;
+  const left = (dp[i * stride + (j - 1)] ?? maxDistance) + 1;
+  const diag = (dp[(i - 1) * stride + (j - 1)] ?? maxDistance) + cost;
+
+  let best = Math.min(up, left, diag);
+
+  const canTranspose =
+    i > 1 &&
+    j > 1 &&
+    srcChar === target.charAt(j - 2) &&
+    source.charAt(i - 2) === tgtChar;
+
+  if (canTranspose) {
+    const transposition = (dp[(i - 2) * stride + (j - 2)] ?? maxDistance) + cost;
+    best = Math.min(best, transposition);
+  }
+
+  return best;
+}
+
 /**
  * Optimal string alignment / restricted Damerau-Levenshtein distance.
  * Uses a flat Int32Array matrix to avoid nested allocation inside large catalog scans.
@@ -70,32 +103,8 @@ export function computeDamerauDistance(
   }
 
   for (let i = 1; i <= m; i += 1) {
-    const srcChar = source.charAt(i - 1);
-    const prevSrcChar = i > 1 ? source.charAt(i - 2) : '';
-
     for (let j = 1; j <= n; j += 1) {
-      const tgtChar = target.charAt(j - 1);
-      const cost = srcChar === tgtChar ? 0 : 1;
-
-      const up = (dp[(i - 1) * stride + j] ?? maxDistance) + 1;
-      const left = (dp[i * stride + (j - 1)] ?? maxDistance) + 1;
-      const diag = (dp[(i - 1) * stride + (j - 1)] ?? maxDistance) + cost;
-
-      let best = Math.min(up, left, diag);
-
-      if (
-        i > 1 &&
-        j > 1 &&
-        srcChar === target.charAt(j - 2) &&
-        prevSrcChar === tgtChar
-      ) {
-        const transposition = (dp[(i - 2) * stride + (j - 2)] ?? maxDistance) + cost;
-        if (transposition < best) {
-          best = transposition;
-        }
-      }
-
-      dp[i * stride + j] = best;
+      dp[i * stride + j] = computeDamerauCell(dp, stride, source, target, i, j, maxDistance);
     }
   }
 
@@ -104,7 +113,7 @@ export function computeDamerauDistance(
 
 export function extractPokemonIdFromUrl(url: string): number {
   const match = /\/(\d+)\/?$/.exec(url);
-  if (!match || !match[1]) {
+  if (!match?.[1]) {
     return 0;
   }
   const parsed = Number(match[1]);
@@ -112,7 +121,7 @@ export function extractPokemonIdFromUrl(url: string): number {
 }
 
 export function formatPokeApiText(text: string | null | undefined): string {
-  if (!text || !text.trim()) {
+  if (!text?.trim()) {
     return 'Não informado';
   }
   return text

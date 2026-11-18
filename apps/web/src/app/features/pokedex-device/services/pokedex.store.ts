@@ -88,7 +88,7 @@ export class PokedexStore implements OnDestroy {
         catchError(() => of(null)),
       )
       .subscribe((parsed) => {
-        if (!parsed || !parsed.success) {
+        if (!parsed?.success) {
           this.catalogStateSignal.set({
             status: 'error',
             error: {
@@ -152,7 +152,7 @@ export class PokedexStore implements OnDestroy {
         catchError(() => of(null)),
       )
       .subscribe((parsed) => {
-        if (!parsed || !parsed.success) {
+        if (!parsed?.success) {
           this.selectedIdSignal.set(null);
           this.detailStateSignal.set({
             status: 'error',

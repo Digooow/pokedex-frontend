@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
 import type { PokemonDetailView } from '../services/pokedex.store';
 

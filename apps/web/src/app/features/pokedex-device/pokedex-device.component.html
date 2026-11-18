@@ -92,7 +92,8 @@
         />
 
         <div class="dex-slots-footer">
-          <div class="dex-slots-grid" role="group" aria-label="10 slots de memória na nuvem">
+          <fieldset class="dex-slots-grid">
+            <legend class="visually-hidden">10 slots de memória na nuvem</legend>
             @for (idx of slotIndices; track idx) {
               <button
                 type="button"
@@ -104,16 +105,16 @@
                 {{ idx + 1 }}
               </button>
             }
-          </div>
+          </fieldset>
 
           <button
             type="button"
             class="dex-config-visor"
             pvRequiresTrainer="Configurar Slots Salvos"
             lockedDescription="Edição e remoção de slots salvos requerem sessão autenticada de treinador."
-            aria-label="Configurar slots (exclusivo para treinadores)"
+            aria-label="Configurar slots salvos (exclusivo para treinadores)"
           >
-            Sync 🔒
+            Configurar <span aria-hidden="true">🔒</span>
           </button>
         </div>
       </div>

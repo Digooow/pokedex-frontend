@@ -11,7 +11,7 @@ export type DependencyStatus = z.infer<typeof DependencyStatusSchema>;
 export const LivenessResponseSchema = z.object({
   status: z.literal('ok'),
   service: z.string().min(1),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   uptimeSec: z.number().nonnegative(),
 });
 
@@ -20,7 +20,7 @@ export type LivenessResponse = z.infer<typeof LivenessResponseSchema>;
 export const ReadinessResponseSchema = z.object({
   status: z.enum(['ok', 'degraded']),
   service: z.string().min(1),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   uptimeSec: z.number().nonnegative(),
   dependencies: z.object({
     postgres: DependencyStatusSchema,
@@ -44,7 +44,7 @@ export const PlatformModuleSchema = z.object({
 export const SystemBootstrapSchema = z.object({
   service: z.string().min(1),
   phase: z.literal('phase-1'),
-  timestamp: z.string().datetime(),
+  timestamp: z.iso.datetime(),
   modules: z.array(PlatformModuleSchema),
 });
 

@@ -9,10 +9,10 @@ const ApiEnvSchema = z.object({
     .string()
     .min(1)
     .default('http://localhost:4200,http://127.0.0.1:4200'),
-  DATABASE_URL: z.string().url().startsWith('postgresql://'),
-  REDIS_URL: z.string().url().startsWith('redis://'),
+  DATABASE_URL: z.url().startsWith('postgresql://'),
+  REDIS_URL: z.url().startsWith('redis://'),
   KAFKA_BROKERS: z.string().min(1),
-  S3_ENDPOINT: z.string().url(),
+  S3_ENDPOINT: z.url(),
   MINIO_ROOT_USER: z.string().min(3),
   MINIO_ROOT_PASSWORD: z.string().min(8),
   S3_BUCKET_ROMS: z.string().min(1).default('pokeverse-roms'),

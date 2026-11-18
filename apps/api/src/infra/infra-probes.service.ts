@@ -170,14 +170,11 @@ export class InfraProbesService implements OnModuleDestroy {
         status: 'up',
         latencyMs: Math.max(0, Math.round(performance.now() - start)),
       };
-    } catch (error) {
+    } catch {
       return {
         status: 'down',
         latencyMs: Math.max(0, Math.round(performance.now() - start)),
-        detail:
-          error instanceof Error && error.message
-            ? fallbackDetail
-            : fallbackDetail,
+        detail: fallbackDetail,
       };
     } finally {
       if (timer) {
