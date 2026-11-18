@@ -205,3 +205,10 @@ flowchart LR
   4. **Lighthouse CI (perfil mobile lento)** + teste de carga **`k6`** e resiliência — qualquer regressão acima dos SLOs **reprova automaticamente o build e bloqueia o deploy até refatoração**.
 - **Trigger em Merge na `main`:**
   - Executa migrations seguras do Prisma (`prisma migrate deploy`), atualiza container da API/Workers e publica nova versão do front-end validando `/health/ready`.
+
+---
+
+## 5. Estado Atual (Fases 1–2) e Portões de Segurança DevSecOps
+
+- **Infra local implementada:** `infra/docker/docker-compose.yml` com PostgreSQL 16 (`5433`), Redis 7 (`6379`), Redpanda (`19092`), Redpanda Console (`8085`) e S3 compatível `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` (`9000/9001`), além de `CorrelationMiddleware` (`x-correlation-id` + `traceparent`), `StructuredLoggerService`, `/health/live` e `/health/ready`.
+- **Pendente para Fases 3–6 e CI/CD:** `Dockerfiles` multi-stage não-root, workflows GitHub Actions (`gitleaks`, `npm audit`, Trivy, Playwright, Lighthouse CI, `k6`) e hardening completo detalhado em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md) e [14 — Status Real da Implementação](14-status-e-changelog-implementacao.md).

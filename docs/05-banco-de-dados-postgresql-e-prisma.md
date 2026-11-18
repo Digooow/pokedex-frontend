@@ -317,3 +317,11 @@ model OutboxEvent {
 5. **Transações Ultracurtas e Prevenção de Deadlocks:**
    - Chamadas à PokéAPI, uploads para o MinIO/S3 ou publicações no Kafka **nunca ocorrem dentro de `prisma.$transaction()`**. A transação abre apenas para gravar as entidades locais + o registro correspondente em `OutboxEvent` e faz commit imediato.
    - Em atualizações simultâneas de múltiplos registros (ex.: reordenação de membros do time ou slots), os IDs são sempre ordenados de forma determinística antes do `UPDATE` para eliminar ciclos de *lock* (deadlocks).
+
+---
+
+## 5. Status Atual de Aplicação (Fase 2)
+
+- **Versão instalada:** Prisma **`6.19.3`** (`prisma` e `@prisma/client`) escolhido para compatibilidade direta CJS com NestJS 11 e Jest.
+- **Migration aplicada:** `apps/api/prisma/migrations/20261118073124_init_pokeverse_schema/migration.sql`, criando as 10 tabelas de domínio no PostgreSQL (`pokeverse-postgres`) mais o índice parcial `"idx_outbox_pending"` em `"OutboxEvent" ("createdAt" ASC) WHERE "status" = 'PENDING'`.
+- **Segurança & Higiene pendentes:** ver política de privilégio mínimo da role de runtime e worker de expurgo para `RefreshToken`/`OutboxEvent` publicados no [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md#71-postgresql--prisma-orm).

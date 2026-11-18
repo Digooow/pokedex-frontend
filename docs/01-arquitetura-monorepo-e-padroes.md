@@ -123,3 +123,16 @@ A fonte única da verdade (**Single Source of Truth**) mora em `packages/shared`
 
 - **Conventional Commits:** `feat(arcade): ...`, `fix(pokedex): ...`, `docs(arch): ...`, `refactor(battle): ...`, `test(domain): ...`, `chore(infra): ...`.
 - **Branches:** `main` (estável/produção), branches curtas por entrega (`feat/fase-1-monorepo`, `feat/fase-2-auth-slots`, etc.) validadas por CI (`lint`, `typecheck`, `test`, `build`) antes do merge.
+
+---
+
+## 6. Estado Real do Monorepo (Fases 1 e 2 Entregues)
+
+O repositório utiliza **npm workspaces** (`package.json` raiz, sem Turborepo neste estágio) e o prefixo Angular **`pv-*`** (`[pvRequiresTrainer]`). Já estão ativos no código-fonte:
+
+- `packages/shared`: schemas Zod de Auth, Pokédex/Slots, Saúde e Eventos Kafka + busca fonética/Damerau-Levenshtein portada e testada em Vitest.
+- `apps/api`: módulos `AuthModule`, `PokedexModule`, `EventsModule` (`OutboxRelayService` + `WorldEventsConsumerService`), `WorldModule` (`WorldGateway`), `HealthModule` e `SystemModule` sobre Prisma `6.19.3`, Redis (`ioredis`) e Redpanda (`kafkajs`). Módulos `trainers/`, `museum/`, `arcade/`, `teams/`, `minigames/` e `battle/` pertencem às **Fases 3–6**.
+- `apps/web`: Shell Angular Standalone/Zoneless (`TitleScreenComponent`, `PokedexDevicePageComponent` + `PokedexSlotsStore`, placeholder inicial `MuseumPageComponent`). As features `overworld/`, `holocron-3d/`, `retro-arcade/` e `battle-arena/` pertencem às **Fases 3–6**.
+- `infra/docker/docker-compose.yml`: PostgreSQL 16 (`5433`), Redis 7 (`6379`), Redpanda (`19092`), Redpanda Console (`8085`) e S3 compatível (`pgsty/silo` em `9000/9001`).
+
+> Detalhes completos de divergências, módulos entregues, blindagem pendente e métricas medidas estão em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md) e [14 — Status Real da Implementação](14-status-e-changelog-implementacao.md).

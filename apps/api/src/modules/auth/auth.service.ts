@@ -153,9 +153,17 @@ export class AuthService {
       },
     });
 
-    const { passwordHash: _omitted, ...safeProfile } = trainer;
-    void _omitted;
-    const session = await this.buildSessionResponse(safeProfile);
+    const session = await this.buildSessionResponse({
+      id: trainer.id,
+      username: trainer.username,
+      email: trainer.email,
+      badgesCount: trainer.badgesCount,
+      eloRating: trainer.eloRating,
+      lastMapId: trainer.lastMapId,
+      lastX: trainer.lastX,
+      lastY: trainer.lastY,
+      createdAt: trainer.createdAt,
+    });
     return { session, refreshToken: rawRefresh };
   }
 

@@ -55,22 +55,10 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       return 0;
     }
 
-    const publishedIds: string[] = [];
-
-    for (const row of pendingRows) {
-      const traceId = this.extractTraceId(row.payload);
-      try {
-        await this.kafka.publish(row.eventType, row.aggregateId, row.payload, {
-          eventId: row.id,
-          ...(traceId
-            ? { traceparent: `00-${traceId}-0000000000000001-01` }
-            : {}),
-        });
-        publishedIds.push(row.id);
-      } catch (error) {
-        await this.recordDeliveryFailure(row, error, traceId);
-      }
-    }
+    const outcomes = await Promise.all(
+      pendingRows.map((row) => this.publishOutboxRow(row)),
+    );
+    const publishedIds = outcomes.filter((id): id is string => id !== null);
 
     if (publishedIds.length > 0) {
       await this.prisma.outboxEvent.updateMany({
@@ -82,13 +70,31 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
     return pendingRows.length;
   }
 
+  private async publishOutboxRow(
+    row: ClaimedOutboxRow,
+  ): Promise<string | null> {
+    const traceId = this.extractTraceId(row.payload);
+    try {
+      await this.kafka.publish(row.eventType, row.aggregateId, row.payload, {
+        eventId: row.id,
+        ...(traceId
+          ? { traceparent: `00-${traceId}-0000000000000001-01` }
+          : {}),
+      });
+      return row.id;
+    } catch (error) {
+      await this.recordDeliveryFailure(row, error, traceId);
+      return null;
+    }
+  }
+
   async onModuleDestroy(): Promise<void> {
     this.stopped = true;
     if (this.pollTimer) {
       clearTimeout(this.pollTimer);
       this.pollTimer = null;
     }
-    if (this.currentBatchPromise) {
+    if (this.currentBatchPromise !== null) {
       await this.currentBatchPromise.catch(() => undefined);
     }
   }

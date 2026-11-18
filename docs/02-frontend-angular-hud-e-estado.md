@@ -29,8 +29,8 @@ flowchart TD
 ```
 
 ### Implementação dos Guards e Diretivas de Bloqueio
-- **`authGuard` (CanActivateFn):** verifica `AuthStore.isAuthenticated()`. Se o usuário for visitante, bloqueia o acesso direto via URL às rotas `/mundo`, `/arcade` e `/arena`, redireciona de forma limpa ou abre o prompt de login mantendo a URL de destino (`returnUrl`) para retorno automático após autenticação.
-- **`VisitorLockDirective` (`[appRequiresTrainer]`):** diretiva estrutural/de atributo aplicada a botões protegidos dentro de módulos mistos (por exemplo, botões de gravação nos slots da Pokédex ou botão *"Adicionar ao Time"* dentro do Holocron). Em modo visitante, aplica visual de cadeado semântico (`aria-disabled="true"` / badge de cadeado) e intercepta o clique abrindo o modal de autenticação.
+- **`authGuard` (`CanActivateFn` em `apps/web/src/app/core/guards/auth.guard.ts`):** verifica `AuthStore.isAuthenticated()`. Se o usuário for visitante, bloqueia o acesso direto via URL às rotas `/mundo`, `/arcade` e `/arena` (atualmente apontando temporariamente para `TitleScreenComponent` até a entrega das Fases 3–6), abre o diálogo de autenticação com contexto do módulo (`targetRoute`) e mantém o usuário na rota pública com segurança.
+- **`RequiresTrainerDirective` (`[pvRequiresTrainer]` em `apps/web/src/app/shared/directives/requires-trainer.directive.ts`):** diretiva de atributo aplicada a controles protegidos dentro de módulos mistos (por exemplo, os botões de slots na Pokédex quando em modo visitante e os atalhos bloqueados do dock). Mantém a focabilidade por teclado usando `aria-disabled="true"` e classe `.is-trainer-locked`, interceptando o clique para abrir o `<dialog>` de Login/Criar Conta (`VisitorLockDialogComponent`).
 
 ---
 
@@ -76,17 +76,19 @@ export class AuthStore {
 }
 ```
 
-### Catálogo de Stores do Front-end
+### Catálogo de Stores do Front-end (Implementados vs. Planejados)
 
-| Store | Responsabilidade Principal | Fonte de Verdade |
-| :--- | :--- | :--- |
-| **`AuthStore`** | Sessão atual, perfil do treinador, refresh silencioso de token e modo Visitante/Treinador | NestJS `/auth/me` + `Access Token` em memória + Refresh Cookie HttpOnly |
-| **`WorldStore`** | Mapa atual, coordenadas do jogador no Overworld, treinadores online próximos e Ticker global | WebSocket `WorldGateway` + Phaser `EventBus` |
-| **`PokedexSlotsStore`** | Estado dos 10 slots da Pokédex 3D; modo bloqueado para visitante, sincronizado na nuvem para logado | NestJS `/pokedex/slots` (PostgreSQL) |
-| **`ArcadeStore`** | Catálogo de ROMs disponíveis, jogo ativo no console 3D, progresso do download e slots de Save State | NestJS `/arcade/roms` + MinIO Stream + WebAssembly |
-| **`BattleStore`** | Fila de matchmaking PvP, estado turno-a-turno da partida, HP, buffs, log de combate e times salvos | WebSocket `BattleGateway` + NestJS `/teams` |
-| **`AudioStore`** | Controle de volume mestre, trilha ambiente de tela de título/museu/mapa e reprodução de *cries* | Web Audio API + preferência local não sensível |
-| **`QualityStore`** | Perfil gráfico detectado automaticamente (`ULTRA`, `BALANCED`, `LITE`), override manual do usuário e watchdog de FPS | `HardwareDetectorService` + `FpsWatchdog` + preferência local |
+| Store | Status | Responsabilidade Principal | Fonte de Verdade |
+| :--- | :---: | :--- | :--- |
+| **`AuthStore`** | **Implementada (Fase 2)** | Sessão atual, `accessToken` em Signal/RAM, silent refresh, login/registro/logout e prompt de visitante | NestJS `/api/v1/auth/*` + Cookie `HttpOnly` *(alvo de upgrade no [doc 13](13-dossie-de-seguranca-e-blindagem.md))* |
+| **`WorldTickerStore`** | **Implementada (Fase 2)** | Ticker global em tempo real no HUD com importação dinâmica lazy de `socket.io-client` | WebSocket `/ws/world` (`world:recent-events` / `world:global-event`) |
+| **`PokedexStore` & `PokedexSlotsStore`** | **Implementadas (Fases 1–2)** | Catálogo/detalhes via `/api/v1/pokedex/*` (Redis + fallback direto PokéAPI) e CRUD dos 10 slots na nuvem para logados | NestJS `/api/v1/pokedex/*` + PokéAPI fallback |
+| **`QualityStore`** | **Implementada (Fase 1)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com override manual no HUD | Hardware probe + preferência local não sensível |
+| **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar | NestJS `/health/ready` |
+| **`WorldStore`** | **Planejada (Fase 3)** | Mapa atual, coordenadas do jogador no Overworld e treinadores conectados | WebSocket `WorldGateway` + Phaser `EventBus` |
+| **`ArcadeStore`** | **Planejada (Fase 5)** | Catálogo de ROMs disponíveis, jogo ativo no console 3D, progresso do download e Save States | NestJS `/arcade/roms` + MinIO Stream + WebAssembly |
+| **`BattleStore`** | **Planejada (Fase 6)** | Fila de matchmaking PvP, estado turno-a-turno da partida, HP, buffs, log e times | WebSocket `BattleGateway` + NestJS `/teams` |
+| **`AudioStore`** | **Planejada (Fases 3–4)** | Volume mestre, trilhas ambiente e *cries* via Web Audio API | Web Audio API + preferência local não sensível |
 
 ---
 

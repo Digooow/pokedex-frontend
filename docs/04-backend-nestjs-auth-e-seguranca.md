@@ -18,20 +18,19 @@ flowchart LR
   Ports --> S3["S3 Client (MinIO / R2)"]
 ```
 
-### Catálogo de Módulos NestJS
+### Catálogo de Módulos NestJS (Implementados vs. Planejados)
 
-| Módulo | Responsabilidade Principal | Acesso |
-| :--- | :--- | :--- |
-| **`AuthModule`** | Registro, login, rotação de *Refresh Token*, logout e `/auth/me` | Público (`/register`, `/login`, `/refresh`) + Protegido (`/logout`, `/me`) |
-| **`TrainersModule`** | Perfil do treinador, avatar, últimas coordenadas no Overworld e insígnias | Protegido (`JwtAuthGuard`) |
-| **`PokedexModule`** | Proxy com cache Redis da PokéAPI + CRUD dos 10 slots na nuvem | Leitura pública (`GET /pokemon`) + Slots protegidos (`JWT`) |
-| **`MuseumModule`** | Entrega estruturada de regiões, ginásios, líderes e linha do tempo de jogos | Público (`@Public()`) |
-| **`ArcadeModule`** | Catálogo fixo de ROMs, geração de URL/stream autenticado e *Cloud Save States* | Protegido (`JwtAuthGuard`) |
-| **`TeamsModule`** | CRUD de equipes (6 slots), validação de regras e disparo de análise assíncrona | Protegido (`JwtAuthGuard`) |
-| **`MinigamesModule`** | Sessões temporizadas anti-cheat + pontuação no Redis *Sorted Sets* | Protegido (`JwtAuthGuard`) |
-| **`BattleModule`** | Engine determinística turn-based (PvE e PvP), Matchmaking Kafka e `BattleGateway` | Protegido (`JwtAuthGuard` / `WsJwtGuard`) |
-| **`WorldModule`** | `WorldGateway` WebSocket para presença online e Ticker global de eventos | Protegido (`WsJwtGuard`) |
-| **`HealthModule`** | Endpoints `/health/live` e `/health/ready` verificando dependências críticas | Público controlado (infraestrutura) |
+| Módulo | Status | Responsabilidade Principal | Acesso |
+| :--- | :---: | :--- | :--- |
+| **`AuthModule`** | **Implementado (Fase 2)** | Registro, login, rotação de *Refresh Token*, logout e `/auth/me` | `@Public()` em `/register`, `/login`, `/refresh` e `/logout` (cookie `HttpOnly`) + Protegido em `/me` |
+| **`PokedexModule`** | **Implementado (Fase 2)** | Proxy com cache Redis da PokéAPI + CRUD dos 10 slots na nuvem | Leitura pública (`GET /pokedex/*`) + Slots protegidos (`JWT` + escopo `trainerId`) |
+| **`WorldModule` & `EventsModule`** | **Parcial (Fase 2)** | `OutboxRelayService` (`SKIP LOCKED`) -> Redpanda -> `WorldEventsConsumerService` -> `WorldGateway` Ticker global | Handshake ticker aberto nesta fase (`WsAuthGuard` obrigatório na Fase 3) |
+| **`HealthModule` & `SystemModule`** | **Implementados (Fases 1–2)** | Endpoints `/health/live`, `/health/ready` e `/api/v1/system/bootstrap` | `@Public()` controlado (infraestrutura) |
+| **`TrainersModule`** | **Planejado (Fase 3)** | Perfil do treinador, avatar, últimas coordenadas no Overworld e insígnias | Protegido (`AuthGuard`) |
+| **`MuseumModule`** | **Planejado (Fase 4)** | Entrega estruturada de regiões, ginásios, líderes e linha do tempo de jogos | `@Public()` |
+| **`ArcadeModule`** | **Planejado (Fase 5)** | Catálogo fixo de ROMs, geração de URL/stream autenticado e *Cloud Save States* | Protegido (`AuthGuard`) |
+| **`TeamsModule` & `MinigamesModule`** | **Planejados (Fase 6)** | CRUD de equipes (6 slots), análise assíncrona e sessões temporizadas + Leaderboard Redis | Protegido (`AuthGuard`) |
+| **`BattleModule`** | **Planejado (Fase 6)** | Engine determinística turn-based (PvE e PvP), Matchmaking Kafka e `BattleGateway` | Protegido (`AuthGuard` / `WsAuthGuard`) |
 
 ---
 
@@ -97,6 +96,12 @@ O NestJS mantém dois *namespaces* WebSocket dedicados sobre conexão autenticad
 - **`/ws/world` (`WorldGateway`):**
   - Mantém presença na sala da Vila Central (`world:join`, `world:move`, `world:leave`);
   - Faz *broadcast* do feed global vindo do consumidor Kafka (`world:global-event`), exibindo conquistas, recordes e vitórias no Ticker do HUD Angular.
-- **`/ws/battle` (`BattleGateway`):**
+- **`/ws/battle` (`BattleGateway` — Fase 6):**
   - Gerencia salas autoritativas de batalha PvE e PvP (`match:ready`, `turn:submit-action`, `turn:resolved`, `match:finished`);
   - O cliente envia apenas a **intenção** (*usar golpe #2* ou *trocar para Pokémon #4*), e nunca envia cálculo de dano ou alteração de HP — toda resolução matemática roda no servidor para impedir qualquer trapaça.
+
+---
+
+## 5. Evolução Planejada (Onda 1 de Blindagem)
+
+A entrega inicial da Fase 2 utiliza **JWT Access Token (`900s`) em RAM** combinado a **Refresh Token opaco em cookie `HttpOnly` (`pokeverse_refresh`)**. Para elevar o nível de segurança ao padrão ouro Web/SaaS (sem token exposto ao JS do navegador, revogação imediata no `/logout`, proteção CSRF `Origin`/`Sec-Fetch-Site`, throttling distribuído no Redis, login constant-time e CSP estrita), consulte o plano completo no **[13 — Dossiê Completo de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md)**.

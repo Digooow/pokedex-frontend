@@ -19,7 +19,8 @@
         </p>
       }
 
-      <div class="auth-tabs" role="group" aria-label="Modo de autenticação">
+      <fieldset class="auth-tabs">
+        <legend class="visually-hidden">Modo de autenticação</legend>
         <button
           type="button"
           class="auth-tabs__btn"
@@ -38,7 +39,7 @@
         >
           Criar Conta
         </button>
-      </div>
+      </fieldset>
 
       <form class="auth-form" novalidate (submit)="onSubmit($event)">
         @if (mode() === 'register') {

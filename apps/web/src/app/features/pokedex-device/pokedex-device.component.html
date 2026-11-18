@@ -142,9 +142,9 @@
               [class.is-editing]="slotsStore.editMode()"
               [attr.aria-pressed]="slotsStore.editMode()"
               (click)="slotsStore.toggleEditMode()"
-              aria-label="Configurar slots salvos"
             >
               {{ slotsStore.editMode() ? 'Edição ON' : 'Configurar' }}
+              <span class="visually-hidden"> slots salvos</span>
             </button>
           } @else {
             <button

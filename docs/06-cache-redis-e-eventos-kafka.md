@@ -83,3 +83,11 @@ Para operar tanto em **Redpanda local** quanto em **planos gratuitos gerenciados
    - Ao consumir serviços externos instáveis (como a PokéAPI durante pico de acessos), um disjuntor abre após taxa configurada de falhas consecutivas e responde com *fallback* em cache degradado ou erro amigável rápido sem esgotar *threads*/conexões do servidor.
 5. **Graceful Shutdown:**
    - Ao receber `SIGTERM` ou `SIGINT`, os consumidores e produtores NestJS pausam novas leituras, aguardam o término dos eventos em processamento, fazem *commit* limpo dos *offsets* no Kafka e fecham pools de conexão do Prisma e Redis antes de encerrar o processo.
+
+---
+
+## 5. Estado Real da Implementação (Fase 2)
+
+- **Cache-Aside + Circuit Breaker (`PokeApiCacheService`):** ativos em `/api/v1/pokedex/catalog` e `/api/v1/pokedex/pokemon/:idOrName` com singleflight in-memory, validação Zod na entrada/saída do Redis, `AbortController` (`POKEAPI_TIMEOUT_MS`) e header `X-Cache` (`MISS` / `HIT`).
+- **Outbox + Redpanda + Consumidor Idempotente (`OutboxRelayService` & `WorldEventsConsumerService`):** ativos em lote com `FOR UPDATE SKIP LOCKED`, publicação paralela (`Promise.all`), retentativa (`MAX_OUTBOX_RETRIES = 5`), `pokeverse.dlq.v1` e lock `SET idemp:pokeverse-world-ticker:{eventId} 1 NX EX 86400` no Redis alimentando o ticker WebSocket `/ws/world`. Em `OutboxEvent.eventType` grava-se o tópico Kafka (`pokeverse.world.events.v1`), enquanto o nome do evento (`trainer.registered`, `pokedex.slot.saved`, `pokedex.slot.cleared`) vai dentro de `payload.eventType`.
+- **Pendente para as Fases 3–6 + Hardening:** `@nestjs/throttler` distribuído no Redis, presença Overworld (`world:presence:*`), Rankings Sorted Sets, sessões anti-cheat de Mini-Games e segregação de eviction/sessão no Redis (detalhada no [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md#72-redis-7-segregação-de-domínios-e-política-de-eviction)).

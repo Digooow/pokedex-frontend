@@ -69,7 +69,7 @@ Não há dependências externas nem etapa de build:
 
 ## Arquitetura da Plataforma Full-Stack (`docs/`)
 
-Documentação técnica das decisões planejadas para expandir este projeto em uma plataforma Full-Stack (Angular + Phaser 3/PixiJS + Three.js + NestJS + PostgreSQL/Prisma + Redis + Apache Kafka/Redpanda + MinIO/S3), preservando a Pokédex 3D atual como primeiro módulo integrado:
+Documentação técnica e acompanhamento real da expansão deste projeto para o ecossistema **PokéVerse OS** (**Fases 1 e 2 já implementadas** em `apps/web`, `apps/api`, `packages/shared` e `infra/docker`; próxima etapa: **Blindagem Auth/AppSec** antes das **Fases 3–6**):
 
 - [00 — Visão Geral, Regras de Acesso e Roadmap](docs/00-visao-geral-e-roadmap.md)
 - [01 — Arquitetura do Monorepo e Padrões de Engenharia](docs/01-arquitetura-monorepo-e-padroes.md)
@@ -84,3 +84,5 @@ Documentação técnica das decisões planejadas para expandir este projeto em u
 - [10 — Infraestrutura Docker, Observabilidade e CI/CD](docs/10-infraestrutura-docker-ci-cd-e-deploy.md)
 - [11 — Desempenho Ponta a Ponta, Detecção de Hardware, Mobile e Release Gates](docs/11-performance-hardware-gates-e-mobile.md)
 - [12 — Pokédex 2.0: Catálogo Completo da PokéAPI v2 e Controles sem Novos Botões](docs/12-pokedex-2-0-pokeapi-e-controles.md)
+- [13 — Dossiê Completo de Segurança e Blindagem (AppSec, Auth & Infra)](docs/13-dossie-de-seguranca-e-blindagem.md)
+- [14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog](docs/14-status-e-changelog-implementacao.md)

@@ -52,6 +52,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--pv-space-2);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-inline-size: 0;
 }
 
 .auth-tabs__btn {
