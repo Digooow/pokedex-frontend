@@ -50,14 +50,29 @@ export class SessionService {
     readonly sessionCookieName: string;
     readonly refreshCookieName: string;
     readonly secure: boolean;
+    readonly sameSite: 'lax' | 'strict' | 'none';
+    readonly domain?: string;
   } {
-    const secure = this.config.get('COOKIE_SECURE', { infer: true });
+    const rawSecure = this.config.get('COOKIE_SECURE', { infer: true });
+    const rawSameSite = this.config.get('COOKIE_SAMESITE', { infer: true });
+    const sameSite =
+      rawSameSite === 'none' || rawSameSite === 'strict' ? rawSameSite : 'lax';
+    const rawDomain = (
+      this.config.get('COOKIE_DOMAIN', { infer: true }) ?? ''
+    ).trim();
+    const secure = rawSecure || sameSite === 'none';
+    const domain = rawDomain.length > 0 ? rawDomain : undefined;
+    // RFC 6265bis: __Host- requires Secure, Path=/ and forbids Domain.
+    const useHostPrefix = secure && !domain && sameSite !== 'none';
+
     return {
-      sessionCookieName: secure
+      sessionCookieName: useHostPrefix
         ? '__Host-pokeverse_session'
         : 'pokeverse_session',
       refreshCookieName: 'pokeverse_refresh',
       secure,
+      sameSite,
+      ...(domain ? { domain } : {}),
     };
   }
 

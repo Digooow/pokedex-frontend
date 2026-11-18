@@ -19,7 +19,8 @@ export interface ReadinessChecks {
 
 @Injectable()
 export class InfraProbesService implements OnModuleDestroy {
-  private readonly s3: S3Client;
+  private readonly s3: S3Client | null;
+  private readonly s3Enabled: boolean;
   private readonly romBucket: string;
   private readonly savesBucket: string;
 
@@ -29,18 +30,20 @@ export class InfraProbesService implements OnModuleDestroy {
     private readonly redis: RedisService,
     private readonly kafka: KafkaService,
   ) {
-    this.s3 = new S3Client({
-      region: 'us-east-1',
-      endpoint: config.get('S3_ENDPOINT', { infer: true }),
-      forcePathStyle: true,
-      credentials: {
-        accessKeyId: config.get('MINIO_ROOT_USER', { infer: true }),
-        secretAccessKey: config.get('MINIO_ROOT_PASSWORD', { infer: true }),
-      },
-    });
-
+    this.s3Enabled = config.get('S3_ENABLED', { infer: true });
     this.romBucket = config.get('S3_BUCKET_ROMS', { infer: true });
     this.savesBucket = config.get('S3_BUCKET_SAVES', { infer: true });
+    this.s3 = this.s3Enabled
+      ? new S3Client({
+          region: 'us-east-1',
+          endpoint: config.get('S3_ENDPOINT', { infer: true }),
+          forcePathStyle: true,
+          credentials: {
+            accessKeyId: config.get('MINIO_ROOT_USER', { infer: true }),
+            secretAccessKey: config.get('MINIO_ROOT_PASSWORD', { infer: true }),
+          },
+        })
+      : null;
   }
 
   async checkAll(): Promise<ReadinessChecks> {
@@ -79,13 +82,22 @@ export class InfraProbesService implements OnModuleDestroy {
   }
 
   checkS3(): Promise<DependencyStatus> {
+    if (!this.s3Enabled || !this.s3) {
+      return Promise.resolve({
+        status: 'up',
+        latencyMs: 0,
+        detail: 'disabled',
+      });
+    }
+
+    const s3Client = this.s3;
     return this.measureProbe('S3 object storage unreachable', async () => {
       const signal = AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS);
       await Promise.all([
-        this.s3.send(new HeadBucketCommand({ Bucket: this.romBucket }), {
+        s3Client.send(new HeadBucketCommand({ Bucket: this.romBucket }), {
           abortSignal: signal,
         }),
-        this.s3.send(new HeadBucketCommand({ Bucket: this.savesBucket }), {
+        s3Client.send(new HeadBucketCommand({ Bucket: this.savesBucket }), {
           abortSignal: signal,
         }),
       ]);
@@ -93,7 +105,7 @@ export class InfraProbesService implements OnModuleDestroy {
   }
 
   onModuleDestroy(): void {
-    this.s3.destroy();
+    this.s3?.destroy();
   }
 
   private async measureProbe(

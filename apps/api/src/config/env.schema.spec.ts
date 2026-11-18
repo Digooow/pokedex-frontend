@@ -48,4 +48,29 @@ describe('validateApiEnv', () => {
       /APP_ENCRYPTION_KEY|DATABASE_URL|MINIO_ROOT_PASSWORD|RESEND_API_KEY/,
     );
   });
+
+  it('supports managed cloud URLs (rediss://, postgres://), PORT fallback, and S3_ENABLED=false', () => {
+    const cloudEnv: Record<string, unknown> = {
+      NODE_ENV: 'production',
+      PORT: '8080',
+      TRUST_PROXY: '1',
+      CORS_ORIGINS: 'https://pokeverse.pages.dev',
+      APP_ENCRYPTION_KEY:
+        '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+      COOKIE_SECURE: 'true',
+      COOKIE_SAMESITE: 'lax',
+      DATABASE_URL:
+        'postgres://user:pass@ep-cool.neon.tech/neondb?sslmode=require',
+      REDIS_URL: 'rediss://default:secret@cool-redis.upstash.io:6379',
+      KAFKA_BROKERS: 'kafka-demo.aivencloud.com:12345',
+      KAFKA_SSL: 'true',
+      S3_ENABLED: 'false',
+    };
+
+    const parsed = validateApiEnv(cloudEnv);
+    expect(parsed.API_PORT).toBe(8080);
+    expect(parsed.TRUST_PROXY).toBe(1);
+    expect(parsed.S3_ENABLED).toBe(false);
+    expect(parsed.KAFKA_SSL).toBe(true);
+  });
 });

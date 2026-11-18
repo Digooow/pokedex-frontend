@@ -44,13 +44,17 @@ export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
 
   constructor(config: ConfigService<ApiEnvConfig, true>) {
-    this.client = new Redis(config.get('REDIS_URL', { infer: true }), {
+    const redisUrl = config.get('REDIS_URL', { infer: true });
+    this.client = new Redis(redisUrl, {
       lazyConnect: true,
       connectTimeout: HEALTH_PROBE_TIMEOUT_MS,
       commandTimeout: HEALTH_PROBE_TIMEOUT_MS,
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
+      ...(redisUrl.startsWith('rediss://') ? { tls: {} } : {}),
     });
+    // Prevent Node.js unhandled 'error' crashes during transient Upstash/network drops.
+    this.client.on('error', () => undefined);
   }
 
   async ensureConnected(): Promise<void> {

@@ -19,6 +19,14 @@ export function configureApiApp(app: INestApplication): {
   const logger = app.get(StructuredLoggerService);
   const config = app.get<ConfigService<ApiEnvConfig, true>>(ConfigService);
 
+  const trustProxy = config.get('TRUST_PROXY', { infer: true });
+  if (trustProxy > 0) {
+    const expressApp = app.getHttpAdapter().getInstance() as {
+      set?: (setting: string, val: unknown) => void;
+    };
+    expressApp.set?.('trust proxy', trustProxy);
+  }
+
   const allowedOrigins = config
     .get('CORS_ORIGINS', { infer: true })
     .split(',')

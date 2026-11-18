@@ -39,7 +39,8 @@ export class GoogleOAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const { sessionCookieName, secure } = this.sessionService.getCookieNames();
+    const { sessionCookieName, secure, sameSite, domain } =
+      this.sessionService.getCookieNames();
     const rawSid = readSessionCookie(req, sessionCookieName);
     const existingSession =
       await this.sessionService.getSessionByRawSid(rawSid);
@@ -53,10 +54,11 @@ export class GoogleOAuthController {
 
     res.cookie(OAUTH_BIND_COOKIE, bindCookieValue, {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite,
       secure,
       path: REFRESH_COOKIE_PATH,
       maxAge: 300_000,
+      ...(domain ? { domain } : {}),
     });
     res.redirect(authorizeUrl);
   }
@@ -72,14 +74,15 @@ export class GoogleOAuthController {
     @Res() res: Response,
   ): Promise<void> {
     const baseRedirect = this.googleOAuth.getFrontendRedirectBase();
-    const { secure } = this.sessionService.getCookieNames();
+    const { secure, sameSite, domain } = this.sessionService.getCookieNames();
     const bindCookie = readSessionCookie(req, OAUTH_BIND_COOKIE);
 
     res.clearCookie(OAUTH_BIND_COOKIE, {
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite,
       secure,
       path: REFRESH_COOKIE_PATH,
+      ...(domain ? { domain } : {}),
     });
 
     if (oauthError || !code || !state) {
