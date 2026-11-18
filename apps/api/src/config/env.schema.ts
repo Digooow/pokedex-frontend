@@ -62,6 +62,7 @@ const ApiEnvSchema = z
           value.startsWith('postgresql://') || value.startsWith('postgres://'),
         'DATABASE_URL deve iniciar com postgresql:// ou postgres://.',
       ),
+    DATABASE_URL_UNPOOLED: z.string().optional().default(''),
     REDIS_URL: z
       .url()
       .refine(
@@ -151,6 +152,21 @@ const ApiEnvSchema = z
         path: ['KAFKA_SASL_USERNAME'],
         message:
           'KAFKA_SASL_USERNAME e KAFKA_SASL_PASSWORD são obrigatórios quando KAFKA_SASL_MECHANISM está definido.',
+      });
+    }
+
+    const unpooledUrl = env.DATABASE_URL_UNPOOLED.trim();
+    if (
+      unpooledUrl.length > 0 &&
+      (!z.url().safeParse(unpooledUrl).success ||
+        (!unpooledUrl.startsWith('postgresql://') &&
+          !unpooledUrl.startsWith('postgres://')))
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DATABASE_URL_UNPOOLED'],
+        message:
+          'DATABASE_URL_UNPOOLED deve iniciar com postgresql:// ou postgres:// quando definida.',
       });
     }
   });

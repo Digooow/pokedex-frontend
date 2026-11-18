@@ -40,12 +40,13 @@ describe('validateApiEnv', () => {
       APP_ENCRYPTION_KEY: 'too-short',
       MINIO_ROOT_PASSWORD: 'short',
       DATABASE_URL: 'not-a-postgres-url',
+      DATABASE_URL_UNPOOLED: 'not-a-direct-postgres-url',
       MAIL_TRANSPORT: 'resend',
       RESEND_API_KEY: '',
     };
 
     expect(() => validateApiEnv(broken)).toThrow(
-      /APP_ENCRYPTION_KEY|DATABASE_URL|MINIO_ROOT_PASSWORD|RESEND_API_KEY/,
+      /APP_ENCRYPTION_KEY|DATABASE_URL|DATABASE_URL_UNPOOLED|MINIO_ROOT_PASSWORD|RESEND_API_KEY/,
     );
   });
 
@@ -60,7 +61,9 @@ describe('validateApiEnv', () => {
       COOKIE_SECURE: 'true',
       COOKIE_SAMESITE: 'lax',
       DATABASE_URL:
-        'postgres://user:pass@ep-cool.neon.tech/neondb?sslmode=require',
+        'postgres://user:pass@ep-cool-pooler.neon.tech/neondb?sslmode=require',
+      DATABASE_URL_UNPOOLED:
+        'postgresql://user:pass@ep-cool.neon.tech/neondb?sslmode=require',
       REDIS_URL: 'rediss://default:secret@cool-redis.upstash.io:6379',
       KAFKA_BROKERS: 'kafka-demo.aivencloud.com:12345',
       KAFKA_SSL: 'true',
@@ -72,5 +75,8 @@ describe('validateApiEnv', () => {
     expect(parsed.TRUST_PROXY).toBe(1);
     expect(parsed.S3_ENABLED).toBe(false);
     expect(parsed.KAFKA_SSL).toBe(true);
+    expect(parsed.DATABASE_URL_UNPOOLED).toBe(
+      'postgresql://user:pass@ep-cool.neon.tech/neondb?sslmode=require',
+    );
   });
 });

@@ -24,8 +24,11 @@ import { WorldModule } from './modules/world/world.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: [
+        path.resolve(process.cwd(), '.env.local'),
         path.resolve(process.cwd(), '.env'),
+        path.resolve(process.cwd(), '../../.env.local'),
         path.resolve(process.cwd(), '../../.env'),
+        path.resolve(__dirname, '../../../../.env.local'),
         path.resolve(__dirname, '../../../../.env'),
       ],
       validate: validateApiEnv,

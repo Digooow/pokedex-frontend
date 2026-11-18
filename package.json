@@ -18,5 +18,9 @@
     "typecheck": "npm run typecheck --workspace=@pokeverse/shared && npm run typecheck --workspace=pokeverse-api && npm run typecheck --workspace=pokeverse-web",
     "test": "npm run test --workspace=@pokeverse/shared && npm run test --workspace=pokeverse-api && npm run test --workspace=pokeverse-web -- --watch=false",
     "lint:api": "npm run lint --workspace=pokeverse-api"
+  },
+  "dependencies": {
+    "@neon/config": "^1.14.4",
+    "@neon/env": "^2.1.7"
   }
 }

@@ -69,4 +69,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.API_PORT || process.env.PORT || 3000) + '/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
-CMD ["sh", "-c", "node /opt/prisma/node_modules/prisma/build/index.js migrate deploy --schema=apps/api/prisma/schema.prisma && exec node apps/api/dist/main.js"]
+CMD ["sh", "-c", "export DATABASE_URL_UNPOOLED=\"${DATABASE_URL_UNPOOLED:-$DATABASE_URL}\" && node /opt/prisma/node_modules/prisma/build/index.js migrate deploy --schema=apps/api/prisma/schema.prisma && exec node apps/api/dist/main.js"]

@@ -66,3 +66,4 @@ obj/
 *.pptx
 *.docx
 
+.neon

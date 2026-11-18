@@ -59,6 +59,7 @@ jobs:
           SMTP_PORT: 1025
           SMTP_SECURE: 'false'
           DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
+          DATABASE_URL_UNPOOLED: postgresql://ci:ci@127.0.0.1:5432/ci
           REDIS_URL: redis://127.0.0.1:6379
           KAFKA_BROKERS: 127.0.0.1:19092
           S3_ENABLED: 'false'

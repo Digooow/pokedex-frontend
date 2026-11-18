@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   type DependencyStatus,
   HEALTH_PROBE_TIMEOUT_MS,
+  POSTGRES_PROBE_TIMEOUT_MS,
 } from '@pokeverse/shared';
 import type { ApiEnvConfig } from '../config/env.schema';
 import { KafkaService } from './kafka.service';
@@ -58,9 +59,13 @@ export class InfraProbesService implements OnModuleDestroy {
   }
 
   checkPostgres(): Promise<DependencyStatus> {
-    return this.measureProbe('PostgreSQL unreachable', async () => {
-      await this.prisma.$queryRaw`SELECT 1`;
-    });
+    return this.measureProbe(
+      'PostgreSQL unreachable',
+      async () => {
+        await this.prisma.$queryRaw`SELECT 1`;
+      },
+      POSTGRES_PROBE_TIMEOUT_MS,
+    );
   }
 
   checkRedis(): Promise<DependencyStatus> {
@@ -111,6 +116,7 @@ export class InfraProbesService implements OnModuleDestroy {
   private async measureProbe(
     fallbackDetail: string,
     probeFn: () => Promise<void>,
+    timeoutMs: number = HEALTH_PROBE_TIMEOUT_MS + 100,
   ): Promise<DependencyStatus> {
     const start = performance.now();
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -121,7 +127,7 @@ export class InfraProbesService implements OnModuleDestroy {
         new Promise<never>((_, reject) => {
           timer = setTimeout(
             () => reject(new Error(fallbackDetail)),
-            HEALTH_PROBE_TIMEOUT_MS + 100,
+            timeoutMs,
           );
         }),
       ]);

@@ -5,6 +5,7 @@ export const MAX_EV_PER_STAT = 252;
 export const MAX_EV_TOTAL = 510;
 
 export const HEALTH_PROBE_TIMEOUT_MS = 1500;
+export const POSTGRES_PROBE_TIMEOUT_MS = 4000;
 
 export const POKEMON_TYPES = [
   'normal',
