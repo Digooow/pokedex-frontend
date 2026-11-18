@@ -30,6 +30,10 @@ secrets/
 secret/
 
 # Artefatos, caches e arquivos temporários.
+.angular/
+.turbo/
+coverage/
+*.tsbuildinfo
 *.log
 *.tmp
 *.temp

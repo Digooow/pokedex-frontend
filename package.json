@@ -1,0 +1,22 @@
+{
+  "name": "pokeverse-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "infra:up": "docker compose --env-file .env -f infra/docker/docker-compose.yml up -d",
+    "infra:down": "docker compose --env-file .env -f infra/docker/docker-compose.yml down",
+    "build:shared": "npm run build --workspace=@pokeverse/shared",
+    "build:api": "npm run build --workspace=pokeverse-api",
+    "build:web": "npm run build --workspace=pokeverse-web",
+    "build": "npm run build:shared && npm run build:api && npm run build:web",
+    "dev:api": "npm run start:dev --workspace=pokeverse-api",
+    "dev:web": "npm run start --workspace=pokeverse-web",
+    "typecheck": "npm run typecheck --workspace=@pokeverse/shared && npm run typecheck --workspace=pokeverse-api && npm run typecheck --workspace=pokeverse-web",
+    "test": "npm run test --workspace=@pokeverse/shared && npm run test --workspace=pokeverse-api && npm run test --workspace=pokeverse-web -- --watch=false",
+    "lint:api": "npm run lint --workspace=pokeverse-api"
+  }
+}

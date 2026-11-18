@@ -1,0 +1,75 @@
+@use './styles/tokens';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-block-size: 100%;
+  background-color: var(--pv-canvas);
+  color: var(--pv-ink-primary);
+  font-family: var(--pv-font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  display: block;
+  max-inline-size: 100%;
+}
+
+button,
+input,
+a {
+  font: inherit;
+  color: inherit;
+}
+
+button,
+a[href] {
+  touch-action: manipulation;
+}
+
+:where(a:any-link, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid var(--pv-ring-focus);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  :where(a:any-link, button, input, [tabindex]):focus-visible {
+    outline: 3px solid Highlight;
+    outline-offset: 2px;
+  }
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  inline-size: 1px !important;
+  block-size: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* Regras obrigatórias da modern-web-guidance para modais nativos */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: oklch(8% 0.02 255 / 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}

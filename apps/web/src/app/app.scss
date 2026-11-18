@@ -1,0 +1,10 @@
+.pv-shell {
+  display: flex;
+  flex-direction: column;
+  min-block-size: 100dvh;
+}
+
+.pv-shell__main {
+  position: relative;
+  flex: 1 1 auto;
+}

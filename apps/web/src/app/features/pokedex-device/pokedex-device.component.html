@@ -1,0 +1,122 @@
+<div class="dex-stage">
+  <img
+    class="dex-stage__backdrop"
+    [src]="activeBackdrop().desktop"
+    [attr.srcset]="activeBackdrop().mobile + ' 820w, ' + activeBackdrop().desktop + ' 1920w'"
+    sizes="100vw"
+    alt=""
+    aria-hidden="true"
+    decoding="async"
+    fetchpriority="high"
+  />
+
+  <div class="dex-stage__toolbar" role="toolbar" aria-label="Ambiente da Pokédex">
+    @for (item of scenarios; track item.id) {
+      <button
+        type="button"
+        class="dex-chip"
+        [class.is-active]="store.scenario() === item.id"
+        [attr.aria-pressed]="store.scenario() === item.id"
+        (click)="store.setScenario(item.id)"
+      >
+        {{ item.label }}
+      </button>
+    }
+
+    <button
+      type="button"
+      class="dex-chip dex-chip--cover"
+      [attr.aria-expanded]="store.coverOpen()"
+      (click)="store.setCoverOpen(!store.coverOpen())"
+    >
+      {{ store.coverOpen() ? 'Fechar Carcaça' : 'Abrir Pokédex' }}
+    </button>
+  </div>
+
+  @if (!store.coverOpen()) {
+    <section class="dex-closed-cover" aria-label="Capa da Pokédex fechada">
+      <div class="dex-wing-header">
+        <div class="dex-lights" aria-hidden="true">
+          <span class="dex-lens"></span>
+          <span class="dex-led dex-led--red"></span>
+          <span class="dex-led dex-led--amber"></span>
+          <span class="dex-led dex-led--green"></span>
+        </div>
+        <h1 id="main-heading" tabindex="-1" class="dex-wing-title">Pokédex 3D</h1>
+      </div>
+
+      <button type="button" class="dex-cover-trigger" (click)="store.setCoverOpen(true)">
+        <span class="dex-cover-crest" aria-hidden="true"></span>
+        <span>Pressione para Abrir a Pokédex</span>
+      </button>
+    </section>
+  } @else {
+    <div class="dex-chassis">
+      <div class="dex-wing dex-wing--scanner">
+        <header class="dex-wing-header">
+          <div class="dex-lights" aria-hidden="true">
+            <span class="dex-lens"></span>
+            <span class="dex-led dex-led--red"></span>
+            <span class="dex-led dex-led--amber"></span>
+            <span class="dex-led dex-led--green"></span>
+          </div>
+          <span class="dex-wing-title">Módulo de Busca</span>
+        </header>
+
+        <pv-pokedex-search-panel />
+      </div>
+
+      <div class="dex-hinge" aria-hidden="true"></div>
+
+      <div class="dex-wing dex-wing--base">
+        <header class="dex-wing-header">
+          <div>
+            <span class="dex-eyebrow">PokéAPI v2</span>
+            <h1 id="main-heading" tabindex="-1" class="dex-wing-title">Pokédex</h1>
+          </div>
+          <button
+            type="button"
+            class="dex-btn-subtle"
+            (click)="store.setCoverOpen(false)"
+            aria-label="Fechar tampa da Pokédex"
+          >
+            Fechar
+          </button>
+        </header>
+
+        <pv-pokedex-visor
+          [detailState]="store.detailState()"
+          [suggestions]="store.suggestions()"
+          (retry)="retrySelected()"
+          (selectSuggestion)="store.loadPokemonDetail($event)"
+        />
+
+        <div class="dex-slots-footer">
+          <div class="dex-slots-grid" role="group" aria-label="10 slots de memória na nuvem">
+            @for (idx of slotIndices; track idx) {
+              <button
+                type="button"
+                class="dex-slot-btn tabular-nums"
+                [pvRequiresTrainer]="'Slot ' + (idx + 1) + ' na Nuvem'"
+                lockedDescription="Os 10 botões inferiores da Pokédex gravam Pokémon favoritos no PostgreSQL vinculados à conta do treinador (disponível na Fase 2)."
+                [attr.aria-label]="'Slot ' + (idx + 1) + ' bloqueado para visitantes'"
+              >
+                {{ idx + 1 }}
+              </button>
+            }
+          </div>
+
+          <button
+            type="button"
+            class="dex-config-visor"
+            pvRequiresTrainer="Configurar Slots Salvos"
+            lockedDescription="Edição e remoção de slots salvos requerem sessão autenticada de treinador."
+            aria-label="Configurar slots (exclusivo para treinadores)"
+          >
+            Sync 🔒
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>

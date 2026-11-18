@@ -2,33 +2,44 @@
 
 ## 1. Ambiente Local Unificado (`infra/docker/docker-compose.yml`)
 
-Com um único comando (`docker compose -f infra/docker/docker-compose.yml up -d`), toda a infraestrutura distribuída sobe localmente configurada e com verificações de saúde (`healthcheck`):
+1. Copie `.env.example` para `.env` na raiz do repositório (arquivo ignorado pelo Git — **nunca versione senhas reais** nem deixe segredos hardcoded no YAML).
+2. Suba toda a infraestrutura distribuída com verificações de saúde (`healthcheck`) em um único comando:
+
+```bash
+docker compose --env-file .env -f infra/docker/docker-compose.yml up -d
+```
+
+- **Portas padrão parametrizadas no `.env`:** `POSTGRES_PORT=5433` e `REDPANDA_CONSOLE_PORT=8085` evitam conflito com eventuais instâncias nativas do Windows/Linux nas portas `5432` e `8080`.
+- **Object Storage S3 local (`pgsty/silo`):** como as imagens públicas antigas `minio/minio` e `minio/mc` no Docker Hub tiveram o acesso público restringido, o ambiente usa a release pinada `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` (drop-in 100% compatível com a API S3, console na `:9001` e cliente `mc` embutido na mesma imagem), reduzindo também o número de downloads.
 
 ```yaml
 services:
   postgres:
     image: postgres:16-alpine
     container_name: pokeverse-postgres
+    restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-pokeverse}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pokeverse_dev}
-      POSTGRES_DB: ${POSTGRES_DB:-pokeverse}
+      POSTGRES_USER: ${POSTGRES_USER:?Defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?Defina POSTGRES_DB no .env}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pokeverse} -d ${POSTGRES_DB:-pokeverse}"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
 
   redis:
     image: redis:7-alpine
     container_name: pokeverse-redis
+    restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -36,23 +47,25 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 5s
 
   redpanda:
     image: redpandadata/redpanda:v24.2.4
     container_name: pokeverse-redpanda
+    restart: unless-stopped
     command:
       - redpanda
       - start
       - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
-      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:${REDPANDA_KAFKA_PORT:-19092}
       - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
-      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:${REDPANDA_PROXY_PORT:-18082}
       - --smp 1
       - --memory 1G
       - --mode dev-container
     ports:
-      - "19092:19092"
-      - "18082:18082"
+      - "${REDPANDA_KAFKA_PORT:-19092}:19092"
+      - "${REDPANDA_PROXY_PORT:-18082}:18082"
     volumes:
       - redpanda_data:/var/lib/redpanda/data
     healthcheck:
@@ -60,28 +73,31 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 15s
 
   redpanda-console:
     image: redpandadata/console:v2.7.2
     container_name: pokeverse-redpanda-console
+    restart: unless-stopped
     depends_on:
       redpanda:
         condition: service_healthy
     environment:
       KAFKA_BROKERS: redpanda:9092
     ports:
-      - "8080:8080"
+      - "${REDPANDA_CONSOLE_PORT:-8085}:8080"
 
   minio:
-    image: minio/minio:latest
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
     container_name: pokeverse-minio
+    restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-pokeverse_minio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-pokeverse_minio_dev}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Defina MINIO_ROOT_USER no .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Defina MINIO_ROOT_PASSWORD no .env}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
     volumes:
       - minio_data:/data
     healthcheck:
@@ -89,22 +105,31 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
 
   minio-init:
-    image: minio/mc:latest
+    image: pgsty/silo:RELEASE.2026-11-12T00-00-00Z
     container_name: pokeverse-minio-init
+    restart: "no"
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-pokeverse_minio} ${MINIO_ROOT_PASSWORD:-pokeverse_minio_dev};
-      mc mb -p local/pokeverse-roms || true;
-      mc mb -p local/pokeverse-saves || true;
-      mc anonymous set none local/pokeverse-roms;
-      mc anonymous set none local/pokeverse-saves;
-      exit 0;
-      "
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?Defina MINIO_ROOT_USER no .env}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?Defina MINIO_ROOT_PASSWORD no .env}
+      S3_BUCKET_ROMS: ${S3_BUCKET_ROMS:-pokeverse-roms}
+      S3_BUCKET_SAVES: ${S3_BUCKET_SAVES:-pokeverse-saves}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        mc alias set local http://minio:9000 "$$MINIO_ROOT_USER" "$$MINIO_ROOT_PASSWORD"
+        mc mb --ignore-existing "local/$${S3_BUCKET_ROMS}"
+        mc mb --ignore-existing "local/$${S3_BUCKET_SAVES}"
+        mc anonymous set none "local/$${S3_BUCKET_ROMS}"
+        mc anonymous set none "local/$${S3_BUCKET_SAVES}"
+        mc ls local
 
 volumes:
   pg_data:
