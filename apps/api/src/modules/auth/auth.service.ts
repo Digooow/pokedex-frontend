@@ -455,7 +455,7 @@ export class AuthService implements OnModuleInit {
       select: { id: true, username: true, email: true, emailVerifiedAt: true },
     });
 
-    if (trainer && trainer.emailVerifiedAt === null) {
+    if (trainer?.emailVerifiedAt === null) {
       await this.prisma.$transaction(async (tx) => {
         await tx.trainer.update({
           where: { id: trainer.id },
@@ -484,7 +484,7 @@ export class AuthService implements OnModuleInit {
       select: { id: true, username: true, email: true, emailVerifiedAt: true },
     });
 
-    if (trainer && trainer.emailVerifiedAt === null) {
+    if (trainer?.emailVerifiedAt === null) {
       const { code: otpCode } = await this.otpService.issueOtp(
         'verify',
         trainer.email,
@@ -775,7 +775,8 @@ export class AuthService implements OnModuleInit {
   }
 
   private loginAttemptKey(clientIp: string, email: string): string {
-    return `login_fail:${this.crypto.sha256Hex(`${clientIp}:${email}`)}`;
+    const identityHash = this.crypto.sha256Hex(`${clientIp}:${email}`);
+    return `login_fail:${identityHash}`;
   }
 
   private generateOpaqueToken(): string {

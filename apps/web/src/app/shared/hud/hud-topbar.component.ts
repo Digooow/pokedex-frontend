@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/c
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
 import { QualityStore } from '../../core/stores/quality.store';
+import { SecurityIamStore } from '../../core/stores/security-iam.store';
 import { SystemStatusStore } from '../../core/stores/system-status.store';
 import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 
@@ -51,7 +52,7 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
             <button
               type="button"
               class="hud-pill"
-              (click)="auth.openSecuritySettings()"
+              (click)="securityIam.openDialog()"
             >
               {{ trainer.mfaEnabled ? '2FA: Ativo' : 'Segurança / 2FA' }}
             </button>
@@ -223,6 +224,7 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 export class HudTopbarComponent {
   readonly auth = inject(AuthStore);
   readonly quality = inject(QualityStore);
+  readonly securityIam = inject(SecurityIamStore);
   readonly systemStatus = inject(SystemStatusStore);
   readonly ticker = inject(WorldTickerStore);
 

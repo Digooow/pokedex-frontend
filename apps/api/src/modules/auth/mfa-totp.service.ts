@@ -87,7 +87,7 @@ export function computeTotpAtCounter(
   const counterBuf = Buffer.alloc(8);
   counterBuf.writeBigUInt64BE(BigInt(counter));
   const hmac = createHmac('sha1', secretBytes).update(counterBuf).digest();
-  const offset = (hmac[hmac.length - 1] ?? 0) & 0x0f;
+  const offset = (hmac.at(-1) ?? 0) & 0x0f;
   const binary =
     (((hmac[offset] ?? 0) & 0x7f) << 24) |
     (((hmac[offset + 1] ?? 0) & 0xff) << 16) |

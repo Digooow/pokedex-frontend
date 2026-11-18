@@ -23,7 +23,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
 })
 export class App implements OnInit {
   private readonly systemStatus = inject(SystemStatusStore);
-  readonly auth = inject(AuthStore);
+  private readonly auth = inject(AuthStore);
   private readonly ticker = inject(WorldTickerStore);
 
   ngOnInit(): void {

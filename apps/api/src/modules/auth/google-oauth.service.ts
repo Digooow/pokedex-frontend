@@ -548,80 +548,107 @@ export class GoogleOAuthService {
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .slice(0, 18);
     const prefix = baseName.length >= 3 ? baseName : 'Trainer';
+    return this.createTrainerWithUniqueUsername(claims, prefix, traceId, 0);
+  }
 
-    for (let attempt = 0; attempt < 4; attempt += 1) {
-      const candidateUsername =
-        attempt === 0 ? prefix : `${prefix}_${randomBytes(2).toString('hex')}`;
-
-      try {
-        return await this.prisma.$transaction(async (tx) => {
-          const trainer = await tx.trainer.create({
-            data: {
-              username: candidateUsername.slice(0, 24),
-              email: claims.email,
-              passwordHash: null,
-              emailVerifiedAt: new Date(),
-            },
-            select: {
-              id: true,
-              username: true,
-              email: true,
-              emailVerifiedAt: true,
-              mfaEnabled: true,
-              badgesCount: true,
-              eloRating: true,
-              lastMapId: true,
-              lastX: true,
-              lastY: true,
-              createdAt: true,
-            },
-          });
-
-          await tx.trainerOAuthAccount.create({
-            data: {
-              trainerId: trainer.id,
-              provider: 'google',
-              providerAccountId: claims.sub,
-              email: claims.email,
-            },
-          });
-
-          const eventId = randomUUID();
-          await tx.outboxEvent.create({
-            data: {
-              id: eventId,
-              aggregateType: 'Trainer',
-              aggregateId: trainer.id,
-              eventType: KAFKA_TOPICS.WORLD_EVENTS,
-              payload: WorldTickerEventSchema.parse({
-                eventId,
-                eventType: 'trainer.registered',
-                trainerId: trainer.id,
-                username: trainer.username,
-                summary: `${trainer.username} iniciou sua jornada em PokéVerse.`,
-                occurredAt: new Date().toISOString(),
-                traceId,
-              }),
-              status: 'PENDING',
-            },
-          });
-
-          return trainer;
-        });
-      } catch (error) {
-        if (
-          error instanceof Prisma.PrismaClientKnownRequestError &&
-          error.code === 'P2002'
-        ) {
-          continue;
-        }
-        throw error;
-      }
+  private async createTrainerWithUniqueUsername(
+    claims: VerifiedGoogleClaims,
+    prefix: string,
+    traceId: string | null,
+    attempt: number,
+  ): Promise<
+    ReturnType<GoogleOAuthService['tryCreateGoogleTrainerTransaction']>
+  > {
+    if (attempt >= 4) {
+      throw new ConflictException(
+        'Não foi possível reservar nome de treinador único para conta Google.',
+      );
     }
 
-    throw new ConflictException(
-      'Não foi possível reservar nome de treinador único para conta Google.',
-    );
+    const candidateUsername =
+      attempt === 0 ? prefix : `${prefix}_${randomBytes(2).toString('hex')}`;
+
+    try {
+      return await this.tryCreateGoogleTrainerTransaction(
+        claims,
+        candidateUsername,
+        traceId,
+      );
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return this.createTrainerWithUniqueUsername(
+          claims,
+          prefix,
+          traceId,
+          attempt + 1,
+        );
+      }
+      throw error;
+    }
+  }
+
+  private async tryCreateGoogleTrainerTransaction(
+    claims: VerifiedGoogleClaims,
+    candidateUsername: string,
+    traceId: string | null,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const trainer = await tx.trainer.create({
+        data: {
+          username: candidateUsername.slice(0, 24),
+          email: claims.email,
+          passwordHash: null,
+          emailVerifiedAt: new Date(),
+        },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          emailVerifiedAt: true,
+          mfaEnabled: true,
+          badgesCount: true,
+          eloRating: true,
+          lastMapId: true,
+          lastX: true,
+          lastY: true,
+          createdAt: true,
+        },
+      });
+
+      await tx.trainerOAuthAccount.create({
+        data: {
+          trainerId: trainer.id,
+          provider: 'google',
+          providerAccountId: claims.sub,
+          email: claims.email,
+        },
+      });
+
+      const eventId = randomUUID();
+      await tx.outboxEvent.create({
+        data: {
+          id: eventId,
+          aggregateType: 'Trainer',
+          aggregateId: trainer.id,
+          eventType: KAFKA_TOPICS.WORLD_EVENTS,
+          payload: WorldTickerEventSchema.parse({
+            eventId,
+            eventType: 'trainer.registered',
+            trainerId: trainer.id,
+            username: trainer.username,
+            summary: `${trainer.username} iniciou sua jornada em PokéVerse.`,
+            occurredAt: new Date().toISOString(),
+            traceId,
+          }),
+          status: 'PENDING',
+        },
+      });
+
+      return trainer;
+    });
   }
 
   private async exchangeAuthorizationCode(params: {

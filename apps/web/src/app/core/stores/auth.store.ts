@@ -192,12 +192,12 @@ export class AuthStore {
       );
       this.handleSessionOutcome(AuthSessionResponseSchema.safeParse(rawSession));
     } catch (error) {
-      const message =
-        error instanceof HttpErrorResponse
-          ? this.extractErrorMessage(error)
-          : error instanceof Error && error.name === 'NotAllowedError'
-            ? 'Autenticação com Passkey cancelada no dispositivo.'
-            : 'Falha ao autenticar via Passkey.';
+      let message = 'Falha ao autenticar via Passkey.';
+      if (error instanceof HttpErrorResponse) {
+        message = this.extractErrorMessage(error);
+      } else if (error instanceof Error && error.name === 'NotAllowedError') {
+        message = 'Autenticação com Passkey cancelada no dispositivo.';
+      }
       this.mutationSignal.set({ status: 'error', message });
     }
   }
@@ -336,14 +336,6 @@ export class AuthStore {
       .subscribe();
   }
 
-  openSecuritySettings(): void {
-    this.securityModalOpenSignal.set(true);
-  }
-
-  closeSecuritySettings(): void {
-    this.securityModalOpenSignal.set(false);
-  }
-
   openMfaChallengePrompt(): void {
     this.requestTrainerAccess(
       'Verificação em 2 Etapas (2FA)',
@@ -366,6 +358,14 @@ export class AuthStore {
   dismissVisitorPrompt(): void {
     this.mutationSignal.set({ status: 'idle' });
     this.visitorPromptSignal.set(null);
+  }
+
+  openSecuritySettings(): void {
+    this.securityModalOpenSignal.set(true);
+  }
+
+  closeSecuritySettings(): void {
+    this.securityModalOpenSignal.set(false);
   }
 
   clearMutationFeedback(): void {
