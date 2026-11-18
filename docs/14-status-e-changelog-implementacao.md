@@ -1,22 +1,22 @@
 # 14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog
 
-> **Última atualização:** Fase 2 + **IAM Enterprise (Etapas 2A e 2B / Onda 1 do Dossiê 13)** concluídas e validadas ao vivo.
-> Este documento existe para preservar contexto completo entre sessões de desenvolvimento: **o que já foi entregue**, **o que divergiu ou evoluiu em relação aos documentos originais (`00` a `12`)** e **o que ainda falta construir**.
+> **Última atualização:** Realinhamento Estratégico Pós-2B (Foco: **Deploy Oficial Cloud -> Pokédex Definitiva 3D & Enciclopédia Multimídia -> Back-end de Jogo**), após correção integral do SonarQube Cloud e criação das regras de fidelidade visual (`AGENTS.md`).
+> Este documento preserva o histórico real entre sessões: **o que já foi entregue**, **onde mudamos a rota em relação aos documentos iniciais (`00` a `12`)**, e o **Plano de Ação atualizado**.
 
 ---
 
-## 1. Linha do Tempo de Execução por Fase
+## 1. Linha do Tempo e Nova Priorização
 
-| Fase | Nome | Status | Principais Evidências Verificadas no Repositório |
+| Etapa | Nome | Status | Principais Evidências Verificadas no Repositório |
 | :--- | :--- | :---: | :--- |
-| **Fase 0** | **Pokédex 3D Estática (Vanilla)** | **Concluída** | [index.html](../index.html), [css/style.css](../css/style.css), [js/app.js](../js/app.js), [assets/](../assets/) preservados intactos na raiz para GitHub Pages |
-| **Fase 1** | **Fundação Monorepo + Shell Angular + Pokédex Integrada** | **Concluída** | Workspaces `@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`; `infra/docker/docker-compose.yml` saudável (`postgres`, `redis`, `redpanda`, `redpanda-console`, `minio` via `pgsty/silo`); Shell HUD + Pokédex 3D com fallback direto à PokéAPI |
-| **Fase 2** | **API NestJS + Auth + PostgreSQL/Prisma + Redis + Redpanda Outbox + WS** | **Concluída** | Schema Prisma + `idx_outbox_pending`; Cache Redis PokéAPI (`X-Cache`); 10 slots em ACID; Outbox (`SKIP LOCKED`) -> Redpanda -> Consumidor Idempotente Redis -> `/ws/world` Ticker ao vivo no Angular |
-| **Etapas 2A + 2B** | **IAM Enterprise BFF (Sessão Redis + OTP + Mailpit + TOTP + Google + Passkeys)** | **Concluída** | Zero JWT no JS; cookies `HttpOnly` + Redis state machine (`MFA_PENDING -> AUTHENTICATED`); `CsrfOriginGuard`; `RedisThrottlerStorage`; dummy Argon2id timing shield; Mailpit (`:1025/:8025`) + Redpanda `pokeverse.notifications.email.v1` encriptado AES-256-GCM; TOTP QR + 8 backup codes; Google OAuth PKCE; Passkeys WebAuthn (`@simplewebauthn/*`) |
-| **Fase 3** | **Overworld Explorável 2D/HD-2D (Phaser 3)** | **Pendente** | `WorldStore`, mapa da Vila Central, colisões, portais físicos, ciclo dia/noite, presença multiplayer autenticada via `WsAuthGuard` + Redis |
-| **Fase 4** | **Holocron 3D (Three.js) + Museu das Regiões & Jogos** | **Pendente** | Cena Title Screen Three.js + GLSL, pedestal Holocron 3D, `MuseumModule` no back-end e evolução do placeholder [museum-page.component.ts](../apps/web/src/app/features/regions-museum/museum-page.component.ts) |
-| **Fase 5** | **Arcade Retrô 3D (WASM) + MinIO/S3 + Cloud Save States** | **Pendente** | `ArcadeModule`, stream autenticado/presigned URLs para ROMs no bucket privado `pokeverse-roms`, console portátil 3D com `CanvasTexture` e *Cloud Saves* validados |
-| **Fase 6** | **Battle Frontier (Team Builder + Mini-Games + PvE/PvP)** | **Pendente** | `TeamsModule`, `MinigamesModule` (anti-cheat + Redis Sorted Sets), `BattleModule` + `BattleGateway` + matchmaking Kafka e CI/CD completo com Release Gates |
+| **Fase 0** | **Pokédex 3D Estática (Vanilla)** | **Concluída** | [index.html](../index.html), [css/style.css](../css/style.css), [js/app.js](../js/app.js), [assets/](../assets/) preservados intactos na raiz (GitHub Pages histórico) |
+| **Fase 1** | **Fundação Monorepo + Shell Angular** | **Concluída** | Workspaces `@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`; `infra/docker/docker-compose.yml` saudável (`postgres`, `redis`, `redpanda`, `redpanda-console`, `minio` via `pgsty/silo`) |
+| **Fase 2** | **API NestJS + PostgreSQL/Prisma + Redis + Redpanda Outbox + WS** | **Concluída** | Schema Prisma + `idx_outbox_pending`; Cache Redis PokéAPI (`X-Cache` para catálogo + detalhe); 10 slots em ACID; Outbox (`SKIP LOCKED`) -> Redpanda -> Consumidor Idempotente Redis -> `/ws/world` Ticker ao vivo |
+| **Etapas 2A + 2B + Qualidade** | **IAM Enterprise BFF + Hardening SonarCloud** | **Concluída** | Zero JWT no JS; cookies `HttpOnly` + Redis (`MFA_PENDING -> AUTHENTICATED`); `CsrfOriginGuard`; `RedisThrottlerStorage`; dummy Argon2id; Mailpit (`:1025/:8025`) + Redpanda AES-256-GCM + adapter Resend/SMTP; TOTP QR + 8 backup codes; Google OAuth PKCE; Passkeys WebAuthn; mapper único em [session.service.ts](../apps/api/src/modules/auth/session.service.ts), [AGENTS.md](../AGENTS.md) e [.sonarcloud.properties](../.sonarcloud.properties) |
+| **Fase 3 (Item 1 Imediato)** | **Infraestrutura Oficial & Deploy Cloud (Saída do GitHub Pages)** | **Próxima** | `Dockerfile` multi-stage API, workflows GitHub Actions CI/CD, provisionamento Neon + Upstash + Aiven + Resend + Cloudflare Pages/Vercel + Host API e resolução same-origin/proxy para cookies BFF |
+| **Fase 4 (Item 2)** | **Pokédex Definitiva: Restauração 3D Fiel, Motor Gráfico & Enciclopédia 3-Camadas** | **Planejada** | Port visual 3D fiel da raiz para `apps/web` + upgrades **Three.js / WebGL2 / GSAP / Web Audio** (`LITE` compatível); limpeza de botões de jogo futuros na UI; **PokéAPI v2 estendida (`51` endpoints)** + **Pokémon TCG API (Cartas)** + **Anime/Filmes/Jogos**; Cache Redis *Stale-If-Error* + **`TrainerPokemonSnapshot` no PostgreSQL** |
+| **Fase 5 (Item 3 Futuro)** | **Back-end de Mecânicas de Jogo** | **Futura** | Alimentado pela enciclopédia detalhada: chances de encontro, cálculo de dano de skills, matriz completa de forças/fraquezas e progressão por level |
+| **Fase 6 (Expansões Futuras)** | **Overworld Phaser 3 + Holocron/Museu + Arcade WASM + Battle Frontier** | **Futura** | Ativação completa do mundo explorável (`WsAuthGuard`), emulador WASM + R2 e batalhas PvE/PvP ([docs 03, 07, 08, 09](00-visao-geral-e-roadmap.md)) |
 
 ---
 
@@ -48,41 +48,48 @@
 - **Stores & Interceptores:** [auth.store.ts](../apps/web/src/app/core/stores/auth.store.ts), [auth.interceptor.ts](../apps/web/src/app/core/interceptors/auth.interceptor.ts), [world-ticker.store.ts](../apps/web/src/app/core/stores/world-ticker.store.ts) (com `import('socket.io-client')` lazy), [quality.store.ts](../apps/web/src/app/core/stores/quality.store.ts) e [system-status.store.ts](../apps/web/src/app/core/stores/system-status.store.ts).
 - **HUD & Pokédex 3D Integrada:** [hud-topbar.component.ts](../apps/web/src/app/shared/hud/hud-topbar.component.ts), [hud-quick-dock.component.ts](../apps/web/src/app/shared/hud/hud-quick-dock.component.ts), [visitor-lock-dialog.component.ts](../apps/web/src/app/shared/hud/visitor-lock-dialog.component.ts), [requires-trainer.directive.ts](../apps/web/src/app/shared/directives/requires-trainer.directive.ts), [title-screen.component.ts](../apps/web/src/app/features/title-screen/title-screen.component.ts), [pokedex-device.component.ts](../apps/web/src/app/features/pokedex-device/pokedex-device.component.ts), [pokedex.store.ts](../apps/web/src/app/features/pokedex-device/services/pokedex.store.ts) e [pokedex-slots.store.ts](../apps/web/src/app/features/pokedex-device/services/pokedex-slots.store.ts).
 
-### 2.5. Linha de Base Medida Atual (Pós-Correções SonarLint)
-- **Qualidade:** `eslint` (`apps/api`) `0` erros / `0` warnings; `tsc --noEmit` `0` erros nos 3 workspaces; `node --check js\app.js` aprovado; SonarLint zerado nos apontamentos reportados.
-- **Testes:** `@pokeverse/shared` (`2` arquivos, `10` testes), `pokeverse-api` unit (`5` suítes, `9` testes) + E2E (`1` suíte, `4` testes), `pokeverse-web` (`1` arquivo, `4` testes).
-- **Bundle Inicial Angular (`ng build`):** **`731.49 kB` raw / `160.69 kB` transfer estimado** (`0` warnings de budget; chunk lazy `socket.io-client` em `42.17 kB` raw / `11.92 kB` transfer).
-- **Smoke Test ao Vivo (API `:3000` + Docker):** `/health/ready` (`200`), bloqueio `401` visitante, `register` (`201`), cache Redis `MISS -> HIT`, CRUD slots + `OutboxEvent` (`PUBLISHED`) -> Redpanda -> WebSocket `/ws/world` ao vivo, rotação/reuso refresh (`401/401`) e login/logout (`200/204`) validados com limpeza pós-teste no Postgres.
+### 2.5. Linha de Base Medida Atual (Pós-2B e Limpeza SonarQube Cloud)
+- **Qualidade & Regras:** `eslint` (`apps/api`), `tsc --noEmit` nos 3 workspaces, varredura AST (`async` sem `await` e retornos invariantes) e `node --check js\app.js` com **0 erros**; criação de [.sonarcloud.properties](../.sonarcloud.properties) e [AGENTS.md](../AGENTS.md) com Regra Zero de preservação visual.
+- **Testes:** `@pokeverse/shared` (`2` arquivos, `10` testes), `pokeverse-api` unit (`8` suítes, `15` testes) + E2E (`1` suíte, `8` testes), `pokeverse-web` (`1` arquivo, `4` testes).
+- **Bundle Inicial Angular (`ng build`):** **`740.10 kB` raw / `162.78 kB` transfer estimado** (`0` warnings de budget; chunks lazy carregados sob demanda, incluindo `pokedex-device-component` em `35.55 kB`, `security-settings-dialog-component` em `13.75 kB` e `socket.io-client` em `42.17 kB`).
+- **Smoke Tests ao Vivo (API `:3000` + Docker):** `/health/ready` (`200`), visita vs rotas privadas (`401/403`), CSRF `Origin`/`Sec-Fetch-Site`, sessão BFF Redis `MFA_PENDING -> AUTHENTICATED`, Outbox AES-256-GCM -> Redpanda -> Mailpit (`:8025`), OTP verificação/recuperação (limite 3 tentativas), TOTP QR + 8 backup codes, Passkeys options, proteção ATO no Google PKCE e cache PokéAPI + CRUD 10 slots aprovados ponta a ponta.
 
 ---
 
 ## 3. O que Mudou em Relação ao Planejamento Original (`00` a `12`)
 
-| Item nos Docs Originais | Como Foi Realmente Implementado | Motivo da Mudança |
+| Item nos Docs Originais | Como Foi Realmente Implementado | Motivo / Lição Aprendida |
 | :--- | :--- | :--- |
 | **Turborepo** mencionado como opção no doc `01` | **npm workspaces** puros na raiz (`package.json`) | Menor complexidade e dependências no monorepo inicial sem perder scripts unificados |
 | **MinIO oficial** (`minio/minio` / `minio/mc`) | **`pgsty/silo:RELEASE.2026-11-12T00-00-00Z`** | Imagens antigas do Docker Hub sofreram restrição pública; `silo` entrega S3 + `mc` compatíveis em uma imagem pinada |
 | **Prisma mais recente** | **Prisma `6.19.3`** (`prisma` + `@prisma/client`) | Compatibilidade direta em CJS com NestJS 11 + `ts-jest` sem fricção de adapters ESM do Prisma 7/8 |
-| **`@nestjs/jwt` mais recente** | **`@nestjs/jwt` `^11.0.2`** | A v12 publicou apenas ESM, quebrando carregamento CJS em Jest; v11 alinha nativamente com `@nestjs/common@11` |
+| **Auth Stateless com JWT no navegador** (`doc 04` v1) | **Sessão Opaca BFF no Redis + Cookie `HttpOnly`** (sem `@nestjs/jwt` no fluxo principal) | Segurança enterprise: revogação instantânea no Redis, máquina `MFA_PENDING -> AUTHENTICATED`, zero token exposto no JS |
 | **Prefixes Angular `app-*` / `[appRequiresTrainer]`** | Prefixo **`pv-*`** e diretiva **`[pvRequiresTrainer]`** em [requires-trainer.directive.ts](../apps/web/src/app/shared/directives/requires-trainer.directive.ts) | Evitar colisões de seletor e padronizar namespace *PokéVerse* |
-| **Rotas `/mundo`, `/arcade`, `/arena`** | Protegidas por `authGuard`, apontando provisoriamente para `TitleScreenComponent` | Permitir navegação e testes do guard desde a Fase 1 antes de criar Phaser/WASM/Arena nas Fases 3–6 |
+| **Rotas `/mundo`, `/arcade`, `/arena` visíveis no Dock desde a Fase 1** | Implementadas provisoriamente apontando para `TitleScreenComponent`; serão **ocultadas na Fase 4** até a entrega da Pokédex Definitiva | Foco no produto principal: evitar que botões futuros trancados desviem a experiência enquanto construímos a Pokédex |
+| **Pokédex Angular (`pokedex-device.component.scss` na Fase 1)** | Portada de forma **reduzida** (`239` linhas SCSS vs `3.466` linhas 3D originais) | Regressão visual identificada pós-Fase 2; gerou o [AGENTS.md](../AGENTS.md) com **Regra Zero de UI** e prioridade máxima para restauração 3D fiel na Fase 4 |
 | **Pokédex Angular dependente só da API** | Consome `/api/v1/pokedex/*` (Redis) com fallback automático para PokéAPI direta | Garantir funcionamento offline/degradado de visitante mesmo se a API NestJS estiver desligada |
-| **`POST /auth/logout` protegido por Bearer** (tabela do doc `04`) | **`@Public()` usando o cookie `pokeverse_refresh`** em [auth.controller.ts](../apps/api/src/modules/auth/auth.controller.ts) | Permitir encerrar sessão e revogar `familyId` no banco mesmo quando o access token em RAM já expirou ou após recarregar |
-| **`OutboxEvent.eventType`** | Armazena o **tópico Kafka** (`pokeverse.world.events.v1`), enquanto `payload.eventType` carrega o nome do evento (`trainer.registered`, `pokedex.slot.saved`, `pokedex.slot.cleared`) | Roteamento direto pelo `OutboxRelayService` mantendo metadado semântico validado por Zod no payload |
-| **`WorldGateway` com `WsJwtGuard`** (tabela do doc `04`) | Conexão **sem guard no handshake** nesta fase | Permitir exibição do Ticker Global na Topbar também para Visitantes; entrada em mapa/ações privadas exigirá `WsAuthGuard` antes da Fase 3 |
-| **`socket.io-client` no bundle inicial** | Importado dinamicamente (`await import('socket.io-client')`) em [world-ticker.store.ts](../apps/web/src/app/core/stores/world-ticker.store.ts) | Manter o bundle inicial Angular abaixo do teto de `750 kB` raw / `220 kB` gzip (`160.69 kB` medido) |
+| **`OutboxEvent.eventType`** | Armazena o **tópico Kafka** (`pokeverse.world.events.v1` / `pokeverse.notifications.email.v1`), enquanto `payload.eventType` / `template` detalham o evento | Roteamento direto pelo `OutboxRelayService` mantendo metadado validado por Zod (e PII cifrada em AES-256-GCM para e-mails) |
+| **`WorldGateway` com `WsJwtGuard`** (`doc 04`) | Conexão **sem guard no handshake** nesta fase | Permitir Ticker Global na Topbar para Visitantes; ações do Overworld exigirão `WsAuthGuard` + sessão Redis antes da Fase 5/6 |
+| **`socket.io-client` e `@simplewebauthn/browser` no bundle** | Importados dinamicamente (`import(...)` / `@defer`) | Manter o bundle inicial Angular abaixo do teto (`162.78 kB` transfer medido) |
 
 ---
 
-## 4. O que Falta Fazer (Dívidas Conhecidas + Fases 3 a 6)
+## 4. Plano de Ação Reordenado & Backlog (Aguardando Confirmação de Provedores)
 
-### 4.1. Pendências Pré-Fase 3 & Hardening Restante
-1. **Concluído na Onda 1 (`2A + 2B`):** Sessão Opaca no Redis + Cookie `HttpOnly` (BFF), máquina `MFA_PENDING -> AUTHENTICATED`, `@nestjs/throttler` distribuído no Redis, `CsrfOriginGuard`, dummy Argon2id no `login()`, CSP explícita + `Permissions-Policy`, `express.json({ limit: '64kb' })`, `SAFE_POKEMON_PARAM` com limite `{1,64}` + `redirect: 'error'`, Mailpit + Redpanda OTP assíncrono (AES-256-GCM), TOTP + 8 backup codes, Google OAuth2 PKCE + Account Linking seguro, Passkeys WebAuthn e limpeza de textos legados em `system.controller.ts` (`'phase-2b'`), `auth.guard.ts` e `requires-trainer.directive.ts`.
-2. **Itens remanescentes para Ondas 2 e 3 do [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md):** redação/masking genérico em logger caso middlewares passem headers, job periódico de expurgo de `RefreshToken`/`OutboxEvent`, `WsAuthGuard` obrigatório ao ativar ações interativas do Overworld na Fase 3, e gates DevSecOps (`gitleaks`, `npm audit`, Trivy) no CI.
-3. **Observação de verificação visual em navegador:** concluir inspeção visual automatizada desktop (`1440×900`) e mobile (`375×812`) no Chrome assim que as tools bloqueadas no MCP ou Playwright estiverem disponíveis.
+### Item 1 (Imediato — Fase 3): Infraestrutura Oficial & Deploy Cloud (Saída do GitHub Pages)
+1. **Commit/Push base:** enviar alterações pendentes (`.sonarcloud.properties`, `AGENTS.md`, correções SonarQube e documentação realinhada) para `origin/main` e confirmar Quality Gate limpo no SonarCloud.
+2. **Containerização & Build de Produção:** criar `Dockerfile` multi-stage não-root para `apps/api` (rodando `prisma migrate deploy` + boot Node) e validar `ng build` para `apps/web`.
+3. **Estratégia BFF Cross-Origin / Proxy:** configurar subdomínio compartilhado ou proxy `/api` same-origin (ex.: Cloudflare/Vercel) ou ajuste `SameSite=None; Secure` + `CORS_ORIGINS` estrito conforme os provedores escolhidos.
+4. **Provisionamento & CI/CD (`.github/workflows/`):** subir **Front (`apps/web`)**, **API (`apps/api`)**, **Neon (PostgreSQL)**, **Upstash (Redis)**, **Aiven (Kafka Free)** e **Resend (E-mails)**, validando `/health/ready`, login e OTP em URL pública HTTPS.
 
-### 4.2. Backlog Funcional das Próximas Fases
-- **Fase 3 (Overworld 2D/HD-2D — Phaser 3):** `WorldModule` autenticado com `WsAuthGuard` + rate limit WS, `TrainersModule` (`GET/PATCH /trainers/me`, posição/avatar), presença Redis com heartbeat e cena Phaser lazy-loaded + `FpsWatchdog`.
-- **Fase 4 (Holocron 3D & Museu):** cena Three.js para Title Screen + pedestal Holocron 3D, `MuseumModule` no NestJS, conteúdo interativo completo de Kanto a Paldea e linha do tempo de jogos.
-- **Fase 5 (Arcade Retrô 3D + S3):** `ArcadeModule` + catálogo seedado em `ArcadeRom`, stream/Presigned URLs de `60s`, portátil 3D com `CanvasTexture` + emulador WASM, validação SHA-256 + `pokeverse.arcade.savestate.v1`.
-- **Fase 6 (Battle Frontier + Release Gates):** `TeamsModule` + Worker de sinergia, `MinigamesModule` anti-cheat + Redis Sorted Sets, `BattleModule` + `BattleGateway` + matchmaking Kafka, métricas RED/USE + `PerfHUD` + OpenTelemetry completo e GitHub Actions com os 5 gates do [doc 11](11-performance-hardware-gates-e-mobile.md) + pipeline DevSecOps (`gitleaks`, `npm audit`, Trivy).
+### Item 2 (Após Deploy — Fase 4): Pokédex Definitiva (Visual 3D + Motor Gráfico + Enciclopédia 3-Camadas)
+1. **Foco da Casca Angular:** limpar o HUD/Dock removendo temporariamente atalhos das futuras telas de jogo, deixando o app coeso em **Login/Segurança + Pokédex & Enciclopédia**.
+2. **Restauração Fiel + Motor Gráfico & Animações:** portar fielmente a Pokédex 3D de [index.html](../index.html) + [css/style.css](../css/style.css) para `apps/web` com comparação visual Antes × Depois (`1440×900` e `375×812`), e evoluir com **Three.js / WebGL2 + Shaders + GSAP + Web Audio API** respeitando perfis `ULTRA / BALANCED / LITE`.
+3. **Expansão Multi-API + Resiliência em 3 Camadas:**
+   - **APIs Vivas:** expandir [pokeapi-cache.service.ts](../apps/api/src/modules/pokedex/pokeapi-cache.service.ts) além de `2` endpoints (cobrindo espécie, evolução, golpes, habilidades, formas, versões/jogos e encontros — [doc 12](12-pokedex-2-0-pokeapi-e-controles.md)), integrar **Pokémon TCG API** (cartas) e **Anime/Filmes** (TMDB + curadoria).
+   - **Cache Redis *Read-Through + Stale-If-Error*:** resposta em ms + contingência imediata caso APIs externas caiam.
+   - **PostgreSQL `TrainerPokemonSnapshot`:** persistir snapshot dos dados dos Pokémon salvos pelo treinador vinculados à sua conta, garantindo uso contínuo mesmo sem resposta das APIs externas.
+
+### Item 3 (Futuro — Fases 5 e 6): Back-end de Jogo & Expansões PokéVerse
+- **Motor/Back-end de Jogo (Fase 5):** usar os dados detalhados da enciclopédia para construir chances de encontro, cálculo de dano das skills, matriz de forças/fraquezas e aumento de atributos por level.
+- **Expansões Visuais & Jogáveis (Fase 6):** Overworld Phaser 3 (`WsAuthGuard`), Holocron/Museu completo, Arcade Retrô WASM (`pokeverse-roms`/R2) e Battle Frontier (Team Builder, Mini-Games, PvE/PvP), além de ondas 2–3 do [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md) e portões CI/CD do [doc 11](11-performance-hardware-gates-e-mobile.md).

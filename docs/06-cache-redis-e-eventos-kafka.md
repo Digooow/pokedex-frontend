@@ -86,8 +86,14 @@ Para operar tanto em **Redpanda local** quanto em **planos gratuitos gerenciados
 
 ---
 
-## 5. Estado Real da Implementação (Fase 2)
+## 5. Estado Real da Implementação & Evolução Planejada (Pós-2B -> Pokédex 2.0)
 
-- **Cache-Aside + Circuit Breaker (`PokeApiCacheService`):** ativos em `/api/v1/pokedex/catalog` e `/api/v1/pokedex/pokemon/:idOrName` com singleflight in-memory, validação Zod na entrada/saída do Redis, `AbortController` (`POKEAPI_TIMEOUT_MS`) e header `X-Cache` (`MISS` / `HIT`).
-- **Outbox + Redpanda + Consumidor Idempotente (`OutboxRelayService` & `WorldEventsConsumerService`):** ativos em lote com `FOR UPDATE SKIP LOCKED`, publicação paralela (`Promise.all`), retentativa (`MAX_OUTBOX_RETRIES = 5`), `pokeverse.dlq.v1` e lock `SET idemp:pokeverse-world-ticker:{eventId} 1 NX EX 86400` no Redis alimentando o ticker WebSocket `/ws/world`. Em `OutboxEvent.eventType` grava-se o tópico Kafka (`pokeverse.world.events.v1`), enquanto o nome do evento (`trainer.registered`, `pokedex.slot.saved`, `pokedex.slot.cleared`) vai dentro de `payload.eventType`.
-- **Pendente para as Fases 3–6 + Hardening:** `@nestjs/throttler` distribuído no Redis, presença Overworld (`world:presence:*`), Rankings Sorted Sets, sessões anti-cheat de Mini-Games e segregação de eviction/sessão no Redis (detalhada no [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md#72-redis-7-segregação-de-domínios-e-política-de-eviction)).
+- **Ativos hoje em produção local (`Etapas 1–2B`):**
+  - **Cache-Aside + Circuit Breaker (`PokeApiCacheService`):** ativos em `/api/v1/pokedex/catalog` e `/api/v1/pokedex/pokemon/:idOrName` com singleflight in-memory, validação Zod na entrada/saída do Redis, `AbortController` (`POKEAPI_TIMEOUT_MS`) e header `X-Cache` (`MISS` / `HIT`).
+  - **Sessão Opaca BFF, Throttling & OTPs no Redis (`SessionService`, `OtpService`, `RedisThrottlerStorage`):** chaves `sess:*`, `trainer_sessions:*`, `otp:*`, `rl:*` e anti-replay TOTP/Passkeys ativos no Redis.
+  - **Outbox + Redpanda + Consumidores Idempotentes (`OutboxRelayService`, `WorldEventsConsumerService`, `EmailNotificationsConsumerService`):** ativos em lote com `FOR UPDATE SKIP LOCKED`, publicação paralela (`Promise.all`), retentativa (`MAX_OUTBOX_RETRIES = 5`), tópico `pokeverse.dlq.v1`, e-mails assíncronos criptografados em AES-256-GCM (`pokeverse.notifications.email.v1`) e ticker `/ws/world`.
+- **Próxima Evolução para a Pokédex Enciclopédica (Arquitetura Híbrida em 3 Camadas):**
+  1. **Expansão Multi-Upstream:** chaves adicionais para `pokeapi:v2:species:{id}`, `pokeapi:v2:evolution:{id}`, `pokeapi:v2:move:{id}`, `pokeapi:v2:ability:{id}`, `pokeapi:v2:encounters:{id}`, `pokemontcg:v2:cards:{query}` e `media:lore:{pokemonId}` (anime/filmes/jogos).
+  2. **Padrão *Read-Through + Stale-If-Error*:** além do TTL fresco (`24h`), manter chave secundária *stale* de retenção estendida (ex.: `7–30 dias` ou LRU controlado) para que, caso uma API externa saia do ar temporariamente, o Redis sirva o último dado íntegro com header informativo de *stale fallback* sem derrubar a busca do usuário.
+  3. **Integração com Snapshots PostgreSQL do Usuário:** para Pokémon salvos na lista/slots do usuário, o PostgreSQL passa a guardar snapshot estruturado independente da expiração do Redis.
+- **Pendente para as Fases de Jogo & Hardening 2–3:** presença Overworld (`world:presence:*`), Rankings Sorted Sets, sessões anti-cheat de Mini-Games e segregação de eviction/sessão no Redis (detalhada no [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md#72-redis-7-segregação-de-domínios-e-política-de-eviction)).

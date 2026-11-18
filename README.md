@@ -69,7 +69,7 @@ Não há dependências externas nem etapa de build:
 
 ## Arquitetura da Plataforma Full-Stack (`docs/`)
 
-Documentação técnica e acompanhamento real da expansão deste projeto para o ecossistema **PokéVerse OS** (**Fases 1 e 2 já implementadas** em `apps/web`, `apps/api`, `packages/shared` e `infra/docker`; próxima etapa: **Blindagem Auth/AppSec** antes das **Fases 3–6**):
+Documentação técnica e acompanhamento real da evolução deste projeto para a plataforma **PokéVerse OS** (**Fases 1, 2 e IAM Enterprise 2A+2B implementadas** em `apps/web`, `apps/api`, `packages/shared` e `infra/docker`; próximos marcos em ordem: **Deploy Oficial na Infra Cloud -> Pokédex Definitiva 3D & Enciclopédia (Jogos, Cartas, Anime e Filmes) -> Back-end e Motor de Jogo**):
 
 - [00 — Visão Geral, Regras de Acesso e Roadmap](docs/00-visao-geral-e-roadmap.md)
 - [01 — Arquitetura do Monorepo e Padrões de Engenharia](docs/01-arquitetura-monorepo-e-padroes.md)

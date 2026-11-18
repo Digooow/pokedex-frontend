@@ -1,10 +1,12 @@
 # 00 — Visão Geral e Roadmap do PokéVerse OS
 
+> **Direção Atual (Realinhamento Pós-Fase 2):** Primeiro colocar a infraestrutura oficial no ar saindo do GitHub Pages e transformar a **Pokédex na enciclopédia Pokémon mais completa e bem animada possível** (visual 3D fiel + motor gráfico WebGL2/Three.js/GSAP + PokéAPI completa + Dados de Jogos + Cartas TCG + História de Anime e Filmes, sustentada por arquitetura híbrida API + Redis + Snapshot por usuário no PostgreSQL). Só **depois** que essa base enciclopédica estiver no detalhe é que usaremos esses dados para construir o **Back-end e Motor de Jogo** (chances de encontro, dano de skills, forças e fraquezas, aumento de atributos por nível, Overworld, Arcade e Battle Frontier).
+
 ## 1. Visão Executiva do Produto
 
-O **PokéVerse OS** transforma o repositório [pokedex-frontend](../README.md) em uma plataforma web Full-Stack em formato de **mundo interativo de videogame**, unindo interface de alta precisão (**Angular**), exploração em mundo 2D/HD-2D (**Phaser 3 / PixiJS**), inspeção e hardware virtual em tempo real (**Three.js + WebGL2/Shaders GLSL + GSAP**) e back-end distribuído orientado a eventos (**NestJS + PostgreSQL + Redis + Apache Kafka/Redpanda + MinIO/S3**).
+O **PokéVerse OS** transforma o repositório [pokedex-frontend](../README.md) em uma plataforma web Full-Stack cuja espinha dorsal imediata é a **Pokédex Enciclopédica de Nova Geração**, evoluindo progressivamente para o ecossistema interativo completo em formato de mundo de videogame: interface Angular (**Standalone + Signals + Zoneless**), motor gráfico de alta precisão (**Three.js + WebGL2/Shaders GLSL + GSAP** na Pokédex/Holocron e **Phaser 3** quando iniciar a etapa do Overworld) e back-end distribuído orientado a eventos (**NestJS + PostgreSQL + Redis + Apache Kafka/Redpanda + Object Storage S3**).
 
-A Pokédex 3D skeuomórfica existente ([index.html](../index.html), [css/style.css](../css/style.css) e [js/app.js](../js/app.js)) **não é descartada**: ela é preservada como o **Módulo 01 (Dispositivo de Campo)**, abrindo dentro do ecossistema como um equipamento oficial do treinador e evoluindo de persistência local (`localStorage`) para sincronização em nuvem quando autenticada.
+A Pokédex 3D skeuomórfica existente ([index.html](../index.html), [css/style.css](../css/style.css) e [js/app.js](../js/app.js)) **não é descartada nem substituída por um mockup simplificado**: ela continua preservada na raiz como **Fase 0** para o GitHub Pages e deve ser **portada fielmente** para dentro do Angular (`apps/web`) como ponto de partida visual, recebendo upgrades de motor gráfico, animações e dados ricos sem perder sua identidade.
 
 > **Evolução Orientada a Evidências (Desempenho & Mobile-First):** após um *post-mortem* real de travamento em smartphone na versão estática inicial (causado por 4 imagens 4K simultâneas de `9,34 MB`, transição com *reflow* via `padding-top`, filtros SVG `feTurbulence` e `backdrop-filter`), a plataforma nasceu com **Detecção Automática de Hardware (`ULTRA` / `BALANCED` / `LITE`)**, **versão Lite para PCs e celulares modestos**, telemetria registrável e **Release Gates automatizados** cobrindo gráficos, APIs, PostgreSQL, Redis e Kafka (ver [11 — Desempenho Ponta a Ponta](11-performance-hardware-gates-e-mobile.md)).
 
@@ -15,7 +17,7 @@ A Pokédex 3D skeuomórfica existente ([index.html](../index.html), [css/style.c
 ```mermaid
 flowchart TB
   Visitor["Visitante (Sem Login)"] --> Title["Tela de Título Cinemática (Three.js + GLSL)"]
-  Trainer["Treinador Logado (JWT + Sessão)"] --> Title
+  Trainer["Treinador Logado (Sessão BFF Redis)"] --> Title
 
   Title -->|"Modo Visitante"| PublicAccess["Acesso Público Somente Leitura"]
   Title -->|"Entrar no Mundo"| AuthAccess["Overworld Vivo + Viagem Rápida (HUD)"]
@@ -66,7 +68,7 @@ flowchart TB
 
 ## 4. Matriz de Permissões: Visitante vs. Treinador Autenticado
 
-O controle de acesso segue política estrita de **Login Obrigatório para recursos persistentes, jogos e tempo real**, tanto no Front-end (`AuthGuard` e cadeados visuais no HUD) quanto no Back-end (Guards NestJS validando JWT).
+O controle de acesso segue política estrita de **Login Obrigatório para recursos persistentes, jogos e tempo real**, tanto no Front-end (`authGuard` e cadeados visuais no HUD) quanto no Back-end (`SessionAuthGuard` validando sessão opaca no Redis + cookie `HttpOnly` + `CsrfOriginGuard`).
 
 | Módulo / Funcionalidade | Visitante (Sem Login) | Treinador Autenticado (Com Login) | Motivo Arquitetural |
 | :--- | :---: | :---: | :--- |
@@ -95,19 +97,20 @@ O controle de acesso segue política estrita de **Login Obrigatório para recurs
 
 ---
 
-## 6. Roadmap Incremental (6 Fases Entregáveis)
+## 6. Roadmap Incremental (Reordenado para Pokédex First + Deploy Oficial)
 
-Cada fase foi desenhada para resultar em uma aplicação **executável, testável e utilizável** ao seu término, evitando grandes refatorações cegas.
+Cada etapa resulta em uma entrega **executável, testável e utilizável**. Após concluir a fundação Auth/Infra (`Fases 1–2B`), o roadmap foi **repriorizado explicitamente** para entregar primeiro a infraestrutura no ar e a **Pokédex Enciclopédica Definitiva**, antes da construção das mecânicas de jogo:
 
-| Fase | Nome da Entrega | Status | Escopo Técnico Principal | Critério de Conclusão (DoD) |
+| Etapa | Nome da Entrega | Status | Escopo Técnico Principal | Critério de Conclusão (DoD) |
 | :--- | :--- | :---: | :--- | :--- |
-| **Fase 1** | **Fundação Monorepo + Shell Angular + Pokédex Integrada** | **Concluída** | Criação de `apps/web`, `apps/api`, `packages/shared`, `infra/docker/docker-compose.yml`; Tela *"Press Start"* inicial; HUD Angular com cadeia de rotas e Pokédex 3D atual integrada via proxy/fallback. | Monorepo compila sem erros; visitante abre Pokédex 3D dentro da nova shell; `docker compose up` sobe bancos e mensageria saudáveis. |
-| **Fase 2** | **Back-end NestJS + Auth + PostgreSQL + Redis + Kafka** | **Concluída** | Prisma Schema (`6.19.3`) + migration `idx_outbox_pending`; cache Redis PokéAPI (`X-Cache`); 10 slots em ACID; *Transactional Outbox* (`SKIP LOCKED`) -> Redpanda -> Consumidores Idempotentes Redis -> WebSocket `/ws/world` Ticker ao vivo. | Registro/Login funcionando; gravação de slots persistida no Postgres e notificada via Kafka -> WebSocket; visitante bloqueado nos endpoints privados. |
-| **Hardening / 2A+2B** | **IAM Enterprise BFF (Onda 1 do Dossiê 13)** | **Concluída** | Sessão Opaca no Redis (`MFA_PENDING -> AUTHENTICATED`) via cookie `HttpOnly` (zero JWT no JS), CSRF `Origin`/`Sec-Fetch-Site`, Redis Throttler, Argon2id dummy timing, OTP 6 dígitos + Redpanda + Mailpit/Resend, TOTP RFC 6238 (QR + AES-256-GCM + 8 backup codes), Google OAuth PKCE e Passkeys WebAuthn. | Fluxos BFF, 2FA, OTP assíncrono no Mailpit, Passkeys e PKCE validados por testes unitários, E2E e smoke tests ao vivo. |
-| **Fase 3** | **Overworld Explorável 2D/HD-2D (Phaser 3)** | **Pendente** | Tilemap da Vila Central com 4 edifícios-portais, colisão, ciclo dia/noite, partículas climáticas, sincronização de posição de jogadores online via Redis/WS autenticado (`WsAuthGuard`) e HUD de Viagem Rápida integrado. | Treinador logado caminha pelo mapa, entra nos prédios abrindo cada módulo e vê presença de outros treinadores conectados. |
-| **Fase 4** | **Holocron 3D (Three.js) + Museu das Regiões & Jogos** | **Pendente** | Pedestal holográfico 3D com shaders de tipo elemental, player de áudio *cry* (Web Audio API), árvore evolutiva e tabela de tipos; Atlas interativo de Kanto a Paldea e linha do tempo dos jogos (1996–presente). | Visitantes e treinadores navegam pelo Museu e inspecionam qualquer Pokémon no Holocron 3D sem erros de memória GPU. |
-| **Fase 5** | **Arcade Retrô 3D (WebAssembly) + MinIO/S3 + Cloud Saves** | **Pendente** | Integração S3 (`pgsty/silo`/R2) para catálogo fixo de ROMs; modelo 3D de portátil em Three.js com tela `CanvasTexture` vinculada ao emulador WASM; fluxo completo de *Cloud Save States* assíncronos via Kafka. | Treinador logado dá Play em 1 clique em uma ROM do catálogo, joga no portátil 3D, salva estado na nuvem e retoma do ponto exato após recarregar a página. |
-| **Fase 6** | **Battle Frontier: Team Builder + Mini-Games + PvE/PvP** | **Pendente** | Construtor competitivo de 6 Pokémon (IVs/EVs/Natures/Moves); mini-games (*Quem é esse Pokémon?*) com ranking em tempo real no Redis; engine de batalha turn-based autoritativa no NestJS para PvE (Líderes/IA) e PvP (Kafka Matchmaking + WebSocket). | Montagem de time validada e salva; placar global Redis atualizado ao vivo; partidas completas PvE e PvP executadas do início ao fim. |
+| **Fase 0** | **Pokédex 3D Estática (Vanilla)** | **Concluída** | [index.html](../index.html), [css/style.css](../css/style.css), [js/app.js](../js/app.js) e `assets/` preservados na raiz (GitHub Pages histórico). | Site estático operando de forma autônoma na raiz. |
+| **Fase 1** | **Fundação Monorepo + Shell Angular** | **Concluída** | Workspaces `@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`, `infra/docker/docker-compose.yml` e integração inicial Angular/API. | Monorepo compila sem erros; containers locais saudáveis. |
+| **Fase 2** | **Back-end NestJS + PostgreSQL + Redis + Kafka** | **Concluída** | Prisma Schema (`6.19.3`) + `idx_outbox_pending`; cache Redis PokéAPI (`X-Cache`); 10 slots ACID; Transactional Outbox (`SKIP LOCKED`) -> Redpanda -> WebSocket `/ws/world`. | API persistindo slots e emitindo eventos via Kafka -> WS; visitantes restritos a leitura. |
+| **Etapa 2A+2B** | **IAM Enterprise BFF (Onda 1)** | **Concluída** | Sessão opaca no Redis (`MFA_PENDING -> AUTHENTICATED`), cookies `HttpOnly`, `CsrfOriginGuard`, Redis Throttler, Argon2id timing shield, OTP assíncrono via Kafka + Mailpit/Resend, TOTP QR + 8 backup codes, Google OAuth PKCE, Passkeys WebAuthn + `.sonarcloud.properties` e `AGENTS.md`. | Fluxos BFF, 2FA, OTP, Passkeys e PKCE validados por testes unitários, E2E e smoke tests; apontamentos SonarQube zerados. |
+| **Fase 3 (Próxima)** | **Infraestrutura Cloud & Deploy Oficial (Saída do GitHub Pages)** | **Próxima** | `Dockerfile` multi-stage não-root para `apps/api` (`prisma migrate deploy`), CI/CD no GitHub Actions, provisionamento **Cloudflare Pages / Vercel Hobby** (`apps/web`) + **API Host** (`Render / Azure / Oracle / Heroku`) + **Neon** + **Upstash** + **Aiven Kafka** + **Resend**, e solução de cookies BFF same-site/proxy. | Plataforma Full-Stack acessível via URL pública HTTPS em produção com `/health/ready` verde, login/OTP funcional em nuvem e CI/CD automatizado. |
+| **Fase 4** | **Pokédex Definitiva: Motor Gráfico, Restauração 3D & Enciclopédia em 3 Camadas** | **Planejada** | **Restauração fiel** da carcaça 3D da raiz no Angular (`AGENTS.md` Regra Zero) + upgrade de animações e motor gráfico (**Three.js + WebGL2/Shaders + GSAP + Web Audio** com modo `LITE`); limpeza de HUD para focar em Login + Pokédex; **PokéAPI v2 estendida (`51` endpoints)** + **Pokémon TCG API (Cartas)** + **História no Anime/Filmes/Jogos**; Cache **Redis *Read-Through + Stale-If-Error*** e **`TrainerPokemonSnapshot` no PostgreSQL** atrelado aos Pokémon do usuário. | Pokédex idêntica/superior em fidelidade à original, com animações fluidas, consulta completa de jogos/cartas/anime/filmes, resposta instantânea no Redis e sobrevivência offline dos favoritos mesmo com APIs externas fora do ar. |
+| **Fase 5** | **Back-end de Mecânicas de Jogo (Alimentado pela Enciclopédia)** | **Futura** | Usar os dados validados da Fase 4 para construir o motor autoritativo de jogo: chances de encontro por habitat/versão/clima, cálculo de dano de skills (STAB, categoria, acurácia, crítico), tabela completa de forças/fraquezas (`0x..4x`), evolução e ganho de atributos por level (`growth_rate`, IVs/EVs, Natures). | APIs e domínio de combate/progressão validados em `@pokeverse/shared` e NestJS. |
+| **Fase 6** | **Expansões PokéVerse: Overworld, Museu, Arcade & Battle Frontier** | **Futura** | Ativar o ecossistema de mundo interativo descrito nos [docs 03, 07, 08 e 09](03-motores-graficos-phaser-e-threejs.md): Overworld 2D/HD-2D (Phaser 3 + `WsAuthGuard`), Museu Atlas 3D, Arcade Retrô WASM + R2, Team Builder, Mini-Games e Batalhas PvE/PvP. | Módulos jogáveis integrados ao HUD e à Pokédex sobre os portões de performance do [doc 11](11-performance-hardware-gates-e-mobile.md). |
 
 ---
 

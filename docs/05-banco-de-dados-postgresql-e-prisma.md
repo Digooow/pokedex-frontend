@@ -323,5 +323,10 @@ model OutboxEvent {
 ## 5. Status Atual de Aplicação (Fase 2)
 
 - **Versão instalada:** Prisma **`6.19.3`** (`prisma` e `@prisma/client`) escolhido para compatibilidade direta CJS com NestJS 11 e Jest.
-- **Migration aplicada:** `apps/api/prisma/migrations/20261118073124_init_pokeverse_schema/migration.sql`, criando as 10 tabelas de domínio no PostgreSQL (`pokeverse-postgres`) mais o índice parcial `"idx_outbox_pending"` em `"OutboxEvent" ("createdAt" ASC) WHERE "status" = 'PENDING'`.
+- **Migrations aplicadas:**
+  1. `apps/api/prisma/migrations/20261118073124_init_pokeverse_schema/migration.sql` (10 tabelas base de domínio + índice parcial `"idx_outbox_pending"` em `"OutboxEvent" ("createdAt" ASC) WHERE "status" = 'PENDING'`).
+  2. `apps/api/prisma/migrations/20261118082535_iam_enterprise_foundation/migration.sql` (evolução do `Trainer` com `passwordHash` opcional, `emailVerifiedAt`, `mfaEnabled`, `totpSecretEncrypted`, mais os modelos `MfaBackupCode`, `TrainerOAuthAccount` e `TrainerPasskey`).
+- **Expansão Planejada para a Pokédex Definitiva (`TrainerPokemonSnapshot` — Próximo Marco de Dados):**
+  - Para permitir que o treinador continue consultando e operando os Pokémon da própria lista mesmo durante quedas temporárias das APIs externas (PokéAPI / TCG) — e já criar a ponte para cálculos futuros de jogo —, será adicionado um modelo/extensão vinculado a `Trainer` / `PokedexSlot` (ex.: `TrainerPokemonSnapshot`) armazenando snapshot JSONB versionado (`stats`, `types`, `abilities`, `moves`, `evolutionSummary`, `mediaRefs`, `sourceVersion`, `syncedAt`).
+  - Isso mantém o banco enxuto (sem replicar toda a PokéAPI de forma cega no Free Tier) enquanto garante **offline-resilience nominal por usuário** e serve de base direta para nível, XP, chances de encontro, dano de skills e forças/fraquezas nas fases futuras de jogo.
 - **Segurança & Higiene pendentes:** ver política de privilégio mínimo da role de runtime e worker de expurgo para `RefreshToken`/`OutboxEvent` publicados no [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md#71-postgresql--prisma-orm).

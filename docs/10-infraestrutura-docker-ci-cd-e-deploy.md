@@ -208,7 +208,16 @@ flowchart LR
 
 ---
 
-## 5. Estado Atual (Fases 1–2) e Portões de Segurança DevSecOps
+## 5. Estado Atual & Checklist da Migração Oficial (GitHub Pages -> Produção)
 
-- **Infra local implementada:** `infra/docker/docker-compose.yml` com PostgreSQL 16 (`5433`), Redis 7 (`6379`), Redpanda (`19092`), Redpanda Console (`8085`) e S3 compatível `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` (`9000/9001`), além de `CorrelationMiddleware` (`x-correlation-id` + `traceparent`), `StructuredLoggerService`, `/health/live` e `/health/ready`.
-- **Pendente para Fases 3–6 e CI/CD:** `Dockerfiles` multi-stage não-root, workflows GitHub Actions (`gitleaks`, `npm audit`, Trivy, Playwright, Lighthouse CI, `k6`) e hardening completo detalhado em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md) e [14 — Status Real da Implementação](14-status-e-changelog-implementacao.md).
+- **Infra local implementada:** `infra/docker/docker-compose.yml` com PostgreSQL 16 (`5433`), Redis 7 (`6379`), Redpanda (`19092`), Redpanda Console (`8085`), S3 compatível `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` (`9000/9001`) e **Mailpit (`axllent/mailpit:v1.22` nas portas `1025/8025`)** com adaptador `MailService` pronto para **Resend / SMTP** em produção, além de `CorrelationMiddleware` (`x-correlation-id` + `traceparent`), `StructuredLoggerService`, `/health/live`, `/health/ready` e `.sonarcloud.properties` configurado na raiz.
+- **Ponto Crítico para o Deploy de Sessão BFF (`HttpOnly` Cookies):**
+  - Como a autenticação usa cookies `HttpOnly` (`__Host-pokeverse_session`, `SameSite=Lax`) e `CsrfOriginGuard`, hospedar Front-end (`*.pages.dev` / `*.vercel.app`) e Back-end (`*.onrender.com` / `*.azurecontainerapps.io`) em domínios distintos faz o navegador tratar as chamadas como *cross-site* e bloquear o cookie se não houver topologia compatível.
+  - **Soluções arquiteturais previstas antes do go-live:**
+    1. **Domínio compartilhado (Recomendado):** apontar `app.<dominio>` (Cloudflare Pages / Vercel) e `api.<dominio>` (Host API) ou fazer proxy reverso **`/api/*` e `/ws/*` no mesmo host do front-end** (Cloudflare Pages Functions / Worker ou Vercel Rewrites) — preservando `__Host-*` e `SameSite=Lax` intactos.
+    2. **Subdomínios gratuitos sem domínio próprio:** configurar explicitamente `SameSite=None; Secure` (sem prefixo `__Host-` quando cross-site) combinado com allowlist estrita em `CORS_ORIGINS` e validação de `Origin` no `CsrfOriginGuard`.
+- **Checklist Imediato para Colocar no Ar Oficialmente (Próxima Entrega — Fase 3):**
+  1. `Dockerfile` multi-stage não-root para `apps/api` (rodando `prisma migrate deploy` + `node apps/api/dist/main.js`) e configuração de build estático do `apps/web`.
+  2. Provisionar provedores gratuitos confirmados: **Cloudflare Pages / Vercel** (`apps/web`), **Render / Azure Student / Oracle ARM / Heroku Student** (`apps/api`), **Neon / Supabase** (PostgreSQL), **Upstash** (Redis), **Aiven Free** (Kafka) e **Resend** (e-mails OTP/segurança).
+  3. Workflows `.github/workflows/` para CI (`typecheck`, lint, testes, `gitleaks`, `npm audit`, Trivy, Playwright, Lighthouse) e deploy contínuo na branch `main`.
+  4. Hardening remanescente das Ondas 2–3 detalhado em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md).

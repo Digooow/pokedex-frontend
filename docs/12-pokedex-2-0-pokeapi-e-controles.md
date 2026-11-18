@@ -137,3 +137,26 @@ Consultar múltiplos endpoints sem critério derrubaria a performance mobile (e 
 2. **Carga Preguiçosa por Aba (*Tab-Level Lazy Loading*):** `/evolution-chain`, detalhes individuais de `/move/{id}`, `/ability/{id}` e `/encounters` só são buscados **quando o usuário realmente abre a Aba 2/3/4/5**, com *cache* em memória na sessão e no Redis por `24h`.
 3. **Respeito aos Perfis `ULTRA` / `BALANCED` / `LITE`:** no modo **`LITE`**, sprites animados GIF (`showdown`) e gráficos pesados são substituídos pela arte estática leve (`official-artwork` / `front_default`), protegendo RAM e bateria em celulares simples.
 4. **Proibido Poluir o DOM Oculto:** apenas o conteúdo da aba ativa dentro de `#resultado-conteudo` é montado no DOM (via `replaceChildren()` + `createElement()` sem `innerHTML`), evitando centenas de nós invisíveis de listas de golpes pesados em segundo plano.
+
+---
+
+## 6. Expansão para Pokédex Enciclopédica Definitiva, Motor Gráfico e Dados Híbridos (Pós-Deploy)
+
+Após a publicação oficial da infraestrutura (saindo do GitHub Pages), a **prioridade máxima do produto** passa a ser transformar a Pokédex na enciclopédia definitiva — antes de avançar para o desenvolvimento do jogo completo:
+
+### 6.1. Foco da Interface & Upgrade Visual/Motor Gráfico
+- **Restauração Fiel no Angular:** aplicar a Regra Zero do [AGENTS.md](../AGENTS.md) portando integralmente a anatomia 3D skeuomórfica, iluminação `--luz-x/--luz-y`, materiais OKLCH, dobradiça e os 10 botões iluminados do [index.html](../index.html) + [css/style.css](../css/style.css) para dentro de `apps/web/src/app/features/pokedex-device/`.
+- **Evolução Gráfica & Animações:** integrar **Three.js + WebGL2/Shaders + GSAP + Web Audio API** para adicionar animações fluidas, efeitos de câmera/visor holográfico elemental, partículas temáticas e espectro sonoro dos *cries*, respeitando sempre a detecção de hardware e o fallback `LITE`.
+- **Shell Focada no Produto:** enquanto o foco for a Enciclopédia/Pokédex, esconder/adiar da doca principal os botões das futuras telas de jogo (Vila Central, Arcade, Battle Frontier), mantendo a navegação limpa em **Login/Segurança + Pokédex & Enciclopédia**.
+
+### 6.2. Novas Fontes de Dados Multimídia (Além dos 51 Endpoints da PokéAPI)
+Como a **PokéAPI v2** entrega dados profundos dos **jogos** (stats, golpes, habilidades, evoluções, capturas por versão, *flavor text*, sprites e áudios), mas **não possui cartas TCG, anime nem filmes**, a camada de consulta da API integrará:
+1. **PokéAPI v2 (Catálogo & Jogos):** expansão do atual cache (hoje com apenas 2 endpoints) para espécie, árvore evolutiva, golpes, habilidades, formas regionais/Mega/Gmax, encontros por jogo e gerações.
+2. **Cartas Pokémon (TCG):** integração com **Pokémon TCG API** (`api.pokemontcg.io`) para exibir coleções, artes em alta resolução, raridade, artistas, tipos e ataques das cartas de cada Pokémon.
+3. **História no Anime & Filmes:** integração com API pública de mídia (ex.: **TMDB API** para catálogos/sinopses de séries e filmes) combinada com curadoria estruturada por espécie (aparições marcantes no desenho e papel nos filmes).
+
+### 6.3. Arquitetura Híbrida em 3 Camadas (Sem Abandonar a API Externa)
+Para continuar consumindo as APIs vivas sem perder latência baixa, desempenho nem disponibilidade quando uma API externa oscilar:
+1. **Camada 1 — Upstream APIs Vivas:** consultas orquestradas no NestJS em paralelo com `AbortController`, timeout explícito, validação Zod na borda e *Circuit Breaker*.
+2. **Camada 2 — Cache Inteligente no Redis (*Read-Through + Stale-If-Error*):** respostas em milissegundos para qualquer usuário no TTL fresco (`24h`) + chave de retenção *stale* para continuar respondendo normalmente se a API externa sair do ar temporariamente.
+3. **Camada 3 — Snapshot no PostgreSQL atrelado ao Usuário (`TrainerPokemonSnapshot`):** ao salvar um Pokémon nos favoritos/slots do treinador, o back-end persiste um snapshot estruturado dos dados principais daquele Pokémon vinculado à conta. Assim, **mesmo com queda externa prolongada e cache Redis expirado**, o usuário continua usando e consultando os Pokémon da própria lista — criando exatamente a fundação de dados que, na etapa seguinte, alimentará o **back-end de jogo** (chances de encontro, cálculo de dano das skills, matriz de forças/fraquezas e evolução de atributos por level).
