@@ -5,10 +5,10 @@ import {
   type DependencyStatus,
   HEALTH_PROBE_TIMEOUT_MS,
 } from '@pokeverse/shared';
-import Redis from 'ioredis';
-import { Kafka, logLevel } from 'kafkajs';
-import { Pool } from 'pg';
 import type { ApiEnvConfig } from '../config/env.schema';
+import { KafkaService } from './kafka.service';
+import { PrismaService } from './prisma.service';
+import { RedisService } from './redis.service';
 
 export interface ReadinessChecks {
   readonly postgres: DependencyStatus;
@@ -19,59 +19,28 @@ export interface ReadinessChecks {
 
 @Injectable()
 export class InfraProbesService implements OnModuleDestroy {
-  private readonly pgPool: Pool;
-  private readonly redis: Redis;
-  private readonly kafka: Kafka;
   private readonly s3: S3Client;
   private readonly romBucket: string;
   private readonly savesBucket: string;
 
-  constructor(private readonly config: ConfigService<ApiEnvConfig, true>) {
-    this.pgPool = new Pool({
-      connectionString: this.config.get('DATABASE_URL', { infer: true }),
-      max: 3,
-      idleTimeoutMillis: 10000,
-      connectionTimeoutMillis: HEALTH_PROBE_TIMEOUT_MS,
-      query_timeout: HEALTH_PROBE_TIMEOUT_MS,
-    });
-
-    this.redis = new Redis(this.config.get('REDIS_URL', { infer: true }), {
-      lazyConnect: true,
-      connectTimeout: HEALTH_PROBE_TIMEOUT_MS,
-      commandTimeout: HEALTH_PROBE_TIMEOUT_MS,
-      maxRetriesPerRequest: 1,
-      enableOfflineQueue: false,
-    });
-
-    const brokers = this.config
-      .get('KAFKA_BROKERS', { infer: true })
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-
-    this.kafka = new Kafka({
-      clientId: 'pokeverse-api-health',
-      brokers,
-      connectionTimeout: HEALTH_PROBE_TIMEOUT_MS,
-      requestTimeout: HEALTH_PROBE_TIMEOUT_MS,
-      retry: { retries: 0 },
-      logLevel: logLevel.ERROR,
-    });
-
+  constructor(
+    config: ConfigService<ApiEnvConfig, true>,
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+    private readonly kafka: KafkaService,
+  ) {
     this.s3 = new S3Client({
       region: 'us-east-1',
-      endpoint: this.config.get('S3_ENDPOINT', { infer: true }),
+      endpoint: config.get('S3_ENDPOINT', { infer: true }),
       forcePathStyle: true,
       credentials: {
-        accessKeyId: this.config.get('MINIO_ROOT_USER', { infer: true }),
-        secretAccessKey: this.config.get('MINIO_ROOT_PASSWORD', {
-          infer: true,
-        }),
+        accessKeyId: config.get('MINIO_ROOT_USER', { infer: true }),
+        secretAccessKey: config.get('MINIO_ROOT_PASSWORD', { infer: true }),
       },
     });
 
-    this.romBucket = this.config.get('S3_BUCKET_ROMS', { infer: true });
-    this.savesBucket = this.config.get('S3_BUCKET_SAVES', { infer: true });
+    this.romBucket = config.get('S3_BUCKET_ROMS', { infer: true });
+    this.savesBucket = config.get('S3_BUCKET_SAVES', { infer: true });
   }
 
   async checkAll(): Promise<ReadinessChecks> {
@@ -87,16 +56,13 @@ export class InfraProbesService implements OnModuleDestroy {
 
   async checkPostgres(): Promise<DependencyStatus> {
     return this.measureProbe('PostgreSQL unreachable', async () => {
-      await this.pgPool.query('SELECT 1');
+      await this.prisma.$queryRaw`SELECT 1`;
     });
   }
 
   async checkRedis(): Promise<DependencyStatus> {
     return this.measureProbe('Redis unreachable', async () => {
-      if (this.redis.status === 'wait') {
-        await this.redis.connect();
-      }
-      const pong = String(await this.redis.ping());
+      const pong = await this.redis.ping();
       if (pong !== 'PONG') {
         throw new Error(`Unexpected PING reply: ${pong}`);
       }
@@ -105,19 +71,9 @@ export class InfraProbesService implements OnModuleDestroy {
 
   async checkKafka(): Promise<DependencyStatus> {
     return this.measureProbe('Kafka broker unreachable', async () => {
-      const admin = this.kafka.admin();
-      try {
-        await admin.connect();
-        const cluster = await admin.describeCluster();
-        if (cluster.brokers.length === 0) {
-          throw new Error('Zero active brokers reported by cluster');
-        }
-      } finally {
-        try {
-          await admin.disconnect();
-        } catch {
-          /* Ignore disconnect error during teardown */
-        }
+      const brokersCount = await this.kafka.describeCluster();
+      if (brokersCount === 0) {
+        throw new Error('Zero active brokers reported by cluster');
       }
     });
   }
@@ -136,16 +92,8 @@ export class InfraProbesService implements OnModuleDestroy {
     });
   }
 
-  async onModuleDestroy(): Promise<void> {
-    await Promise.allSettled([
-      this.pgPool.end(),
-      this.redis.status === 'end' || this.redis.status === 'wait'
-        ? Promise.resolve()
-        : this.redis.quit().catch(() => {
-            this.redis.disconnect();
-          }),
-      Promise.resolve(this.s3.destroy()),
-    ]);
+  onModuleDestroy(): void {
+    this.s3.destroy();
   }
 
   private async measureProbe(

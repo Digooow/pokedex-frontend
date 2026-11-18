@@ -1,11 +1,12 @@
 import { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import { StructuredLoggerService } from './common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from './config/env.schema';
 
-/** Applies security headers, CORS, global prefix, exception filter, and shutdown hooks. */
+/** Applies security headers, cookies, CORS, global prefix, exception filter, and shutdown hooks. */
 export function configureApiApp(app: INestApplication): {
   readonly port: number;
   readonly logger: StructuredLoggerService;
@@ -20,6 +21,7 @@ export function configureApiApp(app: INestApplication): {
     .filter(Boolean);
 
   app.use(helmet());
+  app.use(cookieParser());
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,

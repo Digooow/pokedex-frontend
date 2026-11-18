@@ -67,11 +67,41 @@ export const SavePokedexSlotSchema = z
     slotIndex: z.number().int().min(0).max(9),
     pokemonId: z.number().int().positive(),
     pokemonName: z.string().trim().min(1).max(64),
-    nickname: z.string().trim().min(1).max(32).optional(),
+    nickname: z.string().trim().min(1).max(40).nullable().optional(),
+    spriteUrl: z.url().max(512).nullable().optional(),
   })
   .strict();
 
 export type SavePokedexSlotInput = z.infer<typeof SavePokedexSlotSchema>;
+
+export const PokedexSlotRecordSchema = z.object({
+  slotIndex: z.number().int().min(0).max(9),
+  pokemonId: z.number().int().positive(),
+  pokemonName: z.string().min(1).max(64),
+  nickname: z.string().nullable(),
+  spriteUrl: z.url().nullable(),
+  updatedAt: z.iso.datetime(),
+});
+
+export type PokedexSlotRecord = z.infer<typeof PokedexSlotRecordSchema>;
+
+export const PokedexSlotsListResponseSchema = z.object({
+  slots: z.array(PokedexSlotRecordSchema),
+});
+
+export const CachedPokemonResponseSchema = z.object({
+  cache: z.enum(['hit', 'miss', 'stale-fallback']),
+  pokemon: PokemonDetailSchema,
+});
+
+export type CachedPokemonResponse = z.infer<typeof CachedPokemonResponseSchema>;
+
+export const CachedCatalogResponseSchema = z.object({
+  cache: z.enum(['hit', 'miss', 'stale-fallback']),
+  catalog: PokeApiCatalogResponseSchema,
+});
+
+export type CachedCatalogResponse = z.infer<typeof CachedCatalogResponseSchema>;
 
 export const HardwareProfileSchema = z.object({
   tier: z.enum(['ultra', 'balanced', 'lite']),

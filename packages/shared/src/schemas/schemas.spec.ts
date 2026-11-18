@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { PLATFORM_MODULES } from '../constants/platform.constants';
+import { LoginTrainerSchema, RegisterTrainerSchema } from './auth.schemas';
+import { KAFKA_TOPICS, WorldTickerEventSchema } from './events.schemas';
 import { ReadinessResponseSchema, SystemBootstrapSchema } from './health.schemas';
-import { PokemonDetailSchema, SavePokedexSlotSchema } from './pokedex.schemas';
+import { PokedexSlotRecordSchema, PokemonDetailSchema, SavePokedexSlotSchema } from './pokedex.schemas';
 
 describe('shared schemas boundary validation', () => {
   it('validates strict SavePokedexSlotSchema bounds', () => {
@@ -10,6 +12,7 @@ describe('shared schemas boundary validation', () => {
       pokemonId: 25,
       pokemonName: 'pikachu',
       nickname: 'Sparky',
+      spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
     });
     expect(valid.success).toBe(true);
 
@@ -27,6 +30,53 @@ describe('shared schemas boundary validation', () => {
       evilOverride: true,
     });
     expect(extraField.success).toBe(false);
+  });
+
+  it('validates trainer registration, login, slots, and Kafka ticker events', () => {
+    const reg = RegisterTrainerSchema.safeParse({
+      username: 'Red_Kanto',
+      email: 'RED@EXAMPLE.COM ',
+      password: 'strong-password-123',
+    });
+    expect(reg.success).toBe(true);
+    if (reg.success) {
+      expect(reg.data.email).toBe('red@example.com');
+    }
+
+    const badPass = RegisterTrainerSchema.safeParse({
+      username: 'a',
+      email: 'bad',
+      password: '123',
+    });
+    expect(badPass.success).toBe(false);
+
+    expect(
+      LoginTrainerSchema.safeParse({ email: 'red@example.com', password: 'secret' }).success,
+    ).toBe(true);
+
+    expect(
+      PokedexSlotRecordSchema.safeParse({
+        slotIndex: 9,
+        pokemonId: 150,
+        pokemonName: 'mewtwo',
+        nickname: null,
+        spriteUrl: null,
+        updatedAt: new Date().toISOString(),
+      }).success,
+    ).toBe(true);
+
+    expect(
+      WorldTickerEventSchema.safeParse({
+        eventId: '550e8400-e29b-41d4-a716-446655440000',
+        eventType: 'pokedex.slot.saved',
+        trainerId: '550e8400-e29b-41d4-a716-446655440001',
+        username: 'Red_Kanto',
+        summary: 'Red_Kanto registrou Pikachu (#0025) no Slot 1.',
+        occurredAt: new Date().toISOString(),
+        traceId: null,
+      }).success,
+    ).toBe(true);
+    expect(KAFKA_TOPICS.WORLD_EVENTS).toBe('pokeverse.world.events.v1');
   });
 
   it('validates readiness and bootstrap contracts', () => {

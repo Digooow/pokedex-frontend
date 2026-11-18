@@ -6,8 +6,10 @@ import {
   type ReadinessResponse,
 } from '@pokeverse/shared';
 import type { Response } from 'express';
+import { Public } from '../../common/decorators/public.decorator';
 import { InfraProbesService } from '../../infra/infra-probes.service';
 
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly probes: InfraProbesService) {}

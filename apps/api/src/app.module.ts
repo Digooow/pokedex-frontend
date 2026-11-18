@@ -1,12 +1,18 @@
 import * as path from 'node:path';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { CorrelationMiddleware } from './common/middleware/correlation.middleware';
-import { StructuredLoggerService } from './common/telemetry/structured-logger.service';
 import { validateApiEnv } from './config/env.schema';
 import { InfraModule } from './infra/infra.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
+import { PokedexModule } from './modules/pokedex/pokedex.module';
 import { SystemModule } from './modules/system/system.module';
+import { WorldModule } from './modules/world/world.module';
 
 @Module({
   imports: [
@@ -19,12 +25,24 @@ import { SystemModule } from './modules/system/system.module';
       ],
       validate: validateApiEnv,
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 120,
+      },
+    ]),
     InfraModule,
+    AuthModule,
+    PokedexModule,
+    WorldModule,
+    EventsModule,
     HealthModule,
     SystemModule,
   ],
-  providers: [StructuredLoggerService],
-  exports: [StructuredLoggerService],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+  ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {

@@ -207,8 +207,33 @@
   background: linear-gradient(180deg, var(--pv-slot-blue), oklch(45% 0.14 238));
 }
 
+.dex-slot-btn.is-occupied {
+  border-color: var(--pv-border-gold);
+  background: linear-gradient(180deg, var(--pv-emerald), oklch(45% 0.14 152));
+  color: var(--pv-ink-on-light);
+}
+
+.dex-slot-btn.is-occupied.is-editing {
+  border-color: var(--pv-danger);
+}
+
 .dex-config-visor {
   padding-inline: var(--pv-space-3);
   background: var(--pv-amber);
   color: var(--pv-ink-on-light);
+}
+
+.dex-config-visor.is-editing {
+  background: var(--pv-emerald);
+}
+
+.dex-slot-feedback {
+  margin: 0;
+  padding: var(--pv-space-2) var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-gold);
+  background: var(--pv-visor-lcd);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--pv-amber);
 }

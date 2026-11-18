@@ -6,6 +6,12 @@ import { App } from './app';
 import { AuthStore } from './core/stores/auth.store';
 import { QualityStore } from './core/stores/quality.store';
 
+function flushInitialRequests(httpMock: HttpTestingController): void {
+  httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
+  httpMock.match('/api/v1/system/bootstrap').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
+  httpMock.match('/api/v1/auth/refresh').forEach((req) => req.flush(null, { status: 401, statusText: 'No cookie' }));
+}
+
 describe('PokéVerse OS Shell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -18,9 +24,7 @@ describe('PokéVerse OS Shell', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const httpMock = TestBed.inject(HttpTestingController);
-    httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
-    httpMock.match('/api/v1/system/bootstrap').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
+    flushInitialRequests(TestBed.inject(HttpTestingController));
 
     await fixture.whenStable();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -45,6 +49,7 @@ describe('PokéVerse OS Shell', () => {
     try {
       const fixture = TestBed.createComponent(App);
       fixture.detectChanges();
+      flushInitialRequests(TestBed.inject(HttpTestingController));
 
       const skipLink = fixture.nativeElement.querySelector('a.skip-link') as HTMLAnchorElement;
       const focusSpy = vi.spyOn(heading, 'focus');
@@ -64,12 +69,37 @@ describe('PokéVerse OS Shell', () => {
     expect(quality.preference()).toBe('auto');
   });
 
-  it('opens and dismisses visitor lock prompt state', () => {
+  it('authenticates trainer session into memory RAM and clears on logout', () => {
     const auth = TestBed.inject(AuthStore);
+    const httpMock = TestBed.inject(HttpTestingController);
+
     expect(auth.isAuthenticated()).toBe(false);
-    auth.requestTrainerAccess('Arcade Retrô', 'Login necessário', '/arcade');
-    expect(auth.visitorPrompt()?.targetRoute).toBe('/arcade');
-    auth.dismissVisitorPrompt();
-    expect(auth.visitorPrompt()).toBeNull();
+    auth.login({ email: 'red@pokeverse.dev', password: 'Password1234!' });
+
+    const loginReq = httpMock.expectOne('/api/v1/auth/login');
+    loginReq.flush({
+      accessToken: 'jwt-in-memory-token',
+      expiresInSec: 900,
+      trainer: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        username: 'Red_Kanto',
+        email: 'red@pokeverse.dev',
+        badgesCount: 0,
+        eloRating: 1000,
+        lastMapId: 'pokeverse-town',
+        lastX: 400,
+        lastY: 320,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    expect(auth.isAuthenticated()).toBe(true);
+    expect(auth.trainer()?.username).toBe('Red_Kanto');
+    expect(auth.accessToken()).toBe('jwt-in-memory-token');
+
+    auth.logout();
+    httpMock.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(auth.accessToken()).toBeNull();
   });
 });

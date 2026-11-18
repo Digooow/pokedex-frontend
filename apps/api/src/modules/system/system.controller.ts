@@ -4,7 +4,9 @@ import {
   SystemBootstrapSchema,
   type SystemBootstrap,
 } from '@pokeverse/shared';
+import { Public } from '../../common/decorators/public.decorator';
 
+@Public()
 @Controller('system')
 export class SystemController {
   @Get('bootstrap')

@@ -31,7 +31,7 @@ interface InfraDependencyCard {
       />
 
       <div class="title-hero">
-        <span class="title-hero__badge">FASE 1 • MONOREPO + SHELL ANGULAR + INFRA DOCKER</span>
+        <span class="title-hero__badge">FASE 2 • AUTH JWT + POSTGRESQL + REDIS + KAFKA</span>
         <h1 id="main-heading" tabindex="-1" class="title-hero__title">PokéVerse OS</h1>
         <p class="title-hero__subtitle">
           Sistema operacional tático integrando a Pokédex 3D skeuomórfica, detecção automática de
@@ -39,11 +39,15 @@ interface InfraDependencyCard {
         </p>
 
         <div class="title-hero__actions">
-          <a routerLink="/pokedex" class="cta cta--primary">Abrir Pokédex 3D (Visitante)</a>
+          <a routerLink="/pokedex" class="cta cta--primary">
+            {{ auth.isAuthenticated() ? 'Abrir Pokédex Sincronizada' : 'Abrir Pokédex 3D (Visitante)' }}
+          </a>
           <a routerLink="/museu" class="cta cta--secondary">Museu das Regiões</a>
-          <button type="button" class="cta cta--outline" (click)="requestTrainerLogin()">
-            Conta de Treinador (Fase 2) 🔒
-          </button>
+          @if (!auth.isAuthenticated()) {
+            <button type="button" class="cta cta--outline" (click)="requestTrainerLogin()">
+              Entrar / Criar Conta
+            </button>
+          }
         </div>
 
         <section class="infra-panel" aria-label="Telemetria local da infraestrutura">
@@ -242,7 +246,7 @@ interface InfraDependencyCard {
 export class TitleScreenComponent {
   readonly quality = inject(QualityStore);
   readonly systemStatus = inject(SystemStatusStore);
-  private readonly auth = inject(AuthStore);
+  readonly auth = inject(AuthStore);
 
   readonly dependencyCards = computed<readonly InfraDependencyCard[] | null>(() => {
     const state = this.systemStatus.state();
@@ -260,8 +264,8 @@ export class TitleScreenComponent {
 
   requestTrainerLogin(): void {
     this.auth.requestTrainerAccess(
-      'Login de Treinador (Fase 2)',
-      'A autenticação JWT com Argon2id, Refresh Token em cookie HttpOnly e sincronização de slots no PostgreSQL será ativada na Fase 2.',
+      'Entrar ou Criar Conta de Treinador',
+      'Autentique-se via Argon2id + JWT para gravar seus 10 slots da Pokédex no PostgreSQL e acompanhar eventos ao vivo via Kafka + WebSocket.',
     );
   }
 }

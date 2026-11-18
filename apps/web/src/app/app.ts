@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AuthStore } from './core/stores/auth.store';
 import { SystemStatusStore } from './core/stores/system-status.store';
+import { WorldTickerStore } from './core/stores/world-ticker.store';
 import { HudQuickDockComponent } from './shared/hud/hud-quick-dock.component';
 import { HudTopbarComponent } from './shared/hud/hud-topbar.component';
 import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.component';
@@ -14,8 +16,12 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
 })
 export class App implements OnInit {
   private readonly systemStatus = inject(SystemStatusStore);
+  private readonly auth = inject(AuthStore);
+  private readonly ticker = inject(WorldTickerStore);
 
   ngOnInit(): void {
     this.systemStatus.refresh();
+    this.auth.restoreSession();
+    this.ticker.connect();
   }
 }

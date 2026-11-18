@@ -71,7 +71,12 @@
       <div class="dex-wing dex-wing--base">
         <header class="dex-wing-header">
           <div>
-            <span class="dex-eyebrow">PokéAPI v2</span>
+            <span class="dex-eyebrow">
+              PokéAPI v2
+              @if (store.cacheSource(); as source) {
+                <span>• Cache {{ source === 'hit' ? 'Redis HIT' : source === 'miss' ? 'Redis MISS' : 'Direto' }}</span>
+              }
+            </span>
             <h1 id="main-heading" tabindex="-1" class="dex-wing-title">Pokédex</h1>
           </div>
           <button
@@ -91,31 +96,67 @@
           (selectSuggestion)="store.loadPokemonDetail($event)"
         />
 
+        @if (slotsStore.feedback(); as feedbackMsg) {
+          <p class="dex-slot-feedback" aria-live="polite">{{ feedbackMsg }}</p>
+        }
+
         <div class="dex-slots-footer">
           <fieldset class="dex-slots-grid">
             <legend class="visually-hidden">10 slots de memória na nuvem</legend>
             @for (idx of slotIndices; track idx) {
-              <button
-                type="button"
-                class="dex-slot-btn tabular-nums"
-                [pvRequiresTrainer]="'Slot ' + (idx + 1) + ' na Nuvem'"
-                lockedDescription="Os 10 botões inferiores da Pokédex gravam Pokémon favoritos no PostgreSQL vinculados à conta do treinador (disponível na Fase 2)."
-                [attr.aria-label]="'Slot ' + (idx + 1) + ' bloqueado para visitantes'"
-              >
-                {{ idx + 1 }}
-              </button>
+              @if (auth.isAuthenticated()) {
+                <button
+                  type="button"
+                  class="dex-slot-btn tabular-nums"
+                  [class.is-occupied]="slotRecordAt(idx) !== null"
+                  [class.is-editing]="slotsStore.editMode()"
+                  [disabled]="slotsStore.busySlot() === idx"
+                  [attr.aria-label]="slotButtonLabel(idx)"
+                  [attr.title]="slotButtonLabel(idx)"
+                  (click)="onTrainerSlotClick(idx)"
+                >
+                  @if (slotRecordAt(idx); as saved) {
+                    <span>#{{ saved.pokemonId }}</span>
+                  } @else {
+                    <span>{{ idx + 1 }}</span>
+                  }
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  class="dex-slot-btn tabular-nums"
+                  [pvRequiresTrainer]="'Slot ' + (idx + 1) + ' na Nuvem'"
+                  lockedDescription="Os 10 botões inferiores da Pokédex gravam Pokémon favoritos no PostgreSQL vinculados à conta do treinador."
+                  [attr.aria-label]="'Slot ' + (idx + 1) + ' bloqueado para visitantes'"
+                >
+                  {{ idx + 1 }}
+                </button>
+              }
             }
           </fieldset>
 
-          <button
-            type="button"
-            class="dex-config-visor"
-            pvRequiresTrainer="Configurar Slots Salvos"
-            lockedDescription="Edição e remoção de slots salvos requerem sessão autenticada de treinador."
-            aria-label="Configurar slots salvos (exclusivo para treinadores)"
-          >
-            Configurar <span aria-hidden="true">🔒</span>
-          </button>
+          @if (auth.isAuthenticated()) {
+            <button
+              type="button"
+              class="dex-config-visor"
+              [class.is-editing]="slotsStore.editMode()"
+              [attr.aria-pressed]="slotsStore.editMode()"
+              (click)="slotsStore.toggleEditMode()"
+              aria-label="Configurar slots salvos"
+            >
+              {{ slotsStore.editMode() ? 'Edição ON' : 'Configurar' }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="dex-config-visor"
+              pvRequiresTrainer="Configurar Slots Salvos"
+              lockedDescription="Edição e remoção de slots salvos requerem sessão autenticada de treinador."
+              aria-label="Configurar slots salvos (exclusivo para treinadores)"
+            >
+              Configurar <span aria-hidden="true">🔒</span>
+            </button>
+          }
         </div>
       </div>
     </div>

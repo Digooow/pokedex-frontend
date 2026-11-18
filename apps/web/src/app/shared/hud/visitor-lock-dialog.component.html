@@ -1,0 +1,126 @@
+<dialog
+  #dialogEl
+  class="visitor-dialog"
+  aria-labelledby="pv-visitor-title"
+  closedby="any"
+  (close)="onNativeClose()"
+  (pointerdown)="onPointerDown($event)"
+  (pointerup)="onPointerUp($event)"
+>
+  @if (auth.visitorPrompt(); as prompt) {
+    <div class="visitor-dialog__card">
+      <div class="visitor-dialog__badge" aria-hidden="true">CONTA DE TREINADOR</div>
+      <h2 id="pv-visitor-title" class="visitor-dialog__title">{{ prompt.title }}</h2>
+      <p class="visitor-dialog__desc">{{ prompt.description }}</p>
+
+      @if (prompt.targetRoute) {
+        <p class="visitor-dialog__meta">
+          Rota protegida: <code>{{ prompt.targetRoute }}</code>
+        </p>
+      }
+
+      <div class="auth-tabs" role="group" aria-label="Modo de autenticação">
+        <button
+          type="button"
+          class="auth-tabs__btn"
+          [class.is-active]="mode() === 'login'"
+          [attr.aria-pressed]="mode() === 'login'"
+          (click)="switchMode('login')"
+        >
+          Entrar
+        </button>
+        <button
+          type="button"
+          class="auth-tabs__btn"
+          [class.is-active]="mode() === 'register'"
+          [attr.aria-pressed]="mode() === 'register'"
+          (click)="switchMode('register')"
+        >
+          Criar Conta
+        </button>
+      </div>
+
+      <form class="auth-form" novalidate (submit)="onSubmit($event)">
+        @if (mode() === 'register') {
+          <div class="auth-field">
+            <label for="pv-auth-username" class="auth-field__label">Nome de Treinador</label>
+            <input
+              id="pv-auth-username"
+              type="text"
+              class="auth-field__input"
+              [value]="username()"
+              autocomplete="username"
+              placeholder="Ex.: Red_Kanto"
+              required
+              [attr.aria-invalid]="activeErrorMessage() !== null"
+              (input)="onUsernameInput($event)"
+            />
+          </div>
+        }
+
+        <div class="auth-field">
+          <label for="pv-auth-email" class="auth-field__label">E-mail</label>
+          <input
+            id="pv-auth-email"
+            type="email"
+            inputmode="email"
+            class="auth-field__input"
+            [value]="email()"
+            autocomplete="email"
+            placeholder="treinador@pokeverse.dev"
+            required
+            [attr.aria-invalid]="activeErrorMessage() !== null"
+            aria-describedby="pv-auth-error"
+            (input)="onEmailInput($event)"
+          />
+        </div>
+
+        <div class="auth-field">
+          <label for="pv-auth-password" class="auth-field__label">Senha</label>
+          @if (mode() === 'register') {
+            <span id="pv-auth-pwd-hint" class="auth-field__hint">Mínimo de 8 caracteres.</span>
+          }
+          <input
+            id="pv-auth-password"
+            type="password"
+            class="auth-field__input"
+            [value]="password()"
+            [autocomplete]="mode() === 'register' ? 'new-password' : 'current-password'"
+            required
+            [attr.aria-invalid]="activeErrorMessage() !== null"
+            [attr.aria-describedby]="mode() === 'register' ? 'pv-auth-pwd-hint pv-auth-error' : 'pv-auth-error'"
+            (input)="onPasswordInput($event)"
+          />
+        </div>
+
+        @if (activeErrorMessage(); as errorMsg) {
+          <p id="pv-auth-error" class="auth-form__error" role="alert">{{ errorMsg }}</p>
+        }
+
+        <div class="visitor-dialog__actions">
+          <button
+            type="submit"
+            class="visitor-dialog__btn-primary"
+            [disabled]="isSubmitting()"
+            [attr.aria-busy]="isSubmitting()"
+          >
+            @if (isSubmitting()) {
+              {{ mode() === 'register' ? 'Cadastrando...' : 'Entrando...' }}
+            } @else {
+              {{ mode() === 'register' ? 'Criar Conta e Entrar' : 'Entrar como Treinador' }}
+            }
+          </button>
+
+          <button
+            type="button"
+            class="visitor-dialog__btn-secondary"
+            autofocus
+            (click)="auth.dismissVisitorPrompt()"
+          >
+            Continuar como Visitante
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</dialog>

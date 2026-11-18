@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
 import { QualityStore } from '../../core/stores/quality.store';
 import { SystemStatusStore } from '../../core/stores/system-status.store';
+import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 
 @Component({
   selector: 'pv-hud-topbar',
@@ -25,10 +26,24 @@ import { SystemStatusStore } from '../../core/stores/system-status.store';
           <span class="hud-brand__name">PokéVerse OS</span>
         </a>
 
-        <button type="button" class="hud-pill hud-pill--visitor" (click)="openVisitorInfo()">
-          Modo Visitante
-        </button>
+        @if (auth.trainer(); as trainer) {
+          <span class="hud-trainer-badge tabular-nums">
+            {{ trainer.username }} • ELO {{ trainer.eloRating }}
+          </span>
+          <button type="button" class="hud-pill" (click)="auth.logout()">Sair</button>
+        } @else {
+          <button type="button" class="hud-pill hud-pill--visitor" (click)="openVisitorInfo()">
+            Modo Visitante • Entrar
+          </button>
+        }
       </div>
+
+      @if (ticker.latestEvent(); as liveEvent) {
+        <p class="hud-ticker" aria-live="polite">
+          <span class="hud-ticker__dot" aria-hidden="true"></span>
+          <span class="hud-ticker__text">{{ liveEvent.summary }}</span>
+        </p>
+      }
 
       <div class="hud-topbar__right">
         <button
@@ -97,6 +112,48 @@ import { SystemStatusStore } from '../../core/stores/system-status.store';
         border: 2px solid var(--pv-ink-primary);
       }
 
+      .hud-trainer-badge {
+        display: inline-flex;
+        align-items: center;
+        min-block-size: 2.75rem;
+        padding: 0.375rem 0.875rem;
+        border-radius: var(--pv-radius-pill);
+        border: 1px solid var(--pv-emerald);
+        background: oklch(24% 0.05 155 / 0.45);
+        color: var(--pv-emerald);
+        font-size: 0.8125rem;
+        font-weight: 700;
+      }
+
+      .hud-ticker {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--pv-space-2);
+        margin: 0;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--pv-radius-pill);
+        border: 1px solid var(--pv-border-subtle);
+        background: var(--pv-visor-lcd);
+        font-size: 0.75rem;
+        color: var(--pv-ink-muted);
+        max-inline-size: min(26rem, 100%);
+        min-inline-size: 0;
+      }
+
+      .hud-ticker__dot {
+        inline-size: 0.5rem;
+        block-size: 0.5rem;
+        border-radius: 50%;
+        background: var(--pv-emerald);
+        flex-shrink: 0;
+      }
+
+      .hud-ticker__text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
       .hud-pill {
         min-block-size: 2.75rem;
         padding: 0.375rem 0.875rem;
@@ -138,9 +195,10 @@ import { SystemStatusStore } from '../../core/stores/system-status.store';
   ],
 })
 export class HudTopbarComponent {
+  readonly auth = inject(AuthStore);
   readonly quality = inject(QualityStore);
   readonly systemStatus = inject(SystemStatusStore);
-  private readonly auth = inject(AuthStore);
+  readonly ticker = inject(WorldTickerStore);
 
   readonly statusBadge = computed(() => {
     const state = this.systemStatus.state();
@@ -167,8 +225,8 @@ export class HudTopbarComponent {
 
   openVisitorInfo(): void {
     this.auth.requestTrainerAccess(
-      'Sessão em Modo Visitante',
-      'Você está navegando sem conta autenticada. Os módulos públicos (Pokédex 3D e Museu) funcionam imediatamente; o login de treinador com gravação em PostgreSQL entra na Fase 2.',
+      'Entrar ou Criar Conta de Treinador',
+      'Autentique-se para sincronizar seus 10 slots na nuvem (PostgreSQL + Outbox Kafka) e desbloquear recursos exclusivos.',
     );
   }
 }
