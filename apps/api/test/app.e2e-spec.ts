@@ -44,6 +44,13 @@ describe('PokéVerse API (e2e)', () => {
           sessionStore.set(key, value);
           return Promise.resolve();
         }),
+        setStringNxEx: jest.fn((key: string, _ttl: number, value: string) => {
+          if (sessionStore.has(key)) {
+            return Promise.resolve(false);
+          }
+          sessionStore.set(key, value);
+          return Promise.resolve(true);
+        }),
         delKeys: jest.fn((...keys: string[]) => {
           for (const key of keys) {
             sessionStore.delete(key);
@@ -165,18 +172,33 @@ describe('PokéVerse API (e2e)', () => {
       .expect(403);
 
     await request(app.getHttpServer())
+      .get('/api/v1/auth/security/overview')
+      .set('Cookie', `pokeverse_session=${rawSid}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
       .set('Origin', 'http://localhost:4200')
       .set('Cookie', `pokeverse_session=${rawSid}`)
       .expect(204);
   });
 
-  it('GET /api/v1/system/bootstrap returns phase-2a module catalog', async () => {
+  it('GET /api/v1/auth/providers returns public IAM capability flags', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/auth/providers')
+      .expect(200);
+    expect(res.body).toEqual({
+      googleEnabled: expect.any(Boolean) as boolean,
+      webauthnEnabled: true,
+    });
+  });
+
+  it('GET /api/v1/system/bootstrap returns phase-2b module catalog', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/v1/system/bootstrap')
       .expect(200);
     expect(res.body).toMatchObject({
-      phase: 'phase-2a',
+      phase: 'phase-2b',
       service: 'pokeverse-api',
     });
   });

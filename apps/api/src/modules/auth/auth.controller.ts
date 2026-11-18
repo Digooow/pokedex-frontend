@@ -39,9 +39,8 @@ import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { AuthService } from './auth.service';
+import { clearAuthCookies, writeAuthCookies } from './session-cookies.util';
 import { SessionService } from './session.service';
-
-const REFRESH_COOKIE_PATH = '/api/v1/auth';
 
 @Controller('auth')
 export class AuthController {
@@ -49,6 +48,13 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly sessionService: SessionService,
   ) {}
+
+  @Public()
+  @AllowMfaPending()
+  @Get('providers')
+  getProviders() {
+    return this.authService.getProvidersAvailability();
+  }
 
   @Public()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
@@ -60,7 +66,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSessionResponse> {
     const result = await this.authService.register(body, req.traceId ?? null);
-    this.setSessionCookies(res, result.sessionSid, result.refreshToken);
+    writeAuthCookies(
+      res,
+      this.sessionService,
+      result.sessionSid,
+      result.refreshToken,
+    );
     return result.session;
   }
 
@@ -75,7 +86,12 @@ export class AuthController {
   ): Promise<AuthSessionResponse> {
     const clientIp = req.ip ?? 'unknown';
     const result = await this.authService.login(body, clientIp);
-    this.setSessionCookies(res, result.sessionSid, result.refreshToken);
+    writeAuthCookies(
+      res,
+      this.sessionService,
+      result.sessionSid,
+      result.refreshToken,
+    );
     return result.session;
   }
 
@@ -103,7 +119,12 @@ export class AuthController {
     const rawSid = readSessionCookie(req, sessionCookieName);
     const rawRefresh = readSessionCookie(req, refreshCookieName);
     const result = await this.authService.refresh(rawRefresh, rawSid);
-    this.setSessionCookies(res, result.sessionSid, result.refreshToken);
+    writeAuthCookies(
+      res,
+      this.sessionService,
+      result.sessionSid,
+      result.refreshToken,
+    );
     return result.session;
   }
 
@@ -121,7 +142,7 @@ export class AuthController {
     const rawRefresh = readSessionCookie(req, refreshCookieName);
 
     await this.authService.logout(rawSid, rawRefresh);
-    this.clearSessionCookies(res);
+    clearAuthCookies(res, this.sessionService);
   }
 
   @Public()
@@ -188,7 +209,7 @@ export class AuthController {
       body,
       req.traceId ?? null,
     );
-    this.clearSessionCookies(res);
+    clearAuthCookies(res, this.sessionService);
     return GenericMessageResponseSchema.parse(result);
   }
 
@@ -197,53 +218,5 @@ export class AuthController {
     @CurrentTrainer() trainer: AuthenticatedTrainer,
   ): Promise<TrainerProfile> {
     return this.authService.getMe(trainer.trainerId);
-  }
-
-  private setSessionCookies(
-    res: Response,
-    sessionSid: string,
-    refreshToken: string | null,
-  ): void {
-    const { sessionCookieName, refreshCookieName, secure } =
-      this.sessionService.getCookieNames();
-    const sessionMaxAgeMs = this.sessionService.getSessionTtlSec() * 1000;
-    const refreshMaxAgeMs =
-      this.sessionService.getRefreshTtlDays() * 86_400_000;
-
-    res.cookie(sessionCookieName, sessionSid, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      path: '/',
-      maxAge: sessionMaxAgeMs,
-    });
-
-    if (refreshToken) {
-      res.cookie(refreshCookieName, refreshToken, {
-        httpOnly: true,
-        sameSite: 'lax',
-        secure,
-        path: REFRESH_COOKIE_PATH,
-        maxAge: refreshMaxAgeMs,
-      });
-    }
-  }
-
-  private clearSessionCookies(res: Response): void {
-    const { sessionCookieName, refreshCookieName, secure } =
-      this.sessionService.getCookieNames();
-
-    res.clearCookie(sessionCookieName, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      path: '/',
-    });
-    res.clearCookie(refreshCookieName, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure,
-      path: REFRESH_COOKIE_PATH,
-    });
   }
 }

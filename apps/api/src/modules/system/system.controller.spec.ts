@@ -10,7 +10,7 @@ describe('SystemController', () => {
     const controller = moduleRef.get(SystemController);
     const data = controller.getBootstrap();
 
-    expect(data.phase).toBe('phase-2a');
+    expect(data.phase).toBe('phase-2b');
     expect(data.modules).toHaveLength(5);
     expect(
       data.modules.find((mod) => mod.id === 'pokedex')?.requiresTrainer,

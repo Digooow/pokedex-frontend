@@ -6,5 +6,12 @@
   </main>
 
   <pv-hud-quick-dock />
-  <pv-visitor-lock-dialog />
+
+  @defer (when auth.visitorPrompt() !== null) {
+    <pv-visitor-lock-dialog />
+  }
+
+  @defer (when auth.securityModalOpen()) {
+    <pv-security-settings-dialog />
+  }
 </div>

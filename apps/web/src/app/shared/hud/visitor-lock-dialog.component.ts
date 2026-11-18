@@ -11,6 +11,7 @@ import {
 import {
   ForgotPasswordSchema,
   LoginTrainerSchema,
+  MfaChallengeVerifySchema,
   RegisterTrainerSchema,
   ResendEmailOtpSchema,
   ResetPasswordOtpSchema,
@@ -34,6 +35,7 @@ export class VisitorLockDialogComponent {
   readonly email = signal('');
   readonly password = signal('');
   readonly otpCode = signal('');
+  readonly useBackupCode = signal(false);
   readonly resetCodeRequested = signal(false);
   readonly localValidationError = signal<string | null>(null);
 
@@ -58,17 +60,17 @@ export class VisitorLockDialogComponent {
       if (!dialog) {
         return;
       }
-      if (prompt && !dialog.open) {
+      if (prompt) {
         this.localValidationError.set(null);
         this.mode.set(prompt.initialMode ?? 'login');
         const loggedTrainer = this.auth.trainer();
         if (loggedTrainer && !this.email()) {
           this.email.set(loggedTrainer.email);
         }
-        if (typeof dialog.showModal === 'function') {
+        if (!dialog.open && typeof dialog.showModal === 'function') {
           dialog.showModal();
         }
-      } else if (!prompt && dialog.open) {
+      } else if (dialog.open) {
         dialog.close();
       }
     });
@@ -77,6 +79,7 @@ export class VisitorLockDialogComponent {
   switchMode(nextMode: AuthDialogMode): void {
     this.mode.set(nextMode);
     this.localValidationError.set(null);
+    this.otpCode.set('');
     this.auth.clearMutationFeedback();
   }
 
@@ -99,6 +102,14 @@ export class VisitorLockDialogComponent {
         this.otpCode.set(value);
         break;
     }
+  }
+
+  onPasskeySignIn(): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+    const rawEmail = this.email().trim().toLowerCase();
+    void this.auth.loginWithPasskey(rawEmail || undefined);
   }
 
   onResendVerificationOtp(): void {
@@ -133,6 +144,10 @@ export class VisitorLockDialogComponent {
     }
 
     const activeMode = this.mode();
+    if (activeMode === 'mfa-challenge') {
+      this.submitMfaChallenge();
+      return;
+    }
     if (activeMode === 'register') {
       this.submitRegister();
       return;
@@ -159,6 +174,18 @@ export class VisitorLockDialogComponent {
       return;
     }
     this.auth.login(parsed.data);
+  }
+
+  private submitMfaChallenge(): void {
+    const parsed = MfaChallengeVerifySchema.safeParse({
+      method: this.useBackupCode() ? 'backup_code' : 'totp',
+      code: this.otpCode(),
+    });
+    if (!parsed.success) {
+      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Código 2FA inválido.');
+      return;
+    }
+    this.auth.verifyMfaChallenge(parsed.data);
   }
 
   private submitRegister(): void {

@@ -13,7 +13,7 @@ export class SystemController {
   getBootstrap(): SystemBootstrap {
     return SystemBootstrapSchema.parse({
       service: 'pokeverse-api',
-      phase: 'phase-2a',
+      phase: 'phase-2b',
       timestamp: new Date().toISOString(),
       modules: [...PLATFORM_MODULES],
     });

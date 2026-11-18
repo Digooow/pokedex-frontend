@@ -138,6 +138,16 @@
   cursor: wait;
 }
 
+.auth-sso {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pv-space-2);
+}
+
+.auth-sso > button {
+  flex: 1 1 10rem;
+}
+
 .visitor-dialog__actions {
   display: flex;
   flex-wrap: wrap;

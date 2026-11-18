@@ -30,13 +30,30 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
           <span class="hud-trainer-badge tabular-nums">
             {{ trainer.username }} • ELO {{ trainer.eloRating }}
           </span>
-          @if (!trainer.emailVerifiedAt) {
+          @if (auth.isMfaPending()) {
             <button
               type="button"
               class="hud-pill hud-pill--status is-error"
-              (click)="openVerifyEmail(trainer.email)"
+              (click)="auth.openMfaChallengePrompt()"
             >
-              Verificar E-mail (OTP)
+              Concluir 2FA
+            </button>
+          } @else {
+            @if (!trainer.emailVerifiedAt) {
+              <button
+                type="button"
+                class="hud-pill hud-pill--status is-error"
+                (click)="openVerifyEmail(trainer.email)"
+              >
+                Verificar E-mail (OTP)
+              </button>
+            }
+            <button
+              type="button"
+              class="hud-pill"
+              (click)="auth.openSecuritySettings()"
+            >
+              {{ trainer.mfaEnabled ? '2FA: Ativo' : 'Segurança / 2FA' }}
             </button>
           }
           <button type="button" class="hud-pill" (click)="auth.logout()">Sair</button>

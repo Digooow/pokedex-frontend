@@ -7,6 +7,8 @@ import {
   type ForgotPasswordInput,
   GenericMessageResponseSchema,
   type LoginTrainerInput,
+  type MfaChallengeVerifyInput,
+  type MfaMethod,
   type RegisterTrainerInput,
   type ResendEmailOtpInput,
   type ResetPasswordOtpInput,
@@ -15,9 +17,11 @@ import {
   type TrainerProfile,
   type VerifyEmailOtpInput,
 } from '@pokeverse/shared';
-import { Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
+import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
+import { Observable, catchError, firstValueFrom, finalize, map, of, shareReplay, tap } from 'rxjs';
+import { z } from 'zod';
 
-export type AuthDialogMode = 'login' | 'register' | 'forgot' | 'verify-email';
+export type AuthDialogMode = 'login' | 'register' | 'forgot' | 'verify-email' | 'mfa-challenge';
 
 export interface VisitorPromptContext {
   readonly title: string;
@@ -32,18 +36,38 @@ export type AuthMutationState =
   | { readonly status: 'success'; readonly message: string }
   | { readonly status: 'error'; readonly message: string };
 
+const AuthProvidersSchema = z.object({
+  googleEnabled: z.boolean(),
+  webauthnEnabled: z.boolean(),
+});
+
+const PasskeyAuthOptionsEnvelopeSchema = z.object({
+  challengeToken: z.string().min(16),
+  options: z.custom<PublicKeyCredentialRequestOptionsJSON>(
+    (value) => typeof value === 'object' && value !== null && 'challenge' in value,
+  ),
+});
+
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private readonly http = inject(HttpClient);
 
   private readonly sessionSignal = signal<AuthSessionResponse | null>(null);
   private readonly visitorPromptSignal = signal<VisitorPromptContext | null>(null);
+  private readonly securityModalOpenSignal = signal(false);
   private readonly mutationSignal = signal<AuthMutationState>({ status: 'idle' });
+  private readonly providersSignal = signal<{ googleEnabled: boolean; webauthnEnabled: boolean }>({
+    googleEnabled: false,
+    webauthnEnabled: true,
+  });
   private inflightRefresh$: Observable<boolean> | null = null;
 
   readonly trainer = computed<TrainerProfile | null>(() => this.sessionSignal()?.trainer ?? null);
   readonly sessionState = computed<SessionAuthState | null>(
     () => this.sessionSignal()?.sessionState ?? null,
+  );
+  readonly mfaMethods = computed<readonly MfaMethod[]>(
+    () => this.sessionSignal()?.mfaMethods ?? [],
   );
   readonly isMfaPending = computed(() => this.sessionState() === 'MFA_PENDING');
   readonly isAuthenticated = computed(() => this.sessionState() === 'AUTHENTICATED');
@@ -51,9 +75,12 @@ export class AuthStore {
     this.isAuthenticated() ? 'trainer' : 'visitor',
   );
   readonly visitorPrompt = this.visitorPromptSignal.asReadonly();
+  readonly securityModalOpen = this.securityModalOpenSignal.asReadonly();
   readonly mutationState = this.mutationSignal.asReadonly();
+  readonly providers = this.providersSignal.asReadonly();
 
   restoreSession(): void {
+    this.loadProviders();
     this.http
       .get<unknown>('/api/v1/auth/session')
       .pipe(
@@ -67,11 +94,28 @@ export class AuthStore {
         }
         if (parsed.data.authenticated) {
           this.sessionSignal.set(parsed.data);
+          if (parsed.data.sessionState === 'MFA_PENDING') {
+            this.openMfaChallengePrompt();
+          }
           return;
         }
         this.sessionSignal.set(null);
         if (parsed.data.canRefresh) {
           this.refreshSession().subscribe();
+        }
+      });
+  }
+
+  loadProviders(): void {
+    this.http
+      .get<unknown>('/api/v1/auth/providers')
+      .pipe(
+        map((raw) => AuthProvidersSchema.safeParse(raw)),
+        catchError(() => of(null)),
+      )
+      .subscribe((parsed) => {
+        if (parsed?.success) {
+          this.providersSignal.set(parsed.data);
         }
       });
   }
@@ -104,6 +148,62 @@ export class AuthStore {
         catchError((err: unknown) => of({ httpError: err } as const)),
       )
       .subscribe((outcome) => this.handleSessionOutcome(outcome));
+  }
+
+  verifyMfaChallenge(input: MfaChallengeVerifyInput): void {
+    if (this.mutationSignal().status === 'submitting') {
+      return;
+    }
+    this.mutationSignal.set({ status: 'submitting' });
+
+    this.http
+      .post<unknown>('/api/v1/auth/mfa/verify', input)
+      .pipe(
+        map((raw) => AuthSessionResponseSchema.safeParse(raw)),
+        catchError((err: unknown) => of({ httpError: err } as const)),
+      )
+      .subscribe((outcome) => this.handleSessionOutcome(outcome));
+  }
+
+  async loginWithPasskey(email?: string): Promise<void> {
+    if (this.mutationSignal().status === 'submitting') {
+      return;
+    }
+    this.mutationSignal.set({ status: 'submitting' });
+
+    try {
+      const rawOptions = await firstValueFrom(
+        this.http.post<unknown>('/api/v1/auth/passkeys/login/options', email ? { email } : {}),
+      );
+      const parsedOptions = PasskeyAuthOptionsEnvelopeSchema.safeParse(rawOptions);
+      if (!parsedOptions.success) {
+        this.mutationSignal.set({ status: 'error', message: 'Desafio Passkey inválido.' });
+        return;
+      }
+
+      const { startAuthentication } = await import('@simplewebauthn/browser');
+      const assertion = await startAuthentication({ optionsJSON: parsedOptions.data.options });
+
+      const rawSession = await firstValueFrom(
+        this.http.post<unknown>('/api/v1/auth/passkeys/login/verify', {
+          challengeToken: parsedOptions.data.challengeToken,
+          response: assertion,
+        }),
+      );
+      this.handleSessionOutcome(AuthSessionResponseSchema.safeParse(rawSession));
+    } catch (error) {
+      const message =
+        error instanceof HttpErrorResponse
+          ? this.extractErrorMessage(error)
+          : error instanceof Error && error.name === 'NotAllowedError'
+            ? 'Autenticação com Passkey cancelada no dispositivo.'
+            : 'Falha ao autenticar via Passkey.';
+      this.mutationSignal.set({ status: 'error', message });
+    }
+  }
+
+  signInWithGoogle(): void {
+    globalThis.location.assign('/api/v1/auth/google/start');
   }
 
   verifyEmailOtp(input: VerifyEmailOtpInput): void {
@@ -225,6 +325,8 @@ export class AuthStore {
   logout(): void {
     this.sessionSignal.set(null);
     this.mutationSignal.set({ status: 'idle' });
+    this.visitorPromptSignal.set(null);
+    this.securityModalOpenSignal.set(false);
     this.http
       .post<void>('/api/v1/auth/logout', null)
       .pipe(
@@ -232,6 +334,23 @@ export class AuthStore {
         catchError(() => of(undefined)),
       )
       .subscribe();
+  }
+
+  openSecuritySettings(): void {
+    this.securityModalOpenSignal.set(true);
+  }
+
+  closeSecuritySettings(): void {
+    this.securityModalOpenSignal.set(false);
+  }
+
+  openMfaChallengePrompt(): void {
+    this.requestTrainerAccess(
+      'Verificação em 2 Etapas (2FA)',
+      'Sua sessão está em estado MFA_PENDING. Confirme com seu Authenticator App, código de backup ou Passkey.',
+      undefined,
+      'mfa-challenge',
+    );
   }
 
   requestTrainerAccess(
@@ -279,9 +398,11 @@ export class AuthStore {
 
     this.sessionSignal.set(outcome.data);
     this.mutationSignal.set({ status: 'idle' });
-    if (outcome.data.sessionState === 'AUTHENTICATED') {
-      this.visitorPromptSignal.set(null);
+    if (outcome.data.sessionState === 'MFA_PENDING') {
+      this.openMfaChallengePrompt();
+      return;
     }
+    this.visitorPromptSignal.set(null);
   }
 
   private handleMessageOutcome(

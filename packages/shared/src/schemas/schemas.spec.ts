@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { PLATFORM_MODULES } from '../constants/platform.constants';
 import {
   AuthSessionResponseSchema,
+  DisableTotpSchema,
   LoginTrainerSchema,
+  MfaChallengeVerifySchema,
   RegisterTrainerSchema,
   ResetPasswordOtpSchema,
   SessionBootstrapResponseSchema,
+  TotpEnableResponseSchema,
   VerifyEmailOtpSchema,
 } from './auth.schemas';
 import {
@@ -141,6 +144,20 @@ describe('shared schemas boundary validation', () => {
         otpCode: '123456',
         requestedAt: new Date().toISOString(),
         traceId: null,
+      }).success,
+    ).toBe(true);
+
+    expect(MfaChallengeVerifySchema.safeParse({ method: 'totp', code: '123456' }).success).toBe(
+      true,
+    );
+    expect(
+      MfaChallengeVerifySchema.safeParse({ method: 'backup_code', code: 'ABCD-EFGH' }).success,
+    ).toBe(true);
+    expect(DisableTotpSchema.safeParse({}).success).toBe(false);
+    expect(
+      TotpEnableResponseSchema.safeParse({
+        message: '2FA ativado',
+        backupCodes: ['A1B2-C3D4', 'E5F6-G7H8', 'J1K2-M3N4', 'P5Q6-R7S8', 'T1U2-V3W4', 'X5Y6-Z7A8', 'B1C2-D3E4', 'F5G6-H7J8'],
       }).success,
     ).toBe(true);
   });

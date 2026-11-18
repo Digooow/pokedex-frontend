@@ -1,0 +1,208 @@
+<dialog
+  #secDialogEl
+  class="sec-dialog"
+  aria-labelledby="pv-sec-title"
+  closedby="any"
+  (close)="onNativeClose()"
+>
+  @if (auth.securityModalOpen()) {
+    <div class="sec-dialog__card">
+      <div class="sec-dialog__head">
+        <div>
+          <span class="sec-dialog__badge" aria-hidden="true">IAM ENTERPRISE</span>
+          <h2 id="pv-sec-title" class="sec-dialog__title">Segurança da Conta e 2FA</h2>
+        </div>
+        <button type="button" class="sec-btn sec-btn--ghost" (click)="iam.closeDialog()">
+          Fechar
+        </button>
+      </div>
+
+      @if (iam.feedback(); as fb) {
+        @if (fb.tone === 'error') {
+          <p class="sec-msg sec-msg--error" role="alert">{{ fb.text }}</p>
+        } @else {
+          <output class="sec-msg sec-msg--ok" aria-live="polite">{{ fb.text }}</output>
+        }
+      }
+
+      @let overview = iam.overviewState();
+      @if (overview.status === 'loading') {
+        <p class="sec-muted">Carregando configurações de autenticação...</p>
+      } @else if (overview.status === 'error') {
+        <div class="sec-panel">
+          <p class="sec-msg sec-msg--error" role="alert">{{ overview.message }}</p>
+          <button type="button" class="sec-btn" (click)="iam.loadOverview()">Tentar novamente</button>
+        </div>
+      } @else if (overview.status === 'ready') {
+        @let data = overview.data;
+        @let totp = iam.totpState();
+
+        <section class="sec-panel" aria-labelledby="pv-totp-heading">
+          <h3 id="pv-totp-heading" class="sec-panel__title">
+            Authenticator App (TOTP RFC 6238)
+          </h3>
+
+          @if (!data.mfaEnabled) {
+            @if (totp.status === 'idle' || totp.status === 'error') {
+              <p class="sec-muted">
+                Proteja sua conta com códigos TOTP de 6 dígitos (Google Authenticator, 1Password, Authy) e 8 códigos de backup de uso único.
+              </p>
+              <button
+                type="button"
+                class="sec-btn sec-btn--primary"
+                [disabled]="iam.busyAction() !== null"
+                (click)="iam.startTotpSetup()"
+              >
+                Ativar 2FA (Gerar QR Code)
+              </button>
+            } @else if (totp.status === 'loading') {
+              <p class="sec-muted">Gerando segredo criptográfico AES-256-GCM e QR Code...</p>
+            } @else if (totp.status === 'qr-ready') {
+              <div class="sec-qr-row">
+                <img
+                  class="sec-qr-img"
+                  [src]="totp.data.qrDataUrl"
+                  width="180"
+                  height="180"
+                  alt="QR Code para cadastrar no aplicativo Authenticator"
+                />
+                <div class="sec-qr-meta">
+                  <p class="sec-muted">Escaneie no app ou use a chave manual:</p>
+                  <code class="sec-code">{{ totp.data.secretBase32 }}</code>
+                </div>
+              </div>
+              <form class="sec-inline-form" (submit)="onEnableTotp($event)">
+                <label for="pv-totp-enable-code" class="visually-hidden">Código TOTP de 6 dígitos</label>
+                <input
+                  id="pv-totp-enable-code"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="6"
+                  class="sec-input tabular-nums"
+                  placeholder="Código 6 dígitos"
+                  [value]="totpCode()"
+                  (input)="onInputChange('totpCode', $event)"
+                  required
+                />
+                <button
+                  type="submit"
+                  class="sec-btn sec-btn--primary"
+                  [disabled]="iam.busyAction() !== null"
+                >
+                  Confirmar Ativação
+                </button>
+              </form>
+            }
+          } @else {
+            <p class="sec-pill-ok">2FA TOTP ativo e protegido por AES-256-GCM</p>
+            <form class="sec-inline-form" (submit)="onDisableTotp($event)">
+              <label for="pv-totp-disable" class="visually-hidden">Senha atual ou código TOTP/backup</label>
+              <input
+                id="pv-totp-disable"
+                type="password"
+                class="sec-input"
+                placeholder="Senha atual ou código 2FA/backup"
+                [value]="disableCredential()"
+                (input)="onInputChange('disableCredential', $event)"
+                required
+              />
+              <button
+                type="submit"
+                class="sec-btn"
+                [disabled]="iam.busyAction() !== null"
+              >
+                Desativar 2FA
+              </button>
+            </form>
+          }
+
+          @if (totp.status === 'enabled') {
+            <div class="sec-backup-box">
+              <p class="sec-backup-box__title">
+                Guarde estes 8 códigos de backup (exibidos uma única vez):
+              </p>
+              <ul class="sec-backup-grid tabular-nums">
+                @for (code of totp.backupCodes; track code) {
+                  <li><code>{{ code }}</code></li>
+                }
+              </ul>
+              <button type="button" class="sec-btn" (click)="copyBackupCodes(totp.backupCodes)">
+                {{ copiedCodes() ? 'Copiados!' : 'Copiar códigos de backup' }}
+              </button>
+            </div>
+          }
+        </section>
+
+        <section class="sec-panel" aria-labelledby="pv-passkeys-heading">
+          <h3 id="pv-passkeys-heading" class="sec-panel__title">Passkeys (WebAuthn / FIDO2)</h3>
+          <form class="sec-inline-form" (submit)="onAddPasskey($event)">
+            <label for="pv-pk-label" class="visually-hidden">Nome da Passkey</label>
+            <input
+              id="pv-pk-label"
+              type="text"
+              maxlength="60"
+              class="sec-input"
+              [value]="passkeyLabel()"
+              (input)="onInputChange('passkeyLabel', $event)"
+              placeholder="Ex.: Windows Hello / iPhone"
+            />
+            <button
+              type="submit"
+              class="sec-btn sec-btn--primary"
+              [disabled]="iam.busyAction() !== null"
+            >
+              Cadastrar Passkey
+            </button>
+          </form>
+
+          @if (data.passkeys.length === 0) {
+            <p class="sec-muted">Nenhuma Passkey cadastrada ainda.</p>
+          } @else {
+            <ul class="sec-list">
+              @for (pk of data.passkeys; track pk.id) {
+                <li class="sec-list__item">
+                  <span>
+                    <strong>{{ pk.label }}</strong> ({{ pk.deviceType }})
+                  </span>
+                  <button
+                    type="button"
+                    class="sec-btn"
+                    [disabled]="iam.busyAction() !== null"
+                    (click)="iam.removePasskey(pk.id)"
+                  >
+                    Remover
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+        </section>
+
+        <section class="sec-panel" aria-labelledby="pv-google-heading">
+          <h3 id="pv-google-heading" class="sec-panel__title">Conta Google (OAuth 2.0 PKCE)</h3>
+          @if (data.providers.googleLinked) {
+            <div class="sec-list__item">
+              <span>Vinculada: <strong>{{ data.providers.googleEmail }}</strong></span>
+              <button
+                type="button"
+                class="sec-btn"
+                [disabled]="iam.busyAction() !== null"
+                (click)="iam.unlinkGoogle()"
+              >
+                Desvincular
+              </button>
+            </div>
+          } @else if (data.providers.googleEnabled) {
+            <button type="button" class="sec-btn sec-btn--primary" (click)="iam.linkGoogle()">
+              Vincular Conta Google
+            </button>
+          } @else {
+            <p class="sec-muted">
+              Defina <code>GOOGLE_CLIENT_ID</code> e <code>GOOGLE_CLIENT_SECRET</code> no <code>.env</code> para habilitar login/vínculo OIDC com Google.
+            </p>
+          }
+        </section>
+      }
+    </div>
+  }
+</dialog>

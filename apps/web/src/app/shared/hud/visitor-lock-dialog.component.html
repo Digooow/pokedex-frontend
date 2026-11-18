@@ -19,132 +19,197 @@
         </p>
       }
 
-      <fieldset class="auth-tabs">
-        <legend class="visually-hidden">Modo de autenticação</legend>
-        <button
-          type="button"
-          class="auth-tabs__btn"
-          [class.is-active]="mode() === 'login'"
-          [attr.aria-pressed]="mode() === 'login'"
-          (click)="switchMode('login')"
-        >
-          Entrar
-        </button>
-        <button
-          type="button"
-          class="auth-tabs__btn"
-          [class.is-active]="mode() === 'register'"
-          [attr.aria-pressed]="mode() === 'register'"
-          (click)="switchMode('register')"
-        >
-          Criar Conta
-        </button>
-      </fieldset>
+      @if (mode() !== 'mfa-challenge') {
+        <fieldset class="auth-tabs">
+          <legend class="visually-hidden">Modo de autenticação</legend>
+          <button
+            type="button"
+            class="auth-tabs__btn"
+            [class.is-active]="mode() === 'login'"
+            [attr.aria-pressed]="mode() === 'login'"
+            (click)="switchMode('login')"
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            class="auth-tabs__btn"
+            [class.is-active]="mode() === 'register'"
+            [attr.aria-pressed]="mode() === 'register'"
+            (click)="switchMode('register')"
+          >
+            Criar Conta
+          </button>
+        </fieldset>
+      }
 
       <form class="auth-form" novalidate (submit)="onSubmit($event)">
-        @if (mode() === 'register') {
+        @if (mode() === 'mfa-challenge') {
           <div class="auth-field">
-            <label for="pv-auth-username" class="auth-field__label">Nome de Treinador</label>
-            <input
-              id="pv-auth-username"
-              type="text"
-              class="auth-field__input"
-              [value]="username()"
-              autocomplete="username"
-              placeholder="Ex.: Red_Kanto"
-              required
-              [attr.aria-invalid]="activeErrorMessage() !== null"
-              (input)="onInputChange('username', $event)"
-            />
-          </div>
-        }
-
-        <div class="auth-field">
-          <label for="pv-auth-email" class="auth-field__label">E-mail</label>
-          <input
-            id="pv-auth-email"
-            type="email"
-            inputmode="email"
-            class="auth-field__input"
-            [value]="email()"
-            autocomplete="email"
-            placeholder="treinador@pokeverse.dev"
-            required
-            [attr.aria-invalid]="activeErrorMessage() !== null"
-            aria-describedby="pv-auth-error"
-            (input)="onInputChange('email', $event)"
-          />
-        </div>
-
-        @if (mode() === 'verify-email' || (mode() === 'forgot' && resetCodeRequested())) {
-          <div class="auth-field">
-            <label for="pv-auth-otp" class="auth-field__label">Código OTP (6 dígitos)</label>
-            <span class="auth-field__hint">Válido por 10 minutos • máximo de 3 tentativas.</span>
+            <label for="pv-auth-otp" class="auth-field__label">
+              {{ useBackupCode() ? 'Código de Backup (8 caracteres)' : 'Código do Authenticator App (6 dígitos)' }}
+            </label>
             <input
               id="pv-auth-otp"
               type="text"
-              inputmode="numeric"
-              maxlength="6"
+              [attr.inputmode]="useBackupCode() ? 'text' : 'numeric'"
+              [attr.maxlength]="useBackupCode() ? 16 : 6"
               class="auth-field__input tabular-nums"
               [value]="otpCode()"
               autocomplete="one-time-code"
-              placeholder="000000"
+              [placeholder]="useBackupCode() ? 'ABCD-EFGH' : '000000'"
               required
               [attr.aria-invalid]="activeErrorMessage() !== null"
               (input)="onInputChange('otpCode', $event)"
             />
           </div>
-        }
 
-        @if (mode() === 'login' || mode() === 'register' || (mode() === 'forgot' && resetCodeRequested())) {
-          <div class="auth-field">
-            <label for="pv-auth-password" class="auth-field__label">
-              {{ mode() === 'forgot' ? 'Nova Senha' : 'Senha' }}
-            </label>
-            @if (mode() === 'register' || mode() === 'forgot') {
-              <span id="pv-auth-pwd-hint" class="auth-field__hint">Mínimo de 8 caracteres.</span>
+          <div class="auth-links">
+            <button
+              type="button"
+              class="auth-links__btn"
+              (click)="useBackupCode.set(!useBackupCode()); otpCode.set('')"
+            >
+              {{ useBackupCode() ? 'Usar código TOTP do app' : 'Usar um código de backup' }}
+            </button>
+            @if (auth.mfaMethods().includes('passkey')) {
+              <button
+                type="button"
+                class="auth-links__btn"
+                (click)="onPasskeySignIn()"
+                [disabled]="isSubmitting()"
+              >
+                Confirmar com Passkey
+              </button>
             }
+          </div>
+        } @else {
+          @if (mode() === 'register') {
+            <div class="auth-field">
+              <label for="pv-auth-username" class="auth-field__label">Nome de Treinador</label>
+              <input
+                id="pv-auth-username"
+                type="text"
+                class="auth-field__input"
+                [value]="username()"
+                autocomplete="username"
+                placeholder="Ex.: Red_Kanto"
+                required
+                [attr.aria-invalid]="activeErrorMessage() !== null"
+                (input)="onInputChange('username', $event)"
+              />
+            </div>
+          }
+
+          <div class="auth-field">
+            <label for="pv-auth-email" class="auth-field__label">E-mail</label>
             <input
-              id="pv-auth-password"
-              type="password"
+              id="pv-auth-email"
+              type="email"
+              inputmode="email"
               class="auth-field__input"
-              [value]="password()"
-              [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+              [value]="email()"
+              autocomplete="email"
+              placeholder="treinador@pokeverse.dev"
               required
               [attr.aria-invalid]="activeErrorMessage() !== null"
-              [attr.aria-describedby]="mode() === 'register' || mode() === 'forgot' ? 'pv-auth-pwd-hint pv-auth-error' : 'pv-auth-error'"
-              (input)="onInputChange('password', $event)"
+              aria-describedby="pv-auth-error"
+              (input)="onInputChange('email', $event)"
             />
           </div>
-        }
 
-        <div class="auth-links">
-          @if (mode() === 'login') {
-            <button type="button" class="auth-links__btn" (click)="switchMode('forgot')">
-              Esqueci minha senha (OTP)
-            </button>
-            <button type="button" class="auth-links__btn" (click)="switchMode('verify-email')">
-              Verificar e-mail com código
-            </button>
-          } @else if (mode() === 'forgot') {
-            <button type="button" class="auth-links__btn" (click)="resetCodeRequested.set(true)">
-              Já tenho o código OTP
-            </button>
-            <button type="button" class="auth-links__btn" (click)="onRequestForgotOtp()" [disabled]="isSubmitting()">
-              Enviar / reenviar código OTP
-            </button>
-          } @else if (mode() === 'verify-email') {
-            <button type="button" class="auth-links__btn" (click)="onResendVerificationOtp()" [disabled]="isSubmitting()">
-              Reenviar código de verificação
-            </button>
+          @if (mode() === 'verify-email' || (mode() === 'forgot' && resetCodeRequested())) {
+            <div class="auth-field">
+              <label for="pv-auth-otp" class="auth-field__label">Código OTP (6 dígitos)</label>
+              <span class="auth-field__hint">Válido por 10 minutos • máximo de 3 tentativas.</span>
+              <input
+                id="pv-auth-otp"
+                type="text"
+                inputmode="numeric"
+                maxlength="6"
+                class="auth-field__input tabular-nums"
+                [value]="otpCode()"
+                autocomplete="one-time-code"
+                placeholder="000000"
+                required
+                [attr.aria-invalid]="activeErrorMessage() !== null"
+                (input)="onInputChange('otpCode', $event)"
+              />
+            </div>
           }
-        </div>
+
+          @if (mode() === 'login' || mode() === 'register' || (mode() === 'forgot' && resetCodeRequested())) {
+            <div class="auth-field">
+              <label for="pv-auth-password" class="auth-field__label">
+                {{ mode() === 'forgot' ? 'Nova Senha' : 'Senha' }}
+              </label>
+              @if (mode() === 'register' || mode() === 'forgot') {
+                <span id="pv-auth-pwd-hint" class="auth-field__hint">Mínimo de 8 caracteres.</span>
+              }
+              <input
+                id="pv-auth-password"
+                type="password"
+                class="auth-field__input"
+                [value]="password()"
+                [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+                required
+                [attr.aria-invalid]="activeErrorMessage() !== null"
+                [attr.aria-describedby]="mode() === 'register' || mode() === 'forgot' ? 'pv-auth-pwd-hint pv-auth-error' : 'pv-auth-error'"
+                (input)="onInputChange('password', $event)"
+              />
+            </div>
+          }
+
+          <div class="auth-links">
+            @if (mode() === 'login') {
+              <button type="button" class="auth-links__btn" (click)="switchMode('forgot')">
+                Esqueci minha senha (OTP)
+              </button>
+              <button type="button" class="auth-links__btn" (click)="switchMode('verify-email')">
+                Verificar e-mail com código
+              </button>
+            } @else if (mode() === 'forgot') {
+              <button type="button" class="auth-links__btn" (click)="resetCodeRequested.set(true)">
+                Já tenho o código OTP
+              </button>
+              <button type="button" class="auth-links__btn" (click)="onRequestForgotOtp()" [disabled]="isSubmitting()">
+                Enviar / reenviar código OTP
+              </button>
+            } @else if (mode() === 'verify-email') {
+              <button type="button" class="auth-links__btn" (click)="onResendVerificationOtp()" [disabled]="isSubmitting()">
+                Reenviar código de verificação
+              </button>
+            }
+          </div>
+        }
 
         @if (activeErrorMessage(); as errorMsg) {
           <p id="pv-auth-error" class="auth-form__error" role="alert">{{ errorMsg }}</p>
         }
         @if (activeSuccessMessage(); as okMsg) {
-          <p class="auth-form__success" role="status" aria-live="polite">{{ okMsg }}</p>
+          <output class="auth-form__success" aria-live="polite">{{ okMsg }}</output>
+        }
+
+        @if (mode() === 'login') {
+          <div class="auth-sso">
+            <button
+              type="button"
+              class="visitor-dialog__btn-secondary"
+              [disabled]="isSubmitting()"
+              (click)="onPasskeySignIn()"
+            >
+              Entrar com Passkey
+            </button>
+            @if (auth.providers().googleEnabled) {
+              <button
+                type="button"
+                class="visitor-dialog__btn-secondary"
+                (click)="auth.signInWithGoogle()"
+              >
+                Entrar com Google
+              </button>
+            }
+          </div>
         }
 
         <div class="visitor-dialog__actions">
@@ -156,6 +221,8 @@
           >
             @if (isSubmitting()) {
               Processando...
+            } @else if (mode() === 'mfa-challenge') {
+              Validar 2FA e Entrar
             } @else if (mode() === 'register') {
               Criar Conta e Entrar
             } @else if (mode() === 'verify-email') {
@@ -171,9 +238,9 @@
             type="button"
             class="visitor-dialog__btn-secondary"
             autofocus
-            (click)="auth.dismissVisitorPrompt()"
+            (click)="mode() === 'mfa-challenge' ? auth.logout() : auth.dismissVisitorPrompt()"
           >
-            {{ auth.isAuthenticated() ? 'Fechar' : 'Continuar como Visitante' }}
+            {{ mode() === 'mfa-challenge' ? 'Cancelar Sessão' : auth.isAuthenticated() ? 'Fechar' : 'Continuar como Visitante' }}
           </button>
         </div>
       </form>

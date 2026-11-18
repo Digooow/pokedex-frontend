@@ -23,6 +23,8 @@ import {
   type RegisterTrainerInput,
   type ResendEmailOtpInput,
   type ResetPasswordOtpInput,
+  type SecurityOverviewResponse,
+  SecurityOverviewResponseSchema,
   type SessionBootstrapResponse,
   SessionBootstrapResponseSchema,
   type TrainerProfile,
@@ -608,6 +610,74 @@ export class AuthService implements OnModuleInit {
     }
 
     return this.toTrainerProfile(trainer);
+  }
+
+  getProvidersAvailability(): {
+    readonly googleEnabled: boolean;
+    readonly webauthnEnabled: boolean;
+  } {
+    const googleId = this.config
+      .get('GOOGLE_CLIENT_ID', { infer: true })
+      .trim();
+    const googleSecret = this.config
+      .get('GOOGLE_CLIENT_SECRET', { infer: true })
+      .trim();
+    return {
+      googleEnabled: Boolean(googleId && googleSecret),
+      webauthnEnabled: true,
+    };
+  }
+
+  async getSecurityOverview(
+    trainerId: string,
+  ): Promise<SecurityOverviewResponse> {
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { id: trainerId },
+      select: {
+        mfaEnabled: true,
+        oauthAccounts: {
+          where: { provider: 'google' },
+          select: { email: true },
+          take: 1,
+        },
+        passkeys: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            label: true,
+            deviceType: true,
+            backedUp: true,
+            createdAt: true,
+            lastUsedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!trainer) {
+      throw new UnauthorizedException('Treinador não encontrado.');
+    }
+
+    const providers = this.getProvidersAvailability();
+    const googleLink = trainer.oauthAccounts[0] ?? null;
+
+    return SecurityOverviewResponseSchema.parse({
+      providers: {
+        googleEnabled: providers.googleEnabled,
+        googleLinked: googleLink !== null,
+        googleEmail: googleLink?.email ?? null,
+        webauthnEnabled: providers.webauthnEnabled,
+      },
+      mfaEnabled: trainer.mfaEnabled,
+      passkeys: trainer.passkeys.map((row) => ({
+        id: row.id,
+        label: row.label,
+        deviceType: row.deviceType,
+        backedUp: row.backedUp,
+        createdAt: row.createdAt.toISOString(),
+        lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+      })),
+    });
   }
 
   private toTrainerProfile(row: TrainerQueryRow): TrainerProfile {

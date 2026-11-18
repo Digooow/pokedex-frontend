@@ -9,6 +9,7 @@ import { QualityStore } from './core/stores/quality.store';
 function flushInitialRequests(httpMock: HttpTestingController): void {
   httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
   httpMock.match('/api/v1/system/bootstrap').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
+  httpMock.match('/api/v1/auth/providers').forEach((req) => req.flush({ googleEnabled: false, webauthnEnabled: true }));
   httpMock.match('/api/v1/auth/session').forEach((req) => req.flush({ authenticated: false, canRefresh: false }));
 }
 
@@ -101,18 +102,18 @@ describe('PokéVerse OS Shell', () => {
     expect(auth.isMfaPending()).toBe(true);
     expect(auth.isAuthenticated()).toBe(false);
 
-    auth.login({ email: 'red@pokeverse.dev', password: 'Password1234!' });
-    httpMock.expectOne('/api/v1/auth/login').flush({
+    auth.verifyMfaChallenge({ method: 'totp', code: '123456' });
+    httpMock.expectOne('/api/v1/auth/mfa/verify').flush({
       authenticated: true,
       sessionState: 'AUTHENTICATED',
-      mfaMethods: [],
+      mfaMethods: ['totp', 'backup_code'],
       expiresInSec: 900,
       trainer: {
         id: '550e8400-e29b-41d4-a716-446655440000',
         username: 'Red_Kanto',
         email: 'red@pokeverse.dev',
         emailVerifiedAt: null,
-        mfaEnabled: false,
+        mfaEnabled: true,
         hasPassword: true,
         badgesCount: 0,
         eloRating: 1000,
@@ -123,6 +124,7 @@ describe('PokéVerse OS Shell', () => {
       },
     });
 
+    expect(auth.isMfaPending()).toBe(false);
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.trainer()?.username).toBe('Red_Kanto');
     expect(auth.trainer()?.emailVerifiedAt).toBeNull();

@@ -119,3 +119,106 @@ export const GenericMessageResponseSchema = z.object({
 });
 
 export type GenericMessageResponse = z.infer<typeof GenericMessageResponseSchema>;
+
+export const TotpCodeInputSchema = z
+  .object({
+    code: SixDigitOtpSchema,
+  })
+  .strict();
+
+export type TotpCodeInput = z.infer<typeof TotpCodeInputSchema>;
+
+export const TotpSetupResponseSchema = z.object({
+  secretBase32: z.string().min(16),
+  otpauthUri: z.string().startsWith('otpauth://totp/'),
+  qrDataUrl: z.string().startsWith('data:image/png;base64,'),
+});
+
+export type TotpSetupResponse = z.infer<typeof TotpSetupResponseSchema>;
+
+export const TotpEnableResponseSchema = z.object({
+  message: z.string().min(1),
+  backupCodes: z.array(z.string().min(8)).length(8),
+});
+
+export type TotpEnableResponse = z.infer<typeof TotpEnableResponseSchema>;
+
+export const MfaChallengeVerifySchema = z.discriminatedUnion('method', [
+  z
+    .object({
+      method: z.literal('totp'),
+      code: SixDigitOtpSchema,
+    })
+    .strict(),
+  z
+    .object({
+      method: z.literal('backup_code'),
+      code: z.string().trim().min(8, 'Código de backup inválido.').max(16),
+    })
+    .strict(),
+]);
+
+export type MfaChallengeVerifyInput = z.infer<typeof MfaChallengeVerifySchema>;
+
+export const DisableTotpSchema = z
+  .object({
+    currentPassword: z.string().min(1).max(128).optional(),
+    code: z.string().trim().min(6).max(16).optional(),
+  })
+  .strict()
+  .refine((val) => Boolean(val.currentPassword || val.code), {
+    message: 'Informe sua senha atual ou um código TOTP/backup para desativar.',
+  });
+
+export type DisableTotpInput = z.infer<typeof DisableTotpSchema>;
+
+export const PasskeySummarySchema = z.object({
+  id: z.uuid(),
+  label: z.string().min(1).max(80),
+  deviceType: z.string().min(1).max(32),
+  backedUp: z.boolean(),
+  createdAt: z.iso.datetime(),
+  lastUsedAt: z.iso.datetime().nullable(),
+});
+
+export type PasskeySummary = z.infer<typeof PasskeySummarySchema>;
+
+export const SecurityOverviewResponseSchema = z.object({
+  providers: z.object({
+    googleEnabled: z.boolean(),
+    googleLinked: z.boolean(),
+    googleEmail: z.email().nullable(),
+    webauthnEnabled: z.boolean(),
+  }),
+  mfaEnabled: z.boolean(),
+  passkeys: z.array(PasskeySummarySchema),
+});
+
+export type SecurityOverviewResponse = z.infer<typeof SecurityOverviewResponseSchema>;
+
+export const PasskeyRegisterVerifySchema = z
+  .object({
+    label: z.string().trim().min(1).max(60).optional(),
+    response: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
+export type PasskeyRegisterVerifyInput = z.infer<typeof PasskeyRegisterVerifySchema>;
+
+export const PasskeyLoginOptionsSchema = z
+  .object({
+    email: NormalizedEmailSchema.optional(),
+  })
+  .strict();
+
+export type PasskeyLoginOptionsInput = z.infer<typeof PasskeyLoginOptionsSchema>;
+
+export const PasskeyLoginVerifySchema = z
+  .object({
+    challengeToken: z.string().min(16).max(256),
+    response: z.record(z.string(), z.unknown()),
+  })
+  .strict();
+
+export type PasskeyLoginVerifyInput = z.infer<typeof PasskeyLoginVerifySchema>;
+

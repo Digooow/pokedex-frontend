@@ -1,6 +1,6 @@
 # 14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog
 
-> **Última atualização:** Fase 2 concluída e validada ao vivo (pré-rodada de Blindagem de Segurança / Auth).
+> **Última atualização:** Fase 2 + **IAM Enterprise (Etapas 2A e 2B / Onda 1 do Dossiê 13)** concluídas e validadas ao vivo.
 > Este documento existe para preservar contexto completo entre sessões de desenvolvimento: **o que já foi entregue**, **o que divergiu ou evoluiu em relação aos documentos originais (`00` a `12`)** e **o que ainda falta construir**.
 
 ---
@@ -11,8 +11,8 @@
 | :--- | :--- | :---: | :--- |
 | **Fase 0** | **Pokédex 3D Estática (Vanilla)** | **Concluída** | [index.html](../index.html), [css/style.css](../css/style.css), [js/app.js](../js/app.js), [assets/](../assets/) preservados intactos na raiz para GitHub Pages |
 | **Fase 1** | **Fundação Monorepo + Shell Angular + Pokédex Integrada** | **Concluída** | Workspaces `@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`; `infra/docker/docker-compose.yml` saudável (`postgres`, `redis`, `redpanda`, `redpanda-console`, `minio` via `pgsty/silo`); Shell HUD + Pokédex 3D com fallback direto à PokéAPI |
-| **Fase 2** | **API NestJS + Auth + PostgreSQL/Prisma + Redis + Redpanda Outbox + WS** | **Concluída** *(próxima parada: Blindagem do Dossiê 13)* | Schema Prisma com 10 tabelas de domínio + migration inicial com índice parcial `idx_outbox_pending`; Auth Argon2id + JWT RAM + Refresh HttpOnly com rotação/reuso; Cache Redis PokéAPI (`X-Cache`); 10 slots em ACID; Outbox (`SKIP LOCKED`) -> Redpanda -> Consumidor Idempotente Redis -> `/ws/world` Ticker ao vivo no Angular |
-| **Hardening** | **Blindagem Auth & AppSec (Onda 1 do Dossiê 13)** | **Próxima Etapa Planejada** | Evolução da autenticação além de JWT Bearer simples (Sessão Opaca Redis BFF ou JWT Hardened), CSRF `Origin`/`Sec-Fetch-Site`, Redis Throttler, login constant-time e limpeza de metadados Fase 1 |
+| **Fase 2** | **API NestJS + Auth + PostgreSQL/Prisma + Redis + Redpanda Outbox + WS** | **Concluída** | Schema Prisma + `idx_outbox_pending`; Cache Redis PokéAPI (`X-Cache`); 10 slots em ACID; Outbox (`SKIP LOCKED`) -> Redpanda -> Consumidor Idempotente Redis -> `/ws/world` Ticker ao vivo no Angular |
+| **Etapas 2A + 2B** | **IAM Enterprise BFF (Sessão Redis + OTP + Mailpit + TOTP + Google + Passkeys)** | **Concluída** | Zero JWT no JS; cookies `HttpOnly` + Redis state machine (`MFA_PENDING -> AUTHENTICATED`); `CsrfOriginGuard`; `RedisThrottlerStorage`; dummy Argon2id timing shield; Mailpit (`:1025/:8025`) + Redpanda `pokeverse.notifications.email.v1` encriptado AES-256-GCM; TOTP QR + 8 backup codes; Google OAuth PKCE; Passkeys WebAuthn (`@simplewebauthn/*`) |
 | **Fase 3** | **Overworld Explorável 2D/HD-2D (Phaser 3)** | **Pendente** | `WorldStore`, mapa da Vila Central, colisões, portais físicos, ciclo dia/noite, presença multiplayer autenticada via `WsAuthGuard` + Redis |
 | **Fase 4** | **Holocron 3D (Three.js) + Museu das Regiões & Jogos** | **Pendente** | Cena Title Screen Three.js + GLSL, pedestal Holocron 3D, `MuseumModule` no back-end e evolução do placeholder [museum-page.component.ts](../apps/web/src/app/features/regions-museum/museum-page.component.ts) |
 | **Fase 5** | **Arcade Retrô 3D (WASM) + MinIO/S3 + Cloud Save States** | **Pendente** | `ArcadeModule`, stream autenticado/presigned URLs para ROMs no bucket privado `pokeverse-roms`, console portátil 3D com `CanvasTexture` e *Cloud Saves* validados |
@@ -76,14 +76,10 @@
 
 ## 4. O que Falta Fazer (Dívidas Conhecidas + Fases 3 a 6)
 
-### 4.1. Limpezas & Endurecimento Imediato (Antes da Fase 3)
-1. **Executar a Onda 1 do [Dossiê de Segurança (doc 13)](13-dossie-de-seguranca-e-blindagem.md):**
-   - Evoluir Auth (Sessão Opaca Redis BFF ou JWT EdDSA + Redis revogação), CSRF `Origin`/`Sec-Fetch-Site`, `login()` dummy Argon2id, `@nestjs/throttler` no Redis, `SAFE_POKEMON_PARAM` com limite `{1,64}` + `redirect: 'error'`, CSP explícita, sanitização de `returnUrl` e redação de segredos em logs.
-2. **Remover textos residuais da Fase 1 ainda presentes em código:**
-   - [system.controller.ts](../apps/api/src/modules/system/system.controller.ts#L16): alterar `phase: 'phase-1'` para refletir a fase atual (`'phase-2'` / dinâmico);
-   - [auth.guard.ts](../apps/web/src/app/core/guards/auth.guard.ts#L19) e [requires-trainer.directive.ts](../apps/web/src/app/shared/directives/requires-trainer.directive.ts#L13): remover menção `"será habilitada/ativada na Fase 2"`.
-3. **Observação de verificação visual em navegador:**
-   - Concluir inspeção automatizada em desktop (`1440×900`) e mobile (`375×812`) no Chrome assim que as tools bloqueadas no MCP (`navigate_page`, `take_screenshot`, `list_console_messages`, `list_network_requests`) estiverem liberadas ou via suíte Playwright no CI.
+### 4.1. Pendências Pré-Fase 3 & Hardening Restante
+1. **Concluído na Onda 1 (`2A + 2B`):** Sessão Opaca no Redis + Cookie `HttpOnly` (BFF), máquina `MFA_PENDING -> AUTHENTICATED`, `@nestjs/throttler` distribuído no Redis, `CsrfOriginGuard`, dummy Argon2id no `login()`, CSP explícita + `Permissions-Policy`, `express.json({ limit: '64kb' })`, `SAFE_POKEMON_PARAM` com limite `{1,64}` + `redirect: 'error'`, Mailpit + Redpanda OTP assíncrono (AES-256-GCM), TOTP + 8 backup codes, Google OAuth2 PKCE + Account Linking seguro, Passkeys WebAuthn e limpeza de textos legados em `system.controller.ts` (`'phase-2b'`), `auth.guard.ts` e `requires-trainer.directive.ts`.
+2. **Itens remanescentes para Ondas 2 e 3 do [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md):** redação/masking genérico em logger caso middlewares passem headers, job periódico de expurgo de `RefreshToken`/`OutboxEvent`, `WsAuthGuard` obrigatório ao ativar ações interativas do Overworld na Fase 3, e gates DevSecOps (`gitleaks`, `npm audit`, Trivy) no CI.
+3. **Observação de verificação visual em navegador:** concluir inspeção visual automatizada desktop (`1440×900`) e mobile (`375×812`) no Chrome assim que as tools bloqueadas no MCP ou Playwright estiverem disponíveis.
 
 ### 4.2. Backlog Funcional das Próximas Fases
 - **Fase 3 (Overworld 2D/HD-2D — Phaser 3):** `WorldModule` autenticado com `WsAuthGuard` + rate limit WS, `TrainersModule` (`GET/PATCH /trainers/me`, posição/avatar), presença Redis com heartbeat e cena Phaser lazy-loaded + `FpsWatchdog`.
