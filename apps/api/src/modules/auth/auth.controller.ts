@@ -98,7 +98,7 @@ export class AuthController {
   @Public()
   @AllowMfaPending()
   @Get('session')
-  async getSession(@Req() req: Request): Promise<SessionBootstrapResponse> {
+  getSession(@Req() req: Request): Promise<SessionBootstrapResponse> {
     const { sessionCookieName, refreshCookieName } =
       this.sessionService.getCookieNames();
     const rawSid = readSessionCookie(req, sessionCookieName);
@@ -214,9 +214,7 @@ export class AuthController {
   }
 
   @Get('me')
-  async me(
-    @CurrentTrainer() trainer: AuthenticatedTrainer,
-  ): Promise<TrainerProfile> {
+  me(@CurrentTrainer() trainer: AuthenticatedTrainer): Promise<TrainerProfile> {
     return this.authService.getMe(trainer.trainerId);
   }
 }

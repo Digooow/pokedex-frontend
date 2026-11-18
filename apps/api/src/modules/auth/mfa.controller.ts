@@ -59,14 +59,14 @@ export class MfaController {
   ) {}
 
   @Get('security/overview')
-  async getSecurityOverview(
+  getSecurityOverview(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
   ): Promise<SecurityOverviewResponse> {
     return this.authService.getSecurityOverview(trainer.trainerId);
   }
 
   @Post('mfa/totp/setup')
-  async setupTotp(
+  setupTotp(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
   ): Promise<TotpSetupResponse> {
     return this.totpService.initiateSetup(trainer.trainerId);
@@ -74,7 +74,7 @@ export class MfaController {
 
   @HttpCode(HttpStatus.OK)
   @Post('mfa/totp/enable')
-  async enableTotp(
+  enableTotp(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
     @Body(new ZodValidationPipe(TotpCodeInputSchema)) body: TotpCodeInput,
     @Req() req: RequestWithTrace,
@@ -134,14 +134,12 @@ export class MfaController {
   }
 
   @Post('passkeys/register/options')
-  async passkeyRegisterOptions(
-    @CurrentTrainer() trainer: AuthenticatedTrainer,
-  ) {
+  passkeyRegisterOptions(@CurrentTrainer() trainer: AuthenticatedTrainer) {
     return this.passkeyService.generateRegisterOptions(trainer.trainerId);
   }
 
   @Post('passkeys/register/verify')
-  async passkeyRegisterVerify(
+  passkeyRegisterVerify(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
     @Body(new ZodValidationPipe(PasskeyRegisterVerifySchema))
     body: PasskeyRegisterVerifyInput,

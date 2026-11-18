@@ -100,7 +100,7 @@ export class PokedexSlotsService {
     });
   }
 
-  async clearSlot(
+  clearSlot(
     trainerId: string,
     username: string,
     slotIndex: number,

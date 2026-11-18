@@ -12,7 +12,6 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import {
   type AuthSessionResponse,
-  AuthSessionResponseSchema,
   type EmailNotificationEvent,
   EmailNotificationEventSchema,
   EncryptedOutboxPayloadSchema,
@@ -28,7 +27,6 @@ import {
   type SessionBootstrapResponse,
   SessionBootstrapResponseSchema,
   type TrainerProfile,
-  TrainerProfileSchema,
   type VerifyEmailOtpInput,
   WorldTickerEventSchema,
 } from '@pokeverse/shared';
@@ -39,7 +37,7 @@ import type { ApiEnvConfig } from '../../config/env.schema';
 import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
 import { OtpService } from './otp.service';
-import { type ActiveRedisSession, SessionService } from './session.service';
+import { SessionService } from './session.service';
 
 const TRAINER_PROFILE_SELECT = {
   id: true,
@@ -57,21 +55,6 @@ const TRAINER_PROFILE_SELECT = {
 
 const LOGIN_MAX_FAILURES = 8;
 const LOGIN_LOCK_WINDOW_SEC = 300;
-
-interface TrainerQueryRow {
-  readonly id: string;
-  readonly username: string;
-  readonly email: string;
-  readonly emailVerifiedAt: Date | null;
-  readonly mfaEnabled: boolean;
-  readonly badgesCount: number;
-  readonly eloRating: number;
-  readonly lastMapId: string;
-  readonly lastX: number;
-  readonly lastY: number;
-  readonly createdAt: Date;
-  readonly passwordHash: string | null;
-}
 
 export interface AuthSessionWithCookies {
   readonly session: AuthSessionResponse;
@@ -180,7 +163,11 @@ export class AuthService implements OnModuleInit {
       });
 
       return {
-        session: this.buildSessionResponse(created, session),
+        session: this.sessionService.buildAuthSessionResponse(
+          created,
+          session.state,
+          session.mfaMethods,
+        ),
         sessionSid: rawSid,
         refreshToken: rawRefresh,
       };
@@ -282,7 +269,11 @@ export class AuthService implements OnModuleInit {
     });
 
     return {
-      session: this.buildSessionResponse(trainer, session),
+      session: this.sessionService.buildAuthSessionResponse(
+        trainer,
+        session.state,
+        session.mfaMethods,
+      ),
       sessionSid: rawSid,
       refreshToken: rawRefresh,
     };
@@ -313,7 +304,11 @@ export class AuthService implements OnModuleInit {
       });
     }
 
-    return this.buildSessionResponse(trainer, activeSession);
+    return this.sessionService.buildAuthSessionResponse(
+      trainer,
+      activeSession.state,
+      activeSession.mfaMethods,
+    );
   }
 
   async refresh(
@@ -405,7 +400,11 @@ export class AuthService implements OnModuleInit {
     });
 
     return {
-      session: this.buildSessionResponse(existing.trainer, session),
+      session: this.sessionService.buildAuthSessionResponse(
+        existing.trainer,
+        session.state,
+        session.mfaMethods,
+      ),
       sessionSid: rawSid,
       refreshToken: nextRawRefresh,
     };
@@ -609,7 +608,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('Treinador não encontrado.');
     }
 
-    return this.toTrainerProfile(trainer);
+    return this.sessionService.toTrainerProfile(trainer);
   }
 
   getProvidersAvailability(): {
@@ -677,36 +676,6 @@ export class AuthService implements OnModuleInit {
         createdAt: row.createdAt.toISOString(),
         lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
       })),
-    });
-  }
-
-  private toTrainerProfile(row: TrainerQueryRow): TrainerProfile {
-    return TrainerProfileSchema.parse({
-      id: row.id,
-      username: row.username,
-      email: row.email,
-      emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
-      mfaEnabled: row.mfaEnabled,
-      hasPassword: row.passwordHash !== null,
-      badgesCount: row.badgesCount,
-      eloRating: row.eloRating,
-      lastMapId: row.lastMapId,
-      lastX: row.lastX,
-      lastY: row.lastY,
-      createdAt: row.createdAt.toISOString(),
-    });
-  }
-
-  private buildSessionResponse(
-    trainerRow: TrainerQueryRow,
-    session: ActiveRedisSession,
-  ): AuthSessionResponse {
-    return AuthSessionResponseSchema.parse({
-      authenticated: true,
-      sessionState: session.state,
-      mfaMethods: [...session.mfaMethods],
-      expiresInSec: this.sessionService.getSessionTtlSec(),
-      trainer: this.toTrainerProfile(trainerRow),
     });
   }
 

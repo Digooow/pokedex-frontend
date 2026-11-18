@@ -54,13 +54,13 @@ export class InfraProbesService implements OnModuleDestroy {
     return { postgres, redis, kafka, s3 };
   }
 
-  async checkPostgres(): Promise<DependencyStatus> {
+  checkPostgres(): Promise<DependencyStatus> {
     return this.measureProbe('PostgreSQL unreachable', async () => {
       await this.prisma.$queryRaw`SELECT 1`;
     });
   }
 
-  async checkRedis(): Promise<DependencyStatus> {
+  checkRedis(): Promise<DependencyStatus> {
     return this.measureProbe('Redis unreachable', async () => {
       const pong = await this.redis.ping();
       if (pong !== 'PONG') {
@@ -69,7 +69,7 @@ export class InfraProbesService implements OnModuleDestroy {
     });
   }
 
-  async checkKafka(): Promise<DependencyStatus> {
+  checkKafka(): Promise<DependencyStatus> {
     return this.measureProbe('Kafka broker unreachable', async () => {
       const brokersCount = await this.kafka.describeCluster();
       if (brokersCount === 0) {
@@ -78,7 +78,7 @@ export class InfraProbesService implements OnModuleDestroy {
     });
   }
 
-  async checkS3(): Promise<DependencyStatus> {
+  checkS3(): Promise<DependencyStatus> {
     return this.measureProbe('S3 object storage unreachable', async () => {
       const signal = AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS);
       await Promise.all([

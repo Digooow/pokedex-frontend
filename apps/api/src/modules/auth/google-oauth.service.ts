@@ -17,10 +17,8 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import {
   type AuthSessionResponse,
-  AuthSessionResponseSchema,
   KAFKA_TOPICS,
   type MfaMethod,
-  TrainerProfileSchema,
   WorldTickerEventSchema,
 } from '@pokeverse/shared';
 import { z } from 'zod';
@@ -509,26 +507,11 @@ export class GoogleOAuthService {
       mfaMethods,
     });
 
-    const parsedSession = AuthSessionResponseSchema.parse({
-      authenticated: true,
-      sessionState: session.state,
-      mfaMethods: [...session.mfaMethods],
-      expiresInSec: this.sessionService.getSessionTtlSec(),
-      trainer: TrainerProfileSchema.parse({
-        id: trainer.id,
-        username: trainer.username,
-        email: trainer.email,
-        emailVerifiedAt: trainer.emailVerifiedAt?.toISOString() ?? null,
-        mfaEnabled: trainer.mfaEnabled,
-        hasPassword: trainer.passwordHash !== null,
-        badgesCount: trainer.badgesCount,
-        eloRating: trainer.eloRating,
-        lastMapId: trainer.lastMapId,
-        lastX: trainer.lastX,
-        lastY: trainer.lastY,
-        createdAt: trainer.createdAt.toISOString(),
-      }),
-    });
+    const parsedSession = this.sessionService.buildAuthSessionResponse(
+      trainer,
+      session.state,
+      session.mfaMethods,
+    );
 
     return {
       redirectUrl: requiresMfa
@@ -540,7 +523,7 @@ export class GoogleOAuthService {
     };
   }
 
-  private async createNewGoogleTrainer(
+  private createNewGoogleTrainer(
     claims: VerifiedGoogleClaims,
     traceId: string | null,
   ) {
@@ -590,7 +573,7 @@ export class GoogleOAuthService {
     }
   }
 
-  private async tryCreateGoogleTrainerTransaction(
+  private tryCreateGoogleTrainerTransaction(
     claims: VerifiedGoogleClaims,
     candidateUsername: string,
     traceId: string | null,

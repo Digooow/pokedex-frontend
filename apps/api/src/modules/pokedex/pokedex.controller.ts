@@ -69,7 +69,7 @@ export class PokedexController {
   }
 
   @Put('slots/:index')
-  async saveSlot(
+  saveSlot(
     @Param('index', ParseIntPipe) index: number,
     @Body(new ZodValidationPipe(SavePokedexSlotSchema))
     body: SavePokedexSlotInput,

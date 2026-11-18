@@ -9,7 +9,6 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   type AuthSessionResponse,
-  AuthSessionResponseSchema,
   type DisableTotpInput,
   EmailNotificationEventSchema,
   EncryptedOutboxPayloadSchema,
@@ -19,7 +18,6 @@ import {
   TotpEnableResponseSchema,
   type TotpSetupResponse,
   TotpSetupResponseSchema,
-  TrainerProfileSchema,
 } from '@pokeverse/shared';
 import * as argon2 from 'argon2';
 import QRCode from 'qrcode';
@@ -321,26 +319,11 @@ export class MfaTotpService {
       },
     });
 
-    const session = AuthSessionResponseSchema.parse({
-      authenticated: true,
-      sessionState: 'AUTHENTICATED',
-      mfaMethods: [...promoted.mfaMethods],
-      expiresInSec: this.sessionService.getSessionTtlSec(),
-      trainer: TrainerProfileSchema.parse({
-        id: trainer.id,
-        username: trainer.username,
-        email: trainer.email,
-        emailVerifiedAt: trainer.emailVerifiedAt?.toISOString() ?? null,
-        mfaEnabled: trainer.mfaEnabled,
-        hasPassword: trainer.passwordHash !== null,
-        badgesCount: trainer.badgesCount,
-        eloRating: trainer.eloRating,
-        lastMapId: trainer.lastMapId,
-        lastX: trainer.lastX,
-        lastY: trainer.lastY,
-        createdAt: trainer.createdAt.toISOString(),
-      }),
-    });
+    const session = this.sessionService.buildAuthSessionResponse(
+      trainer,
+      'AUTHENTICATED',
+      promoted.mfaMethods,
+    );
 
     return { session, refreshToken: rawRefresh };
   }

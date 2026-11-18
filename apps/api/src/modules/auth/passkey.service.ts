@@ -8,12 +8,10 @@ import {
 import { ConfigService } from '@nestjs/config';
 import {
   type AuthSessionResponse,
-  AuthSessionResponseSchema,
   type PasskeyLoginVerifyInput,
   type PasskeyRegisterVerifyInput,
   type PasskeySummary,
   PasskeySummarySchema,
-  TrainerProfileSchema,
 } from '@pokeverse/shared';
 import {
   type AuthenticationResponseJSON,
@@ -355,26 +353,11 @@ export class PasskeyService {
       },
     });
 
-    const session = AuthSessionResponseSchema.parse({
-      authenticated: true,
-      sessionState: 'AUTHENTICATED',
-      mfaMethods: [...mfaMethods],
-      expiresInSec: this.sessionService.getSessionTtlSec(),
-      trainer: TrainerProfileSchema.parse({
-        id: passkey.trainer.id,
-        username: passkey.trainer.username,
-        email: passkey.trainer.email,
-        emailVerifiedAt: passkey.trainer.emailVerifiedAt?.toISOString() ?? null,
-        mfaEnabled: passkey.trainer.mfaEnabled,
-        hasPassword: passkey.trainer.passwordHash !== null,
-        badgesCount: passkey.trainer.badgesCount,
-        eloRating: passkey.trainer.eloRating,
-        lastMapId: passkey.trainer.lastMapId,
-        lastX: passkey.trainer.lastX,
-        lastY: passkey.trainer.lastY,
-        createdAt: passkey.trainer.createdAt.toISOString(),
-      }),
-    });
+    const session = this.sessionService.buildAuthSessionResponse(
+      passkey.trainer,
+      'AUTHENTICATED',
+      mfaMethods,
+    );
 
     return { session, sessionSid: activeSid, refreshToken: rawRefresh };
   }

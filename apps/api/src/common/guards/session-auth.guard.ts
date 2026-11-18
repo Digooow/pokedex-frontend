@@ -35,10 +35,14 @@ export class SessionAuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) {
-      return true;
+    if (!isPublic) {
+      await this.authenticateRequest(context);
     }
 
+    return true;
+  }
+
+  private async authenticateRequest(context: ExecutionContext): Promise<void> {
     const req = context.switchToHttp().getRequest<RequestWithTrainer>();
     const { sessionCookieName } = this.sessionService.getCookieNames();
     const rawSid = readSessionCookie(req, sessionCookieName);
@@ -66,7 +70,5 @@ export class SessionAuthGuard implements CanActivate {
       familyId: session.familyId,
       sidHash: session.sidHash,
     };
-
-    return true;
   }
 }

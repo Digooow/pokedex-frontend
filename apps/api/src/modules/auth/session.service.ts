@@ -1,10 +1,32 @@
 import { randomBytes } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { MfaMethod, SessionAuthState } from '@pokeverse/shared';
+import {
+  type AuthSessionResponse,
+  AuthSessionResponseSchema,
+  type MfaMethod,
+  type SessionAuthState,
+  type TrainerProfile,
+  TrainerProfileSchema,
+} from '@pokeverse/shared';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { CryptoService } from '../../common/security/crypto.service';
 import { RedisService } from '../../infra/redis.service';
+
+export interface SessionTrainerRecord {
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly emailVerifiedAt: Date | null;
+  readonly mfaEnabled: boolean;
+  readonly passwordHash: string | null;
+  readonly badgesCount: number;
+  readonly eloRating: number;
+  readonly lastMapId: string;
+  readonly lastX: number;
+  readonly lastY: number;
+  readonly createdAt: Date;
+}
 
 export interface ActiveRedisSession {
   readonly sidHash: string;
@@ -81,15 +103,46 @@ export class SessionService {
     return { rawSid, session };
   }
 
-  async getSessionByRawSid(
+  getSessionByRawSid(
     rawSid: string | undefined,
   ): Promise<ActiveRedisSession | null> {
     if (!rawSid || rawSid.length < 20) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const sidHash = this.crypto.sha256Hex(rawSid);
     return this.redis.getJson<ActiveRedisSession>(this.sessionKey(sidHash));
+  }
+
+  toTrainerProfile(row: SessionTrainerRecord): TrainerProfile {
+    return TrainerProfileSchema.parse({
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
+      mfaEnabled: row.mfaEnabled,
+      hasPassword: row.passwordHash !== null,
+      badgesCount: row.badgesCount,
+      eloRating: row.eloRating,
+      lastMapId: row.lastMapId,
+      lastX: row.lastX,
+      lastY: row.lastY,
+      createdAt: row.createdAt.toISOString(),
+    });
+  }
+
+  buildAuthSessionResponse(
+    trainer: SessionTrainerRecord,
+    sessionState: SessionAuthState,
+    mfaMethods: readonly MfaMethod[],
+  ): AuthSessionResponse {
+    return AuthSessionResponseSchema.parse({
+      authenticated: true,
+      sessionState,
+      mfaMethods: [...mfaMethods],
+      expiresInSec: this.getSessionTtlSec(),
+      trainer: this.toTrainerProfile(trainer),
+    });
   }
 
   async promoteToAuthenticated(

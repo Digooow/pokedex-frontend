@@ -38,8 +38,27 @@ export class CsrfOriginGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const req = context.switchToHttp().getRequest<Request>();
+    const denialReason = this.findDenialReason(req);
+    if (denialReason !== null) {
+      this.logger.emitEvent(
+        'warn',
+        `${denialReason} on ${req.method} ${req.url}`,
+        {
+          context: CsrfOriginGuard.name,
+          errorCode: 'CSRF_ORIGIN_BLOCKED',
+        },
+      );
+      throw new ForbiddenException(
+        'Requisição bloqueada pela proteção CSRF de origem.',
+      );
+    }
+
+    return true;
+  }
+
+  private findDenialReason(req: Request): string | null {
     if (SAFE_METHODS.has(req.method.toUpperCase())) {
-      return true;
+      return null;
     }
 
     const secFetchSite = req.header('sec-fetch-site')?.trim().toLowerCase();
@@ -48,27 +67,24 @@ export class CsrfOriginGuard implements CanActivate {
       secFetchSite !== 'same-origin' &&
       secFetchSite !== 'none'
     ) {
-      this.rejectCsrf(req, `Blocked Sec-Fetch-Site=${secFetchSite}`);
+      return `Blocked Sec-Fetch-Site=${secFetchSite}`;
     }
 
     const originHeader = req.header('origin')?.trim();
     if (originHeader) {
       if (!this.allowedOrigins.has(originHeader)) {
-        this.rejectCsrf(
-          req,
-          `Blocked cross-origin header Origin=${originHeader}`,
-        );
+        return `Blocked cross-origin header Origin=${originHeader}`;
       }
-      return true;
+      return null;
     }
 
     const refererHeader = req.header('referer')?.trim();
     if (refererHeader) {
       const refererOrigin = this.extractOrigin(refererHeader);
       if (!refererOrigin || !this.allowedOrigins.has(refererOrigin)) {
-        this.rejectCsrf(req, 'Blocked untrusted Referer origin');
+        return 'Blocked untrusted Referer origin';
       }
-      return true;
+      return null;
     }
 
     const cookies = readCookieRecord(req);
@@ -78,13 +94,10 @@ export class CsrfOriginGuard implements CanActivate {
       cookies['pokeverse_refresh'],
     );
     if (hasSessionCookies && secFetchSite !== 'same-origin') {
-      this.rejectCsrf(
-        req,
-        'Blocked cookie-authenticated mutation missing Origin and Same-Origin Fetch Metadata',
-      );
+      return 'Blocked cookie-authenticated mutation missing Origin and Same-Origin Fetch Metadata';
     }
 
-    return true;
+    return null;
   }
 
   private extractOrigin(rawUrl: string): string | null {
@@ -93,15 +106,5 @@ export class CsrfOriginGuard implements CanActivate {
     } catch {
       return null;
     }
-  }
-
-  private rejectCsrf(req: Request, reason: string): never {
-    this.logger.emitEvent('warn', `${reason} on ${req.method} ${req.url}`, {
-      context: CsrfOriginGuard.name,
-      errorCode: 'CSRF_ORIGIN_BLOCKED',
-    });
-    throw new ForbiddenException(
-      'Requisição bloqueada pela proteção CSRF de origem.',
-    );
   }
 }
