@@ -1,31 +1,50 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import {
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
+  OnModuleInit,
   UnauthorizedException,
+  BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import {
   type AuthSessionResponse,
   AuthSessionResponseSchema,
+  type EmailNotificationEvent,
+  EmailNotificationEventSchema,
+  EncryptedOutboxPayloadSchema,
+  type ForgotPasswordInput,
   KAFKA_TOPICS,
   type LoginTrainerInput,
+  type MfaMethod,
   type RegisterTrainerInput,
+  type ResendEmailOtpInput,
+  type ResetPasswordOtpInput,
+  type SessionBootstrapResponse,
+  SessionBootstrapResponseSchema,
   type TrainerProfile,
   TrainerProfileSchema,
+  type VerifyEmailOtpInput,
   WorldTickerEventSchema,
 } from '@pokeverse/shared';
 import * as argon2 from 'argon2';
+import { CryptoService } from '../../common/security/crypto.service';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { PrismaService } from '../../infra/prisma.service';
+import { RedisService } from '../../infra/redis.service';
+import { OtpService } from './otp.service';
+import { type ActiveRedisSession, SessionService } from './session.service';
 
 const TRAINER_PROFILE_SELECT = {
   id: true,
   username: true,
   email: true,
+  emailVerifiedAt: true,
+  mfaEnabled: true,
   badgesCount: true,
   eloRating: true,
   lastMapId: true,
@@ -34,31 +53,66 @@ const TRAINER_PROFILE_SELECT = {
   createdAt: true,
 } as const;
 
-export interface AuthIssueResult {
+const LOGIN_MAX_FAILURES = 8;
+const LOGIN_LOCK_WINDOW_SEC = 300;
+
+interface TrainerQueryRow {
+  readonly id: string;
+  readonly username: string;
+  readonly email: string;
+  readonly emailVerifiedAt: Date | null;
+  readonly mfaEnabled: boolean;
+  readonly badgesCount: number;
+  readonly eloRating: number;
+  readonly lastMapId: string;
+  readonly lastX: number;
+  readonly lastY: number;
+  readonly createdAt: Date;
+  readonly passwordHash: string | null;
+}
+
+export interface AuthSessionWithCookies {
   readonly session: AuthSessionResponse;
-  readonly refreshToken: string;
+  readonly sessionSid: string;
+  readonly refreshToken: string | null;
 }
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
+  private dummyPasswordHash: string | null = null;
+
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly redis: RedisService,
+    private readonly crypto: CryptoService,
+    private readonly sessionService: SessionService,
+    private readonly otpService: OtpService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
     private readonly logger: StructuredLoggerService,
   ) {}
 
+  async onModuleInit(): Promise<void> {
+    this.dummyPasswordHash = await argon2.hash('pokeverse-timing-shield-key', {
+      type: argon2.argon2id,
+    });
+  }
+
   async register(
     input: RegisterTrainerInput,
     traceId: string | null,
-  ): Promise<AuthIssueResult> {
+  ): Promise<AuthSessionWithCookies> {
     const passwordHash = await argon2.hash(input.password, {
       type: argon2.argon2id,
     });
     const rawRefresh = this.generateOpaqueToken();
-    const tokenHash = this.hashToken(rawRefresh);
+    const tokenHash = this.crypto.sha256Hex(rawRefresh);
     const familyId = randomUUID();
     const expiresAt = this.computeRefreshExpiry();
+
+    const { code: otpCode } = await this.otpService.issueOtp(
+      'verify',
+      input.email,
+    );
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
@@ -68,7 +122,7 @@ export class AuthService {
             email: input.email,
             passwordHash,
           },
-          select: TRAINER_PROFILE_SELECT,
+          select: { ...TRAINER_PROFILE_SELECT, passwordHash: true },
         });
 
         await tx.refreshToken.create({
@@ -80,9 +134,9 @@ export class AuthService {
           },
         });
 
-        const eventId = randomUUID();
-        const eventPayload = WorldTickerEventSchema.parse({
-          eventId,
+        const worldEventId = randomUUID();
+        const worldPayload = WorldTickerEventSchema.parse({
+          eventId: worldEventId,
           eventType: 'trainer.registered',
           trainerId: trainer.id,
           username: trainer.username,
@@ -93,21 +147,46 @@ export class AuthService {
 
         await tx.outboxEvent.create({
           data: {
-            id: eventId,
+            id: worldEventId,
             aggregateType: 'Trainer',
             aggregateId: trainer.id,
             eventType: KAFKA_TOPICS.WORLD_EVENTS,
-            payload: eventPayload,
+            payload: worldPayload,
             status: 'PENDING',
           },
+        });
+
+        await this.enqueueEncryptedEmail(tx, {
+          aggregateId: trainer.id,
+          template: 'email_verification_otp',
+          toEmail: trainer.email,
+          username: trainer.username,
+          subject: 'PokéVerse OS — Código de verificação de conta',
+          otpCode,
+          traceId,
         });
 
         return trainer;
       });
 
-      const session = await this.buildSessionResponse(created);
-      return { session, refreshToken: rawRefresh };
+      const { rawSid, session } = await this.sessionService.createSession({
+        trainerId: created.id,
+        username: created.username,
+        familyId,
+        state: 'AUTHENTICATED',
+        mfaMethods: [],
+      });
+
+      return {
+        session: this.buildSessionResponse(created, session),
+        sessionSid: rawSid,
+        refreshToken: rawRefresh,
+      };
     } catch (error) {
+      await this.redis
+        .delKeys(`otp:verify:${this.crypto.sha256Hex(input.email)}`)
+        .catch(() => undefined);
+
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
@@ -120,16 +199,40 @@ export class AuthService {
     }
   }
 
-  async login(input: LoginTrainerInput): Promise<AuthIssueResult> {
+  async login(
+    input: LoginTrainerInput,
+    clientIp: string,
+  ): Promise<AuthSessionWithCookies> {
+    const attemptKey = this.loginAttemptKey(clientIp, input.email);
+    const currentAttempts = Number(
+      (await this.redis.getString(attemptKey)) ?? '0',
+    );
+    if (currentAttempts >= LOGIN_MAX_FAILURES) {
+      this.logger.emitEvent(
+        'warn',
+        `Login rate guard blocked excessive failed attempts from ${clientIp}`,
+        { context: AuthService.name, errorCode: 'LOGIN_RATE_LIMIT_HIT' },
+      );
+      throw new HttpException(
+        'Muitas tentativas de login falharam. Aguarde alguns minutos e tente novamente.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
     const trainer = await this.prisma.trainer.findUnique({
       where: { email: input.email },
       select: {
         ...TRAINER_PROFILE_SELECT,
         passwordHash: true,
+        totpSecretEncrypted: true,
+        passkeys: { select: { id: true }, take: 1 },
       },
     });
 
-    if (!trainer) {
+    if (!trainer?.passwordHash) {
+      const dummyHash = await this.getDummyHash();
+      await argon2.verify(dummyHash, input.password).catch(() => false);
+      await this.recordFailedLogin(attemptKey, currentAttempts);
       throw new UnauthorizedException('Credenciais inválidas.');
     }
 
@@ -138,41 +241,88 @@ export class AuthService {
       input.password,
     );
     if (!validPassword) {
+      await this.recordFailedLogin(attemptKey, currentAttempts);
       throw new UnauthorizedException('Credenciais inválidas.');
     }
 
-    const rawRefresh = this.generateOpaqueToken();
-    const tokenHash = this.hashToken(rawRefresh);
+    await this.redis.delKeys(attemptKey);
 
-    await this.prisma.refreshToken.create({
-      data: {
-        trainerId: trainer.id,
-        tokenHash,
-        familyId: randomUUID(),
-        expiresAt: this.computeRefreshExpiry(),
-      },
-    });
+    const mfaMethods: MfaMethod[] = [];
+    if (trainer.mfaEnabled && trainer.totpSecretEncrypted) {
+      mfaMethods.push('totp', 'backup_code');
+    }
+    if (trainer.mfaEnabled && trainer.passkeys.length > 0) {
+      mfaMethods.push('passkey');
+    }
 
-    const session = await this.buildSessionResponse({
-      id: trainer.id,
+    const requiresMfa = trainer.mfaEnabled && mfaMethods.length > 0;
+    const familyId = randomUUID();
+    let rawRefresh: string | null = null;
+
+    if (!requiresMfa) {
+      rawRefresh = this.generateOpaqueToken();
+      await this.prisma.refreshToken.create({
+        data: {
+          trainerId: trainer.id,
+          tokenHash: this.crypto.sha256Hex(rawRefresh),
+          familyId,
+          expiresAt: this.computeRefreshExpiry(),
+        },
+      });
+    }
+
+    const { rawSid, session } = await this.sessionService.createSession({
+      trainerId: trainer.id,
       username: trainer.username,
-      email: trainer.email,
-      badgesCount: trainer.badgesCount,
-      eloRating: trainer.eloRating,
-      lastMapId: trainer.lastMapId,
-      lastX: trainer.lastX,
-      lastY: trainer.lastY,
-      createdAt: trainer.createdAt,
+      familyId,
+      state: requiresMfa ? 'MFA_PENDING' : 'AUTHENTICATED',
+      mfaMethods,
     });
-    return { session, refreshToken: rawRefresh };
+
+    return {
+      session: this.buildSessionResponse(trainer, session),
+      sessionSid: rawSid,
+      refreshToken: rawRefresh,
+    };
   }
 
-  async refresh(rawRefreshToken: string | undefined): Promise<AuthIssueResult> {
+  async getSessionBootstrap(
+    rawSid: string | undefined,
+    rawRefreshToken: string | undefined,
+  ): Promise<SessionBootstrapResponse> {
+    const activeSession = await this.sessionService.getSessionByRawSid(rawSid);
+    if (!activeSession) {
+      return SessionBootstrapResponseSchema.parse({
+        authenticated: false,
+        canRefresh: Boolean(rawRefreshToken && rawRefreshToken.length >= 20),
+      });
+    }
+
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { id: activeSession.trainerId },
+      select: { ...TRAINER_PROFILE_SELECT, passwordHash: true },
+    });
+
+    if (!trainer) {
+      await this.sessionService.revokeByRawSid(rawSid);
+      return SessionBootstrapResponseSchema.parse({
+        authenticated: false,
+        canRefresh: false,
+      });
+    }
+
+    return this.buildSessionResponse(trainer, activeSession);
+  }
+
+  async refresh(
+    rawRefreshToken: string | undefined,
+    previousRawSid?: string,
+  ): Promise<AuthSessionWithCookies> {
     if (!rawRefreshToken) {
       throw new UnauthorizedException('Refresh token ausente.');
     }
 
-    const tokenHash = this.hashToken(rawRefreshToken);
+    const tokenHash = this.crypto.sha256Hex(rawRefreshToken);
     const existing = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
       select: {
@@ -182,7 +332,7 @@ export class AuthService {
         expiresAt: true,
         revokedAt: true,
         trainer: {
-          select: TRAINER_PROFILE_SELECT,
+          select: { ...TRAINER_PROFILE_SELECT, passwordHash: true },
         },
       },
     });
@@ -192,11 +342,11 @@ export class AuthService {
     }
 
     if (existing.revokedAt !== null) {
-      // Reuse of a rotated token compromises the whole token family.
       await this.prisma.refreshToken.updateMany({
         where: { familyId: existing.familyId, revokedAt: null },
         data: { revokedAt: new Date() },
       });
+      await this.sessionService.revokeAllForTrainer(existing.trainerId);
       this.logger.emitEvent(
         'warn',
         `Refresh token reuse detected for trainer ${existing.trainerId}`,
@@ -215,7 +365,7 @@ export class AuthService {
     }
 
     const nextRawRefresh = this.generateOpaqueToken();
-    const nextHash = this.hashToken(nextRawRefresh);
+    const nextHash = this.crypto.sha256Hex(nextRawRefresh);
 
     const rotated = await this.prisma.$transaction(async (tx) => {
       const updated = await tx.refreshToken.updateMany({
@@ -242,16 +392,34 @@ export class AuthService {
       throw new UnauthorizedException('Sessão concorrente revogada.');
     }
 
-    const session = await this.buildSessionResponse(existing.trainer);
-    return { session, refreshToken: nextRawRefresh };
+    await this.sessionService.revokeByRawSid(previousRawSid);
+
+    const { rawSid, session } = await this.sessionService.createSession({
+      trainerId: existing.trainer.id,
+      username: existing.trainer.username,
+      familyId: existing.familyId,
+      state: 'AUTHENTICATED',
+      mfaMethods: [],
+    });
+
+    return {
+      session: this.buildSessionResponse(existing.trainer, session),
+      sessionSid: rawSid,
+      refreshToken: nextRawRefresh,
+    };
   }
 
-  async logout(rawRefreshToken: string | undefined): Promise<void> {
+  async logout(
+    rawSid: string | undefined,
+    rawRefreshToken: string | undefined,
+  ): Promise<void> {
+    await this.sessionService.revokeByRawSid(rawSid);
+
     if (!rawRefreshToken) {
       return;
     }
 
-    const tokenHash = this.hashToken(rawRefreshToken);
+    const tokenHash = this.crypto.sha256Hex(rawRefreshToken);
     const existing = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
       select: { familyId: true },
@@ -265,69 +433,287 @@ export class AuthService {
     }
   }
 
+  async verifyEmailOtp(
+    input: VerifyEmailOtpInput,
+    traceId: string | null,
+  ): Promise<{ readonly message: string }> {
+    const valid = await this.otpService.verifyAndConsumeOtp(
+      'verify',
+      input.email,
+      input.code,
+    );
+    if (!valid) {
+      throw new BadRequestException(
+        'Código de verificação inválido, expirado ou tentativas esgotadas.',
+      );
+    }
+
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { email: input.email },
+      select: { id: true, username: true, email: true, emailVerifiedAt: true },
+    });
+
+    if (trainer && trainer.emailVerifiedAt === null) {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.trainer.update({
+          where: { id: trainer.id },
+          data: { emailVerifiedAt: new Date() },
+        });
+        await this.enqueueEncryptedEmail(tx, {
+          aggregateId: trainer.id,
+          template: 'welcome',
+          toEmail: trainer.email,
+          username: trainer.username,
+          subject: 'PokéVerse OS — Conta de treinador verificada!',
+          traceId,
+        });
+      });
+    }
+
+    return { message: 'E-mail verificado com sucesso.' };
+  }
+
+  async resendVerificationOtp(
+    input: ResendEmailOtpInput,
+    traceId: string | null,
+  ): Promise<{ readonly message: string }> {
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { email: input.email },
+      select: { id: true, username: true, email: true, emailVerifiedAt: true },
+    });
+
+    if (trainer && trainer.emailVerifiedAt === null) {
+      const { code: otpCode } = await this.otpService.issueOtp(
+        'verify',
+        trainer.email,
+      );
+      await this.prisma.$transaction(async (tx) => {
+        await this.enqueueEncryptedEmail(tx, {
+          aggregateId: trainer.id,
+          template: 'email_verification_otp',
+          toEmail: trainer.email,
+          username: trainer.username,
+          subject: 'PokéVerse OS — Novo código de verificação',
+          otpCode,
+          traceId,
+        });
+      });
+    }
+
+    return {
+      message:
+        'Se o e-mail existir e ainda não estiver verificado, enviaremos um código de 6 dígitos.',
+    };
+  }
+
+  async forgotPassword(
+    input: ForgotPasswordInput,
+    traceId: string | null,
+  ): Promise<{ readonly message: string }> {
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { email: input.email },
+      select: { id: true, username: true, email: true },
+    });
+
+    if (trainer) {
+      const { code: otpCode } = await this.otpService.issueOtp(
+        'reset',
+        trainer.email,
+      );
+      await this.prisma.$transaction(async (tx) => {
+        await this.enqueueEncryptedEmail(tx, {
+          aggregateId: trainer.id,
+          template: 'password_reset_otp',
+          toEmail: trainer.email,
+          username: trainer.username,
+          subject: 'PokéVerse OS — Código de recuperação de senha',
+          otpCode,
+          traceId,
+        });
+      });
+    }
+
+    return {
+      message:
+        'Se o e-mail estiver cadastrado, enviaremos um código de 6 dígitos válido por 10 minutos.',
+    };
+  }
+
+  async resetPasswordWithOtp(
+    input: ResetPasswordOtpInput,
+    traceId: string | null,
+  ): Promise<{ readonly message: string }> {
+    const valid = await this.otpService.verifyAndConsumeOtp(
+      'reset',
+      input.email,
+      input.code,
+    );
+    if (!valid) {
+      throw new BadRequestException(
+        'Código de recuperação inválido, expirado ou tentativas esgotadas.',
+      );
+    }
+
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { email: input.email },
+      select: { id: true, username: true, email: true },
+    });
+
+    if (!trainer) {
+      throw new BadRequestException('Solicitação de recuperação inválida.');
+    }
+
+    const newHash = await argon2.hash(input.newPassword, {
+      type: argon2.argon2id,
+    });
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.trainer.update({
+        where: { id: trainer.id },
+        data: { passwordHash: newHash },
+      });
+
+      await tx.refreshToken.updateMany({
+        where: { trainerId: trainer.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
+
+      await this.enqueueEncryptedEmail(tx, {
+        aggregateId: trainer.id,
+        template: 'security_alert',
+        toEmail: trainer.email,
+        username: trainer.username,
+        subject: 'PokéVerse OS — Senha alterada com sucesso',
+        detail:
+          'Sua senha foi redefinida com sucesso e todas as sessões ativas foram encerradas.',
+        traceId,
+      });
+    });
+
+    await this.sessionService.revokeAllForTrainer(trainer.id);
+
+    return {
+      message: 'Senha redefinida com sucesso. Faça login com a nova senha.',
+    };
+  }
+
   async getMe(trainerId: string): Promise<TrainerProfile> {
     const trainer = await this.prisma.trainer.findUnique({
       where: { id: trainerId },
-      select: TRAINER_PROFILE_SELECT,
+      select: { ...TRAINER_PROFILE_SELECT, passwordHash: true },
     });
 
     if (!trainer) {
       throw new UnauthorizedException('Treinador não encontrado.');
     }
 
+    return this.toTrainerProfile(trainer);
+  }
+
+  private toTrainerProfile(row: TrainerQueryRow): TrainerProfile {
     return TrainerProfileSchema.parse({
-      ...trainer,
-      createdAt: trainer.createdAt.toISOString(),
+      id: row.id,
+      username: row.username,
+      email: row.email,
+      emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
+      mfaEnabled: row.mfaEnabled,
+      hasPassword: row.passwordHash !== null,
+      badgesCount: row.badgesCount,
+      eloRating: row.eloRating,
+      lastMapId: row.lastMapId,
+      lastX: row.lastX,
+      lastY: row.lastY,
+      createdAt: row.createdAt.toISOString(),
     });
   }
 
-  private async buildSessionResponse(trainerRow: {
-    readonly id: string;
-    readonly username: string;
-    readonly email: string;
-    readonly badgesCount: number;
-    readonly eloRating: number;
-    readonly lastMapId: string;
-    readonly lastX: number;
-    readonly lastY: number;
-    readonly createdAt: Date;
-  }): Promise<AuthSessionResponse> {
-    const expiresInSec = this.config.get('JWT_ACCESS_TTL_SEC', { infer: true });
-    const accessToken = await this.jwtService.signAsync(
-      { sub: trainerRow.id, username: trainerRow.username },
-      {
-        secret: this.config.get('JWT_ACCESS_SECRET', { infer: true }),
-        expiresIn: expiresInSec,
-      },
-    );
-
+  private buildSessionResponse(
+    trainerRow: TrainerQueryRow,
+    session: ActiveRedisSession,
+  ): AuthSessionResponse {
     return AuthSessionResponseSchema.parse({
-      accessToken,
-      expiresInSec,
-      trainer: {
-        id: trainerRow.id,
-        username: trainerRow.username,
-        email: trainerRow.email,
-        badgesCount: trainerRow.badgesCount,
-        eloRating: trainerRow.eloRating,
-        lastMapId: trainerRow.lastMapId,
-        lastX: trainerRow.lastX,
-        lastY: trainerRow.lastY,
-        createdAt: trainerRow.createdAt.toISOString(),
+      authenticated: true,
+      sessionState: session.state,
+      mfaMethods: [...session.mfaMethods],
+      expiresInSec: this.sessionService.getSessionTtlSec(),
+      trainer: this.toTrainerProfile(trainerRow),
+    });
+  }
+
+  private async enqueueEncryptedEmail(
+    tx: Prisma.TransactionClient,
+    params: {
+      readonly aggregateId: string;
+      readonly template: EmailNotificationEvent['template'];
+      readonly toEmail: string;
+      readonly username: string;
+      readonly subject: string;
+      readonly otpCode?: string;
+      readonly detail?: string;
+      readonly traceId: string | null;
+    },
+  ): Promise<void> {
+    const eventId = randomUUID();
+    const emailEvent = EmailNotificationEventSchema.parse({
+      eventId,
+      template: params.template,
+      toEmail: params.toEmail,
+      username: params.username,
+      subject: params.subject,
+      ...(params.otpCode ? { otpCode: params.otpCode } : {}),
+      ...(params.detail ? { detail: params.detail } : {}),
+      requestedAt: new Date().toISOString(),
+      traceId: params.traceId,
+    });
+
+    const encryptedEnvelope = EncryptedOutboxPayloadSchema.parse({
+      version: 1,
+      ciphertext: this.crypto.encryptJson(emailEvent),
+    });
+
+    await tx.outboxEvent.create({
+      data: {
+        id: eventId,
+        aggregateType: 'EmailNotification',
+        aggregateId: params.aggregateId,
+        eventType: KAFKA_TOPICS.NOTIFICATIONS_EMAIL,
+        payload: encryptedEnvelope,
+        status: 'PENDING',
       },
     });
+  }
+
+  private async getDummyHash(): Promise<string> {
+    this.dummyPasswordHash ??= await argon2.hash(
+      'pokeverse-timing-shield-key',
+      {
+        type: argon2.argon2id,
+      },
+    );
+    return this.dummyPasswordHash;
+  }
+
+  private async recordFailedLogin(
+    attemptKey: string,
+    currentAttempts: number,
+  ): Promise<void> {
+    await this.redis.setStringEx(
+      attemptKey,
+      LOGIN_LOCK_WINDOW_SEC,
+      String(currentAttempts + 1),
+    );
+  }
+
+  private loginAttemptKey(clientIp: string, email: string): string {
+    return `login_fail:${this.crypto.sha256Hex(`${clientIp}:${email}`)}`;
   }
 
   private generateOpaqueToken(): string {
     return randomBytes(48).toString('hex');
   }
 
-  private hashToken(rawToken: string): string {
-    return createHash('sha256').update(rawToken).digest('hex');
-  }
-
   private computeRefreshExpiry(): Date {
-    const days = this.config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
+    const days = this.config.get('REFRESH_TTL_DAYS', { infer: true });
     return new Date(Date.now() + days * 86_400_000);
   }
 }

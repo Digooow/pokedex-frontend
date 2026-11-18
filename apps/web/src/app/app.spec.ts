@@ -9,7 +9,7 @@ import { QualityStore } from './core/stores/quality.store';
 function flushInitialRequests(httpMock: HttpTestingController): void {
   httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
   httpMock.match('/api/v1/system/bootstrap').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
-  httpMock.match('/api/v1/auth/refresh').forEach((req) => req.flush(null, { status: 401, statusText: 'No cookie' }));
+  httpMock.match('/api/v1/auth/session').forEach((req) => req.flush({ authenticated: false, canRefresh: false }));
 }
 
 describe('PokéVerse OS Shell', () => {
@@ -69,7 +69,7 @@ describe('PokéVerse OS Shell', () => {
     expect(quality.preference()).toBe('auto');
   });
 
-  it('authenticates trainer session into memory RAM and clears on logout', () => {
+  it('manages opaque BFF session state machine without JWT in JS and updates OTP verification', () => {
     const auth = TestBed.inject(AuthStore);
     const httpMock = TestBed.inject(HttpTestingController);
 
@@ -78,12 +78,42 @@ describe('PokéVerse OS Shell', () => {
 
     const loginReq = httpMock.expectOne('/api/v1/auth/login');
     loginReq.flush({
-      accessToken: 'jwt-in-memory-token',
+      authenticated: true,
+      sessionState: 'MFA_PENDING',
+      mfaMethods: ['totp'],
       expiresInSec: 900,
       trainer: {
         id: '550e8400-e29b-41d4-a716-446655440000',
         username: 'Red_Kanto',
         email: 'red@pokeverse.dev',
+        emailVerifiedAt: null,
+        mfaEnabled: true,
+        hasPassword: true,
+        badgesCount: 0,
+        eloRating: 1000,
+        lastMapId: 'pokeverse-town',
+        lastX: 400,
+        lastY: 320,
+        createdAt: new Date().toISOString(),
+      },
+    });
+
+    expect(auth.isMfaPending()).toBe(true);
+    expect(auth.isAuthenticated()).toBe(false);
+
+    auth.login({ email: 'red@pokeverse.dev', password: 'Password1234!' });
+    httpMock.expectOne('/api/v1/auth/login').flush({
+      authenticated: true,
+      sessionState: 'AUTHENTICATED',
+      mfaMethods: [],
+      expiresInSec: 900,
+      trainer: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        username: 'Red_Kanto',
+        email: 'red@pokeverse.dev',
+        emailVerifiedAt: null,
+        mfaEnabled: false,
+        hasPassword: true,
         badgesCount: 0,
         eloRating: 1000,
         lastMapId: 'pokeverse-town',
@@ -95,11 +125,15 @@ describe('PokéVerse OS Shell', () => {
 
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.trainer()?.username).toBe('Red_Kanto');
-    expect(auth.accessToken()).toBe('jwt-in-memory-token');
+    expect(auth.trainer()?.emailVerifiedAt).toBeNull();
+
+    auth.verifyEmailOtp({ email: 'red@pokeverse.dev', code: '123456' });
+    httpMock.expectOne('/api/v1/auth/verify-email').flush({ message: 'E-mail verificado com sucesso.' });
+    expect(auth.trainer()?.emailVerifiedAt).not.toBeNull();
 
     auth.logout();
     httpMock.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
     expect(auth.isAuthenticated()).toBe(false);
-    expect(auth.accessToken()).toBeNull();
+    expect(auth.trainer()).toBeNull();
   });
 });

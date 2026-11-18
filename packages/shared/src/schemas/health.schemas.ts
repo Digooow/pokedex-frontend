@@ -43,7 +43,7 @@ export const PlatformModuleSchema = z.object({
 
 export const SystemBootstrapSchema = z.object({
   service: z.string().min(1),
-  phase: z.literal('phase-1'),
+  phase: z.enum(['phase-1', 'phase-2', 'phase-2a', 'phase-2b', 'phase-3', 'phase-4', 'phase-5', 'phase-6']),
   timestamp: z.iso.datetime(),
   modules: z.array(PlatformModuleSchema),
 });

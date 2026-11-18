@@ -24,7 +24,7 @@ const POKEAPI_POKEMON_BASE = 'https://pokeapi.co/api/v2/pokemon/';
 const CACHE_TTL_24H_SEC = 86_400;
 const CB_FAILURE_THRESHOLD = 3;
 const CB_OPEN_COOLDOWN_MS = 30_000;
-const SAFE_POKEMON_PARAM = /^[a-z0-9-]+$/;
+const SAFE_POKEMON_PARAM = /^[a-z0-9-]{1,64}$/;
 
 @Injectable()
 export class PokeApiCacheService {
@@ -145,6 +145,7 @@ export class PokeApiCacheService {
     try {
       const response = await fetch(url, {
         signal: controller.signal,
+        redirect: 'error',
         headers: { accept: 'application/json' },
       });
 

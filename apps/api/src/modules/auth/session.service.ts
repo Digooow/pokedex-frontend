@@ -1,0 +1,139 @@
+import { randomBytes } from 'node:crypto';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { MfaMethod, SessionAuthState } from '@pokeverse/shared';
+import type { ApiEnvConfig } from '../../config/env.schema';
+import { CryptoService } from '../../common/security/crypto.service';
+import { RedisService } from '../../infra/redis.service';
+
+export interface ActiveRedisSession {
+  readonly sidHash: string;
+  readonly trainerId: string;
+  readonly username: string;
+  readonly familyId: string;
+  readonly state: SessionAuthState;
+  readonly mfaMethods: readonly MfaMethod[];
+  readonly createdAt: string;
+}
+
+@Injectable()
+export class SessionService {
+  constructor(
+    private readonly redis: RedisService,
+    private readonly crypto: CryptoService,
+    private readonly config: ConfigService<ApiEnvConfig, true>,
+  ) {}
+
+  getCookieNames(): {
+    readonly sessionCookieName: string;
+    readonly refreshCookieName: string;
+    readonly secure: boolean;
+  } {
+    const secure = this.config.get('COOKIE_SECURE', { infer: true });
+    return {
+      sessionCookieName: secure
+        ? '__Host-pokeverse_session'
+        : 'pokeverse_session',
+      refreshCookieName: 'pokeverse_refresh',
+      secure,
+    };
+  }
+
+  getSessionTtlSec(): number {
+    return this.config.get('SESSION_TTL_SEC', { infer: true });
+  }
+
+  getRefreshTtlDays(): number {
+    return this.config.get('REFRESH_TTL_DAYS', { infer: true });
+  }
+
+  async createSession(input: {
+    readonly trainerId: string;
+    readonly username: string;
+    readonly familyId: string;
+    readonly state: SessionAuthState;
+    readonly mfaMethods: readonly MfaMethod[];
+  }): Promise<{
+    readonly rawSid: string;
+    readonly session: ActiveRedisSession;
+  }> {
+    const rawSid = randomBytes(32).toString('base64url');
+    const sidHash = this.crypto.sha256Hex(rawSid);
+    const ttlSec = this.getSessionTtlSec();
+
+    const session: ActiveRedisSession = {
+      sidHash,
+      trainerId: input.trainerId,
+      username: input.username,
+      familyId: input.familyId,
+      state: input.state,
+      mfaMethods: input.mfaMethods,
+      createdAt: new Date().toISOString(),
+    };
+
+    await this.redis.setJsonEx(this.sessionKey(sidHash), ttlSec, session);
+    await this.redis.addToSetWithTtl(
+      this.trainerSessionsKey(input.trainerId),
+      sidHash,
+      ttlSec + 60,
+    );
+
+    return { rawSid, session };
+  }
+
+  async getSessionByRawSid(
+    rawSid: string | undefined,
+  ): Promise<ActiveRedisSession | null> {
+    if (!rawSid || rawSid.length < 20) {
+      return null;
+    }
+
+    const sidHash = this.crypto.sha256Hex(rawSid);
+    return this.redis.getJson<ActiveRedisSession>(this.sessionKey(sidHash));
+  }
+
+  async promoteToAuthenticated(
+    rawSid: string,
+  ): Promise<ActiveRedisSession | null> {
+    const current = await this.getSessionByRawSid(rawSid);
+    if (!current) {
+      return null;
+    }
+
+    const promoted: ActiveRedisSession = {
+      ...current,
+      state: 'AUTHENTICATED',
+    };
+    const ttlSec = this.getSessionTtlSec();
+    await this.redis.setJsonEx(
+      this.sessionKey(current.sidHash),
+      ttlSec,
+      promoted,
+    );
+    return promoted;
+  }
+
+  async revokeByRawSid(rawSid: string | undefined): Promise<void> {
+    if (!rawSid || rawSid.length < 20) {
+      return;
+    }
+    const sidHash = this.crypto.sha256Hex(rawSid);
+    await this.redis.delKeys(this.sessionKey(sidHash));
+  }
+
+  async revokeAllForTrainer(trainerId: string): Promise<void> {
+    const indexKey = this.trainerSessionsKey(trainerId);
+    const sidHashes = await this.redis.getSetMembers(indexKey);
+    const keysToDelete = sidHashes.map((sidHash) => this.sessionKey(sidHash));
+    keysToDelete.push(indexKey);
+    await this.redis.delKeys(...keysToDelete);
+  }
+
+  private sessionKey(sidHash: string): string {
+    return `sess:${sidHash}`;
+  }
+
+  private trainerSessionsKey(trainerId: string): string {
+    return `trainer_sessions:${trainerId}`;
+  }
+}

@@ -5,11 +5,17 @@ describe('validateApiEnv', () => {
     NODE_ENV: 'test',
     API_PORT: '3000',
     CORS_ORIGINS: 'http://localhost:4200',
-    JWT_ACCESS_SECRET: 'test-jwt-secret-with-more-than-32-characters',
-    JWT_ACCESS_TTL_SEC: '900',
-    JWT_REFRESH_TTL_DAYS: '7',
+    APP_ENCRYPTION_KEY:
+      '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+    SESSION_TTL_SEC: '900',
+    REFRESH_TTL_DAYS: '7',
+    OTP_TTL_SEC: '600',
+    OTP_MAX_ATTEMPTS: '3',
     COOKIE_SECURE: 'false',
     POKEAPI_TIMEOUT_MS: '8000',
+    MAIL_TRANSPORT: 'smtp',
+    SMTP_HOST: '127.0.0.1',
+    SMTP_PORT: '1025',
     DATABASE_URL: 'postgresql://user:pass@localhost:5433/db',
     REDIS_URL: 'redis://localhost:6379',
     KAFKA_BROKERS: 'localhost:19092',
@@ -24,19 +30,22 @@ describe('validateApiEnv', () => {
     const parsed = validateApiEnv(validEnv);
     expect(parsed.API_PORT).toBe(3000);
     expect(parsed.COOKIE_SECURE).toBe(false);
-    expect(parsed.S3_BUCKET_ROMS).toBe('pokeverse-roms');
+    expect(parsed.MAIL_TRANSPORT).toBe('smtp');
+    expect(parsed.OTP_MAX_ATTEMPTS).toBe(3);
   });
 
   it('rejects missing or short secrets without leaking secret values', () => {
     const broken = {
       ...validEnv,
-      JWT_ACCESS_SECRET: 'too-short',
+      APP_ENCRYPTION_KEY: 'too-short',
       MINIO_ROOT_PASSWORD: 'short',
       DATABASE_URL: 'not-a-postgres-url',
+      MAIL_TRANSPORT: 'resend',
+      RESEND_API_KEY: '',
     };
 
     expect(() => validateApiEnv(broken)).toThrow(
-      /JWT_ACCESS_SECRET|DATABASE_URL|MINIO_ROOT_PASSWORD/,
+      /APP_ENCRYPTION_KEY|DATABASE_URL|MINIO_ROOT_PASSWORD|RESEND_API_KEY/,
     );
   });
 });

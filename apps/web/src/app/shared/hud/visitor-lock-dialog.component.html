@@ -54,7 +54,7 @@
               placeholder="Ex.: Red_Kanto"
               required
               [attr.aria-invalid]="activeErrorMessage() !== null"
-              (input)="onUsernameInput($event)"
+              (input)="onInputChange('username', $event)"
             />
           </div>
         }
@@ -72,30 +72,79 @@
             required
             [attr.aria-invalid]="activeErrorMessage() !== null"
             aria-describedby="pv-auth-error"
-            (input)="onEmailInput($event)"
+            (input)="onInputChange('email', $event)"
           />
         </div>
 
-        <div class="auth-field">
-          <label for="pv-auth-password" class="auth-field__label">Senha</label>
-          @if (mode() === 'register') {
-            <span id="pv-auth-pwd-hint" class="auth-field__hint">Mínimo de 8 caracteres.</span>
+        @if (mode() === 'verify-email' || (mode() === 'forgot' && resetCodeRequested())) {
+          <div class="auth-field">
+            <label for="pv-auth-otp" class="auth-field__label">Código OTP (6 dígitos)</label>
+            <span class="auth-field__hint">Válido por 10 minutos • máximo de 3 tentativas.</span>
+            <input
+              id="pv-auth-otp"
+              type="text"
+              inputmode="numeric"
+              maxlength="6"
+              class="auth-field__input tabular-nums"
+              [value]="otpCode()"
+              autocomplete="one-time-code"
+              placeholder="000000"
+              required
+              [attr.aria-invalid]="activeErrorMessage() !== null"
+              (input)="onInputChange('otpCode', $event)"
+            />
+          </div>
+        }
+
+        @if (mode() === 'login' || mode() === 'register' || (mode() === 'forgot' && resetCodeRequested())) {
+          <div class="auth-field">
+            <label for="pv-auth-password" class="auth-field__label">
+              {{ mode() === 'forgot' ? 'Nova Senha' : 'Senha' }}
+            </label>
+            @if (mode() === 'register' || mode() === 'forgot') {
+              <span id="pv-auth-pwd-hint" class="auth-field__hint">Mínimo de 8 caracteres.</span>
+            }
+            <input
+              id="pv-auth-password"
+              type="password"
+              class="auth-field__input"
+              [value]="password()"
+              [autocomplete]="mode() === 'login' ? 'current-password' : 'new-password'"
+              required
+              [attr.aria-invalid]="activeErrorMessage() !== null"
+              [attr.aria-describedby]="mode() === 'register' || mode() === 'forgot' ? 'pv-auth-pwd-hint pv-auth-error' : 'pv-auth-error'"
+              (input)="onInputChange('password', $event)"
+            />
+          </div>
+        }
+
+        <div class="auth-links">
+          @if (mode() === 'login') {
+            <button type="button" class="auth-links__btn" (click)="switchMode('forgot')">
+              Esqueci minha senha (OTP)
+            </button>
+            <button type="button" class="auth-links__btn" (click)="switchMode('verify-email')">
+              Verificar e-mail com código
+            </button>
+          } @else if (mode() === 'forgot') {
+            <button type="button" class="auth-links__btn" (click)="resetCodeRequested.set(true)">
+              Já tenho o código OTP
+            </button>
+            <button type="button" class="auth-links__btn" (click)="onRequestForgotOtp()" [disabled]="isSubmitting()">
+              Enviar / reenviar código OTP
+            </button>
+          } @else if (mode() === 'verify-email') {
+            <button type="button" class="auth-links__btn" (click)="onResendVerificationOtp()" [disabled]="isSubmitting()">
+              Reenviar código de verificação
+            </button>
           }
-          <input
-            id="pv-auth-password"
-            type="password"
-            class="auth-field__input"
-            [value]="password()"
-            [autocomplete]="mode() === 'register' ? 'new-password' : 'current-password'"
-            required
-            [attr.aria-invalid]="activeErrorMessage() !== null"
-            [attr.aria-describedby]="mode() === 'register' ? 'pv-auth-pwd-hint pv-auth-error' : 'pv-auth-error'"
-            (input)="onPasswordInput($event)"
-          />
         </div>
 
         @if (activeErrorMessage(); as errorMsg) {
           <p id="pv-auth-error" class="auth-form__error" role="alert">{{ errorMsg }}</p>
+        }
+        @if (activeSuccessMessage(); as okMsg) {
+          <p class="auth-form__success" role="status" aria-live="polite">{{ okMsg }}</p>
         }
 
         <div class="visitor-dialog__actions">
@@ -106,9 +155,15 @@
             [attr.aria-busy]="isSubmitting()"
           >
             @if (isSubmitting()) {
-              {{ mode() === 'register' ? 'Cadastrando...' : 'Entrando...' }}
+              Processando...
+            } @else if (mode() === 'register') {
+              Criar Conta e Entrar
+            } @else if (mode() === 'verify-email') {
+              Confirmar Código
+            } @else if (mode() === 'forgot') {
+              {{ resetCodeRequested() ? 'Redefinir Senha' : 'Solicitar Código OTP' }}
             } @else {
-              {{ mode() === 'register' ? 'Criar Conta e Entrar' : 'Entrar como Treinador' }}
+              Entrar como Treinador
             }
           </button>
 
@@ -118,7 +173,7 @@
             autofocus
             (click)="auth.dismissVisitorPrompt()"
           >
-            Continuar como Visitante
+            {{ auth.isAuthenticated() ? 'Fechar' : 'Continuar como Visitante' }}
           </button>
         </div>
       </form>

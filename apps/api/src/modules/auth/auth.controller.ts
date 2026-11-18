@@ -8,35 +8,46 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import {
   type AuthSessionResponse,
+  type ForgotPasswordInput,
+  ForgotPasswordSchema,
+  type GenericMessageResponse,
+  GenericMessageResponseSchema,
   type LoginTrainerInput,
   LoginTrainerSchema,
   type RegisterTrainerInput,
   RegisterTrainerSchema,
+  type ResendEmailOtpInput,
+  ResendEmailOtpSchema,
+  type ResetPasswordOtpInput,
+  ResetPasswordOtpSchema,
+  type SessionBootstrapResponse,
   type TrainerProfile,
+  type VerifyEmailOtpInput,
+  VerifyEmailOtpSchema,
 } from '@pokeverse/shared';
 import type { Request, Response } from 'express';
+import { AllowMfaPending } from '../../common/decorators/allow-mfa-pending.decorator';
 import {
   type AuthenticatedTrainer,
   CurrentTrainer,
 } from '../../common/decorators/current-trainer.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
-import type { ApiEnvConfig } from '../../config/env.schema';
 import { AuthService } from './auth.service';
+import { SessionService } from './session.service';
 
-const REFRESH_COOKIE_NAME = 'pokeverse_refresh';
 const REFRESH_COOKIE_PATH = '/api/v1/auth';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-    private readonly config: ConfigService<ApiEnvConfig, true>,
+    private readonly sessionService: SessionService,
   ) {}
 
   @Public()
@@ -49,7 +60,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSessionResponse> {
     const result = await this.authService.register(body, req.traceId ?? null);
-    this.setRefreshCookie(res, result.refreshToken);
+    this.setSessionCookies(res, result.sessionSid, result.refreshToken);
     return result.session;
   }
 
@@ -59,11 +70,24 @@ export class AuthController {
   @Post('login')
   async login(
     @Body(new ZodValidationPipe(LoginTrainerSchema)) body: LoginTrainerInput,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSessionResponse> {
-    const result = await this.authService.login(body);
-    this.setRefreshCookie(res, result.refreshToken);
+    const clientIp = req.ip ?? 'unknown';
+    const result = await this.authService.login(body, clientIp);
+    this.setSessionCookies(res, result.sessionSid, result.refreshToken);
     return result.session;
+  }
+
+  @Public()
+  @AllowMfaPending()
+  @Get('session')
+  async getSession(@Req() req: Request): Promise<SessionBootstrapResponse> {
+    const { sessionCookieName, refreshCookieName } =
+      this.sessionService.getCookieNames();
+    const rawSid = readSessionCookie(req, sessionCookieName);
+    const rawRefresh = readSessionCookie(req, refreshCookieName);
+    return this.authService.getSessionBootstrap(rawSid, rawRefresh);
   }
 
   @Public()
@@ -74,27 +98,98 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<AuthSessionResponse> {
-    const rawCookie = this.extractRefreshCookie(req);
-    const result = await this.authService.refresh(rawCookie);
-    this.setRefreshCookie(res, result.refreshToken);
+    const { sessionCookieName, refreshCookieName } =
+      this.sessionService.getCookieNames();
+    const rawSid = readSessionCookie(req, sessionCookieName);
+    const rawRefresh = readSessionCookie(req, refreshCookieName);
+    const result = await this.authService.refresh(rawRefresh, rawSid);
+    this.setSessionCookies(res, result.sessionSid, result.refreshToken);
     return result.session;
   }
 
   @Public()
+  @AllowMfaPending()
   @HttpCode(HttpStatus.NO_CONTENT)
   @Post('logout')
   async logout(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    const rawCookie = this.extractRefreshCookie(req);
-    await this.authService.logout(rawCookie);
-    res.clearCookie(REFRESH_COOKIE_NAME, {
-      httpOnly: true,
-      sameSite: 'lax',
-      secure: this.config.get('COOKIE_SECURE', { infer: true }),
-      path: REFRESH_COOKIE_PATH,
-    });
+    const { sessionCookieName, refreshCookieName } =
+      this.sessionService.getCookieNames();
+    const rawSid = readSessionCookie(req, sessionCookieName);
+    const rawRefresh = readSessionCookie(req, refreshCookieName);
+
+    await this.authService.logout(rawSid, rawRefresh);
+    this.clearSessionCookies(res);
+  }
+
+  @Public()
+  @AllowMfaPending()
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('verify-email')
+  async verifyEmail(
+    @Body(new ZodValidationPipe(VerifyEmailOtpSchema))
+    body: VerifyEmailOtpInput,
+    @Req() req: RequestWithTrace,
+  ): Promise<GenericMessageResponse> {
+    const result = await this.authService.verifyEmailOtp(
+      body,
+      req.traceId ?? null,
+    );
+    return GenericMessageResponseSchema.parse(result);
+  }
+
+  @Public()
+  @AllowMfaPending()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('resend-verification')
+  async resendVerification(
+    @Body(new ZodValidationPipe(ResendEmailOtpSchema))
+    body: ResendEmailOtpInput,
+    @Req() req: RequestWithTrace,
+  ): Promise<GenericMessageResponse> {
+    const result = await this.authService.resendVerificationOtp(
+      body,
+      req.traceId ?? null,
+    );
+    return GenericMessageResponseSchema.parse(result);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('forgot-password')
+  async forgotPassword(
+    @Body(new ZodValidationPipe(ForgotPasswordSchema))
+    body: ForgotPasswordInput,
+    @Req() req: RequestWithTrace,
+  ): Promise<GenericMessageResponse> {
+    const result = await this.authService.forgotPassword(
+      body,
+      req.traceId ?? null,
+    );
+    return GenericMessageResponseSchema.parse(result);
+  }
+
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password')
+  async resetPassword(
+    @Body(new ZodValidationPipe(ResetPasswordOtpSchema))
+    body: ResetPasswordOtpInput,
+    @Req() req: RequestWithTrace,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<GenericMessageResponse> {
+    const result = await this.authService.resetPasswordWithOtp(
+      body,
+      req.traceId ?? null,
+    );
+    this.clearSessionCookies(res);
+    return GenericMessageResponseSchema.parse(result);
   }
 
   @Get('me')
@@ -104,20 +199,51 @@ export class AuthController {
     return this.authService.getMe(trainer.trainerId);
   }
 
-  private setRefreshCookie(res: Response, token: string): void {
-    const days = this.config.get('JWT_REFRESH_TTL_DAYS', { infer: true });
-    res.cookie(REFRESH_COOKIE_NAME, token, {
+  private setSessionCookies(
+    res: Response,
+    sessionSid: string,
+    refreshToken: string | null,
+  ): void {
+    const { sessionCookieName, refreshCookieName, secure } =
+      this.sessionService.getCookieNames();
+    const sessionMaxAgeMs = this.sessionService.getSessionTtlSec() * 1000;
+    const refreshMaxAgeMs =
+      this.sessionService.getRefreshTtlDays() * 86_400_000;
+
+    res.cookie(sessionCookieName, sessionSid, {
       httpOnly: true,
       sameSite: 'lax',
-      secure: this.config.get('COOKIE_SECURE', { infer: true }),
-      path: REFRESH_COOKIE_PATH,
-      maxAge: days * 86_400_000,
+      secure,
+      path: '/',
+      maxAge: sessionMaxAgeMs,
     });
+
+    if (refreshToken) {
+      res.cookie(refreshCookieName, refreshToken, {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure,
+        path: REFRESH_COOKIE_PATH,
+        maxAge: refreshMaxAgeMs,
+      });
+    }
   }
 
-  private extractRefreshCookie(req: Request): string | undefined {
-    const cookies = req.cookies as Record<string, unknown> | undefined;
-    const raw = cookies?.[REFRESH_COOKIE_NAME];
-    return typeof raw === 'string' && raw.length > 0 ? raw : undefined;
+  private clearSessionCookies(res: Response): void {
+    const { sessionCookieName, refreshCookieName, secure } =
+      this.sessionService.getCookieNames();
+
+    res.clearCookie(sessionCookieName, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      path: '/',
+    });
+    res.clearCookie(refreshCookieName, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure,
+      path: REFRESH_COOKIE_PATH,
+    });
   }
 }

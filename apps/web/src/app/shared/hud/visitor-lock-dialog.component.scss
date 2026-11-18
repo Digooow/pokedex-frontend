@@ -103,6 +103,41 @@
   color: var(--pv-amber);
 }
 
+.auth-form__success {
+  margin: 0;
+  padding: var(--pv-space-2) var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-emerald);
+  background: oklch(24% 0.05 155 / 0.45);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--pv-emerald);
+}
+
+.auth-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--pv-space-2);
+}
+
+.auth-links__btn {
+  min-block-size: 2.75rem;
+  padding: 0.25rem;
+  border: 0;
+  background: transparent;
+  color: var(--pv-border-gold);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-links__btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
 .visitor-dialog__actions {
   display: flex;
   flex-wrap: wrap;

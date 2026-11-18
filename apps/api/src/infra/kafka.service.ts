@@ -35,7 +35,11 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit(): Promise<void> {
-    await this.ensureTopics([KAFKA_TOPICS.WORLD_EVENTS, KAFKA_TOPICS.DLQ]);
+    await this.ensureTopics([
+      KAFKA_TOPICS.WORLD_EVENTS,
+      KAFKA_TOPICS.NOTIFICATIONS_EMAIL,
+      KAFKA_TOPICS.DLQ,
+    ]);
     await this.producer.connect();
     this.producerConnected = true;
   }

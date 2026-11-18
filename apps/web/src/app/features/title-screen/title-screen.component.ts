@@ -31,7 +31,7 @@ interface InfraDependencyCard {
       />
 
       <div class="title-hero">
-        <span class="title-hero__badge">FASE 2 • AUTH JWT + POSTGRESQL + REDIS + KAFKA</span>
+        <span class="title-hero__badge">FASE 2A • BFF SESSÃO REDIS + OTP + REDPANDA + MAILPIT</span>
         <h1 id="main-heading" tabindex="-1" class="title-hero__title">PokéVerse OS</h1>
         <p class="title-hero__subtitle">
           Sistema operacional tático integrando a Pokédex 3D skeuomórfica, detecção automática de

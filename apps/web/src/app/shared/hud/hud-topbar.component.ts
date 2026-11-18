@@ -30,6 +30,15 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
           <span class="hud-trainer-badge tabular-nums">
             {{ trainer.username }} • ELO {{ trainer.eloRating }}
           </span>
+          @if (!trainer.emailVerifiedAt) {
+            <button
+              type="button"
+              class="hud-pill hud-pill--status is-error"
+              (click)="openVerifyEmail(trainer.email)"
+            >
+              Verificar E-mail (OTP)
+            </button>
+          }
           <button type="button" class="hud-pill" (click)="auth.logout()">Sair</button>
         } @else {
           <button type="button" class="hud-pill hud-pill--visitor" (click)="openVisitorInfo()">
@@ -226,7 +235,16 @@ export class HudTopbarComponent {
   openVisitorInfo(): void {
     this.auth.requestTrainerAccess(
       'Entrar ou Criar Conta de Treinador',
-      'Autentique-se para sincronizar seus 10 slots na nuvem (PostgreSQL + Outbox Kafka) e desbloquear recursos exclusivos.',
+      'Autentique-se via sessão segura (HttpOnly Redis BFF) para sincronizar seus 10 slots na nuvem e desbloquear recursos exclusivos.',
+    );
+  }
+
+  openVerifyEmail(email: string): void {
+    this.auth.requestTrainerAccess(
+      'Verificar E-mail com Código OTP',
+      `Confirme o código numérico de 6 dígitos enviado para ${email} (inspecione no Mailpit :8025 em desenvolvimento).`,
+      undefined,
+      'verify-email',
     );
   }
 }

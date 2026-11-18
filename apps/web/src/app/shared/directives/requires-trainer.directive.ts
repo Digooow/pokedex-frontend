@@ -10,7 +10,7 @@ export class RequiresTrainerDirective {
 
   readonly pvRequiresTrainer = input.required<string>();
   readonly lockedDescription = input<string>(
-    'Recurso exclusivo para treinadores autenticados. A sincronização com PostgreSQL e Redis será ativada na Fase 2.',
+    'Recurso exclusivo para treinadores autenticados no servidor.',
   );
 
   @HostBinding('attr.aria-disabled')

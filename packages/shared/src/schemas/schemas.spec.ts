@@ -1,7 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { PLATFORM_MODULES } from '../constants/platform.constants';
-import { LoginTrainerSchema, RegisterTrainerSchema } from './auth.schemas';
-import { KAFKA_TOPICS, WorldTickerEventSchema } from './events.schemas';
+import {
+  AuthSessionResponseSchema,
+  LoginTrainerSchema,
+  RegisterTrainerSchema,
+  ResetPasswordOtpSchema,
+  SessionBootstrapResponseSchema,
+  VerifyEmailOtpSchema,
+} from './auth.schemas';
+import {
+  EmailNotificationEventSchema,
+  KAFKA_TOPICS,
+  WorldTickerEventSchema,
+} from './events.schemas';
 import { ReadinessResponseSchema, SystemBootstrapSchema } from './health.schemas';
 import { PokedexSlotRecordSchema, PokemonDetailSchema, SavePokedexSlotSchema } from './pokedex.schemas';
 
@@ -77,6 +88,61 @@ describe('shared schemas boundary validation', () => {
       }).success,
     ).toBe(true);
     expect(KAFKA_TOPICS.WORLD_EVENTS).toBe('pokeverse.world.events.v1');
+    expect(KAFKA_TOPICS.NOTIFICATIONS_EMAIL).toBe('pokeverse.notifications.email.v1');
+
+    expect(
+      VerifyEmailOtpSchema.safeParse({ email: 'RED@EXAMPLE.COM ', code: '123456' }).success,
+    ).toBe(true);
+    expect(
+      VerifyEmailOtpSchema.safeParse({ email: 'red@example.com', code: '12ab56' }).success,
+    ).toBe(false);
+    expect(
+      ResetPasswordOtpSchema.safeParse({
+        email: 'red@example.com',
+        code: '654321',
+        newPassword: 'new-strong-password',
+      }).success,
+    ).toBe(true);
+
+    const sessionRes = AuthSessionResponseSchema.safeParse({
+      authenticated: true,
+      sessionState: 'MFA_PENDING',
+      mfaMethods: ['totp', 'backup_code'],
+      expiresInSec: 900,
+      trainer: {
+        id: '550e8400-e29b-41d4-a716-446655440001',
+        username: 'Red_Kanto',
+        email: 'red@example.com',
+        emailVerifiedAt: null,
+        mfaEnabled: true,
+        hasPassword: true,
+        badgesCount: 0,
+        eloRating: 1000,
+        lastMapId: 'pokeverse-town',
+        lastX: 400,
+        lastY: 320,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    expect(sessionRes.success).toBe(true);
+
+    expect(
+      SessionBootstrapResponseSchema.safeParse({ authenticated: false, canRefresh: false })
+        .success,
+    ).toBe(true);
+
+    expect(
+      EmailNotificationEventSchema.safeParse({
+        eventId: '550e8400-e29b-41d4-a716-446655440002',
+        template: 'email_verification_otp',
+        toEmail: 'red@example.com',
+        username: 'Red_Kanto',
+        subject: 'Seu código de verificação PokéVerse',
+        otpCode: '123456',
+        requestedAt: new Date().toISOString(),
+        traceId: null,
+      }).success,
+    ).toBe(true);
   });
 
   it('validates readiness and bootstrap contracts', () => {

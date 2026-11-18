@@ -8,10 +8,15 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { LoginTrainerSchema, RegisterTrainerSchema } from '@pokeverse/shared';
-import { AuthStore } from '../../core/stores/auth.store';
-
-type AuthFormMode = 'login' | 'register';
+import {
+  ForgotPasswordSchema,
+  LoginTrainerSchema,
+  RegisterTrainerSchema,
+  ResendEmailOtpSchema,
+  ResetPasswordOtpSchema,
+  VerifyEmailOtpSchema,
+} from '@pokeverse/shared';
+import { type AuthDialogMode, AuthStore } from '../../core/stores/auth.store';
 
 @Component({
   selector: 'pv-visitor-lock-dialog',
@@ -24,10 +29,12 @@ export class VisitorLockDialogComponent {
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialogEl');
   private pressedOutside = false;
 
-  readonly mode = signal<AuthFormMode>('login');
+  readonly mode = signal<AuthDialogMode>('login');
   readonly username = signal('');
   readonly email = signal('');
   readonly password = signal('');
+  readonly otpCode = signal('');
+  readonly resetCodeRequested = signal(false);
   readonly localValidationError = signal<string | null>(null);
 
   readonly isSubmitting = computed(() => this.auth.mutationState().status === 'submitting');
@@ -39,6 +46,10 @@ export class VisitorLockDialogComponent {
     const serverState = this.auth.mutationState();
     return serverState.status === 'error' ? serverState.message : null;
   });
+  readonly activeSuccessMessage = computed(() => {
+    const serverState = this.auth.mutationState();
+    return serverState.status === 'success' ? serverState.message : null;
+  });
 
   constructor() {
     effect(() => {
@@ -49,6 +60,11 @@ export class VisitorLockDialogComponent {
       }
       if (prompt && !dialog.open) {
         this.localValidationError.set(null);
+        this.mode.set(prompt.initialMode ?? 'login');
+        const loggedTrainer = this.auth.trainer();
+        if (loggedTrainer && !this.email()) {
+          this.email.set(loggedTrainer.email);
+        }
         if (typeof dialog.showModal === 'function') {
           dialog.showModal();
         }
@@ -58,25 +74,56 @@ export class VisitorLockDialogComponent {
     });
   }
 
-  switchMode(nextMode: AuthFormMode): void {
+  switchMode(nextMode: AuthDialogMode): void {
     this.mode.set(nextMode);
     this.localValidationError.set(null);
-    this.auth.clearMutationError();
+    this.auth.clearMutationFeedback();
   }
 
-  onUsernameInput(event: Event): void {
-    this.username.set((event.target as HTMLInputElement).value);
+  onInputChange(field: 'username' | 'email' | 'password' | 'otpCode', event: Event): void {
+    const value = (event.target as HTMLInputElement).value;
     this.localValidationError.set(null);
+    this.auth.clearMutationFeedback();
+
+    switch (field) {
+      case 'username':
+        this.username.set(value);
+        break;
+      case 'email':
+        this.email.set(value);
+        break;
+      case 'password':
+        this.password.set(value);
+        break;
+      case 'otpCode':
+        this.otpCode.set(value);
+        break;
+    }
   }
 
-  onEmailInput(event: Event): void {
-    this.email.set((event.target as HTMLInputElement).value);
-    this.localValidationError.set(null);
+  onResendVerificationOtp(): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+    const parsed = ResendEmailOtpSchema.safeParse({ email: this.email() });
+    if (!parsed.success) {
+      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'E-mail inválido.');
+      return;
+    }
+    this.auth.resendVerificationOtp(parsed.data);
   }
 
-  onPasswordInput(event: Event): void {
-    this.password.set((event.target as HTMLInputElement).value);
-    this.localValidationError.set(null);
+  onRequestForgotOtp(): void {
+    if (this.isSubmitting()) {
+      return;
+    }
+    const parsed = ForgotPasswordSchema.safeParse({ email: this.email() });
+    if (!parsed.success) {
+      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'E-mail inválido.');
+      return;
+    }
+    this.resetCodeRequested.set(true);
+    this.auth.requestPasswordReset(parsed.data);
   }
 
   onSubmit(event: Event): void {
@@ -85,18 +132,21 @@ export class VisitorLockDialogComponent {
       return;
     }
 
-    if (this.mode() === 'register') {
-      const parsed = RegisterTrainerSchema.safeParse({
-        username: this.username(),
-        email: this.email(),
-        password: this.password(),
-      });
-      if (!parsed.success) {
-        this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
+    const activeMode = this.mode();
+    if (activeMode === 'register') {
+      this.submitRegister();
+      return;
+    }
+    if (activeMode === 'verify-email') {
+      this.submitVerifyEmail();
+      return;
+    }
+    if (activeMode === 'forgot') {
+      if (!this.resetCodeRequested()) {
+        this.onRequestForgotOtp();
         return;
       }
-      this.localValidationError.set(null);
-      this.auth.register(parsed.data);
+      this.submitResetPassword();
       return;
     }
 
@@ -108,8 +158,45 @@ export class VisitorLockDialogComponent {
       this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Credenciais inválidas.');
       return;
     }
-    this.localValidationError.set(null);
     this.auth.login(parsed.data);
+  }
+
+  private submitRegister(): void {
+    const parsed = RegisterTrainerSchema.safeParse({
+      username: this.username(),
+      email: this.email(),
+      password: this.password(),
+    });
+    if (!parsed.success) {
+      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
+      return;
+    }
+    this.auth.register(parsed.data);
+  }
+
+  private submitVerifyEmail(): void {
+    const parsed = VerifyEmailOtpSchema.safeParse({
+      email: this.email(),
+      code: this.otpCode(),
+    });
+    if (!parsed.success) {
+      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Código OTP inválido.');
+      return;
+    }
+    this.auth.verifyEmailOtp(parsed.data);
+  }
+
+  private submitResetPassword(): void {
+    const parsed = ResetPasswordOtpSchema.safeParse({
+      email: this.email(),
+      code: this.otpCode(),
+      newPassword: this.password(),
+    });
+    if (!parsed.success) {
+      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
+      return;
+    }
+    this.auth.resetPasswordWithOtp(parsed.data);
   }
 
   onNativeClose(): void {
@@ -119,6 +206,7 @@ export class VisitorLockDialogComponent {
     }
     this.localValidationError.set(null);
     this.password.set('');
+    this.otpCode.set('');
     this.auth.dismissVisitorPrompt();
   }
 

@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 export const KAFKA_TOPICS = {
   WORLD_EVENTS: 'pokeverse.world.events.v1',
+  NOTIFICATIONS_EMAIL: 'pokeverse.notifications.email.v1',
   ARCADE_SAVESTATE: 'pokeverse.arcade.savestate.v1',
   BATTLE_MATCHMAKING: 'pokeverse.battle.matchmaking.v1',
   BATTLE_RESULTS: 'pokeverse.battle.results.v1',
@@ -27,3 +28,36 @@ export const WorldTickerEventSchema = z.object({
 });
 
 export type WorldTickerEvent = z.infer<typeof WorldTickerEventSchema>;
+
+export const EmailNotificationTemplateSchema = z.enum([
+  'welcome',
+  'email_verification_otp',
+  'password_reset_otp',
+  'security_alert',
+]);
+
+export type EmailNotificationTemplate = z.infer<typeof EmailNotificationTemplateSchema>;
+
+export const EmailNotificationEventSchema = z.object({
+  eventId: z.uuid(),
+  template: EmailNotificationTemplateSchema,
+  toEmail: z.email(),
+  username: z.string().min(1).max(32),
+  subject: z.string().min(1).max(160),
+  otpCode: z
+    .string()
+    .regex(/^\d{6}$/)
+    .optional(),
+  detail: z.string().max(400).optional(),
+  requestedAt: z.iso.datetime(),
+  traceId: z.string().nullable(),
+});
+
+export type EmailNotificationEvent = z.infer<typeof EmailNotificationEventSchema>;
+
+export const EncryptedOutboxPayloadSchema = z.object({
+  version: z.literal(1),
+  ciphertext: z.string().min(1),
+});
+
+export type EncryptedOutboxPayload = z.infer<typeof EncryptedOutboxPayloadSchema>;

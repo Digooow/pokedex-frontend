@@ -33,26 +33,32 @@ enum BattleStatus {
 }
 
 model Trainer {
-  id           String   @id @default(uuid()) @db.Uuid
-  username     String   @unique @db.VarChar(32)
-  email        String   @unique @db.VarChar(255)
-  passwordHash String   @db.Text
-  avatarConfig Json     @default("{}")
-  lastMapId    String   @default("pokeverse-town") @db.VarChar(64)
-  lastX        Int      @default(400)
-  lastY        Int      @default(320)
-  badgesCount  Int      @default(0)
-  eloRating    Int      @default(1000)
-  createdAt    DateTime @default(now()) @db.Timestamptz(6)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(6)
+  id                  String    @id @default(uuid()) @db.Uuid
+  username            String    @unique @db.VarChar(32)
+  email               String    @unique @db.VarChar(255)
+  passwordHash        String?   @db.Text
+  emailVerifiedAt     DateTime? @db.Timestamptz(6)
+  mfaEnabled          Boolean   @default(false)
+  totpSecretEncrypted String?   @db.Text
+  avatarConfig        Json      @default("{}")
+  lastMapId           String    @default("pokeverse-town") @db.VarChar(64)
+  lastX               Int       @default(400)
+  lastY               Int       @default(320)
+  badgesCount         Int       @default(0)
+  eloRating           Int       @default(1000)
+  createdAt           DateTime  @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @db.Timestamptz(6)
 
-  refreshTokens RefreshToken[]
-  pokedexSlots  PokedexSlot[]
-  teams         PokemonTeam[]
-  saveStates    ArcadeSaveState[]
-  scores        MinigameScore[]
-  matchesAsP1   BattleMatch[]     @relation("MatchPlayerOne")
-  matchesAsP2   BattleMatch[]     @relation("MatchPlayerTwo")
+  refreshTokens  RefreshToken[]
+  mfaBackupCodes MfaBackupCode[]
+  oauthAccounts  TrainerOAuthAccount[]
+  passkeys       TrainerPasskey[]
+  pokedexSlots   PokedexSlot[]
+  teams          PokemonTeam[]
+  saveStates     ArcadeSaveState[]
+  scores         MinigameScore[]
+  matchesAsP1    BattleMatch[]         @relation("MatchPlayerOne")
+  matchesAsP2    BattleMatch[]         @relation("MatchPlayerTwo")
 
   @@index([eloRating(sort: Desc), id])
 }
@@ -69,6 +75,50 @@ model RefreshToken {
   trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
 
   @@index([trainerId, revokedAt, expiresAt])
+}
+
+model MfaBackupCode {
+  id        String    @id @default(uuid()) @db.Uuid
+  trainerId String    @db.Uuid
+  codeHash  String    @db.VarChar(64)
+  usedAt    DateTime? @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId, usedAt])
+}
+
+model TrainerOAuthAccount {
+  id                String   @id @default(uuid()) @db.Uuid
+  trainerId         String   @db.Uuid
+  provider          String   @db.VarChar(32)
+  providerAccountId String   @db.VarChar(191)
+  email             String   @db.VarChar(255)
+  createdAt         DateTime @default(now()) @db.Timestamptz(6)
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([trainerId])
+}
+
+model TrainerPasskey {
+  id           String    @id @default(uuid()) @db.Uuid
+  trainerId    String    @db.Uuid
+  credentialId String    @unique @db.VarChar(255)
+  publicKey    String    @db.Text
+  counter      Int       @default(0)
+  deviceType   String    @db.VarChar(32)
+  backedUp     Boolean   @default(false)
+  transports   String[]  @db.VarChar(32)
+  label        String    @default("Dispositivo") @db.VarChar(80)
+  createdAt    DateTime  @default(now()) @db.Timestamptz(6)
+  lastUsedAt   DateTime? @db.Timestamptz(6)
+
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId])
 }
 
 model PokedexSlot {

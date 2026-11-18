@@ -116,6 +116,24 @@ services:
         mc anonymous set none "local/$${S3_BUCKET_SAVES}"
         mc ls local
 
+  mailpit:
+    image: axllent/mailpit:v1.22
+    container_name: pokeverse-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
 volumes:
   pg_data:
   redis_data:
