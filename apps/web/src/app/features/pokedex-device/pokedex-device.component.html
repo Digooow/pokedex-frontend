@@ -1,164 +1,105 @@
-<div class="dex-stage">
-  <img
-    class="dex-stage__backdrop"
-    [src]="activeBackdrop().desktop"
-    [attr.srcset]="activeBackdrop().mobile + ' 820w, ' + activeBackdrop().desktop + ' 1920w'"
-    sizes="100vw"
-    alt=""
-    aria-hidden="true"
-    decoding="async"
-    fetchpriority="high"
-  />
+<main id="conteudo-principal" class="pokedex-palco" tabindex="-1">
+  <h1 id="main-heading" tabindex="-1" class="visually-hidden">
+    Pokédex Interativa 3D — PokéVerse OS
+  </h1>
 
-  <div class="dex-stage__toolbar" role="toolbar" aria-label="Ambiente da Pokédex">
-    @for (item of scenarios; track item.id) {
-      <button
-        type="button"
-        class="dex-chip"
-        [class.is-active]="store.scenario() === item.id"
-        [attr.aria-pressed]="store.scenario() === item.id"
-        (click)="store.setScenario(item.id)"
-      >
-        {{ item.label }}
-      </button>
-    }
+  <section
+    #aparelhoEl
+    id="pokedex-aparelho"
+    class="pokedex-aparelho"
+    [attr.data-aberta]="store.coverOpen()"
+    [class.is-animando]="rpg.isAnimating()"
+    [class.is-transicionando]="rpg.isTransitioning()"
+    [class.is-scanning]="isScanning()"
+    [class.is-luz-ativa]="rpg.luzActive()"
+    [style.--luz-x]="rpg.luzX()"
+    [style.--luz-y]="rpg.luzY()"
+    aria-label="Dispositivo Pokédex"
+    (pointermove)="onDevicePointerMove($event)"
+    (pointerleave)="rpg.resetGlint()"
+    (click)="onDeviceClick($event)"
+  >
+    <div class="pokedex-palco-3d">
+      <div id="pokedex-livro" class="pokedex-livro">
+        <!-- Asa direita (Base: Visor LCD + 10 Slots Azuis + Botão Amarelo Config) -->
+        <div
+          id="pokedex-ala-base"
+          class="pokedex-ala pokedex-ala--base"
+          [inert]="!store.coverOpen()"
+          title="Clique na carcaça para fechar a Pokédex"
+        >
+          <header class="ala-topo ala-topo--base">
+            <div class="pokedex-titulo-grupo">
+              <span class="hud-etiqueta-topo">PokéAPI</span>
+              <h2 class="capa-titulo">Pokédex</h2>
+            </div>
+            <span class="saidas-som saidas-som--superior" aria-hidden="true"></span>
+          </header>
 
-    <button
-      type="button"
-      class="dex-chip dex-chip--cover"
-      [attr.aria-expanded]="store.coverOpen()"
-      (click)="store.setCoverOpen(!store.coverOpen())"
-    >
-      {{ store.coverOpen() ? 'Fechar Carcaça' : 'Abrir Pokédex' }}
-    </button>
-  </div>
+          <pv-pokedex-visor
+            [detailState]="store.detailState()"
+            [cacheSource]="store.cacheSource()"
+            [transientStatus]="transientBadge()"
+            [suggestions]="store.suggestions()"
+            (retry)="store.retryLastSearch()"
+            (selectSuggestion)="onSelectFromVisor($event)"
+            (slotOpened)="onSelectFromVisor($event)"
+          />
 
-  @if (!store.coverOpen()) {
-    <section class="dex-closed-cover" aria-label="Capa da Pokédex fechada">
-      <div class="dex-wing-header">
-        <div class="dex-lights" aria-hidden="true">
-          <span class="dex-lens"></span>
-          <span class="dex-led dex-led--red"></span>
-          <span class="dex-led dex-led--amber"></span>
-          <span class="dex-led dex-led--green"></span>
+          <div id="pokedex-rodape-direito" class="pokedex-rodape-direito">
+            <fieldset
+              id="grade-slots-azuis"
+              class="grade-botoes-azuis controle-interativo"
+              [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('slots')"
+            >
+              <legend class="visually-hidden">Botões azuis para gravar e selecionar Pokémon</legend>
+              @for (slotIdx of slotIndices; track slotIdx) {
+                @let ocupacao = getSlot(slotIdx);
+                <button
+                  type="button"
+                  class="btn-slot-azul"
+                  [attr.data-slot-index]="slotIdx"
+                  [class.is-ocupado]="ocupacao !== null"
+                  [class.is-ativo]="isSlotActivePokemon(slotIdx)"
+                  [class.is-rpg-foco]="isSlotRpgFocused(slotIdx)"
+                  [disabled]="slotsStore.busySlot() === slotIdx"
+                  [attr.aria-label]="slotAriaLabel(slotIdx)"
+                  [title]="slotTitle(slotIdx)"
+                  (click)="onSlotClick(slotIdx, $event)"
+                ></button>
+              }
+            </fieldset>
+
+            <div class="mini-indicadores-inferiores">
+              <button
+                type="button"
+                id="btn-config-slots"
+                class="mini-visor-amarelo controle-interativo"
+                [class.is-rpg-foco]="isSlotRpgFocused(10)"
+                [attr.aria-pressed]="slotsStore.editMode()"
+                aria-label="Configurar Pokémon salvos nos botões"
+                title="Editar ou remover Pokémon salvos"
+                (click)="toggleSlotsConfig(false, $event)"
+              ></button>
+              <span class="saidas-som" aria-hidden="true"></span>
+            </div>
+          </div>
         </div>
-        <h1 id="main-heading" tabindex="-1" class="dex-wing-title">Pokédex 3D</h1>
-      </div>
 
-      <button type="button" class="dex-cover-trigger" (click)="store.setCoverOpen(true)">
-        <span class="dex-cover-crest" aria-hidden="true"></span>
-        <span>Pressione para Abrir a Pokédex</span>
-      </button>
-    </section>
-  } @else {
-    <div class="dex-chassis">
-      <div class="dex-wing dex-wing--scanner">
-        <header class="dex-wing-header">
-          <div class="dex-lights" aria-hidden="true">
-            <span class="dex-lens"></span>
-            <span class="dex-led dex-led--red"></span>
-            <span class="dex-led dex-led--amber"></span>
-            <span class="dex-led dex-led--green"></span>
-          </div>
-          <span class="dex-wing-title">Módulo de Busca</span>
-        </header>
+        <!-- Aba giratória 3D (Tampa fechada na frente + Módulo de Busca & D-Pad no verso) -->
+        <div id="pokedex-aba-giratoria" class="pokedex-aba-giratoria">
+          <pv-pokedex-cover
+            [coverOpen]="store.coverOpen()"
+            (openRequested)="openPokedex()"
+          />
 
-        <pv-pokedex-search-panel />
-      </div>
-
-      <div class="dex-hinge" aria-hidden="true"></div>
-
-      <div class="dex-wing dex-wing--base">
-        <header class="dex-wing-header">
-          <div>
-            <span class="dex-eyebrow">
-              PokéAPI v2
-              @if (store.cacheSource(); as source) {
-                <span>• Cache {{ source === 'hit' ? 'Redis HIT' : source === 'miss' ? 'Redis MISS' : 'Direto' }}</span>
-              }
-            </span>
-            <h1 id="main-heading" tabindex="-1" class="dex-wing-title">Pokédex</h1>
-          </div>
-          <button
-            type="button"
-            class="dex-btn-subtle"
-            (click)="store.setCoverOpen(false)"
-            aria-label="Fechar tampa da Pokédex"
-          >
-            Fechar
-          </button>
-        </header>
-
-        <pv-pokedex-visor
-          [detailState]="store.detailState()"
-          [suggestions]="store.suggestions()"
-          (retry)="retrySelected()"
-          (selectSuggestion)="store.loadPokemonDetail($event)"
-        />
-
-        @if (slotsStore.feedback(); as feedbackMsg) {
-          <p class="dex-slot-feedback" aria-live="polite">{{ feedbackMsg }}</p>
-        }
-
-        <div class="dex-slots-footer">
-          <fieldset class="dex-slots-grid">
-            <legend class="visually-hidden">10 slots de memória na nuvem</legend>
-            @for (idx of slotIndices; track idx) {
-              @if (auth.isAuthenticated()) {
-                <button
-                  type="button"
-                  class="dex-slot-btn tabular-nums"
-                  [class.is-occupied]="slotRecordAt(idx) !== null"
-                  [class.is-editing]="slotsStore.editMode()"
-                  [disabled]="slotsStore.busySlot() === idx"
-                  [attr.aria-label]="slotButtonLabel(idx)"
-                  [attr.title]="slotButtonLabel(idx)"
-                  (click)="onTrainerSlotClick(idx)"
-                >
-                  @if (slotRecordAt(idx); as saved) {
-                    <span>#{{ saved.pokemonId }}</span>
-                  } @else {
-                    <span>{{ idx + 1 }}</span>
-                  }
-                </button>
-              } @else {
-                <button
-                  type="button"
-                  class="dex-slot-btn tabular-nums"
-                  [pvRequiresTrainer]="'Slot ' + (idx + 1) + ' na Nuvem'"
-                  lockedDescription="Os 10 botões inferiores da Pokédex gravam Pokémon favoritos no PostgreSQL vinculados à conta do treinador."
-                  [attr.aria-label]="'Slot ' + (idx + 1) + ' bloqueado para visitantes'"
-                >
-                  {{ idx + 1 }}
-                </button>
-              }
-            }
-          </fieldset>
-
-          @if (auth.isAuthenticated()) {
-            <button
-              type="button"
-              class="dex-config-visor"
-              [class.is-editing]="slotsStore.editMode()"
-              [attr.aria-pressed]="slotsStore.editMode()"
-              (click)="slotsStore.toggleEditMode()"
-            >
-              {{ slotsStore.editMode() ? 'Edição ON' : 'Configurar' }}
-              <span class="visually-hidden"> slots salvos</span>
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="dex-config-visor"
-              pvRequiresTrainer="Configurar Slots Salvos"
-              lockedDescription="Edição e remoção de slots salvos requerem sessão autenticada de treinador."
-              aria-label="Configurar slots salvos (exclusivo para treinadores)"
-            >
-              Configurar <span aria-hidden="true">🔒</span>
-            </button>
-          }
+          <pv-pokedex-search-panel
+            #searchPanelCmp
+            (blueAdvanceOrClear)="onBlueControl()"
+            (aConfirm)="onAControl()"
+          />
         </div>
       </div>
     </div>
-  }
-</div>
+  </section>
+</main>

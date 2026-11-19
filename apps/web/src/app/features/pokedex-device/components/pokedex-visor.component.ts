@@ -1,378 +1,287 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
-import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import type { SearchablePokemonItem } from '@pokeverse/shared';
+import type { AsyncState } from '@pokeverse/shared';
+import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
+import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 import type { PokemonDetailView } from '../services/pokedex.store';
+import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
 
+/** Right-wing LCD CRT Visor showing empty Pokéball, skeleton, 404/API alerts, Pokémon sheet, or Slots Editor. */
 @Component({
   selector: 'pv-pokedex-visor',
+  imports: [PokedexSlotsConfigComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [
+    `
+      :host {
+        display: flex;
+        flex-direction: column;
+        flex: 1 1 0;
+        min-height: 0;
+        width: 100%;
+      }
+    `,
+  ],
   template: `
-    <section class="visor-panel" aria-labelledby="visor-title">
-      <header class="visor-panel__header">
-        <h2 id="visor-title" class="visor-panel__heading">Visor de Resultados</h2>
-        <span class="visor-badge">{{ badgeText() }}</span>
-      </header>
+    <section
+      id="resultado-area"
+      class="painel-resultado"
+      [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('visor')"
+      [class.is-selecionando-pokemon]="rpg.isVisorSelectingList()"
+      aria-labelledby="titulo-resultado"
+      (click)="rpg.setScreenFocus('visor', 'itens')"
+    >
+      <div class="painel-cabecalho">
+        <h2 id="titulo-resultado" class="painel-titulo">Visor de Resultados</h2>
+        <span id="status-badge" [class]="'status-badge status-badge--' + badgeVariant()">
+          {{ badgeLabel() }}
+        </span>
+      </div>
 
-      <div class="visor-screen" [attr.aria-busy]="detailState().status === 'loading'">
-        @switch (detailState().status) {
-          @case ('loading') {
-            <div class="visor-skeleton" aria-label="Carregando dados do Pokémon">
-              <div class="visor-skeleton__hero"></div>
-              <div class="visor-skeleton__line"></div>
-              <div class="visor-skeleton__line visor-skeleton__line--short"></div>
-              <div class="visor-skeleton__bars"></div>
-            </div>
-          }
-          @case ('error') {
-            <div class="visor-state" role="alert">
-              <p class="visor-state__title">Falha na consulta</p>
-              <p class="visor-state__desc">{{ errorMessage() }}</p>
-              <button type="button" class="visor-btn-retry" (click)="retry.emit()">
-                Tentar novamente
-              </button>
-              @if (suggestions().length > 0) {
-                <div class="visor-suggestions">
-                  <span>Você quis dizer:</span>
-                  <div class="visor-suggestions__list">
-                    @for (item of suggestions(); track item.id) {
-                      <button
-                        type="button"
-                        class="visor-suggestion-chip"
-                        (click)="selectSuggestion.emit(item.name)"
-                      >
-                        #{{ item.id }} {{ item.displayName }}
-                      </button>
-                    }
+      <div
+        id="resultado-conteudo"
+        class="resultado-conteudo"
+        aria-live="polite"
+        [attr.aria-busy]="detailState().status === 'loading'"
+      >
+        @if (slotsStore.editMode()) {
+          <pv-pokedex-slots-config
+            (closeRequested)="slotsStore.setEditMode(false)"
+            (slotOpened)="slotOpened.emit($event)"
+          />
+        } @else {
+          @switch (detailState().status) {
+            @case ('empty') {
+              <div class="estado-vazio">
+                <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+                  <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
+                  <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
+                </svg>
+                <h3>Nenhum Pokémon no visor</h3>
+                <p>
+                  Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir
+                  os dados da PokéAPI aqui no visor.
+                </p>
+              </div>
+            }
+
+            @case ('idle') {
+              <div class="estado-vazio">
+                <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+                  <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
+                  <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
+                </svg>
+                <h3>Nenhum Pokémon no visor</h3>
+                <p>
+                  Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir
+                  os dados da PokéAPI aqui no visor.
+                </p>
+              </div>
+            }
+
+            @case ('loading') {
+              <div class="skeleton-card" aria-label="Carregando dados do Pokémon na PokéAPI">
+                <div class="skeleton-cabecalho">
+                  <div class="skeleton-bloco skeleton-imagem"></div>
+                  <div class="skeleton-resumo">
+                    <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
+                    <div class="skeleton-bloco skeleton-linha skeleton-linha--media"></div>
+                    <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
                   </div>
                 </div>
-              }
-            </div>
-          }
-          @case ('success') {
-            @if (pokemonData(); as mon) {
-              <article class="pokemon-sheet">
-                <div class="pokemon-sheet__top">
-                  <div class="pokemon-sheet__artwork">
-                    @if (mon.spriteUrl) {
-                      <img
-                        [src]="mon.spriteUrl"
-                        [alt]="mon.displayName"
-                        width="136"
-                        height="136"
-                        loading="eager"
-                        decoding="async"
-                      />
-                    } @else {
-                      <span class="pokemon-sheet__no-art">Sem imagem</span>
-                    }
-                  </div>
+                <div class="skeleton-lista">
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                </div>
+              </div>
+            }
 
-                  <div class="pokemon-sheet__meta">
-                    <span class="pokemon-sheet__id tabular-nums">{{ mon.paddedId }}</span>
-                    <h3 class="pokemon-sheet__name">{{ mon.displayName }}</h3>
-                    <div class="pokemon-sheet__types">
-                      @for (typeName of mon.types; track typeName) {
-                        <span class="type-chip">{{ typeName }}</span>
+            @case ('error') {
+              @let notFound = isNotFoundError();
+              <div
+                [class]="'estado-alerta ' + (notFound ? 'estado-alerta--aviso' : 'estado-alerta--erro')"
+                [attr.role]="notFound ? null : 'alert'"
+              >
+                <span class="alerta-icone" aria-hidden="true">{{ notFound ? '🔎' : '⚠️' }}</span>
+                <h3>{{ notFound ? 'Pokémon não encontrado' : 'Erro na comunicação com a API' }}</h3>
+                <p>{{ errorMessage() }}</p>
+
+                @if (notFound && suggestions().length > 0) {
+                  <div class="sugestoes-404">
+                    <span class="sugestoes-404-titulo">Você quis dizer:</span>
+                    <div class="sugestoes-404-lista">
+                      @for (item of suggestions(); track item.id) {
+                        <button
+                          type="button"
+                          class="btn-sugestao"
+                          (click)="onSelectSuggestion($event, item.name)"
+                        >
+                          #{{ padId(item.id) }} {{ item.displayName }}
+                        </button>
                       }
                     </div>
-                    <dl class="pokemon-sheet__metrics tabular-nums">
-                      <div>
-                        <dt>Altura</dt>
-                        <dd>{{ mon.heightMeters }}</dd>
-                      </div>
-                      <div>
-                        <dt>Peso</dt>
-                        <dd>{{ mon.weightKg }}</dd>
-                      </div>
-                    </dl>
                   </div>
-                </div>
+                }
 
-                <div class="pokemon-sheet__stats">
-                  @for (stat of mon.stats; track stat.label) {
-                    <div class="stat-row">
-                      <span class="stat-row__label">{{ stat.label }}</span>
-                      <div class="stat-row__track" aria-hidden="true">
-                        <div
-                          class="stat-row__fill"
-                          [style.width.%]="statWidthPct(stat.value)"
-                        ></div>
-                      </div>
-                      <span class="stat-row__value tabular-nums">{{ stat.value }}</span>
-                    </div>
-                  }
-                </div>
-
-                <p class="pokemon-sheet__abilities">
-                  <strong>Habilidades:</strong> {{ mon.abilities.join(', ') || 'Não informadas' }}
-                </p>
-              </article>
+                @if (!notFound) {
+                  <button
+                    type="button"
+                    class="btn-secundario"
+                    (click)="onRetryClick($event)"
+                  >
+                    Tentar novamente
+                  </button>
+                }
+              </div>
             }
-          }
-          @default {
-            <div class="visor-state">
-              <p class="visor-state__title">Nenhum Pokémon no visor</p>
-              <p class="visor-state__desc">
-                Pesquise por nome, número ou grafia aproximada (ex.: <code>pikaxu</code>) ou escolha
-                um Pokémon na lista ao lado.
-              </p>
-            </div>
+
+            @case ('success') {
+              @if (pokemonData(); as pokemon) {
+                <article class="pokemon-ficha">
+                  <div class="pokemon-cabecalho">
+                    <div class="pokemon-imagem-box">
+                      @if (activeSpriteUrl(pokemon); as imgUrl) {
+                        <img
+                          class="pokemon-imagem"
+                          [src]="imgUrl"
+                          [alt]="'Ilustração oficial de ' + pokemon.displayName"
+                          width="124"
+                          height="124"
+                          fetchpriority="high"
+                          (error)="onSpriteError(pokemon)"
+                        />
+                      } @else {
+                        <p class="pokemon-imagem-fallback">
+                          {{ imageFailed() ? 'Não foi possível carregar a imagem' : 'Imagem indisponível na API' }}
+                        </p>
+                      }
+                    </div>
+
+                    <div class="pokemon-resumo">
+                      <span class="pokemon-id-destaque">{{ pokemon.paddedId }}</span>
+                      <h3 class="pokemon-nome">{{ pokemon.displayName }}</h3>
+                      @if (pokemon.types.length > 0) {
+                        <ul class="pokemon-tipos" aria-label="Tipos do Pokémon">
+                          @for (tipo of pokemon.types; track tipo) {
+                            <li class="tipo-badge">{{ tipo }}</li>
+                          }
+                        </ul>
+                      }
+                    </div>
+                  </div>
+
+                  <ul id="pokemon-dados" class="pokemon-lista-dados" aria-label="Dados do Pokémon">
+                    <li class="pokemon-dado-item">
+                      <span class="dado-rotulo">Nome:</span>
+                      <span class="dado-valor">{{ pokemon.displayName }}</span>
+                    </li>
+                    <li class="pokemon-dado-item">
+                      <span class="dado-rotulo">Número de identificação (ID):</span>
+                      <span class="dado-valor numero-tabular">{{ pokemon.paddedId }} ({{ pokemon.id }})</span>
+                    </li>
+                    <li class="pokemon-dado-item">
+                      <span class="dado-rotulo">Altura:</span>
+                      <span class="dado-valor numero-tabular">{{ pokemon.heightMeters }} ({{ pokemon.heightRawDm }} dm)</span>
+                    </li>
+                    <li class="pokemon-dado-item">
+                      <span class="dado-rotulo">Peso:</span>
+                      <span class="dado-valor numero-tabular">{{ pokemon.weightKg }} ({{ pokemon.weightRawHg }} hg)</span>
+                    </li>
+                    <li class="pokemon-dado-item pokemon-dado-item--habilidades">
+                      <span class="dado-rotulo">Habilidades (abilities):</span>
+                      @if (pokemon.abilities.length > 0) {
+                        <ul class="lista-habilidades">
+                          @for (ability of pokemon.abilities; track ability) {
+                            <li class="habilidade-item">{{ ability }}</li>
+                          }
+                        </ul>
+                      } @else {
+                        <span class="dado-valor">Nenhuma habilidade informada pela API.</span>
+                      }
+                    </li>
+                  </ul>
+                </article>
+              }
+            }
           }
         }
       </div>
     </section>
   `,
-  styles: [
-    `
-      .visor-panel {
-        display: flex;
-        flex-direction: column;
-        gap: var(--pv-space-3);
-        min-inline-size: 0;
-        flex: 1 1 auto;
-      }
-
-      .visor-panel__header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--pv-space-2);
-      }
-
-      .visor-panel__heading {
-        margin: 0;
-        font-size: 1rem;
-      }
-
-      .visor-badge {
-        padding: 0.25rem 0.625rem;
-        border-radius: var(--pv-radius-pill);
-        border: 1px solid var(--pv-border-subtle);
-        font-size: 0.75rem;
-        color: var(--pv-ink-muted);
-      }
-
-      .visor-screen {
-        min-block-size: 21rem;
-        padding: var(--pv-space-4);
-        border-radius: var(--pv-radius-md);
-        background: var(--pv-visor-lcd);
-        border: 2px solid var(--pv-border-subtle);
-        color: var(--pv-ink-primary);
-      }
-
-      .visor-state {
-        display: grid;
-        place-items: center;
-        text-align: center;
-        gap: var(--pv-space-2);
-        min-block-size: 18rem;
-        align-content: center;
-      }
-
-      .visor-state__title {
-        margin: 0;
-        font-weight: 700;
-        font-size: 1.0625rem;
-      }
-
-      .visor-state__desc {
-        margin: 0;
-        color: var(--pv-ink-muted);
-        max-inline-size: 36ch;
-      }
-
-      .visor-btn-retry {
-        min-block-size: 2.75rem;
-        padding: 0.5rem 1rem;
-        border-radius: var(--pv-radius-sm);
-        border: 0;
-        background: var(--pv-dex-red);
-        color: var(--pv-ink-on-accent);
-        font-weight: 700;
-        cursor: pointer;
-      }
-
-      .visor-suggestions__list {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: var(--pv-space-2);
-        margin-block-start: var(--pv-space-2);
-      }
-
-      .visor-suggestion-chip {
-        min-block-size: 2.75rem;
-        padding: 0.375rem 0.75rem;
-        border-radius: var(--pv-radius-pill);
-        border: 1px solid var(--pv-sapphire);
-        background: transparent;
-        cursor: pointer;
-      }
-
-      .visor-skeleton {
-        display: grid;
-        gap: var(--pv-space-3);
-      }
-
-      .visor-skeleton__hero,
-      .visor-skeleton__line,
-      .visor-skeleton__bars {
-        border-radius: var(--pv-radius-sm);
-        background: oklch(30% 0.025 250 / 0.55);
-      }
-
-      .visor-skeleton__hero {
-        block-size: 8.5rem;
-      }
-
-      .visor-skeleton__line {
-        block-size: 1.25rem;
-      }
-
-      .visor-skeleton__line--short {
-        inline-size: 55%;
-      }
-
-      .visor-skeleton__bars {
-        block-size: 6rem;
-      }
-
-      .pokemon-sheet {
-        display: grid;
-        gap: var(--pv-space-3);
-      }
-
-      .pokemon-sheet__top {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--pv-space-4);
-        align-items: center;
-      }
-
-      .pokemon-sheet__artwork {
-        inline-size: 8.5rem;
-        block-size: 8.5rem;
-        display: grid;
-        place-items: center;
-        border-radius: var(--pv-radius-md);
-        background: oklch(24% 0.03 250);
-        flex-shrink: 0;
-      }
-
-      .pokemon-sheet__meta {
-        display: grid;
-        gap: var(--pv-space-2);
-        min-inline-size: 0;
-        flex: 1 1 12rem;
-      }
-
-      .pokemon-sheet__id {
-        font-family: var(--pv-font-mono);
-        color: var(--pv-border-gold);
-        font-weight: 700;
-      }
-
-      .pokemon-sheet__name {
-        margin: 0;
-        font-size: 1.375rem;
-        overflow-wrap: anywhere;
-      }
-
-      .pokemon-sheet__types {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--pv-space-2);
-      }
-
-      .type-chip {
-        padding: 0.25rem 0.625rem;
-        border-radius: var(--pv-radius-pill);
-        background: oklch(32% 0.05 245);
-        font-size: 0.75rem;
-        font-weight: 700;
-      }
-
-      .pokemon-sheet__metrics {
-        display: flex;
-        gap: var(--pv-space-4);
-        margin: 0;
-      }
-
-      .pokemon-sheet__metrics div {
-        display: grid;
-      }
-
-      .pokemon-sheet__metrics dt {
-        font-size: 0.75rem;
-        color: var(--pv-ink-muted);
-      }
-
-      .pokemon-sheet__metrics dd {
-        margin: 0;
-        font-weight: 700;
-      }
-
-      .pokemon-sheet__stats {
-        display: grid;
-        gap: var(--pv-space-2);
-      }
-
-      .stat-row {
-        display: grid;
-        grid-template-columns: 7.5rem 1fr 2.5rem;
-        align-items: center;
-        gap: var(--pv-space-2);
-        font-size: 0.8125rem;
-      }
-
-      .stat-row__track {
-        block-size: 0.5rem;
-        border-radius: var(--pv-radius-pill);
-        background: oklch(26% 0.02 250);
-        overflow: hidden;
-      }
-
-      .stat-row__fill {
-        block-size: 100%;
-        background: var(--pv-emerald);
-      }
-
-      .stat-row__value {
-        text-align: end;
-        font-weight: 700;
-      }
-
-      .pokemon-sheet__abilities {
-        margin: 0;
-        font-size: 0.875rem;
-        color: var(--pv-ink-muted);
-      }
-    `,
-  ],
 })
 export class PokedexVisorComponent {
+  readonly rpg = inject(PokedexRpgNavService);
+  readonly slotsStore = inject(PokedexSlotsStore);
+
   readonly detailState = input.required<AsyncState<PokemonDetailView>>();
+  readonly cacheSource = input<'hit' | 'miss' | 'direct' | null>(null);
+  readonly transientStatus = input<{ readonly label: string; readonly variant: 'sucesso' | 'aviso' } | null>(null);
   readonly suggestions = input<readonly SearchablePokemonItem[]>([]);
 
   readonly retry = output<void>();
   readonly selectSuggestion = output<string>();
+  readonly slotOpened = output<string>();
 
-  badgeText(): string {
-    switch (this.detailState().status) {
+  private readonly usedFallbackSprite = signal(false);
+  readonly imageFailed = signal(false);
+
+  constructor() {
+    effect(() => {
+      this.detailState();
+      this.usedFallbackSprite.set(false);
+      this.imageFailed.set(false);
+    });
+  }
+
+  readonly badgeVariant = computed(() => {
+    if (this.slotsStore.editMode()) return 'aviso';
+    const notice = this.transientStatus();
+    if (notice) return notice.variant;
+    const state = this.detailState();
+    switch (state.status) {
       case 'loading':
-        return 'Consultando...';
+        return 'carregando';
       case 'success':
-        return 'PokéAPI OK';
+        return 'sucesso';
       case 'error':
-        return 'Falha';
+        return state.error.code === 'POKEMON_NOT_FOUND' ? 'aviso' : 'erro';
+      default:
+        return 'aguardando';
+    }
+  });
+
+  readonly badgeLabel = computed(() => {
+    if (this.slotsStore.editMode()) return 'Botões Azuis';
+    const notice = this.transientStatus();
+    if (notice) return notice.label;
+    const state = this.detailState();
+    switch (state.status) {
+      case 'loading':
+        return 'Buscando...';
+      case 'success': {
+        const src = this.cacheSource();
+        return src === 'hit' ? 'Encontrado · Redis' : 'Encontrado';
+      }
+      case 'error':
+        return state.error.code === 'POKEMON_NOT_FOUND' ? 'Não encontrado' : 'Erro na API';
       default:
         return 'Aguardando busca';
     }
-  }
+  });
 
   pokemonData(): PokemonDetailView | null {
     const state = this.detailState();
     return state.status === 'success' ? state.data : null;
+  }
+
+  isNotFoundError(): boolean {
+    const state = this.detailState();
+    return state.status === 'error' && state.error.code === 'POKEMON_NOT_FOUND';
   }
 
   errorMessage(): string {
@@ -380,7 +289,31 @@ export class PokedexVisorComponent {
     return state.status === 'error' ? state.error.message : '';
   }
 
-  statWidthPct(value: number): number {
-    return Math.min(100, Math.round((value / 255) * 100));
+  padId(id: number): string {
+    return id > 0 ? String(id).padStart(4, '0') : '----';
+  }
+
+  activeSpriteUrl(pokemon: PokemonDetailView): string | null {
+    if (this.imageFailed()) return null;
+    if (this.usedFallbackSprite()) return pokemon.fallbackSpriteUrl;
+    return pokemon.spriteUrl ?? pokemon.fallbackSpriteUrl;
+  }
+
+  onSpriteError(pokemon: PokemonDetailView): void {
+    if (!this.usedFallbackSprite() && pokemon.fallbackSpriteUrl && pokemon.fallbackSpriteUrl !== pokemon.spriteUrl) {
+      this.usedFallbackSprite.set(true);
+      return;
+    }
+    this.imageFailed.set(true);
+  }
+
+  onSelectSuggestion(event: Event, name: string): void {
+    event.stopPropagation();
+    this.selectSuggestion.emit(name);
+  }
+
+  onRetryClick(event: Event): void {
+    event.stopPropagation();
+    this.retry.emit();
   }
 }

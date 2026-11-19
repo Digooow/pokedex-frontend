@@ -4,15 +4,18 @@ import { authGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   {
     path: '',
-    title: 'PokéVerse OS — Press Start',
+    pathMatch: 'full',
+    title: 'Pokédex 3D — PokéVerse OS',
+    data: { initialCoverOpen: false },
     loadComponent: () =>
-      import('./features/title-screen/title-screen.component').then(
-        (m) => m.TitleScreenComponent,
+      import('./features/pokedex-device/pokedex-device.component').then(
+        (m) => m.PokedexDevicePageComponent,
       ),
   },
   {
     path: 'pokedex',
     title: 'Pokédex 3D — PokéVerse OS',
+    data: { initialCoverOpen: false },
     loadComponent: () =>
       import('./features/pokedex-device/pokedex-device.component').then(
         (m) => m.PokedexDevicePageComponent,

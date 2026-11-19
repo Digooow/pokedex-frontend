@@ -1,17 +1,20 @@
-<div class="pv-shell">
+<pv-cenarios-backdrop />
+
+<div class="app-shell">
   <pv-hud-topbar />
 
-  <main id="main-content" class="pv-shell__main">
+  <main id="main-content" class="app-main">
+    <pv-cenarios-bar />
     <router-outlet />
   </main>
 
   <pv-hud-quick-dock />
-
-  @defer (when auth.visitorPrompt() !== null) {
-    <pv-visitor-lock-dialog />
-  }
-
-  @defer (when auth.securityModalOpen()) {
-    <pv-security-settings-dialog />
-  }
 </div>
+
+@defer (when auth.visitorPrompt() !== null) {
+  <pv-visitor-lock-dialog />
+}
+
+@defer (when auth.securityModalOpen()) {
+  <pv-security-settings-dialog />
+}

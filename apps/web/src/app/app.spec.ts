@@ -5,6 +5,10 @@ import { provideRouter } from '@angular/router';
 import { App } from './app';
 import { AuthStore } from './core/stores/auth.store';
 import { QualityStore } from './core/stores/quality.store';
+import { ScenarioStore } from './core/stores/scenario.store';
+import { PokedexDevicePageComponent } from './features/pokedex-device/pokedex-device.component';
+import { PokedexSlotsStore } from './features/pokedex-device/services/pokedex-slots.store';
+import { PokedexStore } from './features/pokedex-device/services/pokedex.store';
 
 function flushInitialRequests(httpMock: HttpTestingController): void {
   httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
@@ -137,5 +141,62 @@ describe('PokéVerse OS Shell', () => {
     httpMock.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
     expect(auth.isAuthenticated()).toBe(false);
     expect(auth.trainer()).toBeNull();
+  });
+
+  it('starts Pokédex 3D closed on initial view, focuses #main-heading cleanly, and opens on trigger click', async () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const store = TestBed.inject(PokedexStore);
+    const fixture = TestBed.createComponent(PokedexDevicePageComponent);
+    fixture.detectChanges();
+    flushInitialRequests(httpMock);
+
+    const aparelho = fixture.nativeElement.querySelector('#pokedex-aparelho') as HTMLElement;
+    const heading = fixture.nativeElement.querySelector('#main-heading') as HTMLElement;
+    expect(aparelho.dataset['aberta']).toBe('false');
+    expect(store.coverOpen()).toBe(false);
+    expect(heading).not.toBeNull();
+
+    const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
+    openBtn.click();
+    fixture.detectChanges();
+
+    httpMock.match('/api/v1/pokedex/catalog').forEach((req) =>
+      req.flush({
+        cache: 'hit',
+        catalog: { count: 1, results: [{ name: 'pikachu', url: 'https://pokeapi.co/api/v2/pokemon/25/' }] },
+      }),
+    );
+
+    expect(store.coverOpen()).toBe(true);
+    expect(aparelho.dataset['aberta']).toBe('true');
+  });
+
+  it('manages scenario selection and auto-rotation toggle cleanly in ScenarioStore', () => {
+    const scenarioStore = TestBed.inject(ScenarioStore);
+    expect(scenarioStore.activeScenario()).toBe('hoenn');
+
+    scenarioStore.selectScenario('cidade', true);
+    expect(scenarioStore.activeScenario()).toBe('cidade');
+    expect(scenarioStore.autoEnabled()).toBe(false);
+
+    scenarioStore.toggleAuto();
+    expect(scenarioStore.autoEnabled()).toBe(true);
+    expect(scenarioStore.activeScenario()).toBe('vila');
+  });
+
+  it('supports visitor local slot persistence and clearAll cleanly in PokedexSlotsStore', () => {
+    window.localStorage.removeItem('pokedex_slots_salvos');
+    const slotsStore = TestBed.inject(PokedexSlotsStore);
+    const pikachu = { id: 25, name: 'pikachu', displayName: 'Pikachu', spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png' };
+
+    slotsStore.saveSlot(0, pikachu, 'Sparky');
+    expect(slotsStore.slotsMap().get(0)?.nickname).toBe('Sparky');
+
+    slotsStore.clearSlot(0);
+    expect(slotsStore.slotsMap().get(0)).toBeUndefined();
+
+    slotsStore.saveSlot(2, pikachu);
+    slotsStore.clearAllSlots();
+    expect(slotsStore.slotsMap().size).toBe(0);
   });
 });

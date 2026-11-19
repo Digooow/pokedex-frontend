@@ -1,4 +1,6 @@
 /* Camada 1 & 2: Tokens Primitivos e Semânticos (zero hardcode solto nos componentes) */
+@layer reset, base, components, utilities;
+
 :root {
   /* Superfícies & HUD */
   --pv-canvas: oklch(14% 0.025 255);
@@ -56,4 +58,246 @@
   --pv-z-stage: 10;
   --pv-z-hud: 40;
   --pv-z-modal: 80;
+}
+
+/* === Canonical Pokédex Hardware Design Tokens === */
+:root {
+  color-scheme: light dark;
+  --palette-red-500: #ef4444;
+  --palette-red-600: #c81e2b;
+  --palette-red-700: #b21723;
+  --palette-red-800: #7f1019;
+  --palette-red-950: #3b0d14;
+  --palette-red-100: #fee2e2;
+  --palette-red-200: #fecaca;
+
+  --palette-slate-50: #f8fafc;
+  --palette-slate-100: #e2e8f0;
+  --palette-slate-200: #cbd5e1;
+  --palette-slate-400: #94a3b8;
+  --palette-slate-600: #475569;
+  --palette-slate-700: #334155;
+  --palette-slate-800: #1e293b;
+  --palette-slate-850: #1c2430;
+  --palette-slate-900: #0f172a;
+  --palette-slate-950: #09111e;
+
+  --palette-gb-100: #eaefec;
+  --palette-gb-150: #e6ebe8;
+  --palette-gb-200: #dce2de;
+  --palette-gb-300: #c5cdca;
+  --palette-gb-400: #98a49e;
+  --palette-gb-500: #64748b;
+  --palette-gb-800: #2c353d;
+  --palette-gb-850: #182026;
+  --palette-gb-900: #1e3a5f;
+
+  --palette-cyan-300: #67e8f9;
+  --palette-cyan-400: #22d3ee;
+  --palette-cyan-500: #06b6d4;
+  --palette-sky-100: #dbeafe;
+  --palette-sky-200: #bae6fd;
+  --palette-sky-400: #38bdf8;
+  --palette-sky-500: #0ea5e9;
+  --palette-sky-600: #0284c7;
+  --palette-sky-800: #075985;
+  --palette-sky-950: #0c2a4d;
+  --palette-blue-700: #1d4ed8;
+
+  --palette-emerald-200: #bbf7d0;
+  --palette-emerald-300: #86efac;
+  --palette-emerald-400: #4ade80;
+  --palette-emerald-500: #22c55e;
+  --palette-emerald-950: #052e16;
+
+  --palette-amber-200: #fde68a;
+  --palette-amber-400: #fbbf24;
+  --palette-amber-500: #f59e0b;
+  --palette-amber-900: #78350f;
+  --palette-amber-950: #3a2007;
+
+  --bg-pagina: var(--palette-slate-950);
+  --bg-carcaca-topo: #7f141e;
+  --bg-carcaca-ala: var(--palette-red-700);
+  --bg-tampa-fechada: var(--palette-red-600);
+  --borda-carcaca: var(--palette-red-800);
+  --borda-carcaca-escura: #4e0910;
+
+  --luz-x: 28%;
+  --luz-y: 20%;
+
+  --metal-carcaca-brilho: oklch(0.56 0.19 24);
+  --metal-carcaca-luz: oklch(0.50 0.20 24);
+  --metal-carcaca-base: oklch(0.44 0.19 24);
+  --metal-carcaca-sombra: oklch(0.29 0.13 20);
+  --metal-carcaca-rebote: oklch(0.40 0.16 23);
+  --plastico-topo-claro: oklch(0.45 0.16 22);
+  --plastico-topo-base: oklch(0.37 0.14 21);
+  --plastico-topo-escuro: oklch(0.28 0.11 20);
+  --metal-cromo-claro: oklch(0.95 0.01 250);
+  --metal-cromo-medio: oklch(0.70 0.02 250);
+  --metal-cromo-escuro: oklch(0.32 0.03 250);
+  --metal-cinza-brilho: oklch(0.84 0.012 245);
+  --metal-cinza-luz: oklch(0.78 0.013 245);
+  --metal-cinza-base: oklch(0.71 0.014 245);
+  --metal-cinza-sombra: oklch(0.55 0.016 245);
+  --metal-cinza-rebote: oklch(0.66 0.014 245);
+
+  --plastico-vermelho-claro: oklch(0.41 0.14 22);
+  --plastico-vermelho-base: oklch(0.33 0.12 21);
+  --plastico-vermelho-escuro: oklch(0.24 0.09 19);
+  --plastico-preto-claro: oklch(0.32 0.016 255);
+  --plastico-preto-base: oklch(0.23 0.014 255);
+  --plastico-preto-escuro: oklch(0.14 0.012 255);
+  --plastico-cinza-claro: oklch(0.84 0.012 240);
+  --plastico-cinza-base: oklch(0.77 0.014 240);
+  --plastico-cinza-escuro: oklch(0.67 0.016 240);
+
+  --textura-plastico-grao: url("/assets/textures/plastico-grao.webp");
+  --textura-metal-floco: url("/assets/textures/metal-floco.webp");
+
+  --bg-formulario: #bfc7cf;
+  --bg-subpainel-busca-form: #3f4752;
+  --bg-subpainel-busca-form-ativo: #2b313a;
+  --borda-subpainel-busca-form: #1e293b;
+  --texto-subpainel-busca: var(--palette-slate-50);
+  --texto-subpainel-busca-secundario: var(--palette-slate-100);
+  --bg-catalogo-area: #cfd6dc;
+  --bg-catalogo-area-ativo: #b5bfc8;
+  --bg-input: var(--palette-gb-150);
+  --bg-catalogo-item: var(--palette-gb-100);
+  --bg-catalogo-item-hover: #f3f7f4;
+  --bg-catalogo-item-cursor: #cfe3f5;
+  --bg-catalogo-item-ativo: #d2e3ee;
+  --borda-formulario: #8f9ba6;
+  --borda-input: var(--palette-gb-500);
+  --borda-catalogo: #8d99a5;
+  --texto-formulario: var(--palette-gb-850);
+  --texto-formulario-secundario: #2f3b44;
+
+  --bg-resultado: #181c22;
+  --bg-resultado-ativo: #2c3340;
+  --bg-cartao-interno: #111418;
+  --bg-dado-celula: #1d222a;
+  --bg-imagem-visor: #0d1014;
+  --borda-resultado: var(--palette-gb-500);
+  --borda-visor-acento: var(--palette-slate-400);
+  --borda-lcd-suave: rgba(148, 163, 184, 0.34);
+  --texto-lcd-principal: var(--palette-slate-50);
+  --texto-lcd-secundario: var(--palette-slate-200);
+  --texto-lcd-destaque: var(--palette-slate-100);
+
+  --bg-barra-externa: rgba(9, 17, 30, 0.72);
+  --bg-botao-cenario: rgba(30, 41, 59, 0.85);
+  --bg-botao-cenario-hover: var(--palette-slate-700);
+  --borda-barra-externa: rgba(148, 163, 184, 0.34);
+  --borda-cenario-ativo: rgba(255, 255, 255, 0.85);
+  --borda-controle: var(--palette-slate-950);
+
+  --cor-destaque: var(--palette-red-600);
+  --cor-destaque-hover: #b21723;
+  --cor-destaque-ativo: var(--palette-red-800);
+  --texto-sobre-destaque: #ffffff;
+  --cor-foco-claro: var(--palette-sky-800);
+  --cor-foco-escuro: var(--palette-amber-400);
+
+  --cor-erro-campo: #fecaca;
+  --borda-erro-campo: #b91c1c;
+  --bg-erro-campo: #fee2e2;
+
+  --cor-hud-aviso: var(--palette-amber-200);
+  --borda-hud-aviso: var(--palette-amber-400);
+  --bg-hud-aviso: var(--palette-amber-950);
+
+  --cor-hud-erro: var(--palette-red-200);
+  --borda-hud-erro: var(--palette-red-500);
+  --bg-hud-erro: var(--palette-red-950);
+
+  --cor-hud-sucesso: var(--palette-emerald-200);
+  --bg-hud-sucesso: var(--palette-emerald-950);
+
+  --cor-hud-carregando: var(--palette-sky-200);
+  --bg-hud-carregando: var(--palette-sky-950);
+
+  --espaco-1: 0.25rem;
+  --espaco-2: 0.5rem;
+  --espaco-3: 0.75rem;
+  --espaco-4: 1rem;
+  --espaco-5: 1.25rem;
+  --espaco-6: 1.5rem;
+
+  --raio-pequeno: 0.5rem;
+  --raio-medio: 0.75rem;
+  --raio-grande: 1.125rem;
+  --raio-dobradica: 0.375rem;
+
+  --sombra-aparelho: 0 22px 44px rgba(0, 0, 0, 0.52);
+  --duracao-giro-tampa: 1240ms;
+  --duracao-deslize-livro: 1160ms;
+  --curva-cadencia-humana: cubic-bezier(0.28, 0.72, 0.28, 1);
+
+  --z-fundo: 0;
+  --z-hud: 1;
+  --z-tela-ativa: 2;
+  --z-skip: 100;
+
+  --fonte-principal: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --fonte-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+}
+
+@media (forced-colors: active) {
+  :root {
+    --textura-plastico-grao: none;
+    --textura-metal-floco: none;
+    --bg-pagina: Canvas;
+    --bg-carcaca-topo: Canvas;
+    --bg-carcaca-ala: Canvas;
+    --bg-tampa-fechada: Canvas;
+    --borda-carcaca: CanvasText;
+    --borda-carcaca-escura: CanvasText;
+
+    --bg-formulario: Canvas;
+    --bg-subpainel-busca-form: Canvas;
+    --bg-subpainel-busca-form-ativo: Highlight;
+    --borda-subpainel-busca-form: CanvasText;
+    --texto-subpainel-busca: CanvasText;
+    --texto-subpainel-busca-secundario: CanvasText;
+    --bg-catalogo-area: Canvas;
+    --bg-catalogo-area-ativo: Highlight;
+    --bg-input: Field;
+    --bg-catalogo-item: ButtonFace;
+    --bg-catalogo-item-hover: Highlight;
+    --bg-catalogo-item-cursor: Highlight;
+    --bg-catalogo-item-ativo: Highlight;
+    --borda-formulario: CanvasText;
+    --borda-input: CanvasText;
+    --borda-catalogo: CanvasText;
+    --texto-formulario: CanvasText;
+    --texto-formulario-secundario: CanvasText;
+
+    --bg-resultado: Canvas;
+    --bg-resultado-ativo: Highlight;
+    --bg-cartao-interno: Canvas;
+    --bg-dado-celula: Canvas;
+    --bg-imagem-visor: Canvas;
+    --borda-resultado: CanvasText;
+    --borda-lcd-suave: CanvasText;
+    --texto-lcd-principal: CanvasText;
+    --texto-lcd-secundario: CanvasText;
+    --texto-lcd-destaque: Highlight;
+
+    --bg-barra-externa: Canvas;
+    --bg-botao-cenario: ButtonFace;
+    --bg-botao-cenario-hover: Highlight;
+    --borda-barra-externa: CanvasText;
+    --borda-cenario-ativo: Highlight;
+    --borda-controle: CanvasText;
+
+    --cor-destaque: ButtonFace;
+    --cor-destaque-hover: Highlight;
+    --cor-destaque-ativo: Highlight;
+    --texto-sobre-destaque: ButtonText;
+    --cor-foco-claro: Highlight;
+    --cor-foco-escuro: Highlight;
+  }
 }
