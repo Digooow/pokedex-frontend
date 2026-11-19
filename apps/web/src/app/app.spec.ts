@@ -295,4 +295,87 @@ describe('PokéVerse OS Shell', () => {
       vi.useRealTimers();
     }
   });
+
+  it('requires 2nd click or round A button to load a Pokémon from found-list items', () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const store = TestBed.inject(PokedexStore);
+    const fixture = TestBed.createComponent(PokedexDevicePageComponent);
+    fixture.detectChanges();
+    flushInitialRequests(httpMock);
+
+    const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
+    openBtn.click();
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/v1/pokedex/catalog').flush({
+      cache: 'hit',
+      catalog: {
+        count: 2,
+        results: [
+          { name: 'bulbasaur', url: 'https://pokeapi.co/api/v2/pokemon/1/' },
+          { name: 'charmander', url: 'https://pokeapi.co/api/v2/pokemon/4/' },
+        ],
+      },
+    });
+    fixture.detectChanges();
+
+    const rpg = fixture.debugElement.injector.get(PokedexRpgNavService);
+    const items = fixture.nativeElement.querySelectorAll('.catalogo-item') as NodeListOf<HTMLButtonElement>;
+    const btnA = fixture.nativeElement.querySelector('#btn-controle-selecionar') as HTMLButtonElement;
+
+    // 1st click on Charmander ONLY highlights it without fetching/loading Visor
+    items[1]?.click();
+    fixture.detectChanges();
+    expect(rpg.rpgCatalogIndex()).toBe(1);
+    expect(items[1]?.classList.contains('is-cursor')).toBe(true);
+    httpMock.expectNone('/api/v1/pokedex/pokemon/charmander');
+    expect(store.detailState().status).toBe('empty');
+
+    // Clicking round A button activates highlighted Charmander
+    btnA.click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/v1/pokedex/pokemon/charmander').flush({
+      cache: 'hit',
+      pokemon: {
+        id: 4,
+        name: 'charmander',
+        height: 6,
+        weight: 85,
+        types: [{ slot: 1, type: { name: 'fire', url: 'https://pokeapi.co/api/v2/type/10/' } }],
+        abilities: [],
+        stats: [],
+        sprites: { front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png' },
+      },
+    });
+    expect(store.selectedPokemon()?.name).toBe('charmander');
+
+    // Clear filter input, then 1st click on Bulbasaur ONLY highlights it, 2nd click loads it
+    const input = fixture.nativeElement.querySelector('#pokemon-input') as HTMLInputElement;
+    input.value = '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    const updatedItems = fixture.nativeElement.querySelectorAll('.catalogo-item') as NodeListOf<HTMLButtonElement>;
+    updatedItems[0]?.click();
+    fixture.detectChanges();
+    expect(rpg.rpgCatalogIndex()).toBe(0);
+    httpMock.expectNone('/api/v1/pokedex/pokemon/bulbasaur');
+
+    updatedItems[0]?.click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/v1/pokedex/pokemon/bulbasaur').flush({
+      cache: 'hit',
+      pokemon: {
+        id: 1,
+        name: 'bulbasaur',
+        height: 7,
+        weight: 69,
+        types: [{ slot: 1, type: { name: 'grass', url: 'https://pokeapi.co/api/v2/type/12/' } }],
+        abilities: [],
+        stats: [],
+        sprites: { front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png' },
+      },
+    });
+    expect(store.selectedPokemon()?.name).toBe('bulbasaur');
+  });
 });

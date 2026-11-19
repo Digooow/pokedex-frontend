@@ -327,7 +327,9 @@ export class PokedexSearchPanelComponent {
 
   onCatalogAreaClick(): void {
     this.rpg.deactivateKeyboardMode();
-    this.rpg.setScreenFocus('lista', 'itens');
+    if (this.rpg.rpgLevel() !== 'itens' || this.rpg.rpgScreen() !== 'lista') {
+      this.rpg.setScreenFocus('lista', 'telas');
+    }
   }
 
   onInputFocus(): void {
@@ -349,6 +351,7 @@ export class PokedexSearchPanelComponent {
     }
     this.rpg.rpgLevel.set('itens');
     this.rpg.rpgScreen.set('busca');
+    this.rpg.rpgCatalogIndex.set(0);
     this.rpg.rpgControlIndices.update((prev) => ({ ...prev, busca: 0 }));
     this.store.ensureCatalogLoaded();
     this.rpg.syncFocusVisuals(false);
@@ -370,7 +373,19 @@ export class PokedexSearchPanelComponent {
     event.stopPropagation();
     this.rpg.deactivateKeyboardMode();
     (event.currentTarget as HTMLElement | null)?.blur?.();
+
+    const clickDetail = event instanceof MouseEvent ? event.detail : 1;
+    const alreadyHighlighted =
+      this.rpg.rpgLevel() === 'itens' &&
+      this.rpg.rpgScreen() === 'lista' &&
+      this.rpg.rpgCatalogIndex() === index;
+
     this.rpg.setCatalogCursor(index);
+
+    if (!alreadyHighlighted && clickDetail < 2) {
+      return;
+    }
+
     this.forceValidationError.set(false);
     this.store.setQuery(item.name);
     this.store.loadPokemonDetail(item.name);

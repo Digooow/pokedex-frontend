@@ -316,7 +316,7 @@ export class PokedexRpgNavService implements OnDestroy {
       const picked = visibleItems[this.rpgCatalogIndex()];
       if (picked) {
         this.pokedex.setQuery(picked.name);
-        this.pokedex.loadPokemonDetail(picked.id);
+        this.pokedex.loadPokemonDetail(picked.name);
       }
       return;
     }
