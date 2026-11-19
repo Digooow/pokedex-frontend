@@ -27,8 +27,7 @@ import { PokedexStore } from '../services/pokedex.store';
     <div
       id="pokedex-ala-scanner"
       class="aba-face aba-face--verso pokedex-ala pokedex-ala--scanner"
-      [inert]="!store.coverOpen()"
-      title="Clique na carcaça fora das telas e botões para fechar a Pokédex"
+      [inert]="!store.coverOpen() && !rpg.isAnimating()"
     >
       <header class="ala-topo ala-topo--scanner">
         <div class="pokedex-luzes" aria-hidden="true">
@@ -113,7 +112,7 @@ import { PokedexStore } from '../services/pokedex.store';
           id="pokemon-catalogo-area"
           class="pokemon-catalogo-area"
           [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('lista')"
-          (click)="rpg.setScreenFocus('lista', 'itens')"
+          (click)="onCatalogAreaClick()"
         >
           <div class="catalogo-cabecalho">
             <span id="catalogo-status" class="catalogo-status">{{ catalogStatusText() }}</span>
@@ -321,8 +320,14 @@ export class PokedexSearchPanelComponent {
   }
 
   onFormAreaClick(event: Event): void {
+    this.rpg.deactivateKeyboardMode();
     const isSubmitBtn = event.target instanceof HTMLElement && event.target.id === 'btn-buscar';
     this.rpg.setScreenFocus('busca', 'itens', isSubmitBtn ? 1 : 0);
+  }
+
+  onCatalogAreaClick(): void {
+    this.rpg.deactivateKeyboardMode();
+    this.rpg.setScreenFocus('lista', 'itens');
   }
 
   onInputFocus(): void {
@@ -363,6 +368,8 @@ export class PokedexSearchPanelComponent {
 
   onCatalogItemClick(item: CatalogMatchItem, index: number, event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.rpg.setCatalogCursor(index);
     this.forceValidationError.set(false);
     this.store.setQuery(item.name);
@@ -382,32 +389,42 @@ export class PokedexSearchPanelComponent {
 
   onLoadMore(event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
     this.store.loadMoreCatalog();
   }
 
   onReloadCatalog(event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
     this.store.ensureCatalogLoaded(true);
   }
 
   onDpadClick(direction: 'cima' | 'baixo' | 'esquerda' | 'direita', event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.searchInputEl()?.nativeElement.blur();
     this.rpg.navigate(direction);
   }
 
   onRedButtonClick(event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.rpg.goBackOrClearForm(() => this.clearForm());
   }
 
   onBlueButtonClick(event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.blueAdvanceOrClear.emit();
   }
 
   onAButtonClick(event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.aConfirm.emit();
   }
 }

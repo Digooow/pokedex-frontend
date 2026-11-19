@@ -122,14 +122,19 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
                     Remover
                   </button>
                 } @else if (pokedex.selectedPokemon(); as active) {
-                  <button
-                    type="button"
-                    class="btn-slot-acao"
-                    [disabled]="slotsStore.busySlot() === idx"
-                    (click)="onRecordCurrent(idx, $event)"
-                  >
-                    Gravar {{ active.displayName }}
-                  </button>
+                  @let dupSlot = findSavedSlot(active.id, active.name);
+                  @if (dupSlot !== null) {
+                    <span class="slot-cloud-sync-hint">Já salvo no #{{ padIndex(dupSlot) }}</span>
+                  } @else {
+                    <button
+                      type="button"
+                      class="btn-slot-acao"
+                      [disabled]="slotsStore.busySlot() === idx"
+                      (click)="onRecordCurrent(idx, $event)"
+                    >
+                      Gravar {{ active.displayName }}
+                    </button>
+                  }
                 }
               </div>
             </div>
@@ -215,12 +220,23 @@ export class PokedexSlotsConfigComponent {
 
   onClearAll(event: Event): void {
     event.stopPropagation();
-    this.slotsStore.clearAllSlots();
+    const occupiedCount = this.slotsStore.slotsMap().size;
+    if (occupiedCount === 0) {
+      return;
+    }
+    this.slotsStore.requestConfirm({
+      kind: 'delete-all',
+      occupiedCount,
+    });
   }
 
   onCloseConfig(event: Event): void {
     event.stopPropagation();
     this.closeRequested.emit();
+  }
+
+  findSavedSlot(pokemonId: number, pokemonName: string): number | null {
+    return this.slotsStore.findSlotByPokemon(pokemonId, pokemonName);
   }
 
   onOpenSlot(slot: PokedexSlotRecord, event: Event): void {
@@ -242,7 +258,9 @@ export class PokedexSlotsConfigComponent {
       this.rpg.rpgLevel.set('edicao');
       this.rpg.rpgScreen.set('visor');
       this.rpg.rpgControlIndices.update((prev) => ({ ...prev, edicao: 0 }));
-      setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
+      if (this.rpg.keyboardRpgActive()) {
+        setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
+      }
     } else {
       this.slotsStore.setEditingSlotIndex(null);
       this.rpg.rpgLevel.set('itens');
@@ -254,12 +272,22 @@ export class PokedexSlotsConfigComponent {
     this.editError.set(null);
     this.slotsStore.setEditingSlotIndex(null);
     this.rpg.rpgLevel.set('itens');
-    setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
+    if (this.rpg.keyboardRpgActive()) {
+      setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
+    }
   }
 
   onRemoveSlot(idx: number, event: Event): void {
     event.stopPropagation();
-    this.slotsStore.clearSlot(idx);
+    const slot = this.getSlot(idx);
+    if (!slot) {
+      return;
+    }
+    this.slotsStore.requestConfirm({
+      kind: 'delete-one',
+      slotIndex: idx,
+      existingLabel: `#${this.padIndex(idx)} ${this.formatSlotLabel(slot)}`,
+    });
   }
 
   onRecordCurrent(idx: number, event: Event): void {
@@ -296,7 +324,6 @@ export class PokedexSlotsConfigComponent {
         nickname,
       );
       this.rpg.rpgLevel.set('itens');
-      setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
       return;
     }
 
@@ -308,9 +335,21 @@ export class PokedexSlotsConfigComponent {
         this.editError.set('Pokémon não encontrado na PokéAPI. Verifique o nome ou ID.');
         return;
       }
-      this.slotsStore.saveSlot(idx, resolved, nickname);
+      const dupSlot = this.slotsStore.findSlotByPokemon(resolved.id, resolved.name, idx);
+      if (dupSlot !== null) {
+        this.editError.set(
+          `${resolved.displayName} já está cadastrado no Botão #${this.padIndex(dupSlot)}. Apenas 1 Pokémon por botão.`,
+        );
+        return;
+      }
+      this.slotsStore.requestConfirm({
+        kind: 'overwrite-edit',
+        slotIndex: idx,
+        existingLabel: this.formatSlotLabel(slotAtual),
+        nextPokemon: resolved,
+        nickname,
+      });
       this.rpg.rpgLevel.set('itens');
-      setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
     } finally {
       this.savingEdit.set(false);
     }

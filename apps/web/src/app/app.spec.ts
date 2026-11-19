@@ -7,6 +7,7 @@ import { AuthStore } from './core/stores/auth.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
 import { PokedexDevicePageComponent } from './features/pokedex-device/pokedex-device.component';
+import { PokedexRpgNavService } from './features/pokedex-device/services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './features/pokedex-device/services/pokedex-slots.store';
 import { PokedexStore } from './features/pokedex-device/services/pokedex.store';
 
@@ -198,5 +199,100 @@ describe('PokéVerse OS Shell', () => {
     slotsStore.saveSlot(2, pikachu);
     slotsStore.clearAllSlots();
     expect(slotsStore.slotsMap().size).toBe(0);
+  });
+
+  it('prevents duplicate Pokémon across slots and manages overwrite/delete confirm state', () => {
+    window.localStorage.removeItem('pokedex_slots_salvos');
+    const slotsStore = TestBed.inject(PokedexSlotsStore);
+    const pikachu = { id: 25, name: 'pikachu', displayName: 'Pikachu', spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png' };
+    const bulbasaur = { id: 1, name: 'bulbasaur', displayName: 'Bulbasaur', spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png' };
+
+    expect(slotsStore.saveSlot(0, pikachu)).toBe(true);
+    expect(slotsStore.saveSlot(1, pikachu)).toBe(false);
+    expect(slotsStore.slotsMap().get(1)).toBeUndefined();
+    expect(slotsStore.feedback()).toContain('Slot 01');
+
+    slotsStore.requestConfirm({
+      kind: 'delete-one',
+      slotIndex: 0,
+      existingLabel: '#01 Pikachu',
+    });
+    expect(slotsStore.pendingConfirm()?.kind).toBe('delete-one');
+    expect(slotsStore.slotsMap().get(0)?.pokemonName).toBe('pikachu');
+
+    slotsStore.closeConfirm();
+    expect(slotsStore.pendingConfirm()).toBeNull();
+    expect(slotsStore.saveSlot(1, bulbasaur)).toBe(true);
+    expect(slotsStore.slotsMap().size).toBe(2);
+  });
+
+  it('allows reversing 3D lid animation mid-flight on both opening and closing', () => {
+    vi.useFakeTimers();
+    try {
+      const httpMock = TestBed.inject(HttpTestingController);
+      const quality = TestBed.inject(QualityStore);
+      const store = TestBed.inject(PokedexStore);
+      quality.setPreference('ultra');
+
+      const fixture = TestBed.createComponent(PokedexDevicePageComponent);
+      fixture.detectChanges();
+      flushInitialRequests(httpMock);
+      const rpg = fixture.debugElement.injector.get(PokedexRpgNavService);
+
+      const aparelho = fixture.nativeElement.querySelector('#pokedex-aparelho') as HTMLElement;
+      const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
+
+      // Start opening, then reverse back to closed mid-flight
+      openBtn.click();
+      vi.advanceTimersByTime(40);
+      fixture.detectChanges();
+      expect(rpg.isAnimating()).toBe(true);
+      expect(rpg.isDesiredOpen()).toBe(true);
+      expect(store.coverOpen()).toBe(true);
+
+      openBtn.click();
+      fixture.detectChanges();
+      expect(rpg.isAnimating()).toBe(true);
+      expect(rpg.isDesiredOpen()).toBe(false);
+      expect(store.coverOpen()).toBe(false);
+
+      vi.advanceTimersByTime(1350);
+      fixture.detectChanges();
+      expect(rpg.isAnimating()).toBe(false);
+      expect(store.coverOpen()).toBe(false);
+
+      // Open fully, start closing, then click device shell mid-close to keep open
+      openBtn.click();
+      vi.advanceTimersByTime(1350);
+      fixture.detectChanges();
+      expect(store.coverOpen()).toBe(true);
+
+      aparelho.click();
+      vi.advanceTimersByTime(40);
+      fixture.detectChanges();
+      expect(rpg.isAnimating()).toBe(true);
+      expect(rpg.isDesiredOpen()).toBe(false);
+
+      aparelho.click();
+      fixture.detectChanges();
+      expect(rpg.isAnimating()).toBe(true);
+      expect(rpg.isDesiredOpen()).toBe(true);
+
+      vi.advanceTimersByTime(1350);
+      fixture.detectChanges();
+      expect(rpg.isAnimating()).toBe(false);
+      expect(store.coverOpen()).toBe(true);
+      httpMock.match('/api/v1/pokedex/catalog').forEach((req) =>
+        req.flush({
+          total: 1,
+          page: 1,
+          limit: 1350,
+          source: 'pokeapi',
+          items: [{ id: 25, name: 'pikachu', displayName: 'Pikachu', spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png' }],
+        }),
+      );
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

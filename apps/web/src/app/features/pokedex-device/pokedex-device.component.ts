@@ -18,6 +18,7 @@ import { Subscription } from 'rxjs';
 import { PokedexCoverComponent } from './components/pokedex-cover.component';
 import { PokedexSearchPanelComponent } from './components/pokedex-search-panel.component';
 import { PokedexVisorComponent } from './components/pokedex-visor.component';
+import { SlotConfirmDialogComponent } from './components/slot-confirm-dialog.component';
 import {
   KEY_TO_DIRECTION,
   PokedexRpgNavService,
@@ -30,7 +31,12 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 /** Canonical 3D Hinged Pokédex Stage faithfully integrated with PokéVerse cloud telemetry and Neon slots. */
 @Component({
   selector: 'pv-pokedex-device',
-  imports: [PokedexCoverComponent, PokedexSearchPanelComponent, PokedexVisorComponent],
+  imports: [
+    PokedexCoverComponent,
+    PokedexSearchPanelComponent,
+    PokedexVisorComponent,
+    SlotConfirmDialogComponent,
+  ],
   providers: [PokedexRpgNavService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pokedex-device.component.html',
@@ -54,19 +60,23 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   private querySub: Subscription | null = null;
 
   private readonly onDocPointerDown = (event: Event) => {
+    this.rpg.deactivateKeyboardMode();
     this.rpg.markPointerStart(event.target);
   };
 
   private readonly onDocClick = (event: Event) => {
     const startedPreserved = this.rpg.consumePointerPreserved();
-    if (!this.store.coverOpen() || this.rpg.isAnimating() || this.rpg.isAnyModalOpen()) {
+    if (!this.rpg.isDesiredOpen() || this.rpg.isAnyModalOpen()) {
       return;
     }
     const target = event.target;
     if (
       startedPreserved ||
       (target instanceof Node && !target.isConnected) ||
-      this.rpg.belongsTo(target, '.painel-busca, .painel-resultado, .controle-interativo, .barra-cenarios, .hud-topbar, .hud-dock, .rodape, dialog[open]')
+      this.rpg.belongsTo(
+        target,
+        '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo, .barra-cenarios, .hud-topbar, .hud-dock, .rodape, dialog, dialog[open]',
+      )
     ) {
       return;
     }
@@ -89,6 +99,10 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     if (this.isEditableControl(target)) {
       this.handleInputKeyDown(event, target, direction);
       return;
+    }
+
+    if (direction || event.key === 'Enter' || event.key === 'Backspace' || event.key === 'Tab') {
+      this.rpg.activateKeyboardMode();
     }
 
     this.handleStageKeyDown(event, target, direction);
@@ -245,6 +259,14 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     });
   }
 
+  onCoverTriggerClick(): void {
+    if (this.rpg.isDesiredOpen()) {
+      this.closePokedex(true);
+    } else {
+      this.openPokedex();
+    }
+  }
+
   onDevicePointerMove(event: PointerEvent): void {
     const el = this.aparelhoEl()?.nativeElement;
     if (el) {
@@ -253,10 +275,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   }
 
   onDeviceClick(event: Event): void {
-    if (this.rpg.isAnimating()) {
-      return;
-    }
-    if (!this.store.coverOpen()) {
+    if (!this.rpg.isDesiredOpen()) {
       event.stopPropagation();
       this.rpg.consumePointerPreserved();
       this.openPokedex();
@@ -268,8 +287,8 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     if (
       startedPreserved ||
       (target instanceof Node && !target.isConnected) ||
-      this.rpg.isInternalInteractiveTarget(target) ||
-      this.rpg.belongsTo(target, '#tampa-frente')
+      (!this.rpg.isAnimating() && this.rpg.isInternalInteractiveTarget(target)) ||
+      (!this.rpg.isAnimating() && this.rpg.belongsTo(target, '#tampa-frente'))
     ) {
       return;
     }
@@ -292,6 +311,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
   isSlotRpgFocused(index: number): boolean {
     return (
+      this.rpg.keyboardRpgActive() &&
       this.store.coverOpen() &&
       this.rpg.rpgLevel() === 'itens' &&
       this.rpg.rpgScreen() === 'slots' &&
@@ -325,44 +345,89 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
   onSlotClick(slotIndex: number, event: Event): void {
     event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.rpg.rpgLevel.set('itens');
     this.rpg.rpgScreen.set('slots');
     this.rpg.rpgSlotFocusIndex.set(slotIndex);
 
     const existing = this.getSlot(slotIndex);
+    const active = this.store.selectedPokemon();
+
     if (existing) {
-      this.slotsStore.setEditMode(false);
-      this.transientBadge.set(null);
-      this.store.setQuery(existing.pokemonName);
-      this.store.loadPokemonDetail(existing.pokemonName);
+      if (!active || active.name.toLowerCase() === existing.pokemonName.toLowerCase()) {
+        this.onOpenExistingFromDialog(existing.pokemonName);
+        return;
+      }
+
+      const duplicateSlot = this.slotsStore.findSlotByPokemon(active.id, active.name, slotIndex);
+      this.slotsStore.requestConfirm({
+        kind: 'overwrite-click',
+        slotIndex,
+        existingLabel: formatPokeApiText(existing.pokemonName),
+        existingName: existing.pokemonName,
+        candidate: active,
+        duplicateSlotIndex: duplicateSlot,
+      });
       return;
     }
 
-    const active = this.store.selectedPokemon();
     if (active) {
-      this.slotsStore.saveSlot(slotIndex, active);
-      this.flashTransientBadge(`Salvo no slot ${String(slotIndex + 1).padStart(2, '0')}`, 'sucesso');
+      const duplicateSlot = this.slotsStore.findSlotByPokemon(active.id, active.name, slotIndex);
+      if (duplicateSlot !== null) {
+        this.slotsStore.saveSlot(slotIndex, active);
+        this.flashTransientBadge(
+          `Já salvo no slot ${String(duplicateSlot + 1).padStart(2, '0')}`,
+          'aviso',
+        );
+        return;
+      }
+      if (this.slotsStore.saveSlot(slotIndex, active)) {
+        this.flashTransientBadge(`Salvo no slot ${String(slotIndex + 1).padStart(2, '0')}`, 'sucesso');
+      }
       return;
     }
 
     this.flashTransientBadge('Busque p/ gravar', 'aviso');
   }
 
+  onOpenExistingFromDialog(pokemonName: string): void {
+    this.slotsStore.setEditMode(false);
+    this.transientBadge.set(null);
+    this.store.setQuery(pokemonName);
+    this.store.loadPokemonDetail(pokemonName);
+  }
+
+  onOverwrittenFromDialog(info: { readonly slotIndex: number; readonly name: string }): void {
+    this.flashTransientBadge(
+      `Slot ${String(info.slotIndex + 1).padStart(2, '0')} atualizado (${info.name})`,
+      'sucesso',
+    );
+  }
+
   toggleSlotsConfig(moveFocusToVisor: boolean, event?: Event): void {
     event?.stopPropagation();
+    if (!moveFocusToVisor && event) {
+      this.rpg.deactivateKeyboardMode();
+      (event.currentTarget as HTMLElement | null)?.blur?.();
+    }
     const opening = !this.slotsStore.editMode();
     if (opening) {
       this.slotsStore.setEditMode(true);
       this.rpg.rpgScreen.set('visor');
       this.rpg.rpgLevel.set('itens');
       this.rpg.rpgControlIndices.update((prev) => ({ ...prev, visor: 0 }));
-      setTimeout(() => this.rpg.syncFocusVisuals(moveFocusToVisor), 0);
+      if (moveFocusToVisor) {
+        setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
+      }
     } else {
       this.slotsStore.setEditMode(false);
       this.rpg.rpgScreen.set('slots');
       this.rpg.rpgLevel.set('itens');
       this.rpg.rpgSlotFocusIndex.set(10);
-      setTimeout(() => this.rpg.syncFocusVisuals(moveFocusToVisor), 0);
+      if (moveFocusToVisor) {
+        setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
+      }
     }
   }
 

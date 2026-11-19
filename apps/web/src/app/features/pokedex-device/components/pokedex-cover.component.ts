@@ -12,15 +12,15 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
     `,
   ],
   template: `
-    <div id="tampa-frente" class="aba-face aba-face--frente" [inert]="coverOpen()">
+    <div id="tampa-frente" class="aba-face aba-face--frente" [inert]="coverOpen() && !isAnimating()">
       <button
         type="button"
         id="btn-abrir-pokedex"
         class="pokedex-tampa-fechada"
-        [disabled]="coverOpen()"
+        [disabled]="coverOpen() && !isAnimating()"
         [attr.aria-expanded]="coverOpen()"
         aria-controls="pokedex-ala-base pokedex-ala-scanner"
-        aria-label="Abrir Pokédex"
+        [attr.aria-label]="coverOpen() ? 'Fechar Pokédex' : 'Abrir Pokédex'"
         (click)="onTriggerClick($event)"
       >
         <span class="ala-topo ala-topo--capa">
@@ -84,10 +84,12 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
 })
 export class PokedexCoverComponent {
   readonly coverOpen = input.required<boolean>();
+  readonly isAnimating = input(false);
   readonly openRequested = output<void>();
 
   onTriggerClick(event: Event): void {
     event.stopPropagation();
+    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.openRequested.emit();
   }
 }

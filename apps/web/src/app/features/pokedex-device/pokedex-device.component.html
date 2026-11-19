@@ -26,8 +26,7 @@
         <div
           id="pokedex-ala-base"
           class="pokedex-ala pokedex-ala--base"
-          [inert]="!store.coverOpen()"
-          title="Clique na carcaça para fechar a Pokédex"
+          [inert]="!store.coverOpen() && !rpg.isAnimating()"
         >
           <header class="ala-topo ala-topo--base">
             <div class="pokedex-titulo-grupo">
@@ -91,7 +90,8 @@
         <div id="pokedex-aba-giratoria" class="pokedex-aba-giratoria">
           <pv-pokedex-cover
             [coverOpen]="store.coverOpen()"
-            (openRequested)="openPokedex()"
+            [isAnimating]="rpg.isAnimating()"
+            (openRequested)="onCoverTriggerClick()"
           />
 
           <pv-pokedex-search-panel
@@ -103,4 +103,9 @@
       </div>
     </div>
   </section>
+
+  <pv-slot-confirm-dialog
+    (openExistingRequested)="onOpenExistingFromDialog($event)"
+    (overwrittenFromClick)="onOverwrittenFromDialog($event)"
+  />
 </main>

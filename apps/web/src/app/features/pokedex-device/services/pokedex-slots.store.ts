@@ -11,6 +11,32 @@ import { catchError, forkJoin, map, of } from 'rxjs';
 import { AuthStore } from '../../../core/stores/auth.store';
 import type { PokemonDetailView, ResolvedPokemonForSlot } from './pokedex.store';
 
+export type SlotConfirmPrompt =
+  | {
+      readonly kind: 'overwrite-click';
+      readonly slotIndex: number;
+      readonly existingLabel: string;
+      readonly existingName: string;
+      readonly candidate: PokemonDetailView;
+      readonly duplicateSlotIndex: number | null;
+    }
+  | {
+      readonly kind: 'overwrite-edit';
+      readonly slotIndex: number;
+      readonly existingLabel: string;
+      readonly nextPokemon: ResolvedPokemonForSlot;
+      readonly nickname: string | null;
+    }
+  | {
+      readonly kind: 'delete-one';
+      readonly slotIndex: number;
+      readonly existingLabel: string;
+    }
+  | {
+      readonly kind: 'delete-all';
+      readonly occupiedCount: number;
+    };
+
 const TOTAL_SLOTS = 10;
 const LOCAL_SLOTS_KEY = 'pokedex_slots_salvos';
 
@@ -29,6 +55,7 @@ export class PokedexSlotsStore {
   private readonly editModeSignal = signal(false);
   private readonly editingSlotIndexSignal = signal<number | null>(null);
   private readonly feedbackSignal = signal<string | null>(null);
+  private readonly pendingConfirmSignal = signal<SlotConfirmPrompt | null>(null);
 
   readonly isCloudBacked = computed(() => this.auth.isAuthenticated());
   readonly slotsMap = computed<ReadonlyMap<number, PokedexSlotRecord>>(() =>
@@ -39,6 +66,7 @@ export class PokedexSlotsStore {
   readonly editMode = this.editModeSignal.asReadonly();
   readonly editingSlotIndex = this.editingSlotIndexSignal.asReadonly();
   readonly feedback = this.feedbackSignal.asReadonly();
+  readonly pendingConfirm = this.pendingConfirmSignal.asReadonly();
 
   constructor() {
     effect(() => {
@@ -71,6 +99,32 @@ export class PokedexSlotsStore {
     this.editingSlotIndexSignal.set(index);
   }
 
+  requestConfirm(prompt: SlotConfirmPrompt): void {
+    this.pendingConfirmSignal.set(prompt);
+  }
+
+  closeConfirm(): void {
+    this.pendingConfirmSignal.set(null);
+  }
+
+  /** Returns the slot index where a Pokémon is already stored, excluding the optional target slot. */
+  findSlotByPokemon(
+    pokemonId: number,
+    pokemonName: string,
+    excludeSlotIndex?: number,
+  ): number | null {
+    const normalizedName = pokemonName.trim().toLowerCase();
+    for (const [idx, entry] of this.slotsMap().entries()) {
+      if (excludeSlotIndex !== undefined && idx === excludeSlotIndex) {
+        continue;
+      }
+      if (entry.pokemonId === pokemonId || entry.pokemonName.toLowerCase() === normalizedName) {
+        return idx;
+      }
+    }
+    return null;
+  }
+
   loadSlots(): void {
     if (!this.auth.isAuthenticated()) {
       this.localSlotsSignal.set(this.loadLocalSlots());
@@ -99,9 +153,17 @@ export class PokedexSlotsStore {
     slotIndex: number,
     pokemon: PokemonDetailView | ResolvedPokemonForSlot,
     nickname: string | null = null,
-  ): void {
+  ): boolean {
     if (slotIndex < 0 || slotIndex >= TOTAL_SLOTS || this.busySlotSignal() !== null) {
-      return;
+      return false;
+    }
+
+    const duplicateSlot = this.findSlotByPokemon(pokemon.id, pokemon.name, slotIndex);
+    if (duplicateSlot !== null) {
+      this.feedbackSignal.set(
+        `${pokemon.displayName} já está salvo no Slot ${String(duplicateSlot + 1).padStart(2, '0')}. Cada Pokémon pode ocupar apenas um botão.`,
+      );
+      return false;
     }
 
     const cleanNickname = nickname?.trim() ? nickname.trim() : null;
@@ -115,12 +177,12 @@ export class PokedexSlotsStore {
 
     if (!payload.success) {
       this.feedbackSignal.set('Dados do Pokémon inválidos para gravação.');
-      return;
+      return false;
     }
 
     if (!this.isCloudBacked()) {
       this.saveLocalSlot(payload.data);
-      return;
+      return true;
     }
 
     this.busySlotSignal.set(slotIndex);
@@ -150,6 +212,7 @@ export class PokedexSlotsStore {
           `Salvo no slot ${String(slotIndex + 1).padStart(2, '0')} (${pokemon.displayName})`,
         );
       });
+    return true;
   }
 
   clearSlot(slotIndex: number): void {
@@ -280,14 +343,22 @@ export class PokedexSlotsStore {
       if (!Array.isArray(parsed)) {
         return empty;
       }
+      const seenIds = new Set<number>();
+      const seenNames = new Set<string>();
       for (const [idx, item] of parsed.entries()) {
         if (idx >= TOTAL_SLOTS) {
           continue;
         }
         const entry = this.parseLocalSlotEntry(idx, item);
-        if (entry) {
-          empty.set(idx, entry);
+        if (!entry) {
+          continue;
         }
+        if (seenIds.has(entry.pokemonId) || seenNames.has(entry.pokemonName)) {
+          continue;
+        }
+        seenIds.add(entry.pokemonId);
+        seenNames.add(entry.pokemonName);
+        empty.set(idx, entry);
       }
       return empty;
     } catch {

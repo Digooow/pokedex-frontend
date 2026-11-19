@@ -37,8 +37,9 @@ export const KEY_TO_DIRECTION: Readonly<Record<string, RpgDirection>> = {
 };
 
 const PRESERVED_OUTSIDE_SELECTOR =
-  '.painel-busca, .painel-resultado, .controle-interativo, .barra-cenarios, .hud-topbar, .hud-dock, .rodape, dialog[open]';
-const INTERNAL_INTERACTIVE_SELECTOR = '.painel-busca, .painel-resultado, .controle-interativo';
+  '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo, .barra-cenarios, .hud-topbar, .hud-dock, .rodape, dialog, dialog[open]';
+const INTERNAL_INTERACTIVE_SELECTOR =
+  '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo';
 
 /** Orchestrates 3D cover flip animation, animation frame watchdog, dynamic glint, and RPG keypad navigation. */
 @Injectable()
@@ -49,6 +50,7 @@ export class PokedexRpgNavService implements OnDestroy {
   private readonly slotsStore = inject(PokedexSlotsStore);
 
   private hostEl: HTMLElement | null = null;
+  private flipStartRafId = 0;
   private flipTimer: ReturnType<typeof setTimeout> | null = null;
   private watchdogRafId = 0;
   private glintRafId = 0;
@@ -58,6 +60,7 @@ export class PokedexRpgNavService implements OnDestroy {
 
   readonly isAnimating = signal(false);
   readonly isTransitioning = signal(false);
+  readonly keyboardRpgActive = signal(false);
   readonly luzActive = signal(false);
   readonly luzX = signal('28%');
   readonly luzY = signal('20%');
@@ -74,6 +77,7 @@ export class PokedexRpgNavService implements OnDestroy {
 
   readonly isVisorSelectingList = computed(
     () =>
+      this.keyboardRpgActive() &&
       this.pokedex.coverOpen() &&
       this.rpgLevel() === 'itens' &&
       this.rpgScreen() === 'lista',
@@ -158,8 +162,16 @@ export class PokedexRpgNavService implements OnDestroy {
     this.luzY.set('20%');
   }
 
+  isDesiredOpen(): boolean {
+    if (this.isAnimating() && this.pendingTargetOpen !== null) {
+      return this.pendingTargetOpen;
+    }
+    return this.pokedex.coverOpen();
+  }
+
   openCover(onComplete?: () => void): void {
-    if (this.isAnimating() || this.pokedex.coverOpen()) {
+    const activeTarget = this.isAnimating() ? this.pendingTargetOpen : this.pokedex.coverOpen();
+    if (activeTarget === true) {
       return;
     }
     this.pokedex.ensureCatalogLoaded();
@@ -169,14 +181,33 @@ export class PokedexRpgNavService implements OnDestroy {
   }
 
   closeCover(onComplete?: () => void): void {
-    if (this.isAnimating() || !this.pokedex.coverOpen()) {
+    const activeTarget = this.isAnimating() ? this.pendingTargetOpen : this.pokedex.coverOpen();
+    if (activeTarget === false) {
       return;
     }
     this.runLidTransition(false, onComplete);
   }
 
+  private pendingTargetOpen: boolean | null = null;
+
+  activateKeyboardMode(): void {
+    this.keyboardRpgActive.set(true);
+  }
+
+  deactivateKeyboardMode(): void {
+    if (this.keyboardRpgActive()) {
+      this.keyboardRpgActive.set(false);
+    }
+    if (!this.isBrowser || !this.hostEl) {
+      return;
+    }
+    for (const el of this.hostEl.querySelectorAll('.is-rpg-foco')) {
+      el.classList.remove('is-rpg-foco');
+    }
+  }
+
   isScreenHighlighted(screen: RpgScreen): boolean {
-    if (!this.pokedex.coverOpen()) {
+    if (!this.keyboardRpgActive() || !this.pokedex.coverOpen()) {
       return false;
     }
     if (this.rpgLevel() === 'telas') {
@@ -321,7 +352,7 @@ export class PokedexRpgNavService implements OnDestroy {
     for (const el of this.hostEl.querySelectorAll('.is-rpg-foco')) {
       el.classList.remove('is-rpg-foco');
     }
-    if (!this.pokedex.coverOpen() || this.rpgLevel() === 'telas') {
+    if (!this.keyboardRpgActive() || !this.pokedex.coverOpen() || this.rpgLevel() === 'telas') {
       return;
     }
 
@@ -372,11 +403,16 @@ export class PokedexRpgNavService implements OnDestroy {
   }
 
   private runLidTransition(open: boolean, onComplete?: () => void): void {
+    const wasTransitioning = this.isAnimating() && this.isTransitioning();
     this.clearTimers();
     this.stopWatchdog();
+    this.pendingTargetOpen = open;
 
+    const host = this.hostEl;
     const skipMotion = this.quality.reducedMotion() || this.quality.tier() === 'lite';
-    if (skipMotion) {
+    if (skipMotion || !host) {
+      host?.classList.remove('is-transicionando', 'is-animando');
+      this.pendingTargetOpen = null;
       this.isTransitioning.set(false);
       this.isAnimating.set(false);
       this.pokedex.setCoverOpen(open);
@@ -385,21 +421,50 @@ export class PokedexRpgNavService implements OnDestroy {
       return;
     }
 
+    const scheduleCompletion = () => {
+      this.startWatchdog();
+      this.flipTimer = setTimeout(() => {
+        this.flipTimer = null;
+        this.stopWatchdog();
+        this.pendingTargetOpen = null;
+        host.classList.remove('is-transicionando', 'is-animando');
+        this.isTransitioning.set(false);
+        this.isAnimating.set(false);
+        this.syncFocusVisuals(false);
+        onComplete?.();
+      }, DURACAO_GIRO_POKEDEX_MS);
+    };
+
+    // Reversal mid-flight: preserve .is-animando & .is-transicionando so CSS transition smoothly reverses from live angle
+    if (wasTransitioning) {
+      host.getBoundingClientRect();
+      this.pokedex.setCoverOpen(open);
+      scheduleCompletion();
+      return;
+    }
+
+    // Step 1: Enter 3D preserve-3d geometry BEFORE changing data-aberta so browser computes exact start transform (eg. rotateY(-180deg) when closing)
+    host.classList.remove('is-transicionando');
+    host.classList.add('is-animando');
     this.isTransitioning.set(false);
     this.isAnimating.set(true);
-    this.hostEl?.getBoundingClientRect();
-    this.isTransitioning.set(true);
-    this.pokedex.setCoverOpen(open);
-    this.startWatchdog();
+    host.getBoundingClientRect();
 
-    this.flipTimer = setTimeout(() => {
-      this.flipTimer = null;
-      this.stopWatchdog();
-      this.isTransitioning.set(false);
-      this.isAnimating.set(false);
-      this.syncFocusVisuals(false);
-      onComplete?.();
-    }, DURACAO_GIRO_POKEDEX_MS);
+    // Step 2: Paint Frame 0 on next animation frame, then enable transition + flip data-aberta
+    const scheduleNextFrame =
+      typeof requestAnimationFrame === 'function'
+        ? (cb: () => void) => requestAnimationFrame(cb)
+        : (cb: () => void) => setTimeout(cb, 0) as unknown as number;
+
+    this.flipStartRafId = scheduleNextFrame(() => {
+      this.flipStartRafId = 0;
+      const target = this.pendingTargetOpen ?? open;
+      host.classList.add('is-transicionando');
+      host.getBoundingClientRect();
+      this.isTransitioning.set(true);
+      this.pokedex.setCoverOpen(target);
+      scheduleCompletion();
+    });
   }
 
   private startWatchdog(): void {
@@ -446,6 +511,10 @@ export class PokedexRpgNavService implements OnDestroy {
   }
 
   private clearTimers(): void {
+    if (this.flipStartRafId && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.flipStartRafId);
+      this.flipStartRafId = 0;
+    }
     if (this.flipTimer !== null) {
       clearTimeout(this.flipTimer);
       this.flipTimer = null;
