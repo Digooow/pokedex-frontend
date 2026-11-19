@@ -1,6 +1,6 @@
 # Manual Técnico e Estudo de Caso — Pokédex Interativa 3D em JavaScript Vanilla
 
-> **Aplicação publicada (hospedagem estática no GitHub Pages):** [https://digooow.github.io/pokedex-frontend/](https://digooow.github.io/pokedex-frontend/)
+> **Plataforma publicada atualmente (PokéVerse OS — Cloudflare Pages + Azure):** [https://pokeverse.pages.dev/](https://pokeverse.pages.dev/) *(este manual documenta a base estática da Fase 0 preservada na raiz em [index.html](index.html), [css/style.css](css/style.css) e [js/app.js](js/app.js))*
 
 Este documento é um manual técnico completo de tudo o que foi implementado em [index.html](index.html), [css/style.css](css/style.css) e [js/app.js](js/app.js). O projeto foi concebido como um **estudo de caso prático do limite alcançável usando exclusivamente HTML5, CSS3 e JavaScript puro (Vanilla JS)** — respeitando a restrição intencional de **não utilizar frameworks, bibliotecas de UI, gerenciadores de estado, clientes HTTP externos ou ferramentas de build**. O objetivo deste guia é permitir que qualquer pessoa desenvolvedora compreenda, linha por linha, os recursos nativos da plataforma Web moderna e o poder do JavaScript puro em cenários complexos.
 

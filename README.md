@@ -1,6 +1,6 @@
 # Pokédex
 
-> **Site publicado (hospedagem estática no GitHub Pages):** [https://digooow.github.io/pokedex-frontend/](https://digooow.github.io/pokedex-frontend/)
+> **Plataforma oficial no ar (Cloudflare Pages + Azure Container Apps):** [https://pokeverse.pages.dev/](https://pokeverse.pages.dev/) *(os arquivos da raiz [index.html](index.html), [css/style.css](css/style.css) e [js/app.js](js/app.js) preservam a versão estática original da Fase 0 como referência visual)*
 
 Aplicação web desenvolvida com **HTML5**, **CSS3** e **JavaScript puro** no formato de **Pokédex 3D interativa** sobre 4 cenários Pokémon em alta resolução, consumindo em tempo real a API pública [PokéAPI](https://pokeapi.co/).
 
