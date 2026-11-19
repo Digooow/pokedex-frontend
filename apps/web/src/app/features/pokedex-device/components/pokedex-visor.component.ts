@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
-import type { SearchablePokemonItem } from '@pokeverse/shared';
-import type { AsyncState } from '@pokeverse/shared';
+import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 import type { PokemonDetailView } from '../services/pokedex.store';

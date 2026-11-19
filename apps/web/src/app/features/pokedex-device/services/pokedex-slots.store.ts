@@ -281,41 +281,55 @@ export class PokedexSlotsStore {
         return empty;
       }
       for (const [idx, item] of parsed.entries()) {
-        if (idx >= TOTAL_SLOTS || typeof item !== 'object' || item === null) {
+        if (idx >= TOTAL_SLOTS) {
           continue;
         }
-        const recordCandidate = item as Record<string, unknown>;
-        const rawName = recordCandidate['name'] ?? recordCandidate['pokemonName'];
-        if (typeof rawName !== 'string' || !rawName.trim()) {
-          continue;
+        const entry = this.parseLocalSlotEntry(idx, item);
+        if (entry) {
+          empty.set(idx, entry);
         }
-        const parsedId = Number(recordCandidate['id'] ?? recordCandidate['pokemonId']) || 1;
-        const nickname =
-          typeof recordCandidate['apelido'] === 'string' && recordCandidate['apelido'].trim()
-            ? recordCandidate['apelido'].trim()
-            : typeof recordCandidate['nickname'] === 'string' && recordCandidate['nickname'].trim()
-              ? recordCandidate['nickname'].trim()
-              : null;
-        const spriteUrl =
-          typeof recordCandidate['spriteUrl'] === 'string' && recordCandidate['spriteUrl']
-            ? recordCandidate['spriteUrl']
-            : null;
-        empty.set(idx, {
-          slotIndex: idx,
-          pokemonId: parsedId,
-          pokemonName: rawName.toLowerCase(),
-          nickname,
-          spriteUrl,
-          updatedAt:
-            typeof recordCandidate['updatedAt'] === 'string'
-              ? recordCandidate['updatedAt']
-              : new Date().toISOString(),
-        });
       }
+      return empty;
     } catch {
       return new Map();
     }
-    return empty;
+  }
+
+  private parseLocalSlotEntry(idx: number, item: unknown): PokedexSlotRecord | null {
+    if (typeof item !== 'object' || item === null) {
+      return null;
+    }
+    const candidate = item as Record<string, unknown>;
+    const rawName = candidate['name'] ?? candidate['pokemonName'];
+    if (typeof rawName !== 'string' || !rawName.trim()) {
+      return null;
+    }
+
+    const parsedId = Number(candidate['id'] ?? candidate['pokemonId']) || 1;
+    const nickname = this.extractTrimmedString(candidate['apelido'])
+      ?? this.extractTrimmedString(candidate['nickname']);
+    const spriteUrl = this.extractTrimmedString(candidate['spriteUrl']);
+    const updatedAt =
+      typeof candidate['updatedAt'] === 'string'
+        ? candidate['updatedAt']
+        : new Date().toISOString();
+
+    return {
+      slotIndex: idx,
+      pokemonId: parsedId,
+      pokemonName: rawName.toLowerCase(),
+      nickname,
+      spriteUrl,
+      updatedAt,
+    };
+  }
+
+  private extractTrimmedString(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+    const trimmed = value.trim();
+    return trimmed || null;
   }
 
   private persistLocalSlots(slots: ReadonlyMap<number, PokedexSlotRecord>): void {

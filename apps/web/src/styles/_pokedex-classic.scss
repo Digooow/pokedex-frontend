@@ -217,7 +217,7 @@
 
   .pokedex-aparelho {
     --wing-w: min(23.5rem, calc(100vw - 1.5rem));
-    --wing-h: clamp(39.5rem, 80dvh, 44.5rem);
+    --wing-h: clamp(36rem, 78dvh, 42.5rem);
     display: flex;
     justify-content: center;
     padding-top: 0;
@@ -367,8 +367,8 @@
 
   @media (min-width: 880px) {
     .pokedex-aparelho {
-    --wing-w: min(23.5rem, calc(100vw - 1.5rem));
-    --wing-h: clamp(39.5rem, 80dvh, 44.5rem);
+      --wing-w: min(27.5rem, 43vw);
+      --wing-h: clamp(32.5rem, 71dvh, 41rem);
       padding-top: 0;
     }
 

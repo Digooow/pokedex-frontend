@@ -14,7 +14,7 @@ import {
   formatPokeApiText,
   normalizePokemonName,
 } from '@pokeverse/shared';
-import { Subscription, catchError, firstValueFrom, map, of, switchMap, timeout } from 'rxjs';
+import { Subscription, catchError, firstValueFrom, map, of, timeout } from 'rxjs';
 import { type ScenarioId, ScenarioStore } from '../../../core/stores/scenario.store';
 
 const API_CATALOG_URL = '/api/v1/pokedex/catalog';
@@ -251,16 +251,11 @@ export class PokedexStore implements OnDestroy {
       if (!resolved.found) {
         this.cacheSourceSignal.set(null);
         this.selectedIdSignal.set(null);
-        const message = resolved.notFound
-          ? `Não encontramos nenhum Pokémon com o nome "${rawStr}". Verifique a ortografia ou escolha uma sugestão.`
-          : resolved.statusCode
-            ? `Não foi possível concluir a comunicação com a PokéAPI no momento (código HTTP ${resolved.statusCode}).`
-            : 'A PokéAPI não respondeu a tempo. Verifique sua conexão com a internet e tente novamente.';
         this.detailStateSignal.set({
           status: 'error',
           error: {
             code: resolved.notFound ? 'POKEMON_NOT_FOUND' : 'POKEMON_FETCH_FAILED',
-            message,
+            message: this.buildFetchErrorMessage(rawStr, resolved),
             retryable: !resolved.notFound,
           },
         });
@@ -295,6 +290,19 @@ export class PokedexStore implements OnDestroy {
   ngOnDestroy(): void {
     this.catalogSub?.unsubscribe();
     this.detailSub?.unsubscribe();
+  }
+
+  private buildFetchErrorMessage(
+    rawTerm: string,
+    err: Extract<ResolvedPokemonResult, { readonly found: false }>,
+  ): string {
+    if (err.notFound) {
+      return `Não encontramos nenhum Pokémon com o nome "${rawTerm}". Verifique a ortografia ou escolha uma sugestão.`;
+    }
+    if (err.statusCode) {
+      return `Não foi possível concluir a comunicação com a PokéAPI no momento (código HTTP ${err.statusCode}).`;
+    }
+    return 'A PokéAPI não respondeu a tempo. Verifique sua conexão com a internet e tente novamente.';
   }
 
   private fetchPokemonDto(normalized: string) {

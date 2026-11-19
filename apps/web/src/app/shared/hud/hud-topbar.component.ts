@@ -293,7 +293,7 @@ export class HudTopbarComponent {
         return {
           label: ok ? 'Nuvem Online' : 'Nuvem Degradada',
           tone: ok ? 'ok' : 'warn',
-          title: `DB: ${ready.dependencies.postgres} · Redis: ${ready.dependencies.redis} · Kafka: ${ready.dependencies.kafka}`,
+          title: `DB: ${ready.dependencies.postgres.status} (${ready.dependencies.postgres.latencyMs}ms) · Redis: ${ready.dependencies.redis.status} · Kafka: ${ready.dependencies.kafka.status}`,
         };
       }
       case 'error':

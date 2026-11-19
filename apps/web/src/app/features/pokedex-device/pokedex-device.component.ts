@@ -86,34 +86,78 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     const direction = KEY_TO_DIRECTION[event.key];
     const target = event.target as HTMLElement | null;
 
-    if (target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA' || target?.tagName === 'SELECT') {
-      if (target.id === 'pokemon-input' && direction) {
-        if (this.rpg.rpgLevel() === 'telas' && !this.store.query()) {
-          event.preventDefault();
-          target.blur();
-          this.rpg.navigate(direction);
-          return;
-        }
-        if (direction === 'baixo') {
-          event.preventDefault();
-          target.blur();
-          this.rpg.enterScreen('lista');
-          return;
-        }
-        if (direction === 'cima') {
-          event.preventDefault();
-          target.blur();
-          this.rpg.rpgLevel.set('telas');
-          this.rpg.rpgScreen.set('busca');
-          this.rpg.syncFocusVisuals(false);
-        }
-      } else if (target.classList.contains('slot-form-input') && (direction === 'cima' || direction === 'baixo')) {
+    if (this.isEditableControl(target)) {
+      this.handleInputKeyDown(event, target, direction);
+      return;
+    }
+
+    this.handleStageKeyDown(event, target, direction);
+  };
+
+  onDeviceEscape(event: Event): void {
+    if (!this.store.coverOpen() || this.rpg.isAnyModalOpen()) {
+      return;
+    }
+    event.stopPropagation();
+    this.closePokedex(true);
+  }
+
+  private isEditableControl(target: HTMLElement | null): target is HTMLElement {
+    if (!target) {
+      return false;
+    }
+    return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+  }
+
+  private handleInputKeyDown(
+    event: KeyboardEvent,
+    target: HTMLElement,
+    direction: (typeof KEY_TO_DIRECTION)[string] | undefined,
+  ): void {
+    if (!direction) {
+      return;
+    }
+
+    if (target.classList.contains('slot-form-input')) {
+      if (direction === 'cima' || direction === 'baixo') {
         event.preventDefault();
         this.rpg.navigate(direction);
       }
       return;
     }
 
+    if (target.id !== 'pokemon-input') {
+      return;
+    }
+
+    if (this.rpg.rpgLevel() === 'telas' && !this.store.query()) {
+      event.preventDefault();
+      target.blur();
+      this.rpg.navigate(direction);
+      return;
+    }
+
+    if (direction === 'baixo') {
+      event.preventDefault();
+      target.blur();
+      this.rpg.enterScreen('lista');
+      return;
+    }
+
+    if (direction === 'cima') {
+      event.preventDefault();
+      target.blur();
+      this.rpg.rpgLevel.set('telas');
+      this.rpg.rpgScreen.set('busca');
+      this.rpg.syncFocusVisuals(false);
+    }
+  }
+
+  private handleStageKeyDown(
+    event: KeyboardEvent,
+    target: HTMLElement | null,
+    direction: (typeof KEY_TO_DIRECTION)[string] | undefined,
+  ): void {
     if (direction) {
       event.preventDefault();
       this.rpg.navigate(direction);
@@ -121,7 +165,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     }
 
     const isNativeFocusable =
-      target?.tagName === 'BUTTON' || target?.tagName === 'A' || target?.closest('a[href]');
+      target?.tagName === 'BUTTON' || target?.tagName === 'A' || Boolean(target?.closest('a[href]'));
     if (event.key === 'Enter' && !isNativeFocusable) {
       event.preventDefault();
       this.onAControl();
@@ -132,7 +176,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
       event.preventDefault();
       this.rpg.goBackOrClearForm(() => this.searchPanelCmp()?.clearForm());
     }
-  };
+  }
 
   constructor() {
     effect(() => {
@@ -240,7 +284,10 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   isSlotActivePokemon(slotIndex: number): boolean {
     const slot = this.getSlot(slotIndex);
     const active = this.store.selectedPokemon();
-    return Boolean(slot && active && slot.pokemonName.toLowerCase() === active.name.toLowerCase());
+    if (!slot || !active) {
+      return false;
+    }
+    return slot.pokemonName.toLowerCase() === active.name.toLowerCase();
   }
 
   isSlotRpgFocused(index: number): boolean {

@@ -77,7 +77,7 @@ import { PokedexStore } from '../services/pokedex.store';
                   [value]="store.query()"
                   placeholder="Ex.: pikachu, pikaxu ou 25"
                   required
-                  pattern=".*\\S.*"
+                  [attr.pattern]="nonWhitespacePattern"
                   autocorrect="off"
                   autocapitalize="none"
                   spellcheck="false"
@@ -278,6 +278,7 @@ export class PokedexSearchPanelComponent {
 
   readonly forceValidationError = signal(false);
   readonly inputTouched = signal(false);
+  readonly nonWhitespacePattern = String.raw`.*\S.*`;
 
   readonly isSearching = computed(() => this.store.detailState().status === 'loading');
 
