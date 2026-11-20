@@ -1,5 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   type AccessMode,
   AuthProvidersSchema,
@@ -44,6 +45,7 @@ function isPasskeyRequestOptions(value: unknown): value is PublicKeyCredentialRe
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
   private readonly http = inject(HttpClient);
+  private readonly router = inject(Router);
 
   private readonly sessionSignal = signal<AuthSessionResponse | null>(null);
   private readonly visitorPromptSignal = signal<VisitorPromptContext | null>(null);
@@ -330,10 +332,11 @@ export class AuthStore {
   }
 
   openMfaChallengePrompt(): void {
+    const preservedTarget = this.visitorPromptSignal()?.targetRoute;
     this.requestTrainerAccess(
       'Verificação em 2 Etapas (2FA)',
       'Sua sessão está em estado MFA_PENDING. Confirme com seu Authenticator App, código de backup ou Passkey.',
-      undefined,
+      preservedTarget,
       'mfa-challenge',
     );
   }
@@ -389,6 +392,7 @@ export class AuthStore {
       return;
     }
 
+    const targetRoute = this.visitorPromptSignal()?.targetRoute;
     this.sessionSignal.set(outcome.data);
     this.mutationSignal.set({ status: 'idle' });
     if (outcome.data.sessionState === 'MFA_PENDING') {
@@ -396,6 +400,9 @@ export class AuthStore {
       return;
     }
     this.visitorPromptSignal.set(null);
+    if (targetRoute) {
+      void this.router.navigateByUrl(targetRoute);
+    }
   }
 
   private handleMessageOutcome(

@@ -11,6 +11,7 @@ export class RequiresTrainerDirective {
   readonly lockedDescription = input<string>(
     'Recurso exclusivo para treinadores autenticados no servidor.',
   );
+  readonly lockedRoute = input<string | undefined>(undefined);
 
   @HostBinding('attr.aria-disabled')
   get ariaDisabled(): 'true' | null {
@@ -29,6 +30,10 @@ export class RequiresTrainerDirective {
     }
     event.preventDefault();
     event.stopImmediatePropagation();
-    this.auth.requestTrainerAccess(this.pvRequiresTrainer(), this.lockedDescription());
+    this.auth.requestTrainerAccess(
+      this.pvRequiresTrainer(),
+      this.lockedDescription(),
+      this.lockedRoute(),
+    );
   }
 }

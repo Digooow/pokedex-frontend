@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, HostListener, inject } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, HostListener, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { PLATFORM_MODULES } from '@pokeverse/shared';
+import { filter } from 'rxjs';
 import { AuthStore } from '../../core/stores/auth.store';
 import { RequiresTrainerDirective } from '../directives/requires-trainer.directive';
 
@@ -19,6 +21,7 @@ import { RequiresTrainerDirective } from '../directives/requires-trainer.directi
                 class="hud-dock__link hud-dock__link--locked"
                 [pvRequiresTrainer]="mod.label"
                 [lockedDescription]="mod.summary"
+                [lockedRoute]="mod.route"
               >
                 <span class="hud-dock__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
                 <span class="hud-dock__label">{{ mod.label }}</span>
@@ -168,9 +171,21 @@ export class HudQuickDockComponent {
   readonly auth = inject(AuthStore);
   private readonly router = inject(Router);
   readonly modules = PLATFORM_MODULES;
+  readonly currentUrl = signal(this.router.url);
+
+  constructor() {
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(),
+      )
+      .subscribe((event) => {
+        this.currentUrl.set(event.urlAfterRedirects);
+      });
+  }
 
   isModuleActive(route: string, id: string): boolean {
-    const cleanUrl = this.router.url.split('?')[0] ?? '/';
+    const cleanUrl = this.currentUrl().split('?')[0] ?? '/';
     if (id === 'pokedex') {
       return cleanUrl === '/' || cleanUrl === '/pokedex';
     }

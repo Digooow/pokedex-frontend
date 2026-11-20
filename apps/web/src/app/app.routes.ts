@@ -24,33 +24,40 @@ export const routes: Routes = [
   {
     path: 'museu',
     title: 'Museu das Regiões — PokéVerse OS',
+    data: { moduleId: 'museum' },
     loadComponent: () =>
-      import('./features/regions-museum/museum-page.component').then(
-        (m) => m.MuseumPageComponent,
+      import('./features/under-construction/under-construction.component').then(
+        (m) => m.UnderConstructionComponent,
       ),
   },
   {
     path: 'mundo',
+    title: 'Vila Central — PokéVerse OS',
     canActivate: [authGuard],
+    data: { moduleId: 'overworld' },
     loadComponent: () =>
-      import('./features/title-screen/title-screen.component').then(
-        (m) => m.TitleScreenComponent,
+      import('./features/under-construction/under-construction.component').then(
+        (m) => m.UnderConstructionComponent,
       ),
   },
   {
     path: 'arcade',
+    title: 'Arcade Retrô 3D — PokéVerse OS',
     canActivate: [authGuard],
+    data: { moduleId: 'arcade' },
     loadComponent: () =>
-      import('./features/title-screen/title-screen.component').then(
-        (m) => m.TitleScreenComponent,
+      import('./features/under-construction/under-construction.component').then(
+        (m) => m.UnderConstructionComponent,
       ),
   },
   {
     path: 'arena',
+    title: 'Battle Frontier — PokéVerse OS',
     canActivate: [authGuard],
+    data: { moduleId: 'arena' },
     loadComponent: () =>
-      import('./features/title-screen/title-screen.component').then(
-        (m) => m.TitleScreenComponent,
+      import('./features/under-construction/under-construction.component').then(
+        (m) => m.UnderConstructionComponent,
       ),
   },
   {

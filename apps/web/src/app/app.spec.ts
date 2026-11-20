@@ -1,8 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { App } from './app';
+import { routes } from './app.routes';
 import { AuthStore } from './core/stores/auth.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
@@ -10,6 +11,7 @@ import { PokedexDevicePageComponent } from './features/pokedex-device/pokedex-de
 import { PokedexRpgNavService } from './features/pokedex-device/services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './features/pokedex-device/services/pokedex-slots.store';
 import { PokedexStore } from './features/pokedex-device/services/pokedex.store';
+import { UnderConstructionComponent } from './features/under-construction/under-construction.component';
 
 function flushInitialRequests(httpMock: HttpTestingController): void {
   httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
@@ -372,5 +374,65 @@ describe('PokéVerse OS Shell', () => {
       },
     });
     expect(store.selectedPokemon()?.name).toBe('bulbasaur');
+  });
+
+  it('renders handcrafted UnderConstruction screen and syncs dock active highlight & post-login redirect', async () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const router = TestBed.inject(Router);
+    router.resetConfig(routes);
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitialRequests(httpMock);
+
+    await router.navigateByUrl('/museu');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const activeLinks = compiled.querySelectorAll('.hud-dock__link.is-active');
+    expect(activeLinks).toHaveLength(1);
+    expect(activeLinks[0]?.textContent).toContain('Museu');
+
+    expect(compiled.querySelector('h1#main-heading')?.textContent).toContain('em construção');
+    expect(compiled.querySelector('.uc-pokeball')).not.toBeNull();
+    expect(compiled.querySelector('.uc-pokemon-img')?.getAttribute('alt')).toContain('Mew');
+
+    const ucFixture = TestBed.createComponent(UnderConstructionComponent);
+    ucFixture.detectChanges();
+    expect(ucFixture.nativeElement.querySelector('.uc-pokeball')).not.toBeNull();
+
+    const auth = TestBed.inject(AuthStore);
+    const lockedArcade = compiled.querySelectorAll('button.hud-dock__link--locked')[1] as HTMLButtonElement;
+    lockedArcade.click();
+    expect(auth.visitorPrompt()?.targetRoute).toBe('/arcade');
+
+    auth.login({ email: 'red@pokeverse.dev', password: 'Password1234!' });
+    httpMock.expectOne('/api/v1/auth/login').flush({
+      authenticated: true,
+      sessionState: 'AUTHENTICATED',
+      mfaMethods: [],
+      expiresInSec: 900,
+      trainer: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        username: 'Red_Kanto',
+        email: 'red@pokeverse.dev',
+        emailVerifiedAt: new Date().toISOString(),
+        mfaEnabled: false,
+        hasPassword: true,
+        badgesCount: 0,
+        eloRating: 1000,
+        lastMapId: 'pokeverse-town',
+        lastX: 400,
+        lastY: 320,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(router.url).toBe('/arcade');
+    expect(compiled.querySelector('h1#main-heading')?.textContent).toContain('ainda não implementada');
+    expect(compiled.querySelector('.uc-pokemon-img')?.getAttribute('alt')).toContain('Porygon');
   });
 });

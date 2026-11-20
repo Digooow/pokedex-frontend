@@ -1,0 +1,164 @@
+@let mod = module();
+
+<section class="uc-shell" [attr.data-accent]="mod.accentHue" aria-labelledby="main-heading">
+  <article class="uc-card">
+    <div class="uc-info">
+      <div class="uc-badge-row">
+        <span class="uc-status-pill">
+          <span class="uc-status-dot" aria-hidden="true"></span>
+          <span>{{ mod.badge }}</span>
+        </span>
+      </div>
+
+      <h1 id="main-heading" tabindex="-1" class="uc-title">{{ mod.title }}</h1>
+      <p class="uc-subtitle">{{ mod.subtitle }}</p>
+
+      <div class="uc-progress-box" aria-label="Progresso do módulo">
+        <div class="uc-progress-head">
+          <span class="uc-progress-label">{{ mod.milestoneLabel }}</span>
+          <span class="uc-progress-pct tabular-nums">{{ mod.progressPercent }}%</span>
+        </div>
+        <div class="uc-progress-track" aria-hidden="true">
+          <div class="uc-progress-fill" [style.width.%]="mod.progressPercent"></div>
+        </div>
+      </div>
+
+      <ul class="uc-specs" aria-label="Recursos previstos neste módulo">
+        @for (spec of mod.specs; track spec.title) {
+          <li class="uc-spec-item">
+            <strong class="uc-spec-title">{{ spec.title }}</strong>
+            <span class="uc-spec-detail">{{ spec.detail }}</span>
+          </li>
+        }
+      </ul>
+
+      <nav class="uc-tabs" aria-label="Explorar outros módulos em construção">
+        @for (tab of tabs; track tab.id) {
+          @if (tab.requiresTrainer && !auth.isAuthenticated()) {
+            <button
+              type="button"
+              class="uc-tab"
+              [pvRequiresTrainer]="tab.tabLabel"
+              [lockedDescription]="tab.subtitle"
+              [lockedRoute]="tab.route"
+            >
+              {{ tab.tabLabel }}
+            </button>
+          } @else {
+            <a
+              [routerLink]="tab.route"
+              class="uc-tab"
+              [class.is-current]="tab.id === mod.id"
+              [attr.aria-current]="tab.id === mod.id ? 'page' : null"
+            >
+              {{ tab.tabLabel }}
+            </a>
+          }
+        }
+      </nav>
+
+      <div class="uc-actions">
+        <a routerLink="/pokedex" class="uc-cta uc-cta--primary">
+          Voltar para a Pokédex 3D
+        </a>
+        <a
+          [routerLink]="['/pokedex']"
+          [queryParams]="{ q: mod.pokemonQuery }"
+          class="uc-cta uc-cta--secondary"
+        >
+          Inspecionar {{ mod.pokemonName }} na Pokédex
+        </a>
+      </div>
+    </div>
+
+    <aside class="uc-diorama" aria-label="Diorama holográfico do módulo">
+      <div class="uc-stage">
+        <div class="uc-ring uc-ring--outer" aria-hidden="true"></div>
+        <div class="uc-ring uc-ring--inner" aria-hidden="true"></div>
+
+        @if (!imageFailed()) {
+          <img
+            class="uc-pokemon-img"
+            [src]="activePokemonSrc()"
+            [alt]="'Ilustração oficial de ' + mod.pokemonName"
+            width="230"
+            height="230"
+            decoding="async"
+            fetchpriority="high"
+            (error)="onArtworkError()"
+          />
+        } @else {
+          <div class="uc-pokemon-fallback" aria-label="Imagem do Pokémon indisponível offline">
+            <span>{{ mod.pokemonCode }}</span>
+            <strong>{{ mod.pokemonName }}</strong>
+          </div>
+        }
+
+        <svg
+          class="uc-pokeball"
+          viewBox="0 0 120 120"
+          width="96"
+          height="96"
+          aria-hidden="true"
+        >
+          <defs>
+            <radialGradient id="uc-ball-red" cx="35%" cy="28%" r="72%">
+              <stop offset="0%" stop-color="#ff6b6b" />
+              <stop offset="48%" stop-color="#dc2626" />
+              <stop offset="100%" stop-color="#690e17" />
+            </radialGradient>
+            <radialGradient id="uc-ball-white" cx="38%" cy="32%" r="75%">
+              <stop offset="0%" stop-color="#ffffff" />
+              <stop offset="68%" stop-color="#dce4ee" />
+              <stop offset="100%" stop-color="#7c8b9e" />
+            </radialGradient>
+            <radialGradient id="uc-ball-core" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#e0f7ff" />
+              <stop offset="55%" stop-color="#38bdf8" />
+              <stop offset="100%" stop-color="#0369a1" />
+            </radialGradient>
+          </defs>
+          <circle cx="60" cy="60" r="56" fill="#0f172a" />
+          <path d="M 6 60 A 54 54 0 0 1 114 60 Z" fill="url(#uc-ball-red)" />
+          <path d="M 6 60 A 54 54 0 0 0 114 60 Z" fill="url(#uc-ball-white)" />
+          <path d="M 22 30 C 31 18, 52 13, 66 15" fill="none" stroke="rgba(255,255,255,0.45)" stroke-width="5" stroke-linecap="round" />
+          <rect x="4" y="54" width="112" height="12" rx="4" fill="#161f2c" stroke="#090d16" stroke-width="2" />
+          <circle cx="60" cy="60" r="19" fill="#161f2c" stroke="#090d16" stroke-width="3" />
+          <circle cx="60" cy="60" r="13" fill="#e2e8f0" stroke="#64748b" stroke-width="2" />
+          <circle cx="60" cy="60" r="8" fill="url(#uc-ball-core)" />
+        </svg>
+
+        <div class="uc-pedestal" aria-hidden="true"></div>
+      </div>
+
+      <div class="uc-plaque">
+        <div class="uc-plaque-top">
+          <span class="uc-plaque-code tabular-nums">{{ mod.pokemonCode }}</span>
+          <strong class="uc-plaque-name">{{ mod.pokemonName }}</strong>
+        </div>
+        <span class="uc-plaque-role">{{ mod.pokemonRole }}</span>
+      </div>
+    </aside>
+  </article>
+
+  @if (mod.id === 'museum') {
+    <section class="uc-regions" aria-label="Prévia das regiões históricas">
+      <div class="uc-regions-head">
+        <h2>Prévia do Atlas das Regiões</h2>
+        <span>Clique em qualquer região para abrir seu Pokémon inicial direto na Pokédex 3D.</span>
+      </div>
+      <ul class="uc-regions-grid">
+        @for (region of regions; track region.id) {
+          <li class="uc-region-card">
+            <span class="uc-region-gen">{{ region.generation }}</span>
+            <h3>{{ region.name }}</h3>
+            <p>{{ region.landmark }}</p>
+            <a [routerLink]="['/pokedex']" [queryParams]="{ q: region.starterQuery }">
+              Inspecionar inicial na Pokédex →
+            </a>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+</section>
