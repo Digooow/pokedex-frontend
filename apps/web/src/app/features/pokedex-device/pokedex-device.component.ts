@@ -353,25 +353,13 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     this.rpg.rpgSlotFocusIndex.set(slotIndex);
 
     const existing = this.getSlot(slotIndex);
-    const active = this.store.selectedPokemon();
 
     if (existing) {
-      if (!active || active.name.toLowerCase() === existing.pokemonName.toLowerCase()) {
-        this.onOpenExistingFromDialog(existing.pokemonName);
-        return;
-      }
-
-      const duplicateSlot = this.slotsStore.findSlotByPokemon(active.id, active.name, slotIndex);
-      this.slotsStore.requestConfirm({
-        kind: 'overwrite-click',
-        slotIndex,
-        existingLabel: formatPokeApiText(existing.pokemonName),
-        existingName: existing.pokemonName,
-        candidate: active,
-        duplicateSlotIndex: duplicateSlot,
-      });
+      this.onOpenExistingFromDialog(existing.pokemonName);
       return;
     }
+
+    const active = this.store.selectedPokemon();
 
     if (active) {
       const duplicateSlot = this.slotsStore.findSlotByPokemon(active.id, active.name, slotIndex);

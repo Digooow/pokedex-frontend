@@ -542,4 +542,71 @@ describe('PokéVerse OS Shell', () => {
     expect(store.query()).toBe('');
     expect(rpg.rpgCatalogIndex()).toBe(0);
   });
+
+  it('opens the Pokémon stored in another blue slot directly on click without opening overwrite confirmation modal', () => {
+    window.localStorage.removeItem('pokedex_slots_salvos');
+    const httpMock = TestBed.inject(HttpTestingController);
+    const store = TestBed.inject(PokedexStore);
+    const slotsStore = TestBed.inject(PokedexSlotsStore);
+
+    slotsStore.saveSlot(0, {
+      id: 25,
+      name: 'pikachu',
+      displayName: 'Pikachu',
+      spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
+    });
+    slotsStore.saveSlot(1, {
+      id: 1,
+      name: 'bulbasaur',
+      displayName: 'Bulbasaur',
+      spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png',
+    });
+
+    const fixture = TestBed.createComponent(PokedexDevicePageComponent);
+    fixture.detectChanges();
+    flushInitialRequests(httpMock);
+
+    const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
+    openBtn.click();
+    fixture.detectChanges();
+    httpMock.match('/api/v1/pokedex/catalog').forEach((req) =>
+      req.flush({ cache: 'hit', catalog: { count: 0, results: [] } }),
+    );
+
+    const slotButtons = fixture.nativeElement.querySelectorAll('.btn-slot-azul') as NodeListOf<HTMLButtonElement>;
+    slotButtons[0]?.click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/v1/pokedex/pokemon/pikachu').flush({
+      cache: 'hit',
+      pokemon: {
+        id: 25,
+        name: 'pikachu',
+        height: 4,
+        weight: 60,
+        types: [{ slot: 1, type: { name: 'electric', url: 'https://pokeapi.co/api/v2/type/13/' } }],
+        abilities: [],
+        stats: [],
+        sprites: { front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png' },
+      },
+    });
+    expect(store.selectedPokemon()?.name).toBe('pikachu');
+
+    slotButtons[1]?.click();
+    fixture.detectChanges();
+    expect(slotsStore.pendingConfirm()).toBeNull();
+    httpMock.expectOne('/api/v1/pokedex/pokemon/bulbasaur').flush({
+      cache: 'hit',
+      pokemon: {
+        id: 1,
+        name: 'bulbasaur',
+        height: 7,
+        weight: 69,
+        types: [{ slot: 1, type: { name: 'grass', url: 'https://pokeapi.co/api/v2/type/12/' } }],
+        abilities: [],
+        stats: [],
+        sprites: { front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png' },
+      },
+    });
+    expect(store.selectedPokemon()?.name).toBe('bulbasaur');
+  });
 });
