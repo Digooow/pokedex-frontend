@@ -74,6 +74,9 @@ jobs:
           npm run build:shared
           npm run build:web
 
+      - name: Run UI Quality Gate before Cloudflare Pages deploy
+        run: npm run audit:ui
+
       - name: Publish to Cloudflare Pages
         uses: cloudflare/wrangler-action@v3
         with:

@@ -309,11 +309,43 @@ export class PokedexSearchPanelComponent {
     this.searchInputEl()?.nativeElement.focus();
   }
 
-  clearForm(): void {
+  stepBackOrClearForm(): void {
+    const prev = this.store.previousQuery().trim();
+    const currentQuery = this.store.query().trim();
+    if (prev && prev.toLowerCase() !== currentQuery.toLowerCase()) {
+      const targetIdentifier =
+        this.store.selectedPokemon()?.name ?? currentQuery.toLowerCase();
+      this.store.setQuery(this.store.consumePreviousQuery());
+      const idx = this.store.findCatalogIndex(targetIdentifier);
+      this.rpg.scrollCatalogIndexIntoView(Math.max(0, idx));
+      return;
+    }
+
+    if (currentQuery) {
+      const filteredItems = this.store.filteredCatalog().items;
+      const fallbackHighlight = filteredItems[this.rpg.rpgCatalogIndex()]?.name ?? null;
+      const targetIdentifier =
+        this.store.selectedPokemon()?.name ??
+        fallbackHighlight ??
+        currentQuery.toLowerCase();
+      this.store.clearQuery();
+      this.forceValidationError.set(false);
+      this.inputTouched.set(false);
+      const fullIdx = this.store.findCatalogIndex(targetIdentifier);
+      if (fullIdx >= 0) {
+        this.store.ensureCatalogIndexVisible(fullIdx);
+        this.rpg.scrollCatalogIndexIntoView(fullIdx);
+      } else {
+        this.rpg.scrollCatalogToTop();
+      }
+      return;
+    }
+
     this.store.clearQuery();
     this.forceValidationError.set(false);
     this.inputTouched.set(false);
-    this.rpg.rpgCatalogIndex.set(0);
+    this.rpg.rpgLevel.set('telas');
+    this.rpg.scrollCatalogToTop();
     this.focusInput();
   }
 
@@ -346,7 +378,7 @@ export class PokedexSearchPanelComponent {
 
   onInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
-    this.store.setQuery(value);
+    this.store.setUserQuery(value);
     if (value.trim()) {
       this.forceValidationError.set(false);
       this.inputTouched.set(false);
@@ -389,8 +421,7 @@ export class PokedexSearchPanelComponent {
     }
 
     this.forceValidationError.set(false);
-    this.store.setQuery(item.name);
-    this.store.loadPokemonDetail(item.name);
+    this.store.selectFromCatalog(item.name);
   }
 
   onCatalogScroll(event: Event): void {
@@ -428,7 +459,7 @@ export class PokedexSearchPanelComponent {
     event.stopPropagation();
     this.rpg.deactivateKeyboardMode();
     (event.currentTarget as HTMLElement | null)?.blur?.();
-    this.rpg.goBackOrClearForm(() => this.clearForm());
+    this.rpg.goBackOrClearForm(() => this.stepBackOrClearForm(), true);
   }
 
   onBlueButtonClick(event: Event): void {

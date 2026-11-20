@@ -206,6 +206,7 @@ export class AuthStore {
       return;
     }
     this.mutationSignal.set({ status: 'submitting' });
+    const targetRoute = this.visitorPromptSignal()?.targetRoute;
 
     this.http
       .post<unknown>('/api/v1/auth/verify-email', input)
@@ -226,7 +227,8 @@ export class AuthStore {
           return;
         }
         const current = this.sessionSignal();
-        if (current && current.trainer.email === input.email) {
+        const normalizedInputEmail = input.email.trim().toLowerCase();
+        if (current && current.trainer.email.toLowerCase() === normalizedInputEmail) {
           this.sessionSignal.set({
             ...current,
             trainer: {
@@ -235,7 +237,11 @@ export class AuthStore {
             },
           });
         }
-        this.mutationSignal.set({ status: 'success', message: outcome.data.message });
+        this.mutationSignal.set({ status: 'idle' });
+        this.visitorPromptSignal.set(null);
+        if (targetRoute) {
+          void this.router.navigateByUrl(targetRoute);
+        }
       });
   }
 

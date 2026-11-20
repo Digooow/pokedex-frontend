@@ -11,7 +11,9 @@ import { PokedexDevicePageComponent } from './features/pokedex-device/pokedex-de
 import { PokedexRpgNavService } from './features/pokedex-device/services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './features/pokedex-device/services/pokedex-slots.store';
 import { PokedexStore } from './features/pokedex-device/services/pokedex.store';
+import { MuseumPageComponent } from './features/regions-museum/museum-page.component';
 import { UnderConstructionComponent } from './features/under-construction/under-construction.component';
+import { CenariosBarComponent } from './shared/hud/cenarios-bar.component';
 
 function flushInitialRequests(httpMock: HttpTestingController): void {
   httpMock.match('/health/ready').forEach((req) => req.flush(null, { status: 503, statusText: 'Down' }));
@@ -77,7 +79,7 @@ describe('PokéVerse OS Shell', () => {
     expect(quality.preference()).toBe('auto');
   });
 
-  it('manages opaque BFF session state machine without JWT in JS and updates OTP verification', () => {
+  it('manages opaque BFF session state machine without JWT in JS and updates OTP verification', async () => {
     const auth = TestBed.inject(AuthStore);
     const httpMock = TestBed.inject(HttpTestingController);
 
@@ -136,9 +138,18 @@ describe('PokéVerse OS Shell', () => {
     expect(auth.trainer()?.username).toBe('Red_Kanto');
     expect(auth.trainer()?.emailVerifiedAt).toBeNull();
 
-    auth.verifyEmailOtp({ email: 'red@pokeverse.dev', code: '123456' });
+    const router = TestBed.inject(Router);
+    router.resetConfig(routes);
+    const navSpy = vi.spyOn(router, 'navigateByUrl');
+    auth.requestTrainerAccess('Verificar E-mail', 'Confirme seu OTP.', '/arena', 'verify-email');
+    expect(auth.visitorPrompt()).not.toBeNull();
+    auth.verifyEmailOtp({ email: 'RED@POKEVERSE.DEV', code: '123456' });
     httpMock.expectOne('/api/v1/auth/verify-email').flush({ message: 'E-mail verificado com sucesso.' });
     expect(auth.trainer()?.emailVerifiedAt).not.toBeNull();
+    expect(auth.visitorPrompt()).toBeNull();
+    expect(navSpy).toHaveBeenCalledWith('/arena');
+    await navSpy.mock.results[0]?.value;
+    expect(router.url).toBe('/arena');
 
     auth.logout();
     httpMock.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
@@ -185,6 +196,21 @@ describe('PokéVerse OS Shell', () => {
     scenarioStore.toggleAuto();
     expect(scenarioStore.autoEnabled()).toBe(true);
     expect(scenarioStore.activeScenario()).toBe('vila');
+
+    scenarioStore.cycleScenario();
+    expect(scenarioStore.autoEnabled()).toBe(false);
+    expect(scenarioStore.activeScenario()).toBe('floresta');
+    expect(scenarioStore.activeScenarioLabel()).toBe('Floresta');
+
+    const barFixture = TestBed.createComponent(CenariosBarComponent);
+    barFixture.detectChanges();
+    const scenarioButtons = barFixture.nativeElement.querySelectorAll('.btn-cenario');
+    expect(scenarioButtons).toHaveLength(1);
+    expect(scenarioButtons[0]?.textContent).toContain('Cenário: Floresta');
+    (scenarioButtons[0] as HTMLButtonElement).click();
+    barFixture.detectChanges();
+    expect(scenarioStore.activeScenario()).toBe('hoenn');
+    expect(scenarioButtons[0]?.textContent).toContain('Cenário: Hoenn');
   });
 
   it('supports visitor local slot persistence and clearAll cleanly in PokedexSlotsStore', () => {
@@ -376,7 +402,7 @@ describe('PokéVerse OS Shell', () => {
     expect(store.selectedPokemon()?.name).toBe('bulbasaur');
   });
 
-  it('renders handcrafted UnderConstruction screen and syncs dock active highlight & post-login redirect', async () => {
+  it('renders Museum header card + handcrafted UnderConstruction screen and syncs dock & redirect', async () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const router = TestBed.inject(Router);
     router.resetConfig(routes);
@@ -394,9 +420,13 @@ describe('PokéVerse OS Shell', () => {
     expect(activeLinks).toHaveLength(1);
     expect(activeLinks[0]?.textContent).toContain('Museu');
 
-    expect(compiled.querySelector('h1#main-heading')?.textContent).toContain('em construção');
-    expect(compiled.querySelector('.uc-pokeball')).not.toBeNull();
-    expect(compiled.querySelector('.uc-pokemon-img')?.getAttribute('alt')).toContain('Mew');
+    expect(compiled.querySelector('h1#main-heading')?.textContent).toContain('Museu das Regiões & História');
+    expect(compiled.querySelector('.museum-page__header')).not.toBeNull();
+    expect(compiled.querySelectorAll('.region-card')).toHaveLength(6);
+
+    const museumFixture = TestBed.createComponent(MuseumPageComponent);
+    museumFixture.detectChanges();
+    expect(museumFixture.nativeElement.querySelector('.museum-page__header')).not.toBeNull();
 
     const ucFixture = TestBed.createComponent(UnderConstructionComponent);
     ucFixture.detectChanges();
@@ -434,5 +464,82 @@ describe('PokéVerse OS Shell', () => {
     expect(router.url).toBe('/arcade');
     expect(compiled.querySelector('h1#main-heading')?.textContent).toContain('ainda não implementada');
     expect(compiled.querySelector('.uc-pokemon-img')?.getAttribute('alt')).toContain('Porygon');
+  });
+
+  it('steps back 1 level on Red Button from selected variation to search query then to full catalog at selected index', () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const store = TestBed.inject(PokedexStore);
+    const fixture = TestBed.createComponent(PokedexDevicePageComponent);
+    fixture.detectChanges();
+    flushInitialRequests(httpMock);
+
+    const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
+    openBtn.click();
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/v1/pokedex/catalog').flush({
+      cache: 'hit',
+      catalog: {
+        count: 4,
+        results: [
+          { name: 'bulbasaur', url: 'https://pokeapi.co/api/v2/pokemon/1/' },
+          { name: 'pikachu', url: 'https://pokeapi.co/api/v2/pokemon/25/' },
+          { name: 'pikachu-original-cap', url: 'https://pokeapi.co/api/v2/pokemon/10094/' },
+          { name: 'gholdengo', url: 'https://pokeapi.co/api/v2/pokemon/1000/' },
+        ],
+      },
+    });
+    fixture.detectChanges();
+
+    const rpg = fixture.debugElement.injector.get(PokedexRpgNavService);
+    const input = fixture.nativeElement.querySelector('#pokemon-input') as HTMLInputElement;
+    const redBtn = fixture.nativeElement.querySelector('#btn-limpar-form') as HTMLButtonElement;
+
+    input.value = 'pikachu';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    const pichuItems = fixture.nativeElement.querySelectorAll('.catalogo-item') as NodeListOf<HTMLButtonElement>;
+    expect(pichuItems).toHaveLength(2);
+
+    pichuItems[1]?.click();
+    fixture.detectChanges();
+    pichuItems[1]?.click();
+    fixture.detectChanges();
+
+    httpMock.expectOne('/api/v1/pokedex/pokemon/pikachu-original-cap').flush({
+      cache: 'hit',
+      pokemon: {
+        id: 10094,
+        name: 'pikachu-original-cap',
+        height: 4,
+        weight: 60,
+        types: [{ slot: 1, type: { name: 'electric', url: 'https://pokeapi.co/api/v2/type/13/' } }],
+        abilities: [],
+        stats: [],
+        sprites: { front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/10094.png' },
+      },
+    });
+    fixture.detectChanges();
+
+    expect(store.query()).toBe('pikachu-original-cap');
+    expect(store.previousQuery()).toBe('pikachu');
+
+    redBtn.click();
+    fixture.detectChanges();
+    expect(store.query()).toBe('pikachu');
+    expect(store.filteredCatalog().items).toHaveLength(2);
+    expect(rpg.rpgCatalogIndex()).toBe(1);
+
+    redBtn.click();
+    fixture.detectChanges();
+    expect(store.query()).toBe('');
+    expect(store.filteredCatalog().items).toHaveLength(4);
+    expect(rpg.rpgCatalogIndex()).toBe(2);
+
+    redBtn.click();
+    fixture.detectChanges();
+    expect(store.query()).toBe('');
+    expect(rpg.rpgCatalogIndex()).toBe(0);
   });
 });

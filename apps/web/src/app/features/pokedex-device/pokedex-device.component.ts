@@ -10,6 +10,7 @@ import {
   effect,
   inject,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
@@ -186,7 +187,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
     if (event.key === 'Backspace') {
       event.preventDefault();
-      this.rpg.goBackOrClearForm(() => this.searchPanelCmp()?.clearForm());
+      this.rpg.goBackOrClearForm(() => this.searchPanelCmp()?.stepBackOrClearForm(), true);
     }
   }
 
@@ -194,8 +195,10 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     effect(() => {
       const selected = this.store.selectedPokemon();
       if (selected) {
-        this.transientBadge.set(null);
-        this.rpg.syncCatalogSelection(selected.name);
+        untracked(() => {
+          this.transientBadge.set(null);
+          this.rpg.syncCatalogSelection(selected.name);
+        });
       }
     });
 

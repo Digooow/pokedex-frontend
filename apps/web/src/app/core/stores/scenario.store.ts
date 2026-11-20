@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { Injectable, OnDestroy, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Injectable, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { type ScenarioId, ScenarioIdSchema } from '@pokeverse/shared';
 import { QualityStore } from './quality.store';
 
@@ -55,6 +55,10 @@ export class ScenarioStore implements OnDestroy {
 
   readonly scenarios = SCENARIOS_CATALOG;
   readonly activeScenario = this.activeScenarioSignal.asReadonly();
+  readonly activeScenarioLabel = computed(
+    () =>
+      SCENARIOS_CATALOG.find((item) => item.id === this.activeScenarioSignal())?.label ?? 'Hoenn',
+  );
   readonly autoEnabled = this.autoEnabledSignal.asReadonly();
   readonly keepInactiveAttached = this.transitioningToCleanupSignal.asReadonly();
 
@@ -81,6 +85,11 @@ export class ScenarioStore implements OnDestroy {
     if (manualInteraction) {
       this.setAutoEnabled(false);
     }
+  }
+
+  cycleScenario(): void {
+    this.setAutoEnabled(false);
+    this.advanceNextScenario();
   }
 
   toggleAuto(): void {
@@ -161,7 +170,7 @@ export class ScenarioStore implements OnDestroy {
         return saved === 'true';
       }
     } catch {
-      /* Ignore storage access restrictions */
+      return !this.quality.reducedMotion() && this.quality.tier() !== 'lite';
     }
     return !this.quality.reducedMotion() && this.quality.tier() !== 'lite';
   }
@@ -173,7 +182,7 @@ export class ScenarioStore implements OnDestroy {
     try {
       window.localStorage.setItem(key, value);
     } catch {
-      /* Ignore storage quota limits */
+      return;
     }
   }
 

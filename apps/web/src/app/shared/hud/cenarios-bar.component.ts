@@ -23,17 +23,15 @@ import { ScenarioStore } from '../../core/stores/scenario.store';
   template: `
     <nav class="barra-cenarios" aria-label="Cenários de fundo e qualidade gráfica">
       <div class="barra-cenarios-botoes">
-        @for (item of scenarioStore.scenarios; track item.id) {
-          <button
-            type="button"
-            class="btn-cenario"
-            [class.is-active]="scenarioStore.activeScenario() === item.id"
-            [attr.aria-pressed]="scenarioStore.activeScenario() === item.id"
-            (click)="scenarioStore.selectScenario(item.id, true)"
-          >
-            {{ item.label }}
-          </button>
-        }
+        <button
+          type="button"
+          class="btn-cenario is-active"
+          (click)="scenarioStore.cycleScenario()"
+          [attr.aria-label]="'Alternar cenário de fundo. Atual: ' + scenarioStore.activeScenarioLabel()"
+          title="Clique para alternar o cenário de fundo"
+        >
+          Cenário: {{ scenarioStore.activeScenarioLabel() }}
+        </button>
 
         <button
           type="button"

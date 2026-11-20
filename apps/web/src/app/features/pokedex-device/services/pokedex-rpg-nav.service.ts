@@ -83,9 +83,13 @@ export class PokedexRpgNavService implements OnDestroy {
   );
 
   readonly redButtonTooltip = computed(() =>
-    this.rpgLevel() === 'telas'
-      ? 'Botão vermelho: limpar campo de busca'
-      : 'Botão vermelho: voltar menu/tela (na raiz, limpa a busca)',
+    this.slotsStore.editMode()
+      ? 'Botão vermelho: sair da edição de slots'
+      : this.pokedex.previousQuery()
+        ? `Botão vermelho: voltar para "${this.pokedex.previousQuery()}"`
+        : this.pokedex.query().trim()
+          ? 'Botão vermelho: voltar para todos os Pokémon'
+          : 'Botão vermelho: voltar ao início da lista',
   );
 
   readonly blueButtonTooltip = computed(() =>
@@ -273,21 +277,33 @@ export class PokedexRpgNavService implements OnDestroy {
     this.syncFocusVisuals(true);
   }
 
-  goBackOrClearForm(onClearForm: () => void): void {
+  goBackOrClearForm(onStepBack: () => void, forceStepBack = false): void {
     if (this.rpgLevel() === 'edicao') {
       this.slotsStore.setEditingSlotIndex(null);
       this.rpgLevel.set('itens');
       this.rpgScreen.set('visor');
-      this.syncFocusVisuals(true);
+      this.syncFocusVisuals(this.keyboardRpgActive());
       return;
     }
-    if (this.rpgLevel() === 'itens') {
+    if (this.slotsStore.editMode()) {
+      this.slotsStore.setEditMode(false);
+      this.rpgLevel.set('telas');
+      this.syncFocusVisuals(this.keyboardRpgActive());
+      return;
+    }
+    if (
+      !forceStepBack &&
+      this.keyboardRpgActive() &&
+      this.rpgLevel() === 'itens' &&
+      !this.pokedex.query().trim() &&
+      this.rpgCatalogIndex() === 0
+    ) {
       this.blurActiveInput();
       this.rpgLevel.set('telas');
       this.syncFocusVisuals(false);
       return;
     }
-    onClearForm();
+    onStepBack();
     this.syncFocusVisuals(false);
   }
 
@@ -314,8 +330,7 @@ export class PokedexRpgNavService implements OnDestroy {
       const visibleItems = this.pokedex.filteredCatalog().items;
       const picked = visibleItems[this.rpgCatalogIndex()];
       if (picked) {
-        this.pokedex.setQuery(picked.name);
-        this.pokedex.loadPokemonDetail(picked.name);
+        this.pokedex.selectFromCatalog(picked.name);
       }
       return;
     }
@@ -399,6 +414,35 @@ export class PokedexRpgNavService implements OnDestroy {
     this.rpgScreen.set('lista');
     this.rpgLevel.set('itens');
     this.syncFocusVisuals(false);
+  }
+
+  scrollCatalogIndexIntoView(index: number): void {
+    const safeIndex = Math.max(0, index);
+    this.setCatalogCursor(safeIndex);
+    if (!this.isBrowser) {
+      return;
+    }
+    setTimeout(() => {
+      const items = this.hostEl?.querySelectorAll<HTMLElement>('.catalogo-item');
+      const target = items?.[safeIndex];
+      target?.scrollIntoView?.({
+        block: 'center',
+        behavior: this.quality.reducedMotion() ? 'auto' : 'smooth',
+      });
+    }, 0);
+  }
+
+  scrollCatalogToTop(): void {
+    this.rpgCatalogIndex.set(0);
+    if (!this.isBrowser) {
+      return;
+    }
+    setTimeout(() => {
+      const listEl = this.hostEl?.querySelector<HTMLElement>('#pokemon-catalogo');
+      if (listEl) {
+        listEl.scrollTop = 0;
+      }
+    }, 0);
   }
 
   private runLidTransition(open: boolean, onComplete?: () => void): void {

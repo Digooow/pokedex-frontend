@@ -70,5 +70,8 @@ jobs:
           npm run build
           node --check js/app.js
 
+      - name: Run UI Quality Gate (Contrast, Text Fit & Typography)
+        run: npm run audit:ui
+
       - name: Validate production API Docker image build
         run: docker build -f infra/docker/api.Dockerfile -t pokeverse-api:ci .

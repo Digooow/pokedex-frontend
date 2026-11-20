@@ -412,7 +412,7 @@ export class PokedexSlotsStore {
       });
       window.localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(serialized));
     } catch {
-      /* Ignore storage quota errors */
+      return;
     }
   }
 }

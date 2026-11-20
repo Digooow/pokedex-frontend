@@ -65,11 +65,34 @@ const REGIONS_ATLAS: readonly RegionPreview[] = [
         padding: var(--pv-space-5) var(--pv-space-3);
       }
 
+      .museum-page__header {
+        padding: var(--pv-space-4) var(--pv-space-5);
+        border-radius: var(--pv-radius-md);
+        border: 1px solid var(--pv-border-strong);
+        background: oklch(17% 0.026 255 / 0.88);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+      }
+
+      @supports (backdrop-filter: blur(12px)) {
+        .museum-page__header,
+        .region-card {
+          background: oklch(17% 0.026 255 / 0.8);
+          backdrop-filter: blur(12px);
+        }
+      }
+
+      :host-context(html[data-perf-tier='lite']) .museum-page__header,
+      :host-context(html[data-perf-tier='lite']) .region-card {
+        backdrop-filter: none;
+        background: oklch(17% 0.026 255 / 0.94);
+      }
+
       .museum-page__tag {
         display: inline-block;
         padding: 0.25rem 0.625rem;
         border-radius: var(--pv-radius-pill);
         border: 1px solid var(--pv-border-gold);
+        background: oklch(14% 0.025 255 / 0.86);
         color: var(--pv-border-gold);
         font-size: 0.75rem;
         font-weight: 700;
@@ -77,12 +100,13 @@ const REGIONS_ATLAS: readonly RegionPreview[] = [
 
       .museum-page__title {
         margin: var(--pv-space-2) 0 0;
+        color: var(--pv-ink-primary);
         font-size: clamp(1.5rem, 3vw, 2.25rem);
       }
 
       .museum-page__subtitle {
         margin: var(--pv-space-2) 0 0;
-        color: var(--pv-ink-muted);
+        color: oklch(86% 0.016 250);
       }
 
       .museum-grid {

@@ -181,7 +181,7 @@ export class QualityStore {
     try {
       window.localStorage.setItem(PERF_STORAGE_KEY, preference);
     } catch {
-      /* Ignore storage quota errors in restricted browsing modes */
+      return;
     }
   }
 }

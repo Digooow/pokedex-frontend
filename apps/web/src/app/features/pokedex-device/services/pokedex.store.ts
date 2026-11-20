@@ -68,6 +68,7 @@ export class PokedexStore implements OnDestroy {
     reason: 'Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista.',
   });
   private readonly querySignal = signal('');
+  private readonly previousQuerySignal = signal('');
   private readonly batchLimitSignal = signal(CATALOG_BATCH_SIZE);
   private readonly coverOpenSignal = signal(false);
   private readonly selectedIdSignal = signal<number | null>(null);
@@ -77,6 +78,7 @@ export class PokedexStore implements OnDestroy {
   readonly catalogState = this.catalogStateSignal.asReadonly();
   readonly detailState = this.detailStateSignal.asReadonly();
   readonly query = this.querySignal.asReadonly();
+  readonly previousQuery = this.previousQuerySignal.asReadonly();
   readonly batchLimit = this.batchLimitSignal.asReadonly();
   readonly coverOpen = this.coverOpenSignal.asReadonly();
   readonly scenario = this.scenarioStore.activeScenario;
@@ -179,6 +181,55 @@ export class PokedexStore implements OnDestroy {
     this.batchLimitSignal.set(CATALOG_BATCH_SIZE);
   }
 
+  setUserQuery(rawQuery: string): void {
+    this.previousQuerySignal.set('');
+    this.setQuery(rawQuery);
+  }
+
+  selectFromCatalog(pokemonName: string): void {
+    const current = this.querySignal().trim();
+    const target = pokemonName.trim();
+    if (
+      current &&
+      current.toLowerCase() !== target.toLowerCase() &&
+      this.filteredCatalog().items.length > 1
+    ) {
+      this.previousQuerySignal.set(current);
+    }
+    this.setQuery(pokemonName);
+    this.loadPokemonDetail(pokemonName);
+  }
+
+  consumePreviousQuery(): string {
+    const prev = this.previousQuerySignal();
+    this.previousQuerySignal.set('');
+    return prev;
+  }
+
+  findCatalogIndex(pokemonNameOrId: string | number | null): number {
+    if (pokemonNameOrId === null || pokemonNameOrId === undefined) {
+      return -1;
+    }
+    const target = String(pokemonNameOrId).trim().toLowerCase();
+    if (!target) {
+      return -1;
+    }
+    const numericId = Number.parseInt(target.replace(/^#/, ''), 10);
+    if (this.querySignal().trim()) {
+      const filtered = this.filteredCatalog().items;
+      return filtered.findIndex(
+        (item) => item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
+      );
+    }
+    const state = this.catalogStateSignal();
+    if (state.status !== 'success') {
+      return -1;
+    }
+    return state.data.findIndex(
+      (item) => item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
+    );
+  }
+
   loadMoreCatalog(): void {
     const total = this.catalogTotalCount();
     this.batchLimitSignal.update((current) => Math.min(total || current + CATALOG_BATCH_SIZE, current + CATALOG_BATCH_SIZE));
@@ -189,9 +240,10 @@ export class PokedexStore implements OnDestroy {
       return;
     }
     const needed = index + CATALOG_BATCH_SIZE;
-    if (needed > this.batchLimitSignal()) {
-      const total = this.catalogTotalCount();
-      this.batchLimitSignal.set(total > 0 ? Math.min(total, needed) : needed);
+    const total = this.catalogTotalCount();
+    const targetLimit = total > 0 ? Math.min(total, needed) : needed;
+    if (targetLimit > this.batchLimitSignal()) {
+      this.batchLimitSignal.set(targetLimit);
     }
   }
 
@@ -204,6 +256,7 @@ export class PokedexStore implements OnDestroy {
   }
 
   clearQuery(): void {
+    this.previousQuerySignal.set('');
     this.querySignal.set('');
     this.batchLimitSignal.set(CATALOG_BATCH_SIZE);
   }
