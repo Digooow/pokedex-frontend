@@ -59,7 +59,12 @@ export class SecurityIamStore {
   readonly feedback = this.feedbackSignal.asReadonly();
 
   openDialog(): void {
-    this.feedbackSignal.set(null);
+    const pendingFeedback = this.auth.consumeSecurityFeedback();
+    if (pendingFeedback !== null) {
+      this.feedbackSignal.set(pendingFeedback);
+    } else if (!this.dialogOpenSignal()) {
+      this.feedbackSignal.set(null);
+    }
     this.totpStateSignal.set({ status: 'idle' });
     this.dialogOpenSignal.set(true);
     this.auth.openSecuritySettings();

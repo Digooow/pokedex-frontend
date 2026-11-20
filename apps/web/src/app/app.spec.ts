@@ -7,6 +7,7 @@ import { routes } from './app.routes';
 import { AuthStore } from './core/stores/auth.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
+import { SecurityIamStore } from './core/stores/security-iam.store';
 import { PokedexDevicePageComponent } from './features/pokedex-device/pokedex-device.component';
 import { PokedexRpgNavService } from './features/pokedex-device/services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './features/pokedex-device/services/pokedex-slots.store';
@@ -608,5 +609,127 @@ describe('PokéVerse OS Shell', () => {
       },
     });
     expect(store.selectedPokemon()?.name).toBe('bulbasaur');
+  });
+
+  it('handles ?googleLinked=1 callback return by cleaning URL, opening security modal, and surfacing feedback', () => {
+    const auth = TestBed.inject(AuthStore);
+    const iam = TestBed.inject(SecurityIamStore);
+    const httpMock = TestBed.inject(HttpTestingController);
+    const originalUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    window.history.replaceState(null, '', '/?googleLinked=1&tab=keep');
+    try {
+      auth.restoreSession();
+      httpMock.expectOne('/api/v1/auth/providers').flush({ googleEnabled: true, webauthnEnabled: true });
+      httpMock.expectOne('/api/v1/auth/session').flush({
+        authenticated: true,
+        sessionState: 'AUTHENTICATED',
+        mfaMethods: ['totp', 'backup_code'],
+        expiresInSec: 900,
+        trainer: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          username: 'Red_Kanto',
+          email: 'red@pokeverse.dev',
+          emailVerifiedAt: new Date().toISOString(),
+          mfaEnabled: true,
+          hasPassword: true,
+          badgesCount: 0,
+          eloRating: 1000,
+          lastMapId: 'pokeverse-town',
+          lastX: 400,
+          lastY: 320,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      expect(window.location.search).toBe('?tab=keep');
+      expect(auth.securityModalOpen()).toBe(true);
+
+      iam.openDialog();
+      expect(iam.feedback()).toEqual({
+        tone: 'ok',
+        text: 'Conta Google vinculada com sucesso via OAuth 2.0 PKCE.',
+      });
+      httpMock.expectOne('/api/v1/auth/security/overview').flush({
+        mfaEnabled: true,
+        hasPassword: true,
+        passkeys: [],
+        providers: {
+          googleEnabled: true,
+          googleLinked: true,
+          googleEmail: 'red@pokeverse.dev',
+        },
+      });
+    } finally {
+      window.history.replaceState(null, '', originalUrl || '/');
+    }
+  });
+
+  it('handles ?authError from Google OAuth callback for both authenticated linking errors and visitor login failures', () => {
+    const auth = TestBed.inject(AuthStore);
+    const iam = TestBed.inject(SecurityIamStore);
+    const httpMock = TestBed.inject(HttpTestingController);
+    const originalUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+    window.history.replaceState(null, '', '/?authError=google_already_linked');
+    try {
+      auth.restoreSession();
+      httpMock.expectOne('/api/v1/auth/providers').flush({ googleEnabled: true, webauthnEnabled: true });
+      httpMock.expectOne('/api/v1/auth/session').flush({
+        authenticated: true,
+        sessionState: 'AUTHENTICATED',
+        mfaMethods: [],
+        expiresInSec: 900,
+        trainer: {
+          id: '550e8400-e29b-41d4-a716-446655440000',
+          username: 'Red_Kanto',
+          email: 'red@pokeverse.dev',
+          emailVerifiedAt: new Date().toISOString(),
+          mfaEnabled: false,
+          hasPassword: true,
+          badgesCount: 0,
+          eloRating: 1000,
+          lastMapId: 'pokeverse-town',
+          lastX: 400,
+          lastY: 320,
+          createdAt: new Date().toISOString(),
+        },
+      });
+
+      expect(window.location.search).toBe('');
+      expect(auth.securityModalOpen()).toBe(true);
+      iam.openDialog();
+      expect(iam.feedback()).toEqual({
+        tone: 'error',
+        text: 'Esta conta Google já está vinculada a outro Treinador.',
+      });
+      httpMock.expectOne('/api/v1/auth/security/overview').flush({
+        mfaEnabled: false,
+        hasPassword: true,
+        passkeys: [],
+        providers: {
+          googleEnabled: true,
+          googleLinked: false,
+          googleEmail: null,
+        },
+      });
+
+      window.history.replaceState(null, '', '/?authError=google_cancelled');
+      auth.restoreSession();
+      httpMock.expectOne('/api/v1/auth/providers').flush({ googleEnabled: true, webauthnEnabled: true });
+      httpMock.expectOne('/api/v1/auth/session').flush({
+        authenticated: false,
+        canRefresh: false,
+      });
+
+      expect(window.location.search).toBe('');
+      expect(auth.visitorPrompt()?.initialMode).toBe('login');
+      expect(auth.mutationState()).toEqual({
+        status: 'error',
+        message: 'Autenticação com Google foi cancelada.',
+      });
+    } finally {
+      window.history.replaceState(null, '', originalUrl || '/');
+    }
   });
 });

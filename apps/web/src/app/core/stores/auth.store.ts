@@ -50,6 +50,10 @@ export class AuthStore {
   private readonly sessionSignal = signal<AuthSessionResponse | null>(null);
   private readonly visitorPromptSignal = signal<VisitorPromptContext | null>(null);
   private readonly securityModalOpenSignal = signal(false);
+  private readonly pendingSecurityFeedbackSignal = signal<{
+    readonly tone: 'ok' | 'error';
+    readonly text: string;
+  } | null>(null);
   private readonly mutationSignal = signal<AuthMutationState>({ status: 'idle' });
   private readonly providersSignal = signal<{ googleEnabled: boolean; webauthnEnabled: boolean }>({
     googleEnabled: false,
@@ -75,6 +79,7 @@ export class AuthStore {
   readonly providers = this.providersSignal.asReadonly();
 
   restoreSession(): void {
+    const oauthReturn = this.consumeOAuthCallbackParams();
     this.loadProviders();
     this.http
       .get<unknown>('/api/v1/auth/session')
@@ -85,12 +90,27 @@ export class AuthStore {
       .subscribe((parsed) => {
         if (!parsed?.success) {
           this.sessionSignal.set(null);
+          if (oauthReturn.authError) {
+            this.openGoogleAuthErrorPrompt(oauthReturn.authError);
+          }
           return;
         }
         if (parsed.data.authenticated) {
           this.sessionSignal.set(parsed.data);
           if (parsed.data.sessionState === 'MFA_PENDING') {
             this.openMfaChallengePrompt();
+          } else if (oauthReturn.googleLinked) {
+            this.pendingSecurityFeedbackSignal.set({
+              tone: 'ok',
+              text: 'Conta Google vinculada com sucesso via OAuth 2.0 PKCE.',
+            });
+            this.openSecuritySettings();
+          } else if (oauthReturn.authError) {
+            this.pendingSecurityFeedbackSignal.set({
+              tone: 'error',
+              text: this.mapOAuthErrorCode(oauthReturn.authError),
+            });
+            this.openSecuritySettings();
           }
           return;
         }
@@ -98,7 +118,16 @@ export class AuthStore {
         if (parsed.data.canRefresh) {
           this.refreshSession().subscribe();
         }
+        if (oauthReturn.authError) {
+          this.openGoogleAuthErrorPrompt(oauthReturn.authError);
+        }
       });
+  }
+
+  consumeSecurityFeedback(): { readonly tone: 'ok' | 'error'; readonly text: string } | null {
+    const current = this.pendingSecurityFeedbackSignal();
+    this.pendingSecurityFeedbackSignal.set(null);
+    return current;
   }
 
   loadProviders(): void {
@@ -428,6 +457,64 @@ export class AuthStore {
       return;
     }
     this.mutationSignal.set({ status: 'success', message: outcome.data.message });
+  }
+
+  private consumeOAuthCallbackParams(): {
+    readonly googleLinked: boolean;
+    readonly authError: string | null;
+  } {
+    const loc = globalThis.location;
+    if (!loc?.search) {
+      return { googleLinked: false, authError: null };
+    }
+
+    const params = new URLSearchParams(loc.search);
+    const googleLinked = params.get('googleLinked') === '1';
+    const rawAuthError = params.get('authError')?.trim() || null;
+    const hasOAuthParams =
+      params.has('googleLinked') || params.has('authError') || params.has('mfaPending');
+
+    if (hasOAuthParams) {
+      params.delete('googleLinked');
+      params.delete('authError');
+      params.delete('mfaPending');
+      const nextSearch = params.toString();
+      const cleanUrl = `${loc.pathname || '/'}${nextSearch ? `?${nextSearch}` : ''}${loc.hash ?? ''}`;
+      globalThis.history?.replaceState(null, '', cleanUrl);
+    }
+
+    return {
+      googleLinked,
+      authError: rawAuthError,
+    };
+  }
+
+  private openGoogleAuthErrorPrompt(errorCode: string): void {
+    this.requestTrainerAccess(
+      'Entrar com Google',
+      'Não foi possível concluir o login OIDC com sua conta Google.',
+      undefined,
+      'login',
+    );
+    this.mutationSignal.set({
+      status: 'error',
+      message: this.mapOAuthErrorCode(errorCode),
+    });
+  }
+
+  private mapOAuthErrorCode(code: string): string {
+    switch (code) {
+      case 'google_cancelled':
+        return 'Autenticação com Google foi cancelada.';
+      case 'oauth_state_invalid':
+        return 'Sessão OAuth expirada ou inválida. Tente novamente.';
+      case 'google_already_linked':
+        return 'Esta conta Google já está vinculada a outro Treinador.';
+      case 'verify_email_before_google_link':
+        return 'Verifique o e-mail da sua conta antes de vincular o Google.';
+      default:
+        return 'Não foi possível autenticar com o Google. Tente novamente.';
+    }
   }
 
   private extractErrorMessage(err: unknown): string {

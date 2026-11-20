@@ -41,6 +41,8 @@ export class GoogleOAuthController {
   ): Promise<void> {
     const { sessionCookieName, secure, sameSite, domain } =
       this.sessionService.getCookieNames();
+    // Top-level OAuth redirects returning from accounts.google.com are cross-site GETs; SameSite=Strict would drop the bind cookie.
+    const oauthSameSite = sameSite === 'strict' ? 'lax' : sameSite;
     const rawSid = readSessionCookie(req, sessionCookieName);
     const existingSession =
       await this.sessionService.getSessionByRawSid(rawSid);
@@ -54,7 +56,7 @@ export class GoogleOAuthController {
 
     res.cookie(OAUTH_BIND_COOKIE, bindCookieValue, {
       httpOnly: true,
-      sameSite,
+      sameSite: oauthSameSite,
       secure,
       path: REFRESH_COOKIE_PATH,
       maxAge: 300_000,
@@ -75,11 +77,12 @@ export class GoogleOAuthController {
   ): Promise<void> {
     const baseRedirect = this.googleOAuth.getFrontendRedirectBase();
     const { secure, sameSite, domain } = this.sessionService.getCookieNames();
+    const oauthSameSite = sameSite === 'strict' ? 'lax' : sameSite;
     const bindCookie = readSessionCookie(req, OAUTH_BIND_COOKIE);
 
     res.clearCookie(OAUTH_BIND_COOKIE, {
       httpOnly: true,
-      sameSite,
+      sameSite: oauthSameSite,
       secure,
       path: REFRESH_COOKIE_PATH,
       ...(domain ? { domain } : {}),
