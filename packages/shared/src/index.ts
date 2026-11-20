@@ -4,4 +4,6 @@ export * from './schemas/auth.schemas';
 export * from './schemas/events.schemas';
 export * from './schemas/health.schemas';
 export * from './schemas/pokedex.schemas';
+export * from './domain/pokeapi-endpoints';
 export * from './domain/pokedex-search';
+export * from './domain/pokemon-lab';

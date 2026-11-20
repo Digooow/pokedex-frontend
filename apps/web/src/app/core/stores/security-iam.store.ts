@@ -3,6 +3,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import {
   type DisableTotpInput,
   GenericMessageResponseSchema,
+  PasskeyChallengeObjectSchema,
   PasskeySummarySchema,
   type SecurityOverviewResponse,
   SecurityOverviewResponseSchema,
@@ -12,7 +13,6 @@ import {
 } from '@pokeverse/shared';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { firstValueFrom } from 'rxjs';
-import { z } from 'zod';
 import { AuthStore } from './auth.store';
 
 export type SecurityOverviewState =
@@ -28,9 +28,16 @@ export type TotpSetupUiState =
   | { readonly status: 'enabled'; readonly backupCodes: readonly string[] }
   | { readonly status: 'error'; readonly message: string };
 
-const PasskeyCreationOptionsSchema = z.custom<PublicKeyCredentialCreationOptionsJSON>(
-  (val) => typeof val === 'object' && val !== null && 'challenge' in val,
-);
+function isPasskeyCreationOptions(value: unknown): value is PublicKeyCredentialCreationOptionsJSON {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'challenge' in value &&
+    'rp' in value &&
+    'user' in value &&
+    'pubKeyCredParams' in value
+  );
+}
 
 @Injectable({ providedIn: 'root' })
 export class SecurityIamStore {
@@ -161,8 +168,8 @@ export class SecurityIamStore {
       const rawOptions = await firstValueFrom(
         this.http.post<unknown>('/api/v1/auth/passkeys/register/options', {}),
       );
-      const parsedOptions = PasskeyCreationOptionsSchema.safeParse(rawOptions);
-      if (!parsedOptions.success) {
+      const parsedOptions = PasskeyChallengeObjectSchema.safeParse(rawOptions);
+      if (!parsedOptions.success || !isPasskeyCreationOptions(parsedOptions.data)) {
         this.feedbackSignal.set({ tone: 'error', text: 'Opções WebAuthn inválidas.' });
         return;
       }

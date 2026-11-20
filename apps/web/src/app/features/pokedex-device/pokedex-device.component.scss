@@ -1,6 +1,0 @@
-/* Hardware styling lives in styles/_pokedex-classic.scss so @layer, @property and 3D hinge cascade cleanly without exceeding component style budgets. */
-:host {
-  display: flex;
-  flex: 1 1 auto;
-  inline-size: 100%;
-}

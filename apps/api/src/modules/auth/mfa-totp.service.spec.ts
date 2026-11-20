@@ -180,7 +180,6 @@ describe('MfaTotpService (RFC 6238, AES-256-GCM, 8 backup codes & anti-replay)',
     expect(trainerRow.totpSecretEncrypted).toMatch(/^v1:/);
     expect(backupCodesDb).toHaveLength(8);
 
-    // Same TOTP step already used during confirmEnable must be blocked by anti-replay!
     const { rawSid } = await sessionService.createSession({
       trainerId,
       username: 'Red_Kanto',
@@ -196,7 +195,6 @@ describe('MfaTotpService (RFC 6238, AES-256-GCM, 8 backup codes & anti-replay)',
       }),
     ).rejects.toThrow(UnauthorizedException);
 
-    // Now use one of the 8 backup codes -> succeeds and promotes session!
     const firstBackup = enabled.backupCodes[0];
     if (!firstBackup) {
       throw new Error('Expected at least one generated backup code');
@@ -209,7 +207,6 @@ describe('MfaTotpService (RFC 6238, AES-256-GCM, 8 backup codes & anti-replay)',
     expect(promotedRes.session.sessionState).toBe('AUTHENTICATED');
     expect(promotedRes.refreshToken).toBeTruthy();
 
-    // Replay of same backup code MUST fail!
     await expect(
       totpService.verifyChallengeAndPromote(rawSid, trainerId, {
         method: 'backup_code',
@@ -217,7 +214,6 @@ describe('MfaTotpService (RFC 6238, AES-256-GCM, 8 backup codes & anti-replay)',
       }),
     ).rejects.toThrow(UnauthorizedException);
 
-    // Confirm confirmEnable rejects expired/missing pending secret
     await expect(
       totpService.confirmEnable(trainerId, '123456', null),
     ).rejects.toThrow(BadRequestException);

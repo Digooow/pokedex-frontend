@@ -41,7 +41,6 @@ const PRESERVED_OUTSIDE_SELECTOR =
 const INTERNAL_INTERACTIVE_SELECTOR =
   '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo';
 
-/** Orchestrates 3D cover flip animation, animation frame watchdog, dynamic glint, and RPG keypad navigation. */
 @Injectable()
 export class PokedexRpgNavService implements OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -435,7 +434,6 @@ export class PokedexRpgNavService implements OnDestroy {
       }, DURACAO_GIRO_POKEDEX_MS);
     };
 
-    // Reversal mid-flight: preserve .is-animando & .is-transicionando so CSS transition smoothly reverses from live angle
     if (wasTransitioning) {
       host.getBoundingClientRect();
       this.pokedex.setCoverOpen(open);
@@ -443,14 +441,12 @@ export class PokedexRpgNavService implements OnDestroy {
       return;
     }
 
-    // Step 1: Enter 3D preserve-3d geometry BEFORE changing data-aberta so browser computes exact start transform (eg. rotateY(-180deg) when closing)
     host.classList.remove('is-transicionando');
     host.classList.add('is-animando');
     this.isTransitioning.set(false);
     this.isAnimating.set(true);
     host.getBoundingClientRect();
 
-    // Step 2: Paint Frame 0 on next animation frame, then enable transition + flip data-aberta
     const scheduleNextFrame =
       typeof requestAnimationFrame === 'function'
         ? (cb: () => void) => requestAnimationFrame(cb)

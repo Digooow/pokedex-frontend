@@ -1,11 +1,9 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
-import { type WorldTickerEvent, WorldTickerEventSchema } from '@pokeverse/shared';
+import { type WorldTickerEvent, WorldTickerEventListSchema, WorldTickerEventSchema } from '@pokeverse/shared';
 import type { Socket } from 'socket.io-client';
-import { z } from 'zod';
 
 const MAX_TICKER_HISTORY = 12;
-const RecentEventsListSchema = z.array(WorldTickerEventSchema);
 
 @Injectable({ providedIn: 'root' })
 export class WorldTickerStore implements OnDestroy {
@@ -51,7 +49,7 @@ export class WorldTickerStore implements OnDestroy {
       });
 
       socket.on('world:recent-events', (raw: unknown) => {
-        const parsed = RecentEventsListSchema.safeParse(raw);
+        const parsed = WorldTickerEventListSchema.safeParse(raw);
         if (parsed.success) {
           this.eventsSignal.set(parsed.data.slice(0, MAX_TICKER_HISTORY));
         }

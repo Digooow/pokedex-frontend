@@ -5,7 +5,6 @@ import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 import type { PokemonDetailView } from '../services/pokedex.store';
 import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
 
-/** Right-wing LCD CRT Visor showing empty Pokéball, skeleton, 404/API alerts, Pokémon sheet, or Slots Editor. */
 @Component({
   selector: 'pv-pokedex-visor',
   imports: [PokedexSlotsConfigComponent],
@@ -106,7 +105,19 @@ import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
                 [class]="'estado-alerta ' + (notFound ? 'estado-alerta--aviso' : 'estado-alerta--erro')"
                 [attr.role]="notFound ? null : 'alert'"
               >
-                <span class="alerta-icone" aria-hidden="true">{{ notFound ? '🔎' : '⚠️' }}</span>
+                <span class="alerta-icone" aria-hidden="true">
+                  @if (notFound) {
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="M20 20l-3.8-3.8" />
+                    </svg>
+                  } @else {
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12 3L2 20h20L12 3z" />
+                      <path d="M12 9v5M12 17h.01" />
+                    </svg>
+                  }
+                </span>
                 <h3>{{ notFound ? 'Pokémon não encontrado' : 'Erro na comunicação com a API' }}</h3>
                 <p>{{ errorMessage() }}</p>
 

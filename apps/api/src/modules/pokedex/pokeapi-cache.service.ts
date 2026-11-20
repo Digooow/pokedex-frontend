@@ -22,6 +22,7 @@ const POKEAPI_CATALOG_URL =
   'https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0';
 const POKEAPI_POKEMON_BASE = 'https://pokeapi.co/api/v2/pokemon/';
 const CACHE_TTL_24H_SEC = 86_400;
+const CACHE_STALE_TTL_7D_SEC = 604_800;
 const CB_FAILURE_THRESHOLD = 3;
 const CB_OPEN_COOLDOWN_MS = 30_000;
 const SAFE_POKEMON_PARAM = /^[a-z0-9-]{1,64}$/;
@@ -96,39 +97,65 @@ export class PokeApiCacheService {
   private async fetchAndCacheCatalog(
     cacheKey: string,
   ): Promise<CachedCatalogResponse> {
-    const raw = await this.fetchUpstreamJson(POKEAPI_CATALOG_URL);
-    const parsed = PokeApiCatalogResponseSchema.safeParse(raw);
-    if (!parsed.success) {
-      throw new ServiceUnavailableException(
-        'Resposta inesperada da PokéAPI ao carregar catálogo.',
-      );
-    }
+    try {
+      const raw = await this.fetchUpstreamJson(POKEAPI_CATALOG_URL);
+      const parsed = PokeApiCatalogResponseSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new ServiceUnavailableException(
+          'Resposta inesperada da PokéAPI ao carregar catálogo.',
+        );
+      }
 
-    await this.safeRedisSet(cacheKey, parsed.data);
-    return { cache: 'miss', catalog: parsed.data };
+      await this.safeRedisSet(cacheKey, parsed.data);
+      return { cache: 'miss', catalog: parsed.data };
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        const stale = await this.safeRedisGet(
+          `${cacheKey}:stale`,
+          PokeApiCatalogResponseSchema,
+        );
+        if (stale) {
+          return { cache: 'stale-fallback', catalog: stale };
+        }
+      }
+      throw error;
+    }
   }
 
   private async fetchAndCachePokemon(
     normalized: string,
     cacheKey: string,
   ): Promise<CachedPokemonResponse> {
-    const url = `${POKEAPI_POKEMON_BASE}${encodeURIComponent(normalized)}`;
-    const raw = await this.fetchUpstreamJson(url);
-    const parsed = PokemonDetailSchema.safeParse(raw);
-    if (!parsed.success) {
-      throw new ServiceUnavailableException(
-        `Resposta inesperada da PokéAPI para ${formatPokeApiText(normalized)}.`,
-      );
-    }
+    try {
+      const url = `${POKEAPI_POKEMON_BASE}${encodeURIComponent(normalized)}`;
+      const raw = await this.fetchUpstreamJson(url);
+      const parsed = PokemonDetailSchema.safeParse(raw);
+      if (!parsed.success) {
+        throw new ServiceUnavailableException(
+          `Resposta inesperada da PokéAPI para ${formatPokeApiText(normalized)}.`,
+        );
+      }
 
-    await this.safeRedisSet(cacheKey, parsed.data);
-    if (String(parsed.data.id) !== normalized) {
-      await this.safeRedisSet(
-        `pokeapi:v2:pokemon:${parsed.data.id}`,
-        parsed.data,
-      );
+      await this.safeRedisSet(cacheKey, parsed.data);
+      if (String(parsed.data.id) !== normalized) {
+        await this.safeRedisSet(
+          `pokeapi:v2:pokemon:${parsed.data.id}`,
+          parsed.data,
+        );
+      }
+      return { cache: 'miss', pokemon: parsed.data };
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        const stale = await this.safeRedisGet(
+          `${cacheKey}:stale`,
+          PokemonDetailSchema,
+        );
+        if (stale) {
+          return { cache: 'stale-fallback', pokemon: stale };
+        }
+      }
+      throw error;
     }
-    return { cache: 'miss', pokemon: parsed.data };
   }
 
   private async fetchUpstreamJson(url: string): Promise<unknown> {
@@ -218,8 +245,9 @@ export class PokeApiCacheService {
   ): Promise<void> {
     try {
       await this.redis.setJsonEx(key, CACHE_TTL_24H_SEC, value);
+      await this.redis.setJsonEx(`${key}:stale`, CACHE_STALE_TTL_7D_SEC, value);
     } catch {
-      /* Cache failure must never block public Pokédex reads */
+      return;
     }
   }
 }

@@ -86,7 +86,7 @@ No `<form id="form-pokedex" novalidate>`:
   - `enterkeyhint="search"`: muda o ícone do botão Enter do teclado virtual no celular para lupa/buscar.
 
 ### Atributos WAI-ARIA usados no projeto
-- **`aria-hidden="true"`**: aplicado em todos os elementos puramente visuais (imagens de fundo `.cenarios-fundo`, luzes LED, Pokébola da capa, saída de som, emojis `🔎` / `⚠️` / `❌`, `<svg>` da Pokébola vazia) para que leitores de tela não anunciem decoração.
+- **`aria-hidden="true"`**: aplicado em todos os elementos puramente visuais (imagens de fundo `.cenarios-fundo`, luzes LED, Pokébola da capa, saída de som, `<svg>` de erro, alerta e Pokébola vazia) para que leitores de tela não anunciem decoração.
 - **`aria-label` e `aria-labelledby`**: fornecem nomes acessíveis para regiões e para botões sem texto visível (botões direcionais ▲▶▼◀, botão vermelho, botão azul e os 10 botões de slot da direita).
 - **`aria-expanded` e `aria-controls`**: no `#btn-abrir-pokedex`, indicam aos leitores de tela se a tampa está aberta (`true`) ou fechada (`false`) e quais IDs de painel ela controla (`pokedex-ala-base pokedex-ala-scanner`).
 - **`aria-pressed`**: transforma botões comuns em botões de alternância (*toggle*), usado nos botões de cenário, no botão `Auto: ON/OFF` e no botão compacto amarelo de edição (`#btn-config-slots`).

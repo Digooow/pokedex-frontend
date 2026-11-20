@@ -1,8 +1,7 @@
-/* Camada 1 & 2: Tokens Primitivos e Semânticos (zero hardcode solto nos componentes) */
 @layer reset, base, components, utilities;
 
 :root {
-  /* Superfícies & HUD */
+
   --pv-canvas: oklch(14% 0.025 255);
   --pv-surface: oklch(19% 0.028 255 / 0.9);
   --pv-surface-solid: oklch(20% 0.026 255);
@@ -10,19 +9,16 @@
   --pv-visor-lcd: oklch(17% 0.022 245);
   --pv-visor-paper: oklch(97% 0.008 95);
 
-  /* Texto & Contraste WCAG 2.2 AA (>= 4.5:1) */
   --pv-ink-primary: oklch(96% 0.01 250);
   --pv-ink-muted: oklch(78% 0.022 250);
   --pv-ink-on-light: oklch(20% 0.025 255);
   --pv-ink-on-accent: oklch(99% 0.005 0);
 
-  /* Bordas & Anéis */
   --pv-border-subtle: oklch(42% 0.03 255 / 0.45);
   --pv-border-strong: oklch(60% 0.04 255 / 0.65);
   --pv-border-gold: oklch(80% 0.16 86);
   --pv-ring-focus: oklch(83% 0.17 85);
 
-  /* Acentos & Hardware Pokédex */
   --pv-dex-red: oklch(53% 0.21 25);
   --pv-dex-red-deep: oklch(39% 0.17 25);
   --pv-dex-hinge: oklch(30% 0.14 25);
@@ -32,11 +28,9 @@
   --pv-emerald: oklch(69% 0.17 152);
   --pv-danger: oklch(62% 0.21 25);
 
-  /* Texturas pré-assadas (mesmas microtexturas WebP leves da Pokédex clássica) */
   --pv-tex-metal: url('/assets/textures/metal-floco.webp');
   --pv-tex-plastic: url('/assets/textures/plastico-grao.webp');
 
-  /* Ritmo Espacial (4px / 8px) */
   --pv-space-1: 0.25rem;
   --pv-space-2: 0.5rem;
   --pv-space-3: 0.75rem;
@@ -44,7 +38,6 @@
   --pv-space-5: 1.5rem;
   --pv-space-6: 2rem;
 
-  /* Raios & Tipografia */
   --pv-radius-sm: 0.5rem;
   --pv-radius-md: 0.875rem;
   --pv-radius-lg: 1.25rem;
@@ -53,13 +46,11 @@
   --pv-font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --pv-font-mono: ui-monospace, 'Cascadia Code', 'Fira Code', monospace;
 
-  /* Z-index layers */
   --pv-z-backdrop: 0;
   --pv-z-stage: 10;
   --pv-z-hud: 40;
   --pv-z-modal: 80;
 
-  /* === Canonical Pokédex Hardware Design Tokens === */
   color-scheme: light dark;
   --palette-red-500: #ef4444;
   --palette-red-600: #c81e2b;

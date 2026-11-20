@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const PokeApiNamedResourceSchema = z.object({
   name: z.string().min(1),
@@ -103,9 +103,14 @@ export const CachedCatalogResponseSchema = z.object({
 
 export type CachedCatalogResponse = z.infer<typeof CachedCatalogResponseSchema>;
 
+export const PerfPreferenceSchema = z.enum(['auto', 'ultra', 'balanced', 'lite']);
+
+export const ScenarioIdSchema = z.enum(['hoenn', 'cidade', 'vila', 'floresta']);
+export type ScenarioId = z.infer<typeof ScenarioIdSchema>;
+
 export const HardwareProfileSchema = z.object({
   tier: z.enum(['ultra', 'balanced', 'lite']),
-  preference: z.enum(['auto', 'ultra', 'balanced', 'lite']),
+  preference: PerfPreferenceSchema,
   reducedMotion: z.boolean(),
   coarsePointer: z.boolean(),
   webgl2Supported: z.boolean(),

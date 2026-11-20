@@ -11,7 +11,6 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { StructuredLoggerService } from './common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from './config/env.schema';
 
-/** Applies security headers, payload limits, cookies, CORS, global prefix, exception filter, and shutdown hooks. */
 export function configureApiApp(app: INestApplication): {
   readonly port: number;
   readonly logger: StructuredLoggerService;

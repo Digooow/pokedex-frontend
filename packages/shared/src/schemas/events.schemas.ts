@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const KAFKA_TOPICS = {
   WORLD_EVENTS: 'pokeverse.world.events.v1',
@@ -28,6 +28,8 @@ export const WorldTickerEventSchema = z.object({
 });
 
 export type WorldTickerEvent = z.infer<typeof WorldTickerEventSchema>;
+
+export const WorldTickerEventListSchema = z.array(WorldTickerEventSchema);
 
 export const EmailNotificationTemplateSchema = z.enum([
   'welcome',

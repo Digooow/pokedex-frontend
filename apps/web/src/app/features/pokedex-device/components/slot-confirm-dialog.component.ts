@@ -9,7 +9,6 @@ import {
 } from '@angular/core';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 
-/** Accessible native confirmation modal for overwriting, replacing, or removing saved Pokédex slot buttons. */
 @Component({
   selector: 'pv-slot-confirm-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,

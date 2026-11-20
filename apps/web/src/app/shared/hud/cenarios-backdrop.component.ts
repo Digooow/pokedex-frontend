@@ -13,7 +13,6 @@ import { type ScenarioDefinition, ScenarioStore } from '../../core/stores/scenar
 
 const MOBILE_MAX_PX = 879;
 
-/** Full-viewport layered Pokemon scenic backdrop with smooth 900ms crossfade. */
 @Component({
   selector: 'pv-cenarios-backdrop',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -12,7 +12,6 @@ import type { CatalogMatchItem } from '@pokeverse/shared';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexStore } from '../services/pokedex.store';
 
-/** Left scanner wing (.aba-face--verso): optical camera + LEDs, fuzzy catalog search, and tactile keypad controls. */
 @Component({
   selector: 'pv-pokedex-search-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -101,7 +100,10 @@ import { PokedexStore } from '../services/pokedex.store';
                 Filtre a lista abaixo ao digitar (aceita aproximação) ou use as setas para navegar.
               </p>
               <div id="pokemon-erro-campo" class="mensagem-campo-erro" aria-live="polite">
-                <span aria-hidden="true">❌</span>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+                  <circle cx="8" cy="8" r="6.5" />
+                  <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" />
+                </svg>
                 <span id="pokemon-erro-texto">Informe o nome de um Pokémon antes de pesquisar.</span>
               </div>
             </form>

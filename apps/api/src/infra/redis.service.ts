@@ -53,7 +53,7 @@ export class RedisService implements OnModuleDestroy {
       enableOfflineQueue: false,
       ...(redisUrl.startsWith('rediss://') ? { tls: {} } : {}),
     });
-    // Prevent Node.js unhandled 'error' crashes during transient Upstash/network drops.
+
     this.client.on('error', () => undefined);
   }
 
@@ -135,7 +135,6 @@ export class RedisService implements OnModuleDestroy {
     await this.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
   }
 
-  /** Marks an event ID once atomically (NX) so Kafka consumers stay idempotent. */
   async acquireIdempotencyLock(
     consumerGroup: string,
     eventId: string,

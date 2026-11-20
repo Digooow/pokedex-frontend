@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
-/** Closed metallic front cover face (.aba-face--frente) with hinge seam, emblem, screws, latch, and scanner optics. */
 @Component({
   selector: 'pv-pokedex-cover',
   changeDetection: ChangeDetectionStrategy.OnPush,

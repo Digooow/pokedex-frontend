@@ -69,7 +69,7 @@ Não há dependências externas nem etapa de build:
 
 ## Arquitetura da Plataforma Full-Stack (`docs/`)
 
-Documentação técnica e acompanhamento real da evolução deste projeto para a plataforma **PokéVerse OS** (**Fases 1, 2 e IAM Enterprise 2A+2B implementadas** em `apps/web`, `apps/api`, `packages/shared` e `infra/docker`; próximos marcos em ordem: **Deploy Oficial na Infra Cloud -> Pokédex Definitiva 3D & Enciclopédia (Jogos, Cartas, Anime e Filmes) -> Back-end e Motor de Jogo**):
+Documentação técnica e acompanhamento real da evolução deste projeto para a plataforma **PokéVerse OS** (**Fases 1, 2, IAM Enterprise 2A+2B e Deploy Cloud em `https://pokeverse.pages.dev` entregues; Pokédex 3D restaurada na Casca Angular e modelagem da Pokédex Suprema + Laboratório Genético iniciadas em `@pokeverse/shared`**, seguidas pela expansão completa dos **51 endpoints** e pelo **Back-end e Motor de Jogo**):
 
 - [00 — Visão Geral, Regras de Acesso e Roadmap](docs/00-visao-geral-e-roadmap.md)
 - [01 — Arquitetura do Monorepo e Padrões de Engenharia](docs/01-arquitetura-monorepo-e-padroes.md)
@@ -86,3 +86,4 @@ Documentação técnica e acompanhamento real da evolução deste projeto para a
 - [12 — Pokédex 2.0: Catálogo Completo da PokéAPI v2 e Controles sem Novos Botões](docs/12-pokedex-2-0-pokeapi-e-controles.md)
 - [13 — Dossiê Completo de Segurança e Blindagem (AppSec, Auth & Infra)](docs/13-dossie-de-seguranca-e-blindagem.md)
 - [14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog](docs/14-status-e-changelog-implementacao.md)
+- [15 — Pokédex Suprema: Auditoria, 51 Endpoints e Laboratório Genético](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md)

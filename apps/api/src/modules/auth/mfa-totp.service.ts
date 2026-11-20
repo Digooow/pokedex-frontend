@@ -77,7 +77,6 @@ export function decodeBase32(raw: string): Buffer {
   return Buffer.from(out);
 }
 
-/** RFC 6238 / RFC 4226 TOTP computation (HMAC-SHA1, 6 digits, 30s period). */
 export function computeTotpAtCounter(
   secretBytes: Buffer,
   counter: number,

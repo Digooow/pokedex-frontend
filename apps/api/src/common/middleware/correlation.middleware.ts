@@ -10,7 +10,6 @@ export interface RequestWithTrace extends Request {
 
 const TRACEPARENT_PATTERN = /^00-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/i;
 
-/** Propagates W3C traceparent and x-correlation-id across incoming HTTP calls. */
 @Injectable()
 export class CorrelationMiddleware implements NestMiddleware {
   use(req: RequestWithTrace, res: Response, next: NextFunction): void {

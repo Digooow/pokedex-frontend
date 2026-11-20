@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import {
   KAFKA_TOPICS,
   type PokedexSlotRecord,
@@ -46,6 +46,24 @@ export class PokedexSlotsService {
     traceId: string | null,
   ): Promise<PokedexSlotRecord> {
     const saved = await this.prisma.$transaction(async (tx) => {
+      const duplicate = await tx.pokedexSlot.findFirst({
+        where: {
+          trainerId,
+          slotIndex: { not: slotIndex },
+          OR: [
+            { pokemonId: input.pokemonId },
+            { pokemonName: { equals: input.pokemonName, mode: 'insensitive' } },
+          ],
+        },
+        select: { slotIndex: true },
+      });
+
+      if (duplicate) {
+        throw new ConflictException(
+          'Este Pokémon já está registrado em outro slot da Pokédex.',
+        );
+      }
+
       const slot = await tx.pokedexSlot.upsert({
         where: {
           trainerId_slotIndex: { trainerId, slotIndex },
@@ -138,6 +156,46 @@ export class PokedexSlotsService {
       });
 
       return true;
+    });
+  }
+
+  clearAllSlots(
+    trainerId: string,
+    username: string,
+    traceId: string | null,
+  ): Promise<number> {
+    return this.prisma.$transaction(async (tx) => {
+      const deleted = await tx.pokedexSlot.deleteMany({
+        where: { trainerId },
+      });
+
+      if (deleted.count === 0) {
+        return 0;
+      }
+
+      const eventId = randomUUID();
+      const tickerEvent = WorldTickerEventSchema.parse({
+        eventId,
+        eventType: 'pokedex.slot.cleared',
+        trainerId,
+        username,
+        summary: `${username} liberou todos os slots salvos da Pokédex.`,
+        occurredAt: new Date().toISOString(),
+        traceId,
+      });
+
+      await tx.outboxEvent.create({
+        data: {
+          id: eventId,
+          aggregateType: 'PokedexSlot',
+          aggregateId: `${trainerId}:all`,
+          eventType: KAFKA_TOPICS.WORLD_EVENTS,
+          payload: tickerEvent,
+          status: 'PENDING',
+        },
+      });
+
+      return deleted.count;
     });
   }
 }

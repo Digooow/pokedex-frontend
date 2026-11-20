@@ -48,7 +48,6 @@
     }
   }
 
-  /* Dialog overscroll and modal top-layer safety rules */
   dialog:modal {
     overscroll-behavior: contain;
   }

@@ -22,7 +22,12 @@ import { RequiresTrainerDirective } from '../directives/requires-trainer.directi
               >
                 <span class="hud-dock__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
                 <span class="hud-dock__label">{{ mod.label }}</span>
-                <span class="hud-dock__lock" aria-hidden="true">🔒</span>
+                <span class="hud-dock__lock" aria-hidden="true">
+                  <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                    <path d="M5 7V5a3 3 0 0 1 6 0v2" />
+                  </svg>
+                </span>
               </button>
             } @else {
               <a
@@ -138,6 +143,11 @@ import { RequiresTrainerDirective } from '../directives/requires-trainer.directi
 
       .hud-dock__link--locked {
         opacity: 0.85;
+      }
+
+      .hud-dock__lock {
+        display: inline-flex;
+        align-items: center;
       }
 
       .hud-dock__key {

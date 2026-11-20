@@ -5,7 +5,6 @@ import { AuthStore } from '../stores/auth.store';
 
 const SAFE_INTERNAL_ROUTE = /^\/[a-zA-Z0-9/_-]*$/;
 
-/** Protects trainer-only routes while preventing open redirects via returnUrl. */
 export const authGuard: CanActivateFn = (_route, state) => {
   const auth = inject(AuthStore);
   if (auth.isAuthenticated()) {

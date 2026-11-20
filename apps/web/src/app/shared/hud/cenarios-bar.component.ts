@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { QualityStore } from '../../core/stores/quality.store';
 import { ScenarioStore } from '../../core/stores/scenario.store';
 
-/** Floating scenic & graphics quality selector strip aligned cleanly under the top bar. */
 @Component({
   selector: 'pv-cenarios-bar',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -259,7 +259,6 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       ),
     ).toBe(false);
 
-    // 4th attempt using the real code MUST fail because 3 failed attempts invalidated the OTP
     expect(
       await otpService.verifyAndConsumeOtp('reset', 'ash@example.com', code),
     ).toBe(false);
@@ -272,7 +271,7 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
         fresh.code,
       ),
     ).toBe(true);
-    // Replay of already-consumed OTP must fail
+
     expect(
       await otpService.verifyAndConsumeOtp(
         'verify',

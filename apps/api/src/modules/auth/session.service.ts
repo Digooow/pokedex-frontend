@@ -62,7 +62,7 @@ export class SessionService {
     ).trim();
     const secure = rawSecure || sameSite === 'none';
     const domain = rawDomain.length > 0 ? rawDomain : undefined;
-    // RFC 6265bis: __Host- requires Secure, Path=/ and forbids Domain.
+
     const useHostPrefix = secure && !domain && sameSite !== 'none';
 
     return {

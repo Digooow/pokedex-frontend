@@ -242,7 +242,6 @@ describe('PokéVerse OS Shell', () => {
       const aparelho = fixture.nativeElement.querySelector('#pokedex-aparelho') as HTMLElement;
       const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
 
-      // Start opening, then reverse back to closed mid-flight
       openBtn.click();
       vi.advanceTimersByTime(40);
       fixture.detectChanges();
@@ -261,7 +260,6 @@ describe('PokéVerse OS Shell', () => {
       expect(rpg.isAnimating()).toBe(false);
       expect(store.coverOpen()).toBe(false);
 
-      // Open fully, start closing, then click device shell mid-close to keep open
       openBtn.click();
       vi.advanceTimersByTime(1350);
       fixture.detectChanges();
@@ -323,7 +321,6 @@ describe('PokéVerse OS Shell', () => {
     const items = fixture.nativeElement.querySelectorAll('.catalogo-item') as NodeListOf<HTMLButtonElement>;
     const btnA = fixture.nativeElement.querySelector('#btn-controle-selecionar') as HTMLButtonElement;
 
-    // 1st click on Charmander ONLY highlights it without fetching/loading Visor
     items[1]?.click();
     fixture.detectChanges();
     expect(rpg.rpgCatalogIndex()).toBe(1);
@@ -331,7 +328,6 @@ describe('PokéVerse OS Shell', () => {
     httpMock.expectNone('/api/v1/pokedex/pokemon/charmander');
     expect(store.detailState().status).toBe('empty');
 
-    // Clicking round A button activates highlighted Charmander
     btnA.click();
     fixture.detectChanges();
     httpMock.expectOne('/api/v1/pokedex/pokemon/charmander').flush({
@@ -349,7 +345,6 @@ describe('PokéVerse OS Shell', () => {
     });
     expect(store.selectedPokemon()?.name).toBe('charmander');
 
-    // Clear filter input, then 1st click on Bulbasaur ONLY highlights it, 2nd click loads it
     const input = fixture.nativeElement.querySelector('#pokemon-input') as HTMLInputElement;
     input.value = '';
     input.dispatchEvent(new Event('input', { bubbles: true }));

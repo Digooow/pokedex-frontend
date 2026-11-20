@@ -5,19 +5,17 @@ import {
   type HardwareProfile,
   type HardwareTier,
   type PerfPreference,
+  PerfPreferenceSchema,
 } from '@pokeverse/shared';
-import { z } from 'zod';
 
 const PERF_STORAGE_KEY = 'pokeverse_perf_pref';
 const PERF_CYCLE: readonly PerfPreference[] = ['auto', 'ultra', 'balanced', 'lite'];
-const PreferenceSchema = z.enum(['auto', 'ultra', 'balanced', 'lite']);
 
 interface NavigatorWithCapabilities extends Navigator {
   readonly deviceMemory?: number;
   readonly connection?: { readonly saveData?: boolean; readonly effectiveType?: string };
 }
 
-/** Detects client hardware capabilities once at boot without blocking rendering. */
 @Injectable({ providedIn: 'root' })
 export class QualityStore {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
@@ -68,7 +66,6 @@ export class QualityStore {
     this.setPreference(next);
   }
 
-  /** Step down auto tier when 3D hinge animation drops frames under frame budget. */
   downgradeAutoTier(): void {
     const current = this.profileSignal();
     if (current.preference !== 'auto' || current.tier === 'lite') {
@@ -170,7 +167,7 @@ export class QualityStore {
   private loadPreference(): PerfPreference {
     try {
       const raw = window.localStorage.getItem(PERF_STORAGE_KEY);
-      const parsed = PreferenceSchema.safeParse(raw);
+      const parsed = PerfPreferenceSchema.safeParse(raw);
       return parsed.success ? parsed.data : 'auto';
     } catch {
       return 'auto';

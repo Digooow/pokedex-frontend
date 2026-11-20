@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 const NormalizedEmailSchema = z.string().trim().toLowerCase().pipe(z.email('E-mail inválido.'));
 const SixDigitOtpSchema = z
@@ -221,4 +221,22 @@ export const PasskeyLoginVerifySchema = z
   .strict();
 
 export type PasskeyLoginVerifyInput = z.infer<typeof PasskeyLoginVerifySchema>;
+
+export const AuthProvidersSchema = z.object({
+  googleEnabled: z.boolean(),
+  webauthnEnabled: z.boolean(),
+});
+
+export type AuthProviders = z.infer<typeof AuthProvidersSchema>;
+
+export const PasskeyChallengeObjectSchema = z
+  .record(z.string(), z.unknown())
+  .refine((val) => typeof val['challenge'] === 'string', {
+    message: 'Invalid WebAuthn challenge payload.',
+  });
+
+export const PasskeyAuthOptionsEnvelopeSchema = z.object({
+  challengeToken: z.string().min(16),
+  options: PasskeyChallengeObjectSchema,
+});
 

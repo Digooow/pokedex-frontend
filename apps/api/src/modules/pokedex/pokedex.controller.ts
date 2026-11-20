@@ -108,6 +108,19 @@ export class PokedexController {
     );
   }
 
+  @Delete('slots')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async clearAllSlots(
+    @CurrentTrainer() trainer: AuthenticatedTrainer,
+    @Req() req: RequestWithTrace,
+  ): Promise<void> {
+    await this.slotsService.clearAllSlots(
+      trainer.trainerId,
+      trainer.username,
+      req.traceId ?? null,
+    );
+  }
+
   private assertValidSlotIndex(index: number): void {
     if (index < 0 || index >= TOTAL_POKEDEX_SLOTS) {
       throw new BadRequestException('Índice de slot deve estar entre 0 e 9.');

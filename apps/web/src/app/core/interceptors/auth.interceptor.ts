@@ -11,7 +11,6 @@ const AUTH_SKIP_REFRESH_PATHS = [
   '/api/v1/auth/logout',
 ];
 
-/** Sends HttpOnly session cookies strictly to first-party API calls and refreshes once on 401. */
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith('/api/')) {
     return next(req);

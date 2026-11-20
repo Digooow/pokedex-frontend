@@ -7,7 +7,6 @@ import { PokedexStore } from '../services/pokedex.store';
 
 const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
-/** Interactive 10-slot configurator panel rendered inside the CRT visor when pressing the yellow key. */
 @Component({
   selector: 'pv-pokedex-slots-config',
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -1,7 +1,6 @@
 import { Directive, HostBinding, HostListener, input, inject } from '@angular/core';
 import { AuthStore } from '../../core/stores/auth.store';
 
-/** Marks controls as trainer-only for visitors without removing keyboard focusability. */
 @Directive({
   selector: '[pvRequiresTrainer]',
 })

@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import {
   type AccessMode,
+  AuthProvidersSchema,
   type AuthSessionResponse,
   AuthSessionResponseSchema,
   type ForgotPasswordInput,
@@ -9,6 +10,7 @@ import {
   type LoginTrainerInput,
   type MfaChallengeVerifyInput,
   type MfaMethod,
+  PasskeyAuthOptionsEnvelopeSchema,
   type RegisterTrainerInput,
   type ResendEmailOtpInput,
   type ResetPasswordOtpInput,
@@ -19,7 +21,6 @@ import {
 } from '@pokeverse/shared';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { Observable, catchError, firstValueFrom, finalize, map, of, shareReplay, tap } from 'rxjs';
-import { z } from 'zod';
 
 export type AuthDialogMode = 'login' | 'register' | 'forgot' | 'verify-email' | 'mfa-challenge';
 
@@ -36,17 +37,9 @@ export type AuthMutationState =
   | { readonly status: 'success'; readonly message: string }
   | { readonly status: 'error'; readonly message: string };
 
-const AuthProvidersSchema = z.object({
-  googleEnabled: z.boolean(),
-  webauthnEnabled: z.boolean(),
-});
-
-const PasskeyAuthOptionsEnvelopeSchema = z.object({
-  challengeToken: z.string().min(16),
-  options: z.custom<PublicKeyCredentialRequestOptionsJSON>(
-    (value) => typeof value === 'object' && value !== null && 'challenge' in value,
-  ),
-});
+function isPasskeyRequestOptions(value: unknown): value is PublicKeyCredentialRequestOptionsJSON {
+  return typeof value === 'object' && value !== null && 'challenge' in value;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore {
@@ -176,7 +169,7 @@ export class AuthStore {
         this.http.post<unknown>('/api/v1/auth/passkeys/login/options', email ? { email } : {}),
       );
       const parsedOptions = PasskeyAuthOptionsEnvelopeSchema.safeParse(rawOptions);
-      if (!parsedOptions.success) {
+      if (!parsedOptions.success || !isPasskeyRequestOptions(parsedOptions.data.options)) {
         this.mutationSignal.set({ status: 'error', message: 'Desafio Passkey inválido.' });
         return;
       }

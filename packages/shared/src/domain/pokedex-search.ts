@@ -76,10 +76,6 @@ function computeDamerauCell(
   return best;
 }
 
-/**
- * Optimal string alignment / restricted Damerau-Levenshtein distance.
- * Uses a flat Int32Array matrix to avoid nested allocation inside large catalog scans.
- */
 export function computeDamerauDistance(
   source: string,
   target: string,
@@ -241,7 +237,6 @@ function evaluateApproximateMatch(
   };
 }
 
-/** Filters a Pokémon catalog supporting numeric IDs, exact prefixes, phonetics, and typos. */
 export function filterPokemonCatalog(
   catalog: readonly SearchablePokemonItem[],
   rawQuery: string,

@@ -39,7 +39,6 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   }
 
   async processPendingBatch(): Promise<number> {
-    // Keep DB transaction ultrashort: claim rows, commit, then publish to Kafka outside tx.
     const pendingRows = await this.prisma.$transaction((tx) => {
       return tx.$queryRaw<ClaimedOutboxRow[]>`
         SELECT id, "aggregateId", "eventType", payload, "retryCount"

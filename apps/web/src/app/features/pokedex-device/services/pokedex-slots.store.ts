@@ -7,7 +7,7 @@ import {
   PokedexSlotsListResponseSchema,
   SavePokedexSlotSchema,
 } from '@pokeverse/shared';
-import { catchError, forkJoin, map, of } from 'rxjs';
+import { catchError, map, of } from 'rxjs';
 import { AuthStore } from '../../../core/stores/auth.store';
 import type { PokemonDetailView, ResolvedPokemonForSlot } from './pokedex.store';
 
@@ -40,7 +40,6 @@ export type SlotConfirmPrompt =
 const TOTAL_SLOTS = 10;
 const LOCAL_SLOTS_KEY = 'pokedex_slots_salvos';
 
-/** Manages the 10 programmable hardware slots: Neon PostgreSQL when signed in, localStorage for visitors. */
 @Injectable({ providedIn: 'root' })
 export class PokedexSlotsStore {
   private readonly http = inject(HttpClient);
@@ -107,7 +106,6 @@ export class PokedexSlotsStore {
     this.pendingConfirmSignal.set(null);
   }
 
-  /** Returns the slot index where a Pokémon is already stored, excluding the optional target slot. */
   findSlotByPokemon(
     pokemonId: number,
     pokemonName: string,
@@ -278,30 +276,21 @@ export class PokedexSlotsStore {
     }
 
     this.busySlotSignal.set(-1);
-    const deletes = occupiedIndices.map((idx) =>
-      this.http.delete(`/api/v1/pokedex/slots/${idx}`).pipe(
-        map(() => ({ idx, ok: true })),
-        catchError(() => of({ idx, ok: false })),
-      ),
-    );
-
-    forkJoin(deletes).subscribe((results) => {
-      this.busySlotSignal.set(null);
-      const removed = new Set(results.filter((r) => r.ok).map((r) => r.idx));
-      this.cloudSlotsSignal.update((prev) => {
-        const copy = new Map(prev);
-        for (const idx of removed) {
-          copy.delete(idx);
+    this.http
+      .delete('/api/v1/pokedex/slots')
+      .pipe(
+        map(() => true),
+        catchError(() => of(false)),
+      )
+      .subscribe((ok) => {
+        this.busySlotSignal.set(null);
+        if (!ok) {
+          this.feedbackSignal.set('Não foi possível liberar todos os slots na nuvem.');
+          return;
         }
-        return copy;
+        this.cloudSlotsSignal.set(new Map<number, PokedexSlotRecord>());
+        this.feedbackSignal.set('Todos os slots na nuvem foram liberados.');
       });
-      const failedCount = results.length - removed.size;
-      this.feedbackSignal.set(
-        failedCount === 0
-          ? 'Todos os slots na nuvem foram liberados.'
-          : `${removed.size} slots liberados; ${failedCount} falharam.`,
-      );
-    });
   }
 
   private saveLocalSlot(payload: {

@@ -28,7 +28,6 @@ import { PokedexStore } from './services/pokedex.store';
 
 const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
-/** Canonical 3D Hinged Pokédex Stage faithfully integrated with PokéVerse cloud telemetry and Neon slots. */
 @Component({
   selector: 'pv-pokedex-device',
   imports: [
@@ -40,7 +39,6 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
   providers: [PokedexRpgNavService],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pokedex-device.component.html',
-  styleUrl: './pokedex-device.component.scss',
 })
 export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   readonly store = inject(PokedexStore);

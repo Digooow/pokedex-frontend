@@ -173,7 +173,6 @@ const ApiEnvSchema = z
 
 export type ApiEnvConfig = z.infer<typeof ApiEnvSchema>;
 
-/** Validates environment variables at boot without echoing secret values in error messages. */
 export function validateApiEnv(rawEnv: Record<string, unknown>): ApiEnvConfig {
   const normalizedEnv =
     !rawEnv['API_PORT'] && rawEnv['PORT']

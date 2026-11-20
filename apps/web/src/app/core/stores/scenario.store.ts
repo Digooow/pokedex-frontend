@@ -1,10 +1,9 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, OnDestroy, PLATFORM_ID, inject, signal } from '@angular/core';
-import { z } from 'zod';
+import { type ScenarioId, ScenarioIdSchema } from '@pokeverse/shared';
 import { QualityStore } from './quality.store';
 
-export const ScenarioIdSchema = z.enum(['hoenn', 'cidade', 'vila', 'floresta']);
-export type ScenarioId = z.infer<typeof ScenarioIdSchema>;
+export { ScenarioIdSchema, type ScenarioId };
 
 export interface ScenarioDefinition {
   readonly id: ScenarioId;
@@ -45,7 +44,6 @@ const INACTIVE_CLEANUP_MS = 960;
 const STORAGE_SCENARIO_KEY = 'pokedex_cenario_ativo';
 const STORAGE_AUTO_KEY = 'pokedex_cenario_auto';
 
-/** Manages the 4-layer scenic backdrop, persisted selection, and tab-aware auto cycle. */
 @Injectable({ providedIn: 'root' })
 export class ScenarioStore implements OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));

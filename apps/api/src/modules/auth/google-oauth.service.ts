@@ -395,7 +395,6 @@ export class GoogleOAuthService {
 
     if (trainerByEmail) {
       if (trainerByEmail.emailVerifiedAt === null) {
-        // Previne pre-hijacking Account Takeover se conta local ainda não confirmou e-mail.
         return {
           redirectUrl: `${baseRedirect}/?authError=verify_email_before_google_link`,
         };
