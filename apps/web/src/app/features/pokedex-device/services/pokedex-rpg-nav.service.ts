@@ -82,15 +82,19 @@ export class PokedexRpgNavService implements OnDestroy {
       this.rpgScreen() === 'lista',
   );
 
-  readonly redButtonTooltip = computed(() =>
-    this.slotsStore.editMode()
-      ? 'Botão vermelho: sair da edição de slots'
-      : this.pokedex.previousQuery()
-        ? `Botão vermelho: voltar para "${this.pokedex.previousQuery()}"`
-        : this.pokedex.query().trim()
-          ? 'Botão vermelho: voltar para todos os Pokémon'
-          : 'Botão vermelho: voltar ao início da lista',
-  );
+  readonly redButtonTooltip = computed(() => {
+    if (this.slotsStore.editMode()) {
+      return 'Botão vermelho: sair da edição de slots';
+    }
+    const previousQuery = this.pokedex.previousQuery();
+    if (previousQuery) {
+      return `Botão vermelho: voltar para "${previousQuery}"`;
+    }
+    if (this.pokedex.query().trim()) {
+      return 'Botão vermelho: voltar para todos os Pokémon';
+    }
+    return 'Botão vermelho: voltar ao início da lista';
+  });
 
   readonly blueButtonTooltip = computed(() =>
     this.willBlueButtonEnterSubmenu()
