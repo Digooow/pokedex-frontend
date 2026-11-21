@@ -750,9 +750,8 @@ pokedex-frontend/
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
 ├── .github/workflows/             # ci.yml e deploy.yml
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
-├── docs/                          # Documentação (00 a 17) e Capítulo Zero
+├── docs/                          # Documentação (00 a 17), Capítulo Zero e Guias de Estudos
 ├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
-├── GUIA-DE-ESTUDOS-POKEDEX.md     # Manual técnico da Fase 0
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
 
@@ -781,7 +780,8 @@ pokedex-frontend/
 | 15 | [Pokédex Suprema: auditoria, 51 endpoints e Laboratório Genético](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md) |
 | 16 | [Cookies, LGPD e levantamento de requisitos](docs/16-cookies-lgpd-e-requisitos.md) |
 | 17 | [Plano SOLID, Clean Code e engenharia Big Tech](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) |
-| Fase 0 | [Guia de estudos: a Pokédex em JavaScript puro](GUIA-DE-ESTUDOS-POKEDEX.md) |
+| Guia 0 | **[Capítulo Zero — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-zero-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
+| Guia 1 | **[Capítulo 1 — Guia de estudos full-stack do PokéVerse OS](docs/capitulo-um-guia-de-estudos-pokedex.md)**, escopo completo de tecnologias, arquitetura e boas práticas do projeto atual |
 
 > **Por onde começar?** Para entender o que existe hoje, leia o [doc 14](docs/14-status-e-changelog-implementacao.md). Para entender o rumo, leia o [doc 00](docs/00-visao-geral-e-roadmap.md) e o [doc 15](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md).
 

@@ -44,7 +44,7 @@ pokedex-frontend/ (Monorepo PokéVerse OS)
 │       ├── src/constants/                 # Tabela de tipos (18x18), Natures, consoles e regras
 │       └── src/types/                     # Tipos TypeScript inferidos diretamente de z.infer<>
 │
-├── docs/                                  # Documentação arquitetural completa (00 a 10)
+├── docs/                                  # Documentação arquitetural (00+), Capítulo Zero e Guias de Estudos
 ├── infra/
 │   ├── docker/                            # docker-compose.yml, init buckets MinIO, configs OTel
 │   └── dockerfiles/                       # Dockerfiles multi-stage (api.Dockerfile, web.Dockerfile)
@@ -52,7 +52,6 @@ pokedex-frontend/ (Monorepo PokéVerse OS)
 ├── css/                                   # Pokédex Vanilla preservada para referência/legado
 ├── js/                                    # Lógica Vanilla preservada para referência/legado
 ├── index.html                             # Ponto de entrada Vanilla preservado no GitHub Pages (Fase 0)
-├── GUIA-DE-ESTUDOS-POKEDEX.md             # Manual técnico da Pokédex Vanilla
 └── README.md
 ```
 

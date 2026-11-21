@@ -41,7 +41,7 @@ A Fase 0 continua intacta na raiz do repositório e funciona como **referência 
 - [`css/style.css`](../css/style.css)
 - [`js/app.js`](../js/app.js)
 - [`assets/`](../assets/)
-- [`GUIA-DE-ESTUDOS-POKEDEX.md`](../GUIA-DE-ESTUDOS-POKEDEX.md), o manual técnico dessa versão, linha a linha
+- [`capitulo-zero-guia-de-estudos-pokedex.md`](capitulo-zero-guia-de-estudos-pokedex.md), o manual técnico e "colinha" dessa versão feito para a apresentação no Senac (movido para `docs/` e continuado pelo [Capítulo 1](capitulo-um-guia-de-estudos-pokedex.md))
 
 > A regra do repositório é não alterar esses arquivos sem pedido explícito. Eles são a memória do projeto.
 
@@ -90,7 +90,7 @@ flowchart LR
 
 ## 4. O que esta fase me ensinou
 
-- **Limites do JavaScript puro.** O [guia de estudos](../GUIA-DE-ESTUDOS-POKEDEX.md) documenta como levei HTML, CSS e JS sem frameworks até onde deu: máquina de estados por teclado, busca fuzzy, cinemática 3D e acessibilidade.
+- **Limites do JavaScript puro.** O [Capítulo Zero do guia de estudos](capitulo-zero-guia-de-estudos-pokedex.md) (a "colinha" da apresentação) documenta como levei HTML, CSS e JS sem frameworks até onde deu: máquina de estados por teclado, busca fuzzy, cinemática 3D e acessibilidade — trilha que agora segue no [Capítulo 1 (Full-Stack)](capitulo-um-guia-de-estudos-pokedex.md).
 - **Quando um framework passa a valer a pena.** O projeto cresceu até exigir contas, sessões, cache, mensageria e testes. Aí a migração para um monorepo com contratos compartilhados deixou de ser capricho e virou necessidade.
 - **Fidelidade visual é requisito.** Por isso o repositório tem a **Regra Zero de UI** (veja [`AGENTS.md`](../AGENTS.md)): nada do visual original é simplificado sem validação.
 
@@ -239,6 +239,10 @@ pokedex-frontend/
 
 <p align="center">
   <a href="../README.md">Ir para o README atual</a>
+  &nbsp;·&nbsp;
+  <a href="capitulo-zero-guia-de-estudos-pokedex.md">Capítulo Zero: guia de estudos</a>
+  &nbsp;·&nbsp;
+  <a href="capitulo-um-guia-de-estudos-pokedex.md">Capítulo 1: guia de estudos (Full-Stack)</a>
   &nbsp;·&nbsp;
   <a href="00-visao-geral-e-roadmap.md">Visão geral e roadmap</a>
   &nbsp;·&nbsp;
