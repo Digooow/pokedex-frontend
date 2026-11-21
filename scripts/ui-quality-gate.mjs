@@ -197,22 +197,64 @@ function startDistServer(state) {
   });
 }
 
-async function waitForPageTarget(port) {
-  for (let i = 0; i < 50; i++) {
+async function createPageTarget(port) {
+  for (const method of ['PUT', 'GET']) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/list`);
+      const response = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, {
+        method,
+        signal: AbortSignal.timeout(2000),
+      });
+      if (response.ok) {
+        const created = await response.json();
+        if (created?.webSocketDebuggerUrl) {
+          return created.webSocketDebuggerUrl;
+        }
+      }
+    } catch {
+    }
+  }
+  return null;
+}
+
+async function waitForPageTarget(port, browserProc, getStderr) {
+  let emptyListCount = 0;
+
+  for (let i = 0; i < 120; i++) {
+    if (browserProc.exitCode !== null) {
+      const stderr = getStderr().trim();
+      throw new Error(
+        `Headless browser exited prematurely with code ${browserProc.exitCode}.${stderr ? ` stderr: ${stderr}` : ''}`,
+      );
+    }
+
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
+        signal: AbortSignal.timeout(2000),
+      });
       if (response.ok) {
         const list = await response.json();
         const pageTarget = list.find((entry) => entry.type === 'page' && entry.webSocketDebuggerUrl);
         if (pageTarget) {
           return pageTarget.webSocketDebuggerUrl;
         }
+
+        emptyListCount += 1;
+        if (emptyListCount >= 5) {
+          const createdWsUrl = await createPageTarget(port);
+          if (createdWsUrl) {
+            return createdWsUrl;
+          }
+        }
       }
     } catch {
     }
-    await new Promise((r) => setTimeout(r, 150));
+    await new Promise((r) => setTimeout(r, 200));
   }
-  throw new Error('Timed out waiting for headless browser DevTools endpoint.');
+
+  const stderr = getStderr().trim();
+  throw new Error(
+    `Timed out waiting for headless browser DevTools endpoint.${stderr ? ` stderr: ${stderr}` : ''}`,
+  );
 }
 
 class CdpSession {
@@ -561,35 +603,123 @@ const AUDIT_PAGE_FN = `(() => {
   return failures;
 })()`;
 
+function buildBrowserArgs(debugPort, userDataDir) {
+  const args = [
+    '--headless=new',
+    `--remote-debugging-port=${debugPort}`,
+    '--remote-allow-origins=*',
+    `--user-data-dir=${userDataDir}`,
+    '--no-first-run',
+    '--no-default-browser-check',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--no-sandbox',
+    '--password-store=basic',
+    '--use-mock-keychain',
+    '--disable-background-networking',
+    '--disable-background-timer-throttling',
+    '--disable-backgrounding-occluded-windows',
+    '--disable-breakpad',
+    '--disable-client-side-phishing-detection',
+    '--disable-component-update',
+    '--disable-default-apps',
+    '--disable-extensions',
+    '--disable-hang-monitor',
+    '--disable-popup-blocking',
+    '--disable-prompt-on-repost',
+    '--disable-renderer-backgrounding',
+    '--disable-sync',
+    '--metrics-recording-only',
+    '--mute-audio',
+    '--safebrowsing-disable-auto-update',
+  ];
+
+  if (process.platform === 'linux') {
+    args.push('--disable-setuid-sandbox', '--no-zygote');
+  }
+
+  args.push('about:blank');
+  return args;
+}
+
+async function cleanupBrowserAttempt(cdp, browserProc, userDataDir) {
+  try {
+    if (cdp) {
+      await Promise.race([
+        cdp.send('Browser.close'),
+        new Promise((r) => setTimeout(r, 500)),
+      ]);
+    }
+  } catch {
+  }
+  try {
+    cdp?.close();
+  } catch {
+  }
+  try {
+    if (browserProc && browserProc.exitCode === null) {
+      browserProc.kill();
+    }
+  } catch {
+  }
+  await new Promise((r) => setTimeout(r, 200));
+  if (userDataDir) {
+    try {
+      fs.rmSync(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    } catch {
+    }
+  }
+}
+
+async function launchBrowserWithRetry(browserPath, maxAttempts = 3) {
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const debugPort = await allocateFreePort();
+    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pv-audit-'));
+    let stderrBuffer = '';
+    let cdp = null;
+
+    const browserProc = spawn(browserPath, buildBrowserArgs(debugPort, userDataDir), {
+      stdio: ['ignore', 'ignore', 'pipe'],
+    });
+
+    browserProc.on('error', (err) => {
+      stderrBuffer = `${stderrBuffer}\n[spawn error] ${err.message}`.slice(-8192);
+    });
+    browserProc.stderr?.on('data', (chunk) => {
+      stderrBuffer = `${stderrBuffer}${chunk.toString('utf8')}`.slice(-8192);
+    });
+
+    try {
+      const wsUrl = await waitForPageTarget(debugPort, browserProc, () => stderrBuffer);
+      cdp = new CdpSession(wsUrl);
+      await cdp.connect();
+      return { cdp, browserProc, userDataDir };
+    } catch (error) {
+      lastError = error;
+      await cleanupBrowserAttempt(cdp, browserProc, userDataDir);
+      if (attempt < maxAttempts) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.warn(`Browser launch attempt ${attempt}/${maxAttempts} failed (${msg}); retrying...`);
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+}
+
 async function runAudit() {
   const browserPath = findBrowserExecutable();
   const serverState = { authenticated: false };
   const { server, baseUrl } = await startDistServer(serverState);
-  const debugPort = await allocateFreePort();
-  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pv-audit-'));
-
-  const browserProc = spawn(
-    browserPath,
-    [
-      '--headless=new',
-      `--remote-debugging-port=${debugPort}`,
-      `--user-data-dir=${userDataDir}`,
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--disable-gpu',
-      '--no-sandbox',
-      'about:blank',
-    ],
-    { stdio: 'ignore' },
-  );
 
   const allFailures = [];
-  let cdp = null;
+  let browserSession = null;
 
   try {
-    const wsUrl = await waitForPageTarget(debugPort);
-    cdp = new CdpSession(wsUrl);
-    await cdp.connect();
+    browserSession = await launchBrowserWithRetry(browserPath, 3);
+    const { cdp } = browserSession;
 
     const scenarios = [
       { name: 'home-closed', route: '/', auth: false, openPokedex: false },
@@ -632,25 +762,15 @@ async function runAudit() {
       }
     }
   } finally {
-    try {
-      await cdp?.send('Browser.close');
-    } catch {
-    }
-    try {
-      cdp?.close();
-    } catch {
-    }
-    try {
-      browserProc.kill();
-    } catch {
+    if (browserSession) {
+      await cleanupBrowserAttempt(
+        browserSession.cdp,
+        browserSession.browserProc,
+        browserSession.userDataDir,
+      );
     }
     try {
       server.close();
-    } catch {
-    }
-    await new Promise((r) => setTimeout(r, 200));
-    try {
-      fs.rmSync(userDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
     } catch {
     }
   }
