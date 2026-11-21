@@ -1,130 +1,814 @@
-# PokéVerse OS — Pokédex 3D Interativa & Plataforma Full-Stack
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="PokéVerse OS — Pokédex 3D interativa e plataforma full-stack" width="100%">
+</p>
 
-> **Plataforma em produção (Cloudflare Pages + Azure Container Apps):** [https://pokeverse.pages.dev/](https://pokeverse.pages.dev/)
-> A versão estática original da Fase 0 ([index.html](index.html), [css/style.css](css/style.css), [js/app.js](js/app.js) e [assets/](assets/)) permanece preservada intacta na raiz como referência visual canônica da Pokédex.
+<p align="center">
+  <a href="https://pokeverse.pages.dev/"><strong>Abrir a plataforma ao vivo</strong></a>
+  &nbsp;·&nbsp;
+  <a href="docs/capitulo-zero-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
+  &nbsp;·&nbsp;
+  <a href="docs/00-visao-geral-e-roadmap.md">Roadmap</a>
+  &nbsp;·&nbsp;
+  <a href="#documentação">Documentação</a>
+</p>
 
-Aplicação web full-stack em monorepo (**Angular 22 Standalone/Zoneless**, **NestJS 11**, **Prisma/PostgreSQL**, **Redis**, **Redpanda/Kafka** e contratos compartilhados **Zod v4** em `@pokeverse/shared`) construída ao redor de uma **Pokédex 3D interativa** que consome a [PokéAPI v2](https://pokeapi.co/) com cache distribuído, autenticação BFF segura e validação automatizada de qualidade visual e contraste.
+<p align="center">
+  <img alt="Angular 22" src="https://img.shields.io/badge/Angular-22_Zoneless-DD0031?logo=angular&logoColor=white">
+  <img alt="NestJS 11" src="https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-6.0_strict-3178C6?logo=typescript&logoColor=white">
+  <img alt="Prisma" src="https://img.shields.io/badge/Prisma-6.19-2D3748?logo=prisma&logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
+  <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
+  <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-55_passando-3ddc84">
+  <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
+</p>
 
----
+# PokéVerse OS
 
-## O que Já Está Implementado
+**Uma Pokédex 3D skeuomórfica, com tampa que gira, LEDs, metal e vidro, construída sobre uma plataforma full-stack real.** Ela tem autenticação segura, cache distribuído, mensageria, deploy em nuvem e uma auditoria visual automatizada que reprova regressões de contraste e layout.
 
-### 1. Pokédex 3D & Experiência Visual (`apps/web`)
-- **Chassi 3D skeuomórfico fiel (`_pokedex-classic.scss`):**
-  - Carcaça vermelha metálica com iluminação dinâmica por ponteiro (`--luz-x`/`--luz-y`), microtexturas WebP (`metal-floco.webp` e `plastico-grao.webp`), dobradiça lateral articulada, câmera com lente de safira e trio de LEDs reativos ao carregamento.
-  - **Abertura e fechamento 3D reversíveis em voo:** clicar para abrir ou fechar reverte a animação `rotateY(-180deg)` / `rotateX(180deg)` suavemente sem esperar o fim do ciclo.
-- **Busca inteligente e navegação progressiva em 1 clique:**
-  - Catálogo completo da PokéAPI com filtro instantâneo por ID/nome, chave fonética PT/EN e aproximação Damerau-Levenshtein (via `@pokeverse/shared`).
-  - **Seleção em 2 passos na lista:** 1º clique destaca o item (`.is-cursor`) e 2º clique (ou botão circular `A` / `Enter`) carrega os detalhes no visor.
-  - **Botão vermelho com histórico progressivo:** se um Pokémon específico foi escolhido a partir de uma busca ampla (ex.: `"pikachu"` -> `"pikachu-original-cap"`), o primeiro clique volta 1 passo para a busca `"pikachu"` mantendo o item destacado/centralizado; o clique seguinte volta para `"Todos os Pokémon"` na posição do Pokémon selecionado; mais um clique retorna ao topo da lista (`#0001`).
-- **10 Slots Azuis de Gravação Rápida & Edição:**
-  - Luz azul (slot livre), verde (slot ocupado) e contorno amarelo no Pokémon atualmente exibido; regra estrita de 1 Pokémon por botão (front-end + `409 Conflict` na API).
-  - Clicar em qualquer botão azul ocupado abre diretamente o Pokémon salvo no visor sem pop-ups intermediários.
-  - Clicar em um slot vazio grava o Pokémon exibido (em `localStorage` no modo visitante ou persistido em PostgreSQL quando autenticado); substituição por slot, apelidos e exclusões contam com confirmação explícita no editor (`Config`) e sincronização atômica via `DELETE /api/v1/pokedex/slots`.
-- **HUD Compacta, Cenários e Rotas da Plataforma:**
-  - Barra superior com estado da sessão, verificação de e-mail por OTP (com fechamento automático e redirecionamento pós-confirmação), segurança/2FA e ticker global em tempo real (`/ws/world`).
-  - Seletor compacto de cenários de fundo (**Hoenn**, **Cidade**, **Vila**, **Floresta**) em botão único cíclico + alternância **Auto** + detector automático de hardware (`Perf: Auto — Ultra / Equil. / Lite`).
-  - Dock inferior compacto em vidro translúcido ligando os 5 módulos: `1 Vila Central` (`/mundo`), `2 Pokédex 3D` (`/pokedex`), `3 Museu` (`/museu`, com cards das gerações sobre cabeçalho frosted de alto contraste), `4 Arcade Retrô` (`/arcade`) e `5 Battle Frontier` (`/arena`). Rotas ainda em desenvolvimento exibem telas dedicadas de status em construção.
+O projeto começou como a **atividade final de Front-end no Senac**: uma Pokédex em HTML, CSS e JavaScript puro. Eu gostei do tema e decidi continuar por conta própria. O resultado é este monorepo. A história completa está no **[Capítulo Zero](docs/capitulo-zero-como-tudo-comecou.md)**, junto com o README original, preservado como recordação.
 
-### 2. Back-end NestJS, Cache, IAM BFF & Mensageria (`apps/api`)
-- **Proxy e Cache PokéAPI (`/api/v1/pokedex/*`):** cache em Redis com `stale-fallback` de 7 dias e fallback automático para a PokéAPI direta no cliente em caso de indisponibilidade local.
-- **Autenticação & IAM Enterprise BFF:** sessões opacas armazenadas em Redis com cookies `HttpOnly`, sem exposição de JWT no JavaScript do navegador, máquina de estados `MFA_PENDING -> AUTHENTICATED`, proteção `CsrfOriginGuard`, hash `Argon2id`, 2FA TOTP com QR Code + códigos de backup, Google OAuth PKCE, Passkeys WebAuthn e fluxos OTP de verificação de e-mail / redefinição de senha via Redpanda + SMTP/Resend.
-- **Persistência & Eventos (`PostgreSQL` + `Prisma` + `Redpanda`):** 10 modelos no schema Prisma, Transactional Outbox com `SKIP LOCKED`, consumidor idempotente em Redis e Gateway WebSocket `/ws/world`.
-
-### 3. Domínio Futuro Modelado em `@pokeverse/shared`
-- Catálogo estruturado dos **51 endpoints da PokéAPI v2** e modelo de filtros avançados ([pokeapi-endpoints.ts](packages/shared/src/domain/pokeapi-endpoints.ts)).
-- Regras puras do **Laboratório Genético e Evolução** — cálculo de atributos por nível, chances de evolução, clonagem, replicação e conversão em Bio-Essência ([pokemon-lab.ts](packages/shared/src/domain/pokemon-lab.ts)).
-
----
-
-## Qualidade Automatizada & UI Quality Gate
-
-O repositório bloqueia commits e deploys caso qualquer regressão visual ou técnica ocorra:
-
-- **UI Quality Gate (`npm run audit:ui` via [scripts/ui-quality-gate.mjs](scripts/ui-quality-gate.mjs)):** executa Chrome/Chromium headless com CDP em Desktop (`1440×900`) e Mobile (`375×812`) sobre o bundle compilado (`/`, `/pokedex?q=pikachu`, `/museu`, `/mundo`), reprovando:
-  - Textos sobre cenário sem fundo escuro/translúcido adequado (`effectiveSurfaceAlpha < 0.55`);
-  - Contraste WCAG AA insuficiente (`< 4.5:1` texto normal / `< 3.0:1` texto grande), simulado inclusive sobre fundo diurno claro;
-  - Overflow horizontal de viewport (`> innerWidth`), clipping lateral ou texto vazando fora de botões/caixas;
-  - Tamanho de fonte abaixo do mínimo legível (`< 10.5px`) ou erros de console.
-- **CI/CD ([ci.yml](.github/workflows/ci.yml) & [deploy.yml](.github/workflows/deploy.yml)):** `build:shared`, `prisma generate`, `typecheck`, `lint:api`, `test` (Vitest + Jest), `test:e2e`, `build`, `audit:ui`, imagem Docker multi-stage não-root para Azure Container Apps e deploy no Cloudflare Pages (`apps/web/functions/` proxy same-origin + CSP estrita com `inlineCritical: false`).
+<p align="center">
+  <img src="docs/assets/screenshots/03-pokedex-pikachu-desktop.webp" alt="Pokédex 3D aberta exibindo o Pikachu, com o slot 01 salvo e o HUD autenticado" width="100%">
+</p>
 
 ---
 
-## Estrutura do Monorepo
+## Sumário
+
+1. [Estado atual em um olhar](#estado-atual-em-um-olhar)
+2. [Galeria](#galeria)
+3. [Arquitetura](#arquitetura)
+4. [Fluxos principais](#fluxos-principais)
+5. [Modelo de dados](#modelo-de-dados)
+6. [API](#api)
+7. [Qualidade, testes e CI/CD](#qualidade-testes-e-cicd)
+8. [Segurança e privacidade](#segurança-e-privacidade)
+9. [Performance](#performance)
+10. [Roadmap: o que vem a seguir](#roadmap-o-que-vem-a-seguir)
+11. [Como executar](#como-executar)
+12. [Estrutura do repositório](#estrutura-do-repositório)
+13. [Documentação](#documentação)
+14. [Princípios de engenharia](#princípios-de-engenharia)
+15. [Créditos e avisos](#créditos-e-avisos)
+
+---
+
+## Estado atual em um olhar
+
+A plataforma tem **cinco módulos**, acessíveis pelo dock inferior (atalhos `1` a `5`). Hoje a prioridade é o módulo 2, a Pokédex, que vai virar a enciclopédia Pokémon mais completa possível. Os outros módulos usarão os dados dela.
+
+| # | Módulo | Rota | Acesso | Estado | Progresso |
+| :-: | :--- | :--- | :---: | :--- | :--- |
+| 1 | **Vila Central** (overworld 2D/HD-2D) | `/mundo` | Treinador | 🚧 Tela de status | `█░░░░░░░░░` 18% |
+| 2 | **Pokédex 3D** | `/` e `/pokedex` | Público | ✅ **Em produção** | `██████████` Fase 4A |
+| 3 | **Museu das Regiões** | `/museu` | Público | 🟡 Base com 6 gerações | `███░░░░░░░` 36% |
+| 4 | **Arcade Retrô** (WASM + cloud saves) | `/arcade` | Treinador | 🚧 Tela de status | `█░░░░░░░░░` 14% |
+| 5 | **Battle Frontier** (PvE/PvP e mini-games) | `/arena` | Treinador | 🚧 Tela de status | `██░░░░░░░░` 28% |
+
+> Os percentuais são os exibidos nas telas de módulo em construção ([`under-construction.data.ts`](apps/web/src/app/features/under-construction/under-construction.data.ts)). Eles medem preparação (modelagem, contratos, schema), não entrega do módulo.
+
+### O que já funciona
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+**Pokédex 3D e experiência**
+
+- Chassi skeuomórfico fiel, com luz que segue o ponteiro, microtexturas WebP, dobradiça, lente de safira e LEDs reativos
+- Abertura e fechamento 3D **reversíveis em voo**
+- Catálogo completo da PokéAPI (1351 entradas) com busca por ID ou nome, chave fonética PT/EN e aproximação Damerau-Levenshtein
+- Seleção em 2 passos: o 1º clique destaca, o 2º (ou `A` / `Enter`) abre no visor
+- Botão vermelho com **histórico progressivo** de navegação
+- **10 slots azuis** de gravação, com luz azul (livre) ou verde (ocupado), 1 Pokémon por botão e apelidos
+- 4 cenários (**Hoenn, Cidade, Vila, Floresta**), modo Auto e detector de hardware
+- Dock inferior em vidro translúcido e HUD compacta com ticker ao vivo
+
+</td>
+<td width="50%" valign="top">
+
+**Plataforma e back-end**
+
+- Proxy e cache da PokéAPI no Redis: 24 h de TTL e `stale-fallback` de 7 dias
+- Sessões **BFF opacas** no Redis, cookie `HttpOnly` e zero JWT no JavaScript do navegador
+- MFA: **TOTP** com QR Code e 8 códigos de backup, **Passkeys WebAuthn** e **Google OAuth PKCE**
+- Verificação de e-mail e recuperação de senha por **OTP**
+- **Transactional Outbox**, Redpanda/Kafka, consumidores idempotentes e DLQ
+- Gateway WebSocket `/ws/world` com ticker global
+- Banner de cookies e **LGPD** (consentimento versionado)
+- Deploy contínuo em **Cloudflare Pages + Azure Container Apps**
+
+</td>
+</tr>
+</table>
+
+### Domínio futuro já modelado
+
+Estes módulos estão em [`@pokeverse/shared`](packages/shared/src) com testes, mas ainda **sem tela nem endpoint**:
+
+- **Catálogo dos 51 endpoints da PokéAPI v2** com modelo de filtros avançados: [`pokeapi-endpoints.ts`](packages/shared/src/domain/pokeapi-endpoints.ts)
+- **Laboratório Genético**: atributos e XP por nível, chance de evolução, clonagem e replicação, e conversão em **Bio-Essência** (ranks `E`, `D`, `C`, `B`, `A`, `S` e `APEX`): [`pokemon-lab.ts`](packages/shared/src/domain/pokemon-lab.ts)
+
+---
+
+## Galeria
+
+### Pokédex 3D
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/01-pokedex-fechada-desktop.webp" alt="Pokédex fechada: tampa vermelha metálica com câmera, LEDs e emblema"><br><sub><b>Fechada:</b> tampa, dobradiça lateral, lente de safira e LEDs.</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/02-pokedex-aberta-desktop.webp" alt="Pokédex aberta: módulo de busca à esquerda e visor de resultados à direita"><br><sub><b>Aberta:</b> módulo de busca, D-pad, botões e visor de resultados.</sub></td>
+</tr>
+</table>
+
+### Módulos e responsividade
+
+<table>
+<tr>
+<td width="50%"><img src="docs/assets/screenshots/04-museu-desktop.webp" alt="Museu das Regiões com cards de Kanto, Johto, Hoenn, Sinnoh, Unova e Paldea"><br><sub><b>Museu:</b> 6 gerações, cada uma com um inicial para inspecionar na Pokédex.</sub></td>
+<td width="50%"><img src="docs/assets/screenshots/05-vila-central-em-construcao-desktop.webp" alt="Tela de módulo em construção da Vila Central com Dragonite"><br><sub><b>Em construção:</b> telas dedicadas, com especificação e progresso por módulo.</sub></td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td align="center" width="50%"><img src="docs/assets/screenshots/07-pokedex-pikachu-mobile.webp" alt="Pokédex no mobile 375 por 812" width="260"><br><sub><b>Mobile (375×812):</b> a tampa gira no eixo X.</sub></td>
+<td align="center" width="50%"><img src="docs/assets/screenshots/08-museu-mobile.webp" alt="Museu no mobile 375 por 812" width="260"><br><sub><b>Museu no mobile</b></sub></td>
+</tr>
+</table>
+
+### Cenários
+
+<table>
+<tr>
+<td width="50%"><img src="assets/backgrounds/mirante-hoenn-desktop.webp" alt="Cenário Mirante de Hoenn"><br><sub><b>Hoenn</b></sub></td>
+<td width="50%"><img src="assets/backgrounds/cidade-anime-desktop.webp" alt="Cenário Cidade"><br><sub><b>Cidade</b></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="assets/backgrounds/vila-pallet-desktop.webp" alt="Cenário Vila de Pallet"><br><sub><b>Vila</b></sub></td>
+<td width="50%"><img src="assets/backgrounds/floresta-sol-desktop.webp" alt="Cenário Floresta ao sol"><br><sub><b>Floresta</b></sub></td>
+</tr>
+</table>
+
+> As capturas foram geradas automaticamente com Chrome headless sobre o build de produção, em `1440×900` e `375×812`. Para refazê-las, consulte [`docs/assets/README.md`](docs/assets/README.md).
+
+---
+
+## Arquitetura
+
+### Visão de contexto
+
+```mermaid
+flowchart LR
+  user(["Treinador ou visitante<br/>navegador"])
+
+  subgraph edge["Borda: Cloudflare Pages"]
+    spa["Angular 22 SPA<br/>Standalone, Signals, Zoneless"]
+    fn["Pages Functions<br/>proxy same-origin<br/>/api, /health, /socket.io"]
+  end
+
+  subgraph compute["Azure Container Apps, brazilsouth"]
+    api["NestJS 11<br/>API REST + Socket.IO<br/>imagem Docker não-root"]
+  end
+
+  subgraph data["Dados e mensageria"]
+    pg[("PostgreSQL<br/>Neon, via Prisma")]
+    redis[("Redis<br/>Upstash, TLS")]
+    kafka[["Kafka<br/>Aiven, mTLS"]]
+  end
+
+  resend["Resend<br/>e-mail transacional"]
+  pokeapi["PokéAPI v2<br/>fonte dos dados Pokémon"]
+  google["Google OAuth<br/>PKCE"]
+
+  user -->|HTTPS| spa
+  spa -->|"mesma origem"| fn
+  fn --> api
+  api --> pg
+  api --> redis
+  api <--> kafka
+  api --> resend
+  api -->|"cache miss"| pokeapi
+  api <--> google
+  spa -.->|"fallback direto se a API cair"| pokeapi
+
+  classDef edge fill:#1b2a4a,stroke:#6aa7ff,color:#fff
+  classDef cmp fill:#2a1b3a,stroke:#b58cff,color:#fff
+  classDef dat fill:#10301f,stroke:#3ddc84,color:#fff
+  class spa,fn edge
+  class api cmp
+  class pg,redis,kafka dat
+```
+
+O proxy **same-origin** é essencial: os cookies `HttpOnly` de sessão ficam no domínio do front-end, o CSP pode ser estrito e o CSRF fica mais simples de defender.
+
+### Monorepo e dependências
+
+```mermaid
+flowchart TD
+  root["pokeverse-monorepo<br/>npm workspaces"]
+
+  subgraph packages["packages/"]
+    shared["@pokeverse/shared<br/>Schemas Zod v4, busca fuzzy,<br/>51 endpoints, Laboratório Genético<br/>tsup: ESM + CJS + d.ts"]
+  end
+
+  subgraph apps["apps/"]
+    web["pokeverse-web<br/>Angular 22"]
+    api["pokeverse-api<br/>NestJS 11 + Prisma"]
+  end
+
+  infra["infra/docker<br/>Postgres, Redis, Redpanda,<br/>MinIO/S3, Mailpit"]
+  gate["scripts/ui-quality-gate.mjs<br/>Chrome headless + CDP"]
+  legacy["raiz: index.html, css/, js/<br/>Fase 0 preservada"]
+
+  root --- packages
+  root --- apps
+  shared -->|"contratos e regras de domínio"| web
+  shared -->|"contratos e regras de domínio"| api
+  api -.->|"docker compose"| infra
+  gate -.->|"audita o build de"| web
+
+  classDef sh fill:#3a2a10,stroke:#ffd23f,color:#fff
+  classDef old fill:#2a0f1a,stroke:#ff3b4e,color:#fff
+  class shared sh
+  class legacy old
+```
+
+**Regra de ouro:** contratos Zod, schemas de eventos e regras de domínio vivem **somente** em `@pokeverse/shared`. Front-end e back-end importam de lá e nunca duplicam.
+
+### Stack em detalhe
+
+| Camada | Tecnologias |
+| :--- | :--- |
+| **Front-end** | Angular 22 (Standalone, Signals, Zoneless, `@defer`), SCSS com tokens `oklch`, `socket.io-client` e `@simplewebauthn/browser` carregados sob demanda |
+| **Back-end** | NestJS 11, Express, Socket.IO, Helmet, Throttler com storage em Redis, `argon2` (Argon2id), `qrcode`, `nodemailer` |
+| **Dados** | PostgreSQL com Prisma 6.19 (13 modelos), Redis 7 via `ioredis`, Kafka via `kafkajs` (Redpanda no local, Aiven na nuvem) |
+| **Contratos** | Zod v4 em `@pokeverse/shared`, compilado com `tsup` |
+| **Qualidade** | Vitest 5, Jest 30, ESLint 9, Prettier, SonarCloud, UI Quality Gate próprio |
+| **Infra** | Docker multi-stage não-root, GitHub Actions, Cloudflare Pages, Azure Container Apps, Neon, Upstash, Aiven, Resend |
+
+---
+
+## Fluxos principais
+
+### Busca de Pokémon com cache e degradação graciosa
+
+A Pokédex **nunca fica inutilizável**. Se a API estiver fora do ar, o front-end consulta a PokéAPI direto e o visitante continua navegando.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Usuário
+  participant W as Angular (PokedexStore)
+  participant A as NestJS (/api/v1/pokedex)
+  participant R as Redis
+  participant P as PokéAPI
+
+  U->>W: Seleciona "Pikachu" (2º clique, A ou Enter)
+  W->>A: GET /pokedex/pokemon/pikachu
+  A->>R: GET cache do Pokémon
+  alt cache HIT (TTL 24 h)
+    R-->>A: JSON
+    A-->>W: 200, X-Cache: HIT
+  else cache MISS
+    A->>P: GET /pokemon/pikachu
+    alt PokéAPI respondeu
+      P-->>A: JSON
+      A->>R: SET cache (24 h) + cópia stale (7 d)
+      A-->>W: 200, X-Cache: MISS
+    else PokéAPI indisponível
+      A->>R: GET cópia stale
+      R-->>A: JSON antigo
+      A-->>W: 200, stale-fallback
+    end
+  else API NestJS fora do ar
+    W->>P: fallback direto (modo degradado)
+    P-->>W: JSON
+  end
+  W->>W: Valida com Zod (PokemonDetailSchema)
+  W-->>U: Exibe no visor LCD
+```
+
+### Controles da Pokédex: a máquina de estados do botão vermelho
+
+O botão vermelho volta **um passo por clique**, para o usuário nunca se perder em uma lista de 1351 itens.
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> Fechada
+  Fechada --> Aberta: clique na tampa
+  Aberta --> Fechada: clique fora, Esc ou tampa
+  state Aberta {
+    direction LR
+    [*] --> Todos
+    Todos --> Busca: digita "pikachu"
+    Busca --> Detalhe: 2 cliques, A ou Enter
+    Detalhe --> Busca: vermelho 1x (mantém o item destacado)
+    Busca --> Todos: vermelho 2x (na posição do Pokémon)
+    Todos --> Topo: vermelho 3x
+    Topo --> [*]
+  }
+  note right of Aberta
+    Abrir ou fechar pode ser
+    revertido em pleno giro
+    (rotateY -180° no desktop,
+    rotateX 180° no mobile)
+  end note
+```
+
+### Autenticação BFF com MFA
+
+Nenhum token de acesso chega ao JavaScript. A sessão é um identificador **opaco** guardado em cookie `HttpOnly`, e o estado vive no Redis, o que permite revogação instantânea.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Visitante
+  Visitante --> Registrando: POST /auth/register
+  Registrando --> AguardandoOTP: Argon2id + OTP por e-mail (Outbox)
+  AguardandoOTP --> Visitante: POST /auth/verify-email (conta verificada)
+  Visitante --> Autenticando: POST /auth/login
+  Autenticando --> AUTHENTICATED: sem MFA
+  Autenticando --> MFA_PENDING: MFA ativo
+  MFA_PENDING --> AUTHENTICATED: TOTP, código de backup ou Passkey
+  MFA_PENDING --> Visitante: 5 a 8 falhas, bloqueio atômico no Redis
+  Visitante --> AUTHENTICATED: Google OAuth PKCE ou Passkey
+  AUTHENTICATED --> AUTHENTICATED: POST /auth/refresh (rotação de família)
+  AUTHENTICATED --> Visitante: POST /auth/logout ou revogação
+```
+
+### Eventos confiáveis: Transactional Outbox
+
+O envio de e-mail e a atualização do ticker **nunca** acontecem no meio de uma transação de banco. O evento é gravado junto com o dado e publicado depois, de forma atômica e idempotente.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant S as AuthService
+  participant DB as PostgreSQL
+  participant O as OutboxRelayService
+  participant K as Kafka / Redpanda
+  participant C as EmailNotificationsConsumer
+  participant X as Redis
+  participant M as MailService (SMTP ou Resend)
+
+  S->>DB: BEGIN, INSERT Trainer + OutboxEvent (PII cifrada AES-256-GCM), COMMIT
+  loop polling
+    O->>DB: WITH claimed AS (... FOR UPDATE SKIP LOCKED)<br/>UPDATE processedAt = NOW() RETURNING (lease de 60 s)
+    O->>K: publish no tópico
+    alt falha retentável
+      O->>DB: libera o lease (processedAt = NULL)
+    end
+  end
+  K->>C: entrega a mensagem (at-least-once)
+  C->>X: SET NX (trava de idempotência)
+  alt duplicata
+    X-->>C: já existe, descarta
+  else nova mensagem
+    C->>M: envia o e-mail
+    alt falha transitória
+      C->>X: libera a trava, relança para retry ou DLQ
+    end
+  end
+```
+
+**Tópicos Kafka** (definidos em [`events.schemas.ts`](packages/shared/src/schemas/events.schemas.ts)):
+
+| Tópico | Uso |
+| :--- | :--- |
+| `pokeverse.world.events.v1` | Eventos do mundo e ticker global (`/ws/world`) |
+| `pokeverse.notifications.email.v1` | E-mails transacionais (OTP, recuperação) |
+| `pokeverse.arcade.savestate.v1` | Cloud saves do Arcade (reservado) |
+| `pokeverse.battle.matchmaking.v1` | Matchmaking da Arena (reservado) |
+| `pokeverse.battle.results.v1` | Resultados de batalhas (reservado) |
+| `pokeverse.dlq.v1` | Dead Letter Queue, com payload e metadados de erro |
+
+---
+
+## Modelo de dados
+
+O schema Prisma tem **13 modelos** e 2 migrações. Os módulos futuros (Arcade, Arena, times) já têm tabelas para não exigir reestruturação depois.
+
+```mermaid
+erDiagram
+  Trainer ||--o{ RefreshToken : "sessões rotacionadas"
+  Trainer ||--o{ MfaBackupCode : "8 códigos"
+  Trainer ||--o{ TrainerOAuthAccount : "Google"
+  Trainer ||--o{ TrainerPasskey : "WebAuthn"
+  Trainer ||--o{ PokedexSlot : "10 slots"
+  Trainer ||--o{ PokemonTeam : monta
+  PokemonTeam ||--o{ PokemonTeamMember : contem
+  Trainer ||--o{ ArcadeSaveState : grava
+  ArcadeRom ||--o{ ArcadeSaveState : "save de"
+  Trainer ||--o{ MinigameScore : pontua
+  Trainer ||--o{ BattleMatch : "player 1"
+  Trainer |o--o{ BattleMatch : "player 2"
+  OutboxEvent {
+    uuid id PK
+    string aggregateId
+    string eventType "tópico Kafka"
+    json payload
+    datetime processedAt "lease"
+  }
+  Trainer {
+    uuid id PK
+    string email UK
+    string username UK
+    int eloRating
+    string lastMapId
+  }
+  PokedexSlot {
+    uuid id PK
+    uuid trainerId FK
+    int pokemonId
+    int slotIndex
+  }
+```
+
+`OutboxEvent` não tem relação com `Trainer` de propósito: ele é infraestrutura de mensageria. Há um índice parcial `idx_outbox_pending` para o polling.
+
+---
+
+## API
+
+Prefixo global `/api/v1` (exceto `/health`). Validação de entrada com Zod na fronteira, `CsrfOriginGuard` e throttling em Redis.
+
+| Domínio | Método e rota | Descrição |
+| :--- | :--- | :--- |
+| **Saúde** | `GET /health/live` · `GET /health/ready` | Liveness e readiness (Postgres, Redis, Kafka e S3) |
+| **Sistema** | `GET /system/bootstrap` | Fase atual e módulos da plataforma |
+| **Pokédex** | `GET /pokedex/catalog` | Catálogo completo (cache Redis) |
+| | `GET /pokedex/pokemon/:idOrName` | Detalhe de um Pokémon (cache Redis) |
+| | `GET /pokedex/slots` | Lista os slots do treinador |
+| | `PUT /pokedex/slots/:index` | Grava um slot (`409` se o Pokémon já estiver em outro) |
+| | `DELETE /pokedex/slots/:index` · `DELETE /pokedex/slots` | Remove um slot ou todos (atômico) |
+| **Auth** | `GET /auth/providers` · `GET /auth/session` | Provedores ativos e estado da sessão |
+| | `POST /auth/register` · `login` · `refresh` · `logout` | Ciclo de vida da conta e da sessão |
+| | `POST /auth/verify-email` · `resend-verification` | Verificação por OTP |
+| | `POST /auth/forgot-password` · `reset-password` | Recuperação por OTP |
+| | `GET /auth/me` · `me/export` | Perfil e exportação de dados (LGPD) |
+| | `GET /auth/sessions` · `POST /auth/sessions/revoke-others` | Gestão de dispositivos |
+| **Google** | `GET /auth/google/start` · `callback` · `DELETE /auth/google` | OAuth com PKCE e vínculo de conta |
+| **MFA** | `GET /auth/security/overview` | Painel de segurança |
+| | `POST /auth/mfa/totp/setup` · `enable` · `disable` · `POST /auth/mfa/verify` | TOTP e códigos de backup |
+| | `GET /auth/passkeys` · `DELETE /auth/passkeys/:id` | Gestão de Passkeys |
+| | `POST /auth/passkeys/register/{options,verify}` · `login/{options,verify}` | Fluxos WebAuthn |
+| **Tempo real** | `WS /ws/world` | Ticker global (Socket.IO) |
+
+---
+
+## Qualidade, testes e CI/CD
+
+### Pipeline
+
+```mermaid
+flowchart LR
+  push(["push / PR"]) --> v
+
+  subgraph v["CI Verification (GitHub Actions)"]
+    direction LR
+    s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>3 workspaces"]
+    s2 --> s3["Lint API"]
+    s3 --> s4["Testes unitários<br/>Vitest + Jest"]
+    s4 --> s5["Testes E2E<br/>da API"]
+    s5 --> s6["Build<br/>+ legado da raiz"]
+    s6 --> s7["UI Quality Gate"]
+    s7 --> s8["Build da imagem<br/>Docker de produção"]
+  end
+
+  push2(["push na main<br/>e ENABLE_CLOUD_DEPLOY=true"]) --> d
+
+  subgraph d["Cloud Deploy (workflow separado)"]
+    direction LR
+    a1["Build e push da imagem no ACR"] --> a2["Atualiza o Azure Container App"] --> a3["Verifica /health/live"]
+    a3 -->|"needs: deploy-api-azure"| b1["Build do Angular"] --> b2["UI Quality Gate"] --> b3["Publica no Cloudflare Pages"]
+  end
+
+  classDef gate fill:#3a1020,stroke:#ff3b4e,color:#fff
+  class s7,b2 gate
+```
+
+### UI Quality Gate
+
+`npm run audit:ui` ([`scripts/ui-quality-gate.mjs`](scripts/ui-quality-gate.mjs)) abre o **bundle compilado** em Chrome headless via CDP, em Desktop (`1440×900`) e Mobile (`375×812`). Ele percorre `/`, `/pokedex?q=pikachu`, `/museu` e `/mundo`, e **reprova o build** quando encontra:
+
+| Verificação | Critério de reprovação |
+| :--- | :--- |
+| Texto sobre cenário sem fundo adequado | `effectiveSurfaceAlpha < 0.55` |
+| Contraste WCAG AA | `< 4.5:1` (texto normal) ou `< 3.0:1` (texto grande), também simulado sobre fundo diurno claro |
+| Layout | Overflow horizontal, clipping lateral ou texto vazando de botões e caixas |
+| Tipografia e console | Fonte menor que `10.5px` ou erros no console |
+
+### Testes
+
+| Workspace | Runner | Testes |
+| :--- | :--- | :-: |
+| `@pokeverse/shared` | Vitest | 15 (3 arquivos) |
+| `pokeverse-api` | Jest | 23 (9 suítes) |
+| `pokeverse-web` | Vitest + jsdom | 17 (1 arquivo) |
+| **Total** | | **55 passando** |
+
+```mermaid
+xychart-beta
+  title "Testes automatizados por workspace"
+  x-axis ["shared (Vitest)", "api (Jest)", "web (Vitest)"]
+  y-axis "Testes" 0 --> 30
+  bar [15, 23, 17]
+```
+
+Os testes cobrem busca fuzzy, regras do Laboratório, schemas, TOTP, OAuth, consumidores Kafka, Outbox, health, bootstrap e a Pokédex (incluindo abertura direta pelos slots azuis).
+
+### Bundle do front-end
+
+`494.31 kB` raw e `127.09 kB` de transferência estimada no bundle inicial. O CSS global tem `67.37 kB` e o `main` tem `36.36 kB`. O resto é carregado sob demanda: Pokédex (`79.80 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`23.16 kB`), diálogos de visitante, segurança e privacidade, e Museu (`4.49 kB`).
+
+---
+
+## Segurança e privacidade
+
+```mermaid
+flowchart TB
+  subgraph browser["Navegador"]
+    b1["Zero JWT no JS"]
+    b2["CSP estrita<br/>inlineCritical: false"]
+    b3["Sem innerHTML não sanitizado"]
+  end
+  subgraph edge["Borda"]
+    e1["Proxy same-origin"]
+    e2["Cookies HttpOnly + Secure + SameSite"]
+  end
+  subgraph app["API NestJS"]
+    a1["CsrfOriginGuard<br/>Origin + Sec-Fetch-Site"]
+    a2["Zod em toda entrada"]
+    a3["Argon2id + hash dummy<br/>contra enumeração"]
+    a4["Throttler em Redis"]
+    a5["Helmet + CORS por allowlist"]
+  end
+  subgraph data["Dados"]
+    d1["Contadores atômicos Lua<br/>INCR + EXPIRE"]
+    d2["PII de e-mail cifrada<br/>AES-256-GCM"]
+    d3["Env validado fail-fast<br/>sem vazar valores"]
+  end
+  browser --> edge --> app --> data
+```
+
+| Tema | Como está resolvido |
+| :--- | :--- |
+| **Sessão** | Opaca, no Redis, com `MFA_PENDING` → `AUTHENTICATED`, rotação de refresh por família e revogação instantânea |
+| **MFA** | TOTP (QR Code + 8 backup codes), Passkeys WebAuthn e proteção contra *account takeover* no Google PKCE |
+| **Concorrência** | Zero TOCTOU em contadores (Lua), zero efeito externo antes da constraint `UNIQUE`, lease atômico no Outbox e rollback de idempotência no `catch` |
+| **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), preferências opcionais separadas, exportação de dados em `GET /auth/me/export` e sem rastreadores de terceiros |
+| **Infra** | Imagem Docker multi-stage não-root, secrets só em variáveis de ambiente, TLS e mTLS nos serviços gerenciados |
+| **Observabilidade** | Logs JSON estruturados, `x-correlation-id` e `traceparent` W3C, health checks separados de liveness e readiness |
+
+Os detalhes estão no [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e no [documento de cookies e LGPD](docs/16-cookies-lgpd-e-requisitos.md).
+
+---
+
+## Performance
+
+O projeto detecta o hardware e escolhe um perfil. Isso mantém a fidelidade visual em desktops e a fluidez em celulares fracos. O seletor `Perf: Auto` fica visível na HUD.
+
+```mermaid
+flowchart TD
+  probe["Probe de hardware<br/>RAM, CPU, toque, WebGL2,<br/>saveData, reduced-motion"] --> q1{"RAM menor que 4 GB<br/>ou saveData<br/>ou sem WebGL2<br/>ou reduced-motion?"}
+  q1 -->|Sim| lite["Perfil LITE<br/>economia e mobile fraco"]
+  q1 -->|Não| q2{"Mobile touch<br/>ou 4 núcleos ou menos?"}
+  q2 -->|Sim| bal["Perfil BALANCED<br/>mobile médio e ultrabook"]
+  q2 -->|Não| ultra["Perfil ULTRA<br/>desktop com GPU dedicada"]
+  ultra --> wd["FpsWatchdog<br/>rebaixa se os quadros caírem"]
+  bal --> wd
+
+  classDef l fill:#3a2a10,stroke:#ffd23f,color:#fff
+  classDef b fill:#10283a,stroke:#6aa7ff,color:#fff
+  classDef u fill:#10301f,stroke:#3ddc84,color:#fff
+  class lite l
+  class bal b
+  class ultra u
+```
+
+As animações dos LEDs usam apenas `opacity` e `transform` (sem `filter` nem `box-shadow` por quadro), e os cenários têm variantes `-desktop` e `-mobile` em WebP. Veja o [documento 11](docs/11-performance-hardware-gates-e-mobile.md).
+
+---
+
+## Roadmap: o que vem a seguir
+
+```mermaid
+flowchart LR
+  f0["Fase 0<br/>Pokédex estática<br/>(atividade do Senac)"]:::done
+  f1["Fase 1<br/>Monorepo + shell Angular"]:::done
+  f2["Fase 2<br/>API, Prisma, Redis,<br/>Outbox e WebSocket"]:::done
+  f2b["Etapas 2A e 2B<br/>IAM BFF, MFA<br/>e hardening"]:::done
+  f3["Fase 3<br/>Deploy em nuvem"]:::done
+  f4a["Fase 4A<br/>Restauração fiel 3D,<br/>CSP e bundle"]:::done
+  f4b["Fase 4B<br/>Pokédex Suprema"]:::next
+  f5["Fase 5<br/>Back-end do Laboratório<br/>e mecânicas de jogo"]:::plan
+  f6["Fase 6<br/>Overworld, Museu 3D,<br/>Arcade e Battle Frontier"]:::plan
+
+  f0 --> f1 --> f2 --> f2b --> f3 --> f4a --> f4b --> f5 --> f6
+
+  classDef done fill:#10301f,stroke:#3ddc84,color:#fff
+  classDef next fill:#3a2a10,stroke:#ffd23f,color:#fff
+  classDef plan fill:#1b2a4a,stroke:#6aa7ff,color:#fff
+```
+
+| Etapa | Nome | Estado | Entregas |
+| :--- | :--- | :---: | :--- |
+| Fase 0 | Pokédex 3D estática (vanilla) | ✅ | [`index.html`](index.html), [`css/`](css), [`js/`](js) preservados |
+| Fase 1 | Fundação do monorepo e shell Angular | ✅ | Workspaces, `docker-compose` saudável |
+| Fase 2 | API, Prisma, Redis, Outbox e WebSocket | ✅ | Cache PokéAPI, 10 slots em ACID, ticker ao vivo |
+| 2A e 2B | IAM Enterprise BFF e hardening | ✅ | MFA, Passkeys, OAuth PKCE, OTP, SonarCloud |
+| Fase 3 | Deploy em nuvem | ✅ | Cloudflare Pages, Azure, Neon, Upstash, Aiven, Resend, CI/CD |
+| Fase 4A | Restauração fiel 3D, CSP e bundle | ✅ | Giro reversível, unicidade de slots, `stale-fallback`, 51 endpoints e Lab modelados |
+| **Fase 4B** | **Pokédex Suprema** | 🔜 **Próxima** | Veja abaixo |
+| Fase 5 | Back-end do Laboratório e mecânicas | 📐 Modelada | Atributos por nível, evolução, clonagem, Bio-Essência, encontros e combate |
+| Fase 6 | Expansões do mundo | 🗺️ Futura | Overworld Phaser 3, Museu em globo 3D, Arcade WASM e Battle Frontier |
+
+### Próxima entrega: Fase 4B, Pokédex Suprema
+
+- **Consultas avançadas e 5 abas LCD no visor**, com endpoints agregados no NestJS para espécie, evolução, golpes, habilidades, formas, encontros e gerações, além de um índice compacto multi-filtro sobre os 51 recursos da PokéAPI
+- **Motor audiovisual**: espectrograma Web Audio nos *Cries*, sons táteis da dobradiça e dos botões, e projetor **Holocron** em Three.js (`@defer`), respeitando `ULTRA`, `BALANCED` e `LITE`
+- **`TrainerPokemonSnapshot` no PostgreSQL**: snapshot dos favoritos para continuar disponível mesmo com as APIs externas fora do ar
+- Fontes complementares: **Pokémon TCG API** e histórico de anime e filmes
+
+### Dívidas técnicas conhecidas
+
+Aqui está a lista honesta do que ainda falta:
+
+| Item | Situação |
+| :--- | :--- |
+| Lint automatizado | O CI roda ESLint só em `apps/api`. Falta estender a `apps/web` e `packages/shared` com limites de linhas e complexidade ([doc 17](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md)) |
+| Decomposição SOLID do IAM | O `AuthService` concentra responsabilidades e o plano de quebra está no doc 17 |
+| `PokedexRpgNavService` | Serviço grande, com consultas imperativas ao DOM (DIP) e dois vocabulários de tokens em `_tokens.scss` |
+| Cobertura do front-end | 17 testes em um único arquivo (`app.spec.ts`) |
+| Domínio próprio | Opcional: conectar `pokedex.<domínio>` no Cloudflare e atualizar `CORS_ORIGINS`, `WEBAUTHN_*` e `GOOGLE_REDIRECT_URI` |
+| Segurança, ondas 2 e 3 | Veja o [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) |
+| `WsAuthGuard` | O `/ws/world` aceita visitantes. Ações do Overworld exigirão sessão |
+
+---
+
+## Como executar
+
+### Pré-requisitos
+
+- **Node.js 22+** e **npm 11+**
+- **Docker** (opcional, para PostgreSQL, Redis, Redpanda, MinIO/S3 e Mailpit locais)
+- **Chrome, Chromium ou Edge** (só para `npm run audit:ui`; defina `CHROME_BIN` se necessário)
+
+### Modo rápido: só o front-end
+
+Sem Docker e sem API, a Pokédex funciona em **modo degradado**, direto contra a PokéAPI.
+
+```bash
+npm install
+npm run build:shared
+npm run dev:web
+```
+
+Abra `http://localhost:4200`.
+
+### Modo completo: com API, banco, cache e mensageria
+
+```bash
+npm install
+npm run build:shared
+
+cp .env.example .env          # ajuste os segredos locais
+npm run infra:up              # Postgres, Redis, Redpanda, MinIO e Mailpit
+
+npx --workspace=pokeverse-api prisma generate
+npx --workspace=pokeverse-api prisma migrate deploy
+
+npm run dev:api               # API em http://localhost:3000
+npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /health, /socket.io)
+```
+
+| Serviço local | Porta | Observação |
+| :--- | :---: | :--- |
+| Web (Angular) | `4200` | Proxy automático para a API |
+| API (NestJS) | `3000` | Prefixo `/api/v1` |
+| PostgreSQL | `5433` | Porta alterada para não colidir com um Postgres local |
+| Redis | `6379` | AOF habilitado |
+| Redpanda (Kafka) / Console | `19092` / `8085` | Console web para inspecionar tópicos |
+| MinIO (S3) / Console | `9000` / `9001` | Buckets privados `pokeverse-roms` e `pokeverse-saves` |
+| Mailpit | `1025` / `8025` | Captura os e-mails de OTP em desenvolvimento |
+
+### Scripts do monorepo
+
+| Comando | O que faz |
+| :--- | :--- |
+| `npm run build` | Build de `shared`, `api` e `web` |
+| `npm run typecheck` | `tsc --noEmit` nos 3 workspaces |
+| `npm run lint:api` | ESLint da API |
+| `npm run test` | Vitest (`shared`, `web`) e Jest (`api`) |
+| `npm run audit:ui` | UI Quality Gate sobre o build do front-end |
+| `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker |
+
+> **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint:api`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
+
+### Variáveis de ambiente
+
+Todas as chaves estão em [`.env.example`](.env.example) e são validadas **na inicialização** da API ([`env.schema.ts`](apps/api/src/config/env.schema.ts)). Se algo estiver errado, ela falha sem imprimir os valores. Os grupos principais são:
+
+`NODE_ENV`, `API_PORT` · `CORS_ORIGINS`, `COOKIE_*` · `APP_ENCRYPTION_KEY` · `DATABASE_URL`, `DATABASE_URL_UNPOOLED` · `REDIS_URL` · `KAFKA_*` · `MAIL_*`, `SMTP_*`, `RESEND_API_KEY` · `GOOGLE_*` · `WEBAUTHN_*` · `S3_*`
+
+> Nunca faça commit de `.env` ou `.env.cloud`. Eles estão no `.gitignore`.
+
+### Versão estática (Fase 0)
+
+Para ver o projeto original, **sem build e sem dependências**, abra [`index.html`](index.html) em um servidor estático (por exemplo, a extensão Live Server).
+
+---
+
+## Estrutura do repositório
 
 ```text
 pokedex-frontend/
 ├── apps/
-│   ├── api/                       # NestJS 11 + Prisma 6 + Redis + Redpanda + Socket.IO
-│   └── web/                       # Angular 22 Standalone/Zoneless + Proxy Cloudflare Pages
+│   ├── api/                       # NestJS 11 + Prisma 6 + Redis + Kafka + Socket.IO
+│   │   ├── prisma/                #   schema.prisma (13 modelos) e migrações
+│   │   └── src/
+│   │       ├── common/            #   guards, filtros, pipes, middleware, telemetria, crypto
+│   │       ├── config/            #   env.schema.ts (validação fail-fast com Zod)
+│   │       ├── infra/             #   Prisma, Redis, Kafka e probes de saúde
+│   │       └── modules/           #   auth · pokedex · events · notifications · world · health · system
+│   └── web/                       # Angular 22 Standalone + Zoneless
+│       ├── functions/             #   Cloudflare Pages Functions (proxy same-origin)
+│       └── src/
+│           ├── app/core/          #   stores (Signals), guards e interceptors
+│           ├── app/features/      #   pokedex-device · regions-museum · title-screen · under-construction
+│           ├── app/shared/        #   HUD, dock, diálogos e diretivas
+│           └── styles/            #   _tokens.scss e _pokedex-classic.scss (chassi 3D)
 ├── packages/
-│   └── shared/                    # Schemas Zod v4, busca fuzzy, 51 endpoints e Laboratório Genético
-├── infra/
-│   └── docker/                    # api.Dockerfile e docker-compose.yml (Postgres, Redis, Redpanda, S3/MinIO)
-├── scripts/
-│   └── ui-quality-gate.mjs        # Auditoria automatizada de contraste, overflow e tipografia no browser
-├── .github/workflows/             # CI e Deploy contínuo (Azure Container Apps + Cloudflare Pages)
-├── assets/                        # Cenários WebP (-desktop / -mobile), texturas WebP e favicon
-├── css/ & js/ & index.html        # Versão estática original da Fase 0 preservada intacta
-├── docs/                          # Documentação arquitetural (00 ao 15)
-└── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia do projeto
+│   └── shared/                    # @pokeverse/shared: schemas Zod, busca fuzzy, 51 endpoints, Laboratório
+├── infra/docker/                  # api.Dockerfile e docker-compose.yml
+├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
+├── .github/workflows/             # ci.yml e deploy.yml
+├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
+├── docs/                          # Documentação (00 a 17) e Capítulo Zero
+├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
+├── GUIA-DE-ESTUDOS-POKEDEX.md     # Manual técnico da Fase 0
+└── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
 
 ---
 
-## Como Executar Localmente
+## Documentação
 
-### Pré-requisitos
-- **Node.js 22+** e **npm 11+**
-- **Docker** (opcional para rodar PostgreSQL, Redis, Redpanda e Object Storage S3 localmente)
+| Doc | Assunto |
+| :-: | :--- |
+| **Zero** | **[Capítulo Zero: como tudo começou](docs/capitulo-zero-como-tudo-comecou.md)**, com o README original e a história da atividade do Senac |
+| 00 | [Visão geral, regras de acesso e roadmap](docs/00-visao-geral-e-roadmap.md) |
+| 01 | [Arquitetura do monorepo e padrões de engenharia](docs/01-arquitetura-monorepo-e-padroes.md) |
+| 02 | [Front-end Angular, HUD de jogo e gerenciamento de estado](docs/02-frontend-angular-hud-e-estado.md) |
+| 03 | [Motores gráficos: Phaser 3 e Three.js (WebGL2/GLSL)](docs/03-motores-graficos-phaser-e-threejs.md) |
+| 04 | [Back-end NestJS, autenticação e segurança](docs/04-backend-nestjs-auth-e-seguranca.md) |
+| 05 | [PostgreSQL e Prisma ORM](docs/05-banco-de-dados-postgresql-e-prisma.md) |
+| 06 | [Cache Redis e mensageria Kafka / Redpanda](docs/06-cache-redis-e-eventos-kafka.md) |
+| 07 | [Arcade Retrô 3D (WebAssembly) e cloud save states](docs/07-arcade-retro-wasm-e-cloud-saves.md) |
+| 08 | [Museu das Regiões, lore e Pokédex Holocron 3D](docs/08-museu-lore-e-holocron-pokedex.md) |
+| 09 | [Arena de batalha (PvE/PvP), Team Builder e mini-games](docs/09-arena-batalha-teambuilder-e-minigames.md) |
+| 10 | [Infraestrutura Docker, observabilidade e CI/CD](docs/10-infraestrutura-docker-ci-cd-e-deploy.md) |
+| 11 | [Desempenho, detecção de hardware, mobile e release gates](docs/11-performance-hardware-gates-e-mobile.md) |
+| 12 | [Pokédex 2.0: catálogo completo da PokéAPI v2 e controles](docs/12-pokedex-2-0-pokeapi-e-controles.md) |
+| 13 | [Dossiê de segurança e blindagem (AppSec, Auth e Infra)](docs/13-dossie-de-seguranca-e-blindagem.md) |
+| 14 | [**Status real da implementação**, mudanças vs. plano original e backlog](docs/14-status-e-changelog-implementacao.md) |
+| 15 | [Pokédex Suprema: auditoria, 51 endpoints e Laboratório Genético](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md) |
+| 16 | [Cookies, LGPD e levantamento de requisitos](docs/16-cookies-lgpd-e-requisitos.md) |
+| 17 | [Plano SOLID, Clean Code e engenharia Big Tech](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) |
+| Fase 0 | [Guia de estudos: a Pokédex em JavaScript puro](GUIA-DE-ESTUDOS-POKEDEX.md) |
 
-### Passos
-1. **Instalar dependências e gerar artefatos base:**
-   ```bash
-   npm install
-   npm run build:shared
-   ```
-2. **Subir infraestrutura local e migrações (opcional para modo completo com API):**
-   ```bash
-   cp .env.example .env
-   npm run infra:up
-   npx --workspace=pokeverse-api prisma generate
-   npx --workspace=pokeverse-api prisma migrate deploy
-   ```
-3. **Iniciar desenvolvimento:**
-   ```bash
-   npm run dev:api
-   npm run dev:web
-   ```
-   A interface Angular inicia em `http://localhost:4200` com proxy automático para `/api`, `/health` e `/socket.io` (ou funciona em modo degradado/visitante direto contra a PokéAPI se a API não estiver ativa).
-4. **Rodar verificações completas e auditoria visual:**
-   ```bash
-   npm run typecheck
-   npm run lint:api
-   npm run test
-   npm run build
-   npm run audit:ui
-   ```
-
-> Para executar apenas a **versão estática clássica (Fase 0)** sem build nem dependências, abra [index.html](index.html) via Live Server ou servidor HTTP estático.
+> **Por onde começar?** Para entender o que existe hoje, leia o [doc 14](docs/14-status-e-changelog-implementacao.md). Para entender o rumo, leia o [doc 00](docs/00-visao-geral-e-roadmap.md) e o [doc 15](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md).
 
 ---
 
-## Documentação Arquitetural (`docs/`)
+## Princípios de engenharia
 
-- [00 — Visão Geral, Regras de Acesso e Roadmap](docs/00-visao-geral-e-roadmap.md)
-- [01 — Arquitetura do Monorepo e Padrões de Engenharia](docs/01-arquitetura-monorepo-e-padroes.md)
-- [02 — Front-end Angular, HUD de Jogo e Gerenciamento de Estado](docs/02-frontend-angular-hud-e-estado.md)
-- [03 — Motores Gráficos: Phaser 3 e Three.js (WebGL2/GLSL)](docs/03-motores-graficos-phaser-e-threejs.md)
-- [04 — Back-end NestJS, Autenticação e Segurança](docs/04-backend-nestjs-auth-e-seguranca.md)
-- [05 — Banco de Dados PostgreSQL e Prisma ORM](docs/05-banco-de-dados-postgresql-e-prisma.md)
-- [06 — Cache com Redis e Mensageria com Apache Kafka / Redpanda](docs/06-cache-redis-e-eventos-kafka.md)
-- [07 — Arcade Retrô 3D (WebAssembly) e Cloud Save States](docs/07-arcade-retro-wasm-e-cloud-saves.md)
-- [08 — Museu das Regiões, Lore e Pokédex Holocron 3D](docs/08-museu-lore-e-holocron-pokedex.md)
-- [09 — Arena de Batalha (PvE/PvP), Team Builder e Mini-Games](docs/09-arena-batalha-teambuilder-e-minigames.md)
-- [10 — Infraestrutura Docker, Observabilidade e CI/CD](docs/10-infraestrutura-docker-ci-cd-e-deploy.md)
-- [11 — Desempenho Ponta a Ponta, Detecção de Hardware, Mobile e Release Gates](docs/11-performance-hardware-gates-e-mobile.md)
-- [12 — Pokédex 2.0: Catálogo Completo da PokéAPI v2 e Controles sem Novos Botões](docs/12-pokedex-2-0-pokeapi-e-controles.md)
-- [13 — Dossiê Completo de Segurança e Blindagem (AppSec, Auth & Infra)](docs/13-dossie-de-seguranca-e-blindagem.md)
-- [14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog](docs/14-status-e-changelog-implementacao.md)
-- [15 — Pokédex Suprema: Auditoria, 51 Endpoints e Laboratório Genético](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md)
+As regras completas estão em [`AGENTS.md`](AGENTS.md) e valem para qualquer pessoa ou agente que contribua.
+
+1. **Regra Zero de UI.** Nenhum componente, animação 3D, textura ou fluxo visual é substituído ou simplificado sem validação explícita. A referência canônica é a Fase 0.
+2. **Conferência visual real.** Nenhuma mudança de interface é "pronta" antes de ser comparada no navegador, em Desktop `1440×900` e Mobile `375×812`, com zero erros no console, zero falhas de rede inesperadas e zero overflow horizontal.
+3. **Preservar o que já funciona.** Os arquivos estáticos da raiz não são alterados sem pedido explícito. Nada testado é degradado.
+4. **DRY real.** Contratos, schemas e regras de domínio ficam em `@pokeverse/shared`.
+5. **SOLID de verdade.** Services e stores têm até cerca de 300 linhas e componentes de UI até cerca de 150 a 200. Stores nunca tocam o DOM.
+6. **Travas anti-race.** Contadores atômicos em Lua, zero efeito externo antes da constraint, lease atômico no Outbox e rollback de idempotência.
+
+Os commits seguem [Conventional Commits](https://www.conventionalcommits.org/pt-br/) (`feat:`, `fix:`, `docs:`, `chore:`).
+
+---
+
+## Créditos e avisos
+
+- **Dados:** [PokéAPI](https://pokeapi.co/). Sprites e artworks vêm de [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
+- **Origem:** atividade final da matéria de Front-end no **Senac**, expandida por iniciativa própria. Veja o [Capítulo Zero](docs/capitulo-zero-como-tudo-comecou.md).
+- **Aviso legal:** este é um **projeto de fã, educacional e sem fins lucrativos**. Pokémon e todos os nomes, personagens e marcas relacionados pertencem a **Nintendo, Game Freak e The Pokémon Company**. Este projeto não é afiliado, patrocinado nem endossado por eles. Se você é titular de algum direito e quer a remoção de algum asset, abra uma issue.
+- **Licença:** não há licença de código aberto declarada. Por padrão, todos os direitos sobre o código original são reservados ao autor.
+
+<p align="center">
+  <sub>Feito com carinho por <a href="https://github.com/digooow">@digooow</a>, de uma atividade de faculdade a uma plataforma inteira.</sub>
+</p>

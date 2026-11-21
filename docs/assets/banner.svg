@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 360" width="1280" height="360" role="img" aria-labelledby="t d">
+  <title id="t">PokéVerse OS</title>
+  <desc id="d">Banner do projeto PokéVerse OS: Pokédex 3D interativa e plataforma full-stack.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1020"/>
+      <stop offset="0.55" stop-color="#141b34"/>
+      <stop offset="1" stop-color="#2a0f1a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ff3b4e" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ff3b4e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff5468"/>
+      <stop offset="1" stop-color="#c3162b"/>
+    </linearGradient>
+    <linearGradient id="white" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#cfd6e6"/>
+    </linearGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#9fd8ff"/>
+    </linearGradient>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#ffffff" stroke-opacity="0.045" stroke-width="1"/>
+    </pattern>
+    <clipPath id="ball"><circle cx="0" cy="0" r="130"/></clipPath>
+  </defs>
+
+  <rect width="1280" height="360" fill="url(#bg)"/>
+  <rect width="1280" height="360" fill="url(#grid)"/>
+  <circle cx="1040" cy="180" r="260" fill="url(#glow)"/>
+
+  <g transform="translate(1040 180) rotate(-18)">
+    <g clip-path="url(#ball)">
+      <rect x="-130" y="-130" width="260" height="130" fill="url(#red)"/>
+      <rect x="-130" y="0" width="260" height="130" fill="url(#white)"/>
+    </g>
+    <circle r="130" fill="none" stroke="#0b1020" stroke-width="12"/>
+    <rect x="-130" y="-9" width="260" height="18" fill="#0b1020"/>
+    <circle r="40" fill="#0b1020"/>
+    <circle r="26" fill="#f4f7ff"/>
+    <circle r="26" fill="none" stroke="#8da2c9" stroke-width="3"/>
+    <circle cx="-8" cy="-9" r="8" fill="#ffffff" fill-opacity="0.85"/>
+    <path d="M-100 -62 A118 118 0 0 1 -30 -114" fill="none" stroke="#ffffff" stroke-opacity="0.55" stroke-width="8" stroke-linecap="round"/>
+  </g>
+
+  <g transform="translate(72 70)">
+    <g>
+      <circle cx="10" cy="10" r="9" fill="#ff3b4e"/>
+      <circle cx="40" cy="10" r="9" fill="#ffd23f"/>
+      <circle cx="70" cy="10" r="9" fill="#3ddc84"/>
+    </g>
+    <text x="0" y="95" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="84" font-weight="800" fill="url(#title)" letter-spacing="-2">PokéVerse OS</text>
+    <text x="3" y="140" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="27" font-weight="500" fill="#c9d4f0">Pokédex 3D interativa &amp; plataforma full-stack</text>
+    <text x="3" y="185" font-family="'Cascadia Code', Consolas, 'Courier New', monospace" font-size="19" fill="#7f8fb8">Angular 22 · NestJS 11 · PostgreSQL · Redis · Kafka · Zod</text>
+    <rect x="3" y="208" width="170" height="30" rx="15" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-opacity="0.18"/>
+    <text x="88" y="229" text-anchor="middle" font-family="'Segoe UI', Arial, sans-serif" font-size="15" font-weight="600" fill="#dfe7ff">do trabalho final ao produto</text>
+  </g>
+</svg>
