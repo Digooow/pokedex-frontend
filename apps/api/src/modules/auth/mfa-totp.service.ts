@@ -290,11 +290,15 @@ export class MfaTotpService {
     }
 
     if (!verified) {
-      await this.redis.setStringEx(
-        failKey,
-        MFA_LOCK_WINDOW_SEC,
-        String(failCount + 1),
-      );
+      if (typeof this.redis.incrementCounterWithTtl === 'function') {
+        await this.redis.incrementCounterWithTtl(failKey, MFA_LOCK_WINDOW_SEC);
+      } else {
+        await this.redis.setStringEx(
+          failKey,
+          MFA_LOCK_WINDOW_SEC,
+          String(failCount + 1),
+        );
+      }
       throw new UnauthorizedException(
         'Código 2FA ou código de backup inválido.',
       );

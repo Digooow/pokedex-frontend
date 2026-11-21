@@ -1,0 +1,122 @@
+<dialog
+  #privDialogEl
+  class="priv-dialog"
+  aria-labelledby="pv-priv-title"
+  closedby="any"
+  (close)="onNativeClose()"
+>
+  @if (privacy.dialogOpen()) {
+    <div class="priv-dialog__card">
+      <div class="priv-dialog__head">
+        <div>
+          <span class="priv-dialog__badge" aria-hidden="true">PRIVACIDADE &amp; LGPD</span>
+          <h2 id="pv-priv-title" class="priv-dialog__title">Cookies, Dados Locais e Transparência</h2>
+        </div>
+        <button type="button" class="priv-btn priv-btn--ghost" (click)="privacy.closeDialog()">
+          Fechar
+        </button>
+      </div>
+
+      <div class="priv-dialog__body">
+        @if (localClearedMsg(); as cleared) {
+          <output class="priv-msg priv-msg--ok" aria-live="polite">{{ cleared }}</output>
+        }
+
+        <section class="priv-panel" aria-labelledby="pv-cookies-essential-heading">
+          <div class="priv-panel__head">
+            <h3 id="pv-cookies-essential-heading" class="priv-panel__title">
+              1. Cookies Estritamente Necessários
+            </h3>
+            <span class="priv-tag priv-tag--ok">Sempre ativos</span>
+          </div>
+          <p class="priv-muted">
+            Utilizamos sessão opaca no servidor (zero JWT em JavaScript), com proteção CSRF e proxy same-origin:
+          </p>
+          <ul class="priv-list">
+            <li>
+              <code>__Host-pokeverse_session</code> — <code>HttpOnly</code>, <code>Path=/</code>, TTL 15 min (identifica sessão autenticada/2FA no Redis).
+            </li>
+            <li>
+              <code>__Secure-pokeverse_refresh</code> — <code>HttpOnly</code>, <code>Path=/api/v1/auth</code>, TTL 7 dias (rotação atômica no PostgreSQL).
+            </li>
+            <li>
+              <code>__Secure-pokeverse_oauth_bind</code> — <code>HttpOnly</code>, 5 min (anti-CSRF no retorno do Google OAuth 2.0 PKCE).
+            </li>
+            <li>
+              <code>pokeverse_consent</code> — 180 dias (registra sua escolha de privacidade abaixo).
+            </li>
+          </ul>
+        </section>
+
+        <section class="priv-panel" aria-labelledby="pv-cookies-functional-heading">
+          <label class="priv-toggle" for="pv-toggle-functional">
+            <span class="priv-toggle__copy">
+              <strong id="pv-cookies-functional-heading">2. Preferências Locais (localStorage)</strong>
+              <span class="priv-muted">
+                Salva nível de desempenho gráfico (<code>pokeverse_perf_pref</code>), cenário ativo e até 10 slots no Modo Visitante.
+              </span>
+            </span>
+            <input
+              id="pv-toggle-functional"
+              type="checkbox"
+              class="priv-checkbox"
+              [checked]="functionalPref()"
+              (change)="onToggleFunctional($event)"
+            />
+          </label>
+          <div class="priv-inline-actions">
+            <button type="button" class="priv-btn" (click)="onClearLocalStorage()">
+              Limpar dados locais agora
+            </button>
+          </div>
+        </section>
+
+        <section class="priv-panel" aria-labelledby="pv-cookies-telemetry-heading">
+          <label class="priv-toggle" for="pv-toggle-telemetry">
+            <span class="priv-toggle__copy">
+              <strong id="pv-cookies-telemetry-heading">3. Telemetria de Diagnóstico Opcional</strong>
+              <span class="priv-muted">
+                Nenhum rastreador de terceiros ou cookie de marketing está ativo neste ambiente. Ativar apenas registra preferência para diagnósticos futuros opt-in.
+              </span>
+            </span>
+            <input
+              id="pv-toggle-telemetry"
+              type="checkbox"
+              class="priv-checkbox"
+              [checked]="telemetryPref()"
+              (change)="onToggleTelemetry($event)"
+            />
+          </label>
+        </section>
+
+        <section class="priv-panel" aria-labelledby="pv-lgpd-info-heading">
+          <h3 id="pv-lgpd-info-heading" class="priv-panel__title">
+            4. Direitos do Titular &amp; Infraestrutura (LGPD)
+          </h3>
+          <p class="priv-muted">
+            Para contas de Treinador, seus dados (perfil, slots, Passkeys e vínculo Google opcional) são armazenados em PostgreSQL (Neon), Redis (Upstash), Kafka (Aiven) e e-mails transacionais OTP via Resend, com senhas em Argon2id e segredos 2FA cifrados em AES-256-GCM.
+          </p>
+          @if (auth.isAuthenticated()) {
+            <div class="priv-inline-actions">
+              <button type="button" class="priv-btn" (click)="openTrainerSecurityAndExport()">
+                Gerenciar Sessões &amp; Exportar Dados (JSON)
+              </button>
+            </div>
+          }
+        </section>
+      </div>
+
+      <div class="priv-footer">
+        <button type="button" class="priv-btn" (click)="privacy.acceptEssentialOnly()">
+          Apenas essenciais
+        </button>
+        <button type="button" class="priv-btn" (click)="onSaveCustom()">
+          Salvar preferências
+        </button>
+        <button type="button" class="priv-btn priv-btn--primary" (click)="privacy.acceptAll()">
+          Aceitar tudo
+        </button>
+      </div>
+    </div>
+  }
+</dialog>

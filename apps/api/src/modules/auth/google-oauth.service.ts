@@ -480,8 +480,7 @@ export class GoogleOAuthService {
       mfaMethods.push('passkey');
     }
 
-    const requiresMfa =
-      trainer.mfaEnabled && trainer.totpSecretEncrypted !== null;
+    const requiresMfa = trainer.mfaEnabled && mfaMethods.length > 0;
     const familyId = randomUUID();
     let rawRefresh: string | null = null;
 

@@ -41,12 +41,20 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   async processPendingBatch(): Promise<number> {
     const pendingRows = await this.prisma.$transaction((tx) => {
       return tx.$queryRaw<ClaimedOutboxRow[]>`
-        SELECT id, "aggregateId", "eventType", payload, "retryCount"
-        FROM "OutboxEvent"
-        WHERE "status" = 'PENDING'
-        ORDER BY "createdAt" ASC
-        LIMIT ${OUTBOX_BATCH_SIZE}
-        FOR UPDATE SKIP LOCKED
+        WITH claimed AS (
+          SELECT id
+          FROM "OutboxEvent"
+          WHERE "status" = 'PENDING'
+            AND ("processedAt" IS NULL OR "processedAt" < NOW() - INTERVAL '60 seconds')
+          ORDER BY "createdAt" ASC
+          LIMIT ${OUTBOX_BATCH_SIZE}
+          FOR UPDATE SKIP LOCKED
+        )
+        UPDATE "OutboxEvent" AS o
+        SET "processedAt" = NOW()
+        FROM claimed
+        WHERE o.id = claimed.id
+        RETURNING o.id, o."aggregateId", o."eventType", o.payload, o."retryCount"
       `;
     });
 
@@ -145,7 +153,8 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       data: {
         retryCount: nextRetry,
         lastError: reason.slice(0, 500),
-        ...(exhausted ? { status: 'FAILED', processedAt: new Date() } : {}),
+        processedAt: exhausted ? new Date() : null,
+        ...(exhausted ? { status: 'FAILED' } : {}),
       },
     });
 

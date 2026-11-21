@@ -13,6 +13,14 @@ interface StoredOtpRecord {
   readonly expiresAtMs: number;
 }
 
+export interface OtpDraft {
+  readonly purpose: OtpPurpose;
+  readonly normalizedEmail: string;
+  readonly code: string;
+  readonly expiresInSec: number;
+  readonly record: StoredOtpRecord;
+}
+
 @Injectable()
 export class OtpService {
   constructor(
@@ -21,10 +29,7 @@ export class OtpService {
     private readonly config: ConfigService<ApiEnvConfig, true>,
   ) {}
 
-  async issueOtp(
-    purpose: OtpPurpose,
-    normalizedEmail: string,
-  ): Promise<{ readonly code: string; readonly expiresInSec: number }> {
+  createOtpDraft(purpose: OtpPurpose, normalizedEmail: string): OtpDraft {
     const ttlSec = this.config.get('OTP_TTL_SEC', { infer: true });
     const code = String(randomInt(100_000, 1_000_000));
     const codeHash = this.crypto.hmacSha256Hex(
@@ -38,13 +43,36 @@ export class OtpService {
       expiresAtMs: Date.now() + ttlSec * 1000,
     };
 
-    await this.redis.setJsonEx(
-      this.redisKey(purpose, normalizedEmail),
-      ttlSec,
+    return {
+      purpose,
+      normalizedEmail,
+      code,
+      expiresInSec: ttlSec,
       record,
+    };
+  }
+
+  async persistOtpDraft(
+    draft: OtpDraft,
+  ): Promise<{ readonly code: string; readonly expiresInSec: number }> {
+    await this.redis.setJsonEx(
+      this.redisKey(draft.purpose, draft.normalizedEmail),
+      draft.expiresInSec,
+      draft.record,
+    );
+    await this.redis.delKeys(
+      this.attemptsKey(draft.purpose, draft.normalizedEmail),
     );
 
-    return { code, expiresInSec: ttlSec };
+    return { code: draft.code, expiresInSec: draft.expiresInSec };
+  }
+
+  async issueOtp(
+    purpose: OtpPurpose,
+    normalizedEmail: string,
+  ): Promise<{ readonly code: string; readonly expiresInSec: number }> {
+    const draft = this.createOtpDraft(purpose, normalizedEmail);
+    return this.persistOtpDraft(draft);
   }
 
   async verifyAndConsumeOtp(
@@ -53,16 +81,26 @@ export class OtpService {
     candidateCode: string,
   ): Promise<boolean> {
     const key = this.redisKey(purpose, normalizedEmail);
+    const attemptsKey = this.attemptsKey(purpose, normalizedEmail);
     const maxAttempts = this.config.get('OTP_MAX_ATTEMPTS', { infer: true });
     const record = await this.redis.getJson<StoredOtpRecord>(key);
 
     if (!record || Date.now() > record.expiresAtMs) {
-      await this.redis.delKeys(key);
+      await this.redis.delKeys(key, attemptsKey);
       return false;
     }
 
-    if (record.attempts >= maxAttempts) {
-      await this.redis.delKeys(key);
+    const rawAttemptCount =
+      typeof this.redis.getString === 'function'
+        ? await this.redis.getString(attemptsKey)
+        : null;
+    const trackedAttempts = Math.max(
+      record.attempts,
+      Number(rawAttemptCount ?? '0'),
+    );
+
+    if (trackedAttempts >= maxAttempts) {
+      await this.redis.delKeys(key, attemptsKey);
       return false;
     }
 
@@ -72,20 +110,32 @@ export class OtpService {
     );
 
     if (this.crypto.safeEqualHex(record.codeHash, expectedHash)) {
-      await this.redis.delKeys(key);
+      await this.redis.delKeys(key, attemptsKey);
       return true;
-    }
-
-    const nextAttempts = record.attempts + 1;
-    if (nextAttempts >= maxAttempts) {
-      await this.redis.delKeys(key);
-      return false;
     }
 
     const remainingSec = Math.max(
       1,
       Math.ceil((record.expiresAtMs - Date.now()) / 1000),
     );
+
+    if (typeof this.redis.incrementCounterWithTtl === 'function') {
+      const nextAttempts = await this.redis.incrementCounterWithTtl(
+        attemptsKey,
+        remainingSec,
+      );
+      if (nextAttempts >= maxAttempts) {
+        await this.redis.delKeys(key, attemptsKey);
+      }
+      return false;
+    }
+
+    const nextAttempts = record.attempts + 1;
+    if (nextAttempts >= maxAttempts) {
+      await this.redis.delKeys(key, attemptsKey);
+      return false;
+    }
+
     await this.redis.setJsonEx(key, remainingSec, {
       ...record,
       attempts: nextAttempts,
@@ -100,5 +150,9 @@ export class OtpService {
 
   private redisKey(purpose: OtpPurpose, email: string): string {
     return `otp:${purpose}:${this.crypto.sha256Hex(email)}`;
+  }
+
+  private attemptsKey(purpose: OtpPurpose, email: string): string {
+    return `otp_attempts:${purpose}:${this.crypto.sha256Hex(email)}`;
   }
 }

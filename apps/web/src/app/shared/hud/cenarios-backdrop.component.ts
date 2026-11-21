@@ -20,7 +20,7 @@ const MOBILE_MAX_PX = 879;
     <div class="cenarios-fundo" aria-hidden="true">
       @for (item of scenarioStore.scenarios; track item.id) {
         <img
-          [src]="resolveSrc(item)"
+          [attr.src]="resolveSrc(item)"
           [attr.fetchpriority]="item.id === scenarioStore.activeScenario() ? 'high' : 'low'"
           alt=""
           class="cenario-imagem"

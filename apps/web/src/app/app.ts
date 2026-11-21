@@ -1,12 +1,15 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './core/stores/auth.store';
+import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { SystemStatusStore } from './core/stores/system-status.store';
 import { WorldTickerStore } from './core/stores/world-ticker.store';
 import { CenariosBackdropComponent } from './shared/hud/cenarios-backdrop.component';
 import { CenariosBarComponent } from './shared/hud/cenarios-bar.component';
 import { HudQuickDockComponent } from './shared/hud/hud-quick-dock.component';
 import { HudTopbarComponent } from './shared/hud/hud-topbar.component';
+import { PrivacyConsentDialogComponent } from './shared/hud/privacy-consent-dialog.component';
+import { PrivacyNoticeBannerComponent } from './shared/hud/privacy-notice-banner.component';
 import { SecuritySettingsDialogComponent } from './shared/hud/security-settings-dialog.component';
 import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.component';
 
@@ -18,6 +21,8 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
     CenariosBarComponent,
     HudTopbarComponent,
     HudQuickDockComponent,
+    PrivacyNoticeBannerComponent,
+    PrivacyConsentDialogComponent,
     VisitorLockDialogComponent,
     SecuritySettingsDialogComponent,
   ],
@@ -27,6 +32,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
 })
 export class App implements OnInit {
   readonly auth = inject(AuthStore);
+  readonly privacy = inject(PrivacyConsentStore);
   private readonly systemStatus = inject(SystemStatusStore);
   private readonly ticker = inject(WorldTickerStore);
 

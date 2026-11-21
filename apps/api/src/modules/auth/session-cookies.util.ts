@@ -2,7 +2,6 @@ import type { Response } from 'express';
 import type { SessionService } from './session.service';
 
 export const REFRESH_COOKIE_PATH = '/api/v1/auth';
-export const OAUTH_BIND_COOKIE = 'pokeverse_oauth_bind';
 
 export function writeAuthCookies(
   res: Response,

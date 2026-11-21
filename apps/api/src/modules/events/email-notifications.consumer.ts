@@ -98,8 +98,17 @@ export class EmailNotificationsConsumerService
       return 'duplicate';
     }
 
-    await this.mailService.sendNotification(parsed.data);
-    return 'processed';
+    try {
+      await this.mailService.sendNotification(parsed.data);
+      return 'processed';
+    } catch (error) {
+      if (typeof this.redis.releaseIdempotencyLock === 'function') {
+        await this.redis
+          .releaseIdempotencyLock(EMAIL_CONSUMER_GROUP, parsed.data.eventId)
+          .catch(() => undefined);
+      }
+      throw error;
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

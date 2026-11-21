@@ -88,8 +88,17 @@ export class WorldEventsConsumerService
       return 'duplicate';
     }
 
-    this.worldGateway.broadcastGlobalEvent(parsed.data);
-    return 'processed';
+    try {
+      this.worldGateway.broadcastGlobalEvent(parsed.data);
+      return 'processed';
+    } catch (error) {
+      if (typeof this.redis.releaseIdempotencyLock === 'function') {
+        await this.redis
+          .releaseIdempotencyLock(CONSUMER_GROUP_ID, parsed.data.eventId)
+          .catch(() => undefined);
+      }
+      throw error;
+    }
   }
 
   async onModuleDestroy(): Promise<void> {

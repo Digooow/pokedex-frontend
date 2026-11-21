@@ -7,8 +7,9 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import { TotpCodeInputSchema } from '@pokeverse/shared';
+import { type ActiveSessionFamily, TotpCodeInputSchema } from '@pokeverse/shared';
 import { AuthStore } from '../../core/stores/auth.store';
+import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { SecurityIamStore } from '../../core/stores/security-iam.store';
 
 @Component({
@@ -20,6 +21,7 @@ import { SecurityIamStore } from '../../core/stores/security-iam.store';
 export class SecuritySettingsDialogComponent {
   readonly auth = inject(AuthStore);
   readonly iam = inject(SecurityIamStore);
+  private readonly privacy = inject(PrivacyConsentStore);
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('secDialogEl');
 
   readonly totpCode = signal('');
@@ -39,6 +41,7 @@ export class SecuritySettingsDialogComponent {
         this.disableCredential.set('');
         this.copiedCodes.set(false);
         this.iam.openDialog();
+        void this.iam.loadSessions();
         dialog.showModal();
       } else if (!open && dialog.open) {
         dialog.close();
@@ -92,6 +95,26 @@ export class SecuritySettingsDialogComponent {
     } catch {
       this.copiedCodes.set(false);
     }
+  }
+
+  hasOtherSessions(sessions: readonly ActiveSessionFamily[]): boolean {
+    return sessions.some((session) => !session.isCurrent);
+  }
+
+  formatDate(iso: string): string {
+    try {
+      return new Intl.DateTimeFormat('pt-BR', {
+        dateStyle: 'short',
+        timeStyle: 'short',
+      }).format(new Date(iso));
+    } catch {
+      return iso;
+    }
+  }
+
+  openPrivacyCenter(): void {
+    this.iam.closeDialog();
+    this.privacy.openDialog();
   }
 
   onNativeClose(): void {

@@ -11,6 +11,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import {
+  type ActiveSessionsResponse,
+  ActiveSessionsResponseSchema,
   type AuthSessionResponse,
   type EmailNotificationEvent,
   EmailNotificationEventSchema,
@@ -22,10 +24,14 @@ import {
   type RegisterTrainerInput,
   type ResendEmailOtpInput,
   type ResetPasswordOtpInput,
+  type RevokeOtherSessionsResponse,
+  RevokeOtherSessionsResponseSchema,
   type SecurityOverviewResponse,
   SecurityOverviewResponseSchema,
   type SessionBootstrapResponse,
   SessionBootstrapResponseSchema,
+  type TrainerDataExport,
+  TrainerDataExportSchema,
   type TrainerProfile,
   type VerifyEmailOtpInput,
   WorldTickerEventSchema,
@@ -37,7 +43,7 @@ import type { ApiEnvConfig } from '../../config/env.schema';
 import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
 import { OtpService } from './otp.service';
-import { SessionService } from './session.service';
+import { type SessionTrainerRecord, SessionService } from './session.service';
 
 const TRAINER_PROFILE_SELECT = {
   id: true,
@@ -55,6 +61,14 @@ const TRAINER_PROFILE_SELECT = {
 
 const LOGIN_MAX_FAILURES = 8;
 const LOGIN_LOCK_WINDOW_SEC = 300;
+const REFRESH_GRACE_TTL_SEC = 10;
+
+interface RefreshGraceEnvelope {
+  readonly trainerId: string;
+  readonly familyId: string;
+  readonly sessionSid: string;
+  readonly refreshToken: string;
+}
 
 export interface AuthSessionWithCookies {
   readonly session: AuthSessionResponse;
@@ -94,10 +108,7 @@ export class AuthService implements OnModuleInit {
     const familyId = randomUUID();
     const expiresAt = this.computeRefreshExpiry();
 
-    const { code: otpCode } = await this.otpService.issueOtp(
-      'verify',
-      input.email,
-    );
+    const otpDraft = this.otpService.createOtpDraft('verify', input.email);
 
     try {
       const created = await this.prisma.$transaction(async (tx) => {
@@ -147,12 +158,14 @@ export class AuthService implements OnModuleInit {
           toEmail: trainer.email,
           username: trainer.username,
           subject: 'PokéVerse OS — Código de verificação de conta',
-          otpCode,
+          otpCode: otpDraft.code,
           traceId,
         });
 
         return trainer;
       });
+
+      await this.otpService.persistOtpDraft(otpDraft);
 
       const { rawSid, session } = await this.sessionService.createSession({
         trainerId: created.id,
@@ -172,10 +185,6 @@ export class AuthService implements OnModuleInit {
         refreshToken: rawRefresh,
       };
     } catch (error) {
-      await this.redis
-        .delKeys(`otp:verify:${this.crypto.sha256Hex(input.email)}`)
-        .catch(() => undefined);
-
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2002'
@@ -339,6 +348,17 @@ export class AuthService implements OnModuleInit {
     }
 
     if (existing.revokedAt !== null) {
+      if (existing.expiresAt.getTime() > Date.now()) {
+        const graceResult = await this.tryResolveRefreshGrace(
+          tokenHash,
+          existing.trainer,
+          existing.familyId,
+        );
+        if (graceResult) {
+          return graceResult;
+        }
+      }
+
       await this.prisma.refreshToken.updateMany({
         where: { familyId: existing.familyId, revokedAt: null },
         data: { revokedAt: new Date() },
@@ -399,6 +419,18 @@ export class AuthService implements OnModuleInit {
       mfaMethods: [],
     });
 
+    const graceToken = this.crypto.encryptJson({
+      trainerId: existing.trainer.id,
+      familyId: existing.familyId,
+      sessionSid: rawSid,
+      refreshToken: nextRawRefresh,
+    } satisfies RefreshGraceEnvelope);
+    await this.redis.setStringEx(
+      this.refreshGraceKey(tokenHash),
+      REFRESH_GRACE_TTL_SEC,
+      graceToken,
+    );
+
     return {
       session: this.sessionService.buildAuthSessionResponse(
         existing.trainer,
@@ -421,6 +453,7 @@ export class AuthService implements OnModuleInit {
     }
 
     const tokenHash = this.crypto.sha256Hex(rawRefreshToken);
+    await this.redis.delKeys(this.refreshGraceKey(tokenHash));
     const existing = await this.prisma.refreshToken.findUnique({
       where: { tokenHash },
       select: { familyId: true },
@@ -679,6 +712,207 @@ export class AuthService implements OnModuleInit {
     });
   }
 
+  async listActiveSessions(
+    trainerId: string,
+    currentFamilyId: string,
+  ): Promise<ActiveSessionsResponse> {
+    const rows = await this.prisma.refreshToken.findMany({
+      where: {
+        trainerId,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        familyId: true,
+        createdAt: true,
+        expiresAt: true,
+      },
+    });
+
+    const byFamily = new Map<
+      string,
+      { readonly createdAt: Date; readonly expiresAt: Date }
+    >();
+    for (const row of rows) {
+      const existing = byFamily.get(row.familyId);
+      if (!existing) {
+        byFamily.set(row.familyId, {
+          createdAt: row.createdAt,
+          expiresAt: row.expiresAt,
+        });
+      }
+    }
+
+    const sessions = Array.from(byFamily.entries()).map(([familyId, info]) => ({
+      familyId,
+      createdAt: info.createdAt.toISOString(),
+      expiresAt: info.expiresAt.toISOString(),
+      isCurrent: familyId === currentFamilyId,
+    }));
+
+    return ActiveSessionsResponseSchema.parse({ sessions });
+  }
+
+  async revokeOtherSessions(
+    trainerId: string,
+    currentFamilyId: string,
+  ): Promise<RevokeOtherSessionsResponse> {
+    const updated = await this.prisma.refreshToken.updateMany({
+      where: {
+        trainerId,
+        revokedAt: null,
+        familyId: { not: currentFamilyId },
+      },
+      data: { revokedAt: new Date() },
+    });
+
+    const redisRevoked =
+      await this.sessionService.revokeOtherSessionsForTrainer(
+        trainerId,
+        currentFamilyId,
+      );
+    const revokedCount = Math.max(updated.count, redisRevoked);
+
+    return RevokeOtherSessionsResponseSchema.parse({
+      revokedCount,
+      message:
+        revokedCount > 0
+          ? `${revokedCount} outra(s) sessão(ões) encerrada(s) com sucesso.`
+          : 'Nenhuma outra sessão ativa encontrada.',
+    });
+  }
+
+  async exportTrainerData(trainerId: string): Promise<TrainerDataExport> {
+    const trainer = await this.prisma.trainer.findUnique({
+      where: { id: trainerId },
+      select: {
+        ...TRAINER_PROFILE_SELECT,
+        passwordHash: true,
+        oauthAccounts: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            provider: true,
+            email: true,
+            createdAt: true,
+          },
+        },
+        passkeys: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            label: true,
+            deviceType: true,
+            backedUp: true,
+            createdAt: true,
+            lastUsedAt: true,
+          },
+        },
+        pokedexSlots: {
+          orderBy: { slotIndex: 'asc' },
+          select: {
+            slotIndex: true,
+            pokemonId: true,
+            pokemonName: true,
+            nickname: true,
+            spriteUrl: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!trainer) {
+      throw new UnauthorizedException('Treinador não encontrado.');
+    }
+
+    return TrainerDataExportSchema.parse({
+      exportedAt: new Date().toISOString(),
+      trainer: this.sessionService.toTrainerProfile(trainer),
+      oauthProviders: trainer.oauthAccounts.map((acc) => ({
+        provider: acc.provider,
+        email: acc.email,
+        linkedAt: acc.createdAt.toISOString(),
+      })),
+      passkeys: trainer.passkeys.map((pk) => ({
+        id: pk.id,
+        label: pk.label,
+        deviceType: pk.deviceType,
+        backedUp: pk.backedUp,
+        createdAt: pk.createdAt.toISOString(),
+        lastUsedAt: pk.lastUsedAt?.toISOString() ?? null,
+      })),
+      pokedexSlots: trainer.pokedexSlots.map((slot) => ({
+        slotIndex: slot.slotIndex,
+        pokemonId: slot.pokemonId,
+        pokemonName: slot.pokemonName,
+        nickname: slot.nickname,
+        spriteUrl: slot.spriteUrl,
+        updatedAt: slot.updatedAt.toISOString(),
+      })),
+    });
+  }
+
+  private async tryResolveRefreshGrace(
+    tokenHash: string,
+    trainer: SessionTrainerRecord,
+    familyId: string,
+  ): Promise<AuthSessionWithCookies | null> {
+    const rawEncrypted = await this.redis.getString(
+      this.refreshGraceKey(tokenHash),
+    );
+    if (!rawEncrypted) {
+      return null;
+    }
+
+    try {
+      const grace = this.crypto.decryptJson<RefreshGraceEnvelope>(rawEncrypted);
+      if (
+        grace.trainerId !== trainer.id ||
+        grace.familyId !== familyId ||
+        !grace.sessionSid ||
+        !grace.refreshToken
+      ) {
+        return null;
+      }
+
+      const activeGraceSession = await this.sessionService.getSessionByRawSid(
+        grace.sessionSid,
+      );
+      if (
+        activeGraceSession?.trainerId !== trainer.id ||
+        activeGraceSession.familyId !== familyId
+      ) {
+        return null;
+      }
+
+      this.logger.emitEvent(
+        'info',
+        `Refresh grace window served concurrent request for trainer ${trainer.id}`,
+        {
+          context: AuthService.name,
+          errorCode: 'REFRESH_GRACE_REPLAYED',
+        },
+      );
+
+      return {
+        session: this.sessionService.buildAuthSessionResponse(
+          trainer,
+          activeGraceSession.state,
+          activeGraceSession.mfaMethods,
+        ),
+        sessionSid: grace.sessionSid,
+        refreshToken: grace.refreshToken,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private refreshGraceKey(tokenHash: string): string {
+    return `refresh_grace:${tokenHash}`;
+  }
+
   private async enqueueEncryptedEmail(
     tx: Prisma.TransactionClient,
     params: {
@@ -736,6 +970,13 @@ export class AuthService implements OnModuleInit {
     attemptKey: string,
     currentAttempts: number,
   ): Promise<void> {
+    if (typeof this.redis.incrementCounterWithTtl === 'function') {
+      await this.redis.incrementCounterWithTtl(
+        attemptKey,
+        LOGIN_LOCK_WINDOW_SEC,
+      );
+      return;
+    }
     await this.redis.setStringEx(
       attemptKey,
       LOGIN_LOCK_WINDOW_SEC,

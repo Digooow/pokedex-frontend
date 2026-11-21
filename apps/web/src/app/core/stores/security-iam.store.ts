@@ -1,15 +1,19 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject, signal } from '@angular/core';
 import {
+  type ActiveSessionFamily,
+  ActiveSessionsResponseSchema,
   type DisableTotpInput,
   GenericMessageResponseSchema,
   PasskeyChallengeObjectSchema,
   PasskeySummarySchema,
+  RevokeOtherSessionsResponseSchema,
   type SecurityOverviewResponse,
   SecurityOverviewResponseSchema,
   TotpEnableResponseSchema,
   type TotpSetupResponse,
   TotpSetupResponseSchema,
+  TrainerDataExportSchema,
 } from '@pokeverse/shared';
 import type { PublicKeyCredentialCreationOptionsJSON } from '@simplewebauthn/browser';
 import { firstValueFrom } from 'rxjs';
@@ -20,6 +24,12 @@ export type SecurityOverviewState =
   | { readonly status: 'loading' }
   | { readonly status: 'error'; readonly message: string }
   | { readonly status: 'ready'; readonly data: SecurityOverviewResponse };
+
+export type ActiveSessionsState =
+  | { readonly status: 'idle' }
+  | { readonly status: 'loading' }
+  | { readonly status: 'error'; readonly message: string }
+  | { readonly status: 'ready'; readonly sessions: readonly ActiveSessionFamily[] };
 
 export type TotpSetupUiState =
   | { readonly status: 'idle' }
@@ -46,6 +56,7 @@ export class SecurityIamStore {
 
   private readonly dialogOpenSignal = signal(false);
   private readonly overviewSignal = signal<SecurityOverviewState>({ status: 'idle' });
+  private readonly sessionsSignal = signal<ActiveSessionsState>({ status: 'idle' });
   private readonly totpStateSignal = signal<TotpSetupUiState>({ status: 'idle' });
   private readonly busyActionSignal = signal<string | null>(null);
   private readonly feedbackSignal = signal<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(
@@ -54,6 +65,7 @@ export class SecurityIamStore {
 
   readonly dialogOpen = this.dialogOpenSignal.asReadonly();
   readonly overviewState = this.overviewSignal.asReadonly();
+  readonly sessionsState = this.sessionsSignal.asReadonly();
   readonly totpState = this.totpStateSignal.asReadonly();
   readonly busyAction = this.busyActionSignal.asReadonly();
   readonly feedback = this.feedbackSignal.asReadonly();
@@ -236,6 +248,83 @@ export class SecurityIamStore {
       await firstValueFrom(this.http.delete('/api/v1/auth/google'));
       this.feedbackSignal.set({ tone: 'ok', text: 'Conta Google desvinculada.' });
       await this.loadOverview();
+    } catch (err) {
+      this.feedbackSignal.set({ tone: 'error', text: this.extractError(err) });
+    } finally {
+      this.busyActionSignal.set(null);
+    }
+  }
+
+  async loadSessions(): Promise<void> {
+    this.sessionsSignal.set({ status: 'loading' });
+    try {
+      const raw = await firstValueFrom(this.http.get<unknown>('/api/v1/auth/sessions'));
+      const parsed = ActiveSessionsResponseSchema.safeParse(raw);
+      if (!parsed.success) {
+        this.sessionsSignal.set({ status: 'error', message: 'Resposta de sessões inválida.' });
+        return;
+      }
+      this.sessionsSignal.set({ status: 'ready', sessions: parsed.data.sessions });
+    } catch (err) {
+      this.sessionsSignal.set({ status: 'error', message: this.extractError(err) });
+    }
+  }
+
+  async revokeOtherSessions(): Promise<void> {
+    if (this.busyActionSignal()) {
+      return;
+    }
+    this.busyActionSignal.set('sessions-revoke-others');
+    this.feedbackSignal.set(null);
+    try {
+      const raw = await firstValueFrom(
+        this.http.post<unknown>('/api/v1/auth/sessions/revoke-others', {}),
+      );
+      const parsed = RevokeOtherSessionsResponseSchema.safeParse(raw);
+      this.feedbackSignal.set({
+        tone: 'ok',
+        text: parsed.success ? parsed.data.message : 'Outras sessões encerradas.',
+      });
+      await this.loadSessions();
+    } catch (err) {
+      this.feedbackSignal.set({ tone: 'error', text: this.extractError(err) });
+    } finally {
+      this.busyActionSignal.set(null);
+    }
+  }
+
+  async exportTrainerData(): Promise<void> {
+    if (this.busyActionSignal()) {
+      return;
+    }
+    this.busyActionSignal.set('lgpd-export');
+    this.feedbackSignal.set(null);
+    try {
+      const raw = await firstValueFrom(this.http.get<unknown>('/api/v1/auth/me/export'));
+      const parsed = TrainerDataExportSchema.safeParse(raw);
+      if (!parsed.success) {
+        this.feedbackSignal.set({ tone: 'error', text: 'Não foi possível validar o arquivo de exportação.' });
+        return;
+      }
+
+      if (typeof document !== 'undefined' && typeof URL.createObjectURL === 'function') {
+        const blob = new Blob([JSON.stringify(parsed.data, null, 2)], {
+          type: 'application/json;charset=utf-8',
+        });
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = `pokeverse-dados-${parsed.data.trainer.username.toLowerCase()}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(objectUrl);
+      }
+
+      this.feedbackSignal.set({
+        tone: 'ok',
+        text: 'Arquivo JSON com seus dados exportado com sucesso (LGPD).',
+      });
     } catch (err) {
       this.feedbackSignal.set({ tone: 'error', text: this.extractError(err) });
     } finally {

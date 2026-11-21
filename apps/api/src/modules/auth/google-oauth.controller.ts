@@ -18,11 +18,7 @@ import { Public } from '../../common/decorators/public.decorator';
 import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { GoogleOAuthService } from './google-oauth.service';
-import {
-  OAUTH_BIND_COOKIE,
-  REFRESH_COOKIE_PATH,
-  writeAuthCookies,
-} from './session-cookies.util';
+import { REFRESH_COOKIE_PATH, writeAuthCookies } from './session-cookies.util';
 import { SessionService } from './session.service';
 
 @Controller('auth/google')
@@ -39,9 +35,8 @@ export class GoogleOAuthController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const { sessionCookieName, secure, sameSite, domain } =
+    const { sessionCookieName, oauthBindCookieName, secure, sameSite, domain } =
       this.sessionService.getCookieNames();
-    // Top-level OAuth redirects returning from accounts.google.com are cross-site GETs; SameSite=Strict would drop the bind cookie.
     const oauthSameSite = sameSite === 'strict' ? 'lax' : sameSite;
     const rawSid = readSessionCookie(req, sessionCookieName);
     const existingSession =
@@ -54,7 +49,7 @@ export class GoogleOAuthController {
     const { authorizeUrl, bindCookieValue } =
       await this.googleOAuth.createAuthorizationRequest(linkTrainerId);
 
-    res.cookie(OAUTH_BIND_COOKIE, bindCookieValue, {
+    res.cookie(oauthBindCookieName, bindCookieValue, {
       httpOnly: true,
       sameSite: oauthSameSite,
       secure,
@@ -76,11 +71,12 @@ export class GoogleOAuthController {
     @Res() res: Response,
   ): Promise<void> {
     const baseRedirect = this.googleOAuth.getFrontendRedirectBase();
-    const { secure, sameSite, domain } = this.sessionService.getCookieNames();
+    const { oauthBindCookieName, secure, sameSite, domain } =
+      this.sessionService.getCookieNames();
     const oauthSameSite = sameSite === 'strict' ? 'lax' : sameSite;
-    const bindCookie = readSessionCookie(req, OAUTH_BIND_COOKIE);
+    const bindCookie = readSessionCookie(req, oauthBindCookieName);
 
-    res.clearCookie(OAUTH_BIND_COOKIE, {
+    res.clearCookie(oauthBindCookieName, {
       httpOnly: true,
       sameSite: oauthSameSite,
       secure,

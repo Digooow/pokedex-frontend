@@ -5,9 +5,11 @@ import { Router, provideRouter } from '@angular/router';
 import { App } from './app';
 import { routes } from './app.routes';
 import { AuthStore } from './core/stores/auth.store';
+import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
 import { SecurityIamStore } from './core/stores/security-iam.store';
+import { proxyToApiOrigin, stripUpstreamDomainAttribute } from '../../cloudflare/api-proxy';
 import { PokedexDevicePageComponent } from './features/pokedex-device/pokedex-device.component';
 import { PokedexRpgNavService } from './features/pokedex-device/services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './features/pokedex-device/services/pokedex-slots.store';
@@ -730,6 +732,114 @@ describe('PokéVerse OS Shell', () => {
       });
     } finally {
       window.history.replaceState(null, '', originalUrl || '/');
+    }
+  });
+
+  it('persists pokeverse_consent cookie, clears non-essential localStorage on essential-only, and suppresses banner after choice', async () => {
+    window.localStorage.setItem('pokeverse_perf_pref', 'lite');
+    window.localStorage.setItem('pokedex_cenario_ativo', 'vila');
+    document.cookie = 'pokeverse_consent=; Path=/; Max-Age=0';
+
+    const privacy = TestBed.inject(PrivacyConsentStore);
+    const quality = TestBed.inject(QualityStore);
+    expect(privacy.hasSavedChoice()).toBe(false);
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitialRequests(TestBed.inject(HttpTestingController));
+    await fixture.whenStable();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.privacy-banner')).not.toBeNull();
+
+    privacy.acceptEssentialOnly();
+    fixture.detectChanges();
+
+    expect(privacy.hasSavedChoice()).toBe(true);
+    expect(privacy.canPersistFunctionalPreferences()).toBe(false);
+    expect(document.cookie).toContain('pokeverse_consent=');
+    expect(window.localStorage.getItem('pokeverse_perf_pref')).toBeNull();
+    expect(window.localStorage.getItem('pokedex_cenario_ativo')).toBeNull();
+
+    quality.setPreference('ultra');
+    expect(window.localStorage.getItem('pokeverse_perf_pref')).toBeNull();
+    expect(compiled.querySelector('.privacy-banner')).toBeNull();
+
+    document.cookie = 'pokeverse_consent=; Path=/; Max-Age=0';
+  });
+
+  it('manages active sessions, revokes other sessions, exports sanitized LGPD data, and strips upstream Domain in proxy', async () => {
+    const iam = TestBed.inject(SecurityIamStore);
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    const loadPromise = iam.loadSessions();
+    httpMock.expectOne('/api/v1/auth/sessions').flush({
+      sessions: [
+        {
+          familyId: '550e8400-e29b-41d4-a716-446655440001',
+          createdAt: '2026-11-20T10:00:00.000Z',
+          expiresAt: '2026-11-27T10:00:00.000Z',
+          isCurrent: true,
+        },
+        {
+          familyId: '550e8400-e29b-41d4-a716-446655440002',
+          createdAt: '2026-11-19T10:00:00.000Z',
+          expiresAt: '2026-11-26T10:00:00.000Z',
+          isCurrent: false,
+        },
+      ],
+    });
+    await loadPromise;
+    expect(iam.sessionsState().status).toBe('ready');
+
+    const revokePromise = iam.revokeOtherSessions();
+    httpMock.expectOne('/api/v1/auth/sessions/revoke-others').flush({
+      revokedCount: 1,
+      message: '1 outra(s) sessão(ões) encerrada(s) com sucesso.',
+    });
+    await Promise.resolve();
+    httpMock.expectOne('/api/v1/auth/sessions').flush({
+      sessions: [
+        {
+          familyId: '550e8400-e29b-41d4-a716-446655440001',
+          createdAt: '2026-11-20T10:00:00.000Z',
+          expiresAt: '2026-11-27T10:00:00.000Z',
+          isCurrent: true,
+        },
+      ],
+    });
+    await revokePromise;
+    expect(iam.feedback()?.tone).toBe('ok');
+
+    expect(
+      stripUpstreamDomainAttribute(
+        '__Secure-pokeverse_refresh=abc; Domain=pokeverse-api.azurecontainerapps.io; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Lax',
+      ),
+    ).toBe('__Secure-pokeverse_refresh=abc; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Lax');
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      const headers = new Headers();
+      headers.append('set-cookie', '__Host-pokeverse_session=sid1; Path=/; HttpOnly; Secure; SameSite=Lax');
+      headers.append(
+        'set-cookie',
+        '__Secure-pokeverse_refresh=ref1; Domain=pokeverse-api.azurecontainerapps.io; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Lax',
+      );
+      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+    });
+
+    try {
+      const proxied = await proxyToApiOrigin({
+        request: new Request('https://pokeverse.pages.dev/api/v1/auth/login', {
+          method: 'POST',
+          body: '{}',
+        }),
+        env: { API_ORIGIN: 'https://pokeverse-api.azurecontainerapps.io' },
+      });
+      const outCookies = (proxied.headers as Headers & { getSetCookie?: () => string[] }).getSetCookie?.() ?? [];
+      expect(outCookies).toHaveLength(2);
+      expect(outCookies[1]).not.toContain('Domain=');
+    } finally {
+      fetchSpy.mockRestore();
     }
   });
 });

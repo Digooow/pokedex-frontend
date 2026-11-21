@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { type ScenarioId, ScenarioIdSchema } from '@pokeverse/shared';
+import { PrivacyConsentStore } from './privacy-consent.store';
 import { QualityStore } from './quality.store';
 
 export { ScenarioIdSchema, type ScenarioId };
@@ -48,6 +49,7 @@ const STORAGE_AUTO_KEY = 'pokedex_cenario_auto';
 export class ScenarioStore implements OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly quality = inject(QualityStore);
+  private readonly privacy = inject(PrivacyConsentStore);
 
   private readonly activeScenarioSignal = signal<ScenarioId>(this.loadInitialScenario());
   private readonly autoEnabledSignal = signal<boolean>(this.loadInitialAuto());
@@ -148,7 +150,7 @@ export class ScenarioStore implements OnDestroy {
   }
 
   private loadInitialScenario(): ScenarioId {
-    if (!this.isBrowser) {
+    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
       return 'hoenn';
     }
     try {
@@ -164,6 +166,9 @@ export class ScenarioStore implements OnDestroy {
     if (!this.isBrowser) {
       return true;
     }
+    if (!this.privacy.canPersistFunctionalPreferences()) {
+      return !this.quality.reducedMotion() && this.quality.tier() !== 'lite';
+    }
     try {
       const saved = window.localStorage.getItem(STORAGE_AUTO_KEY);
       if (saved === 'true' || saved === 'false') {
@@ -176,7 +181,7 @@ export class ScenarioStore implements OnDestroy {
   }
 
   private saveStorage(key: string, value: string): void {
-    if (!this.isBrowser) {
+    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
       return;
     }
     try {

@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { PokedexSlotRecordSchema } from './pokedex.schemas';
 
 const NormalizedEmailSchema = z.string().trim().toLowerCase().pipe(z.email('E-mail inválido.'));
 const SixDigitOtpSchema = z
@@ -239,4 +240,54 @@ export const PasskeyAuthOptionsEnvelopeSchema = z.object({
   challengeToken: z.string().min(16),
   options: PasskeyChallengeObjectSchema,
 });
+
+export const PRIVACY_CONSENT_VERSION = 1 as const;
+
+export const PrivacyConsentSchema = z.object({
+  version: z.literal(PRIVACY_CONSENT_VERSION),
+  essential: z.literal(true),
+  functionalPreferences: z.boolean(),
+  optionalTelemetry: z.boolean(),
+  updatedAt: z.iso.datetime(),
+});
+
+export type PrivacyConsent = z.infer<typeof PrivacyConsentSchema>;
+
+export const ActiveSessionFamilySchema = z.object({
+  familyId: z.uuid(),
+  createdAt: z.iso.datetime(),
+  expiresAt: z.iso.datetime(),
+  isCurrent: z.boolean(),
+});
+
+export type ActiveSessionFamily = z.infer<typeof ActiveSessionFamilySchema>;
+
+export const ActiveSessionsResponseSchema = z.object({
+  sessions: z.array(ActiveSessionFamilySchema),
+});
+
+export type ActiveSessionsResponse = z.infer<typeof ActiveSessionsResponseSchema>;
+
+export const RevokeOtherSessionsResponseSchema = z.object({
+  revokedCount: z.number().int().nonnegative(),
+  message: z.string().min(1),
+});
+
+export type RevokeOtherSessionsResponse = z.infer<typeof RevokeOtherSessionsResponseSchema>;
+
+export const TrainerDataExportSchema = z.object({
+  exportedAt: z.iso.datetime(),
+  trainer: TrainerProfileSchema,
+  oauthProviders: z.array(
+    z.object({
+      provider: z.string().min(1),
+      email: z.email(),
+      linkedAt: z.iso.datetime(),
+    }),
+  ),
+  passkeys: z.array(PasskeySummarySchema),
+  pokedexSlots: z.array(PokedexSlotRecordSchema),
+});
+
+export type TrainerDataExport = z.infer<typeof TrainerDataExportSchema>;
 

@@ -136,6 +136,10 @@ describe('PokéVerse API (e2e)', () => {
 
   it('blocks unauthenticated visitors with 401 on protected endpoints', async () => {
     await request(app.getHttpServer()).get('/api/v1/auth/me').expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/me/export')
+      .expect(401);
+    await request(app.getHttpServer()).get('/api/v1/auth/sessions').expect(401);
     await request(app.getHttpServer()).get('/api/v1/pokedex/slots').expect(401);
     await request(app.getHttpServer())
       .put('/api/v1/pokedex/slots/0')
@@ -143,7 +147,7 @@ describe('PokéVerse API (e2e)', () => {
       .expect(401);
   });
 
-  it('blocks cross-site CSRF origins with 403', async () => {
+  it('blocks cross-site CSRF origins and form-encoded Content-Types with 403', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/auth/logout')
       .set('Origin', 'https://evil.example')
@@ -153,6 +157,20 @@ describe('PokéVerse API (e2e)', () => {
       .put('/api/v1/pokedex/slots/0')
       .set('Sec-Fetch-Site', 'cross-site')
       .send({ slotIndex: 0, pokemonId: 25, pokemonName: 'pikachu' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set('Origin', 'http://localhost:4200')
+      .set('Content-Type', 'application/x-www-form-urlencoded')
+      .send('evil=1')
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set('Origin', 'http://localhost:4200')
+      .set('Content-Type', 'text/plain')
+      .send('evil=1')
       .expect(403);
   });
 

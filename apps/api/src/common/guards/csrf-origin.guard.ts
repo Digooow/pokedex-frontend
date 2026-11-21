@@ -10,6 +10,11 @@ import type { ApiEnvConfig } from '../../config/env.schema';
 import { StructuredLoggerService } from '../telemetry/structured-logger.service';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+const UNSAFE_FORM_CONTENT_TYPES = new Set([
+  'text/plain',
+  'application/x-www-form-urlencoded',
+  'multipart/form-data',
+]);
 
 function readCookieRecord(req: Request): Record<string, unknown> {
   const cookies: unknown = req.cookies;
@@ -61,6 +66,15 @@ export class CsrfOriginGuard implements CanActivate {
       return null;
     }
 
+    const rawContentType = req.header('content-type')?.trim();
+    if (rawContentType) {
+      const mediaType =
+        rawContentType.split(';')[0]?.trim().toLowerCase() ?? '';
+      if (UNSAFE_FORM_CONTENT_TYPES.has(mediaType)) {
+        return `Blocked unsafe Content-Type=${mediaType}`;
+      }
+    }
+
     const secFetchSite = req.header('sec-fetch-site')?.trim().toLowerCase();
     if (
       secFetchSite &&
@@ -91,7 +105,11 @@ export class CsrfOriginGuard implements CanActivate {
     const hasSessionCookies = Boolean(
       cookies['pokeverse_session'] ??
       cookies['__Host-pokeverse_session'] ??
-      cookies['pokeverse_refresh'],
+      cookies['pokeverse_refresh'] ??
+      cookies['__Secure-pokeverse_refresh'] ??
+      cookies['__Host-pokeverse_refresh'] ??
+      cookies['pokeverse_oauth_bind'] ??
+      cookies['__Secure-pokeverse_oauth_bind'],
     );
     if (hasSessionCookies && secFetchSite !== 'same-origin') {
       return 'Blocked cookie-authenticated mutation missing Origin and Same-Origin Fetch Metadata';

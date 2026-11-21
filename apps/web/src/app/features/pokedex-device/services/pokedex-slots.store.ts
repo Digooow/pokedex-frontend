@@ -9,6 +9,7 @@ import {
 } from '@pokeverse/shared';
 import { catchError, map, of } from 'rxjs';
 import { AuthStore } from '../../../core/stores/auth.store';
+import { PrivacyConsentStore } from '../../../core/stores/privacy-consent.store';
 import type { PokemonDetailView, ResolvedPokemonForSlot } from './pokedex.store';
 
 export type SlotConfirmPrompt =
@@ -44,6 +45,7 @@ const LOCAL_SLOTS_KEY = 'pokedex_slots_salvos';
 export class PokedexSlotsStore {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthStore);
+  private readonly privacy = inject(PrivacyConsentStore);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   private readonly cloudSlotsSignal = signal<ReadonlyMap<number, PokedexSlotRecord>>(new Map());
@@ -320,7 +322,7 @@ export class PokedexSlotsStore {
 
   private loadLocalSlots(): Map<number, PokedexSlotRecord> {
     const empty = new Map<number, PokedexSlotRecord>();
-    if (!this.isBrowser) {
+    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
       return empty;
     }
     try {
@@ -393,7 +395,7 @@ export class PokedexSlotsStore {
   }
 
   private persistLocalSlots(slots: ReadonlyMap<number, PokedexSlotRecord>): void {
-    if (!this.isBrowser) {
+    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
       return;
     }
     try {

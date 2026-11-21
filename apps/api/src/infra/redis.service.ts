@@ -39,6 +39,14 @@ end
 return { hits, math.ceil(currentTtl / 1000), 0, 0 }
 `;
 
+const INCR_WITH_TTL_LUA_SCRIPT = `
+local current = redis.call('INCR', KEYS[1])
+if current == 1 or redis.call('TTL', KEYS[1]) < 0 then
+  redis.call('EXPIRE', KEYS[1], tonumber(ARGV[1]))
+end
+return current
+`;
+
 @Injectable()
 export class RedisService implements OnModuleDestroy {
   private readonly client: Redis;
@@ -117,6 +125,14 @@ export class RedisService implements OnModuleDestroy {
     return this.client.smembers(key);
   }
 
+  async removeSetMembers(key: string, ...members: string[]): Promise<void> {
+    if (members.length === 0) {
+      return;
+    }
+    await this.ensureConnected();
+    await this.client.srem(key, ...members);
+  }
+
   async getJson<T>(key: string): Promise<T | null> {
     await this.ensureConnected();
     const raw = await this.client.get(key);
@@ -144,6 +160,27 @@ export class RedisService implements OnModuleDestroy {
     const key = `idemp:${consumerGroup}:${eventId}`;
     const result = await this.client.set(key, '1', 'EX', ttlSeconds, 'NX');
     return result === 'OK';
+  }
+
+  async releaseIdempotencyLock(
+    consumerGroup: string,
+    eventId: string,
+  ): Promise<void> {
+    await this.delKeys(`idemp:${consumerGroup}:${eventId}`);
+  }
+
+  async incrementCounterWithTtl(
+    key: string,
+    ttlSeconds: number,
+  ): Promise<number> {
+    await this.ensureConnected();
+    const rawResult = await this.client.eval(
+      INCR_WITH_TTL_LUA_SCRIPT,
+      1,
+      key,
+      String(Math.max(1, ttlSeconds)),
+    );
+    return Number(rawResult ?? 1);
   }
 
   async incrementThrottle(

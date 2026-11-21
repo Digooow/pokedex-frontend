@@ -8,6 +8,10 @@
     <router-outlet />
   </main>
 
+  @if (!privacy.hasSavedChoice()) {
+    <pv-privacy-notice-banner />
+  }
+
   <pv-hud-quick-dock />
 </div>
 
@@ -17,4 +21,8 @@
 
 @defer (when auth.securityModalOpen()) {
   <pv-security-settings-dialog />
+}
+
+@defer (when privacy.dialogOpen()) {
+  <pv-privacy-consent-dialog />
 }

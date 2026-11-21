@@ -131,3 +131,5 @@ Cada etapa resulta em uma entrega **executável, testável e utilizável**. Apó
 - [13 — Dossiê Completo de Segurança e Blindagem (AppSec, Auth & Infra)](13-dossie-de-seguranca-e-blindagem.md)
 - [14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog](14-status-e-changelog-implementacao.md)
 - [15 — Pokédex Suprema: Auditoria, 51 Endpoints e Laboratório Genético](15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md)
+- [16 — Cookies, Privacidade (LGPD) e Levantamento de Requisitos](16-cookies-lgpd-e-requisitos.md)
+- [17 — Plano SOLID, Clean Code, Post-Mortem e Engenharia Nível Big Tech](17-plano-solid-clean-code-e-engenharia-big-tech.md)

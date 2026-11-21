@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
-import { SecurityIamStore } from '../../core/stores/security-iam.store';
+import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { SystemStatusStore } from '../../core/stores/system-status.store';
 import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 
@@ -52,8 +52,8 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
               <button
                 type="button"
                 class="hud-pill"
-                [attr.aria-pressed]="securityIam.dialogOpen()"
-                (click)="securityIam.openDialog()"
+                [attr.aria-pressed]="auth.securityModalOpen()"
+                (click)="auth.openSecuritySettings()"
               >
                 {{ trainer.mfaEnabled ? '2FA: Ativo' : 'Segurança / 2FA' }}
               </button>
@@ -74,6 +74,14 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
         }
 
         <div class="hud-topbar__right">
+          <button
+            type="button"
+            class="hud-pill"
+            [attr.aria-pressed]="privacy.dialogOpen()"
+            (click)="privacy.openDialog()"
+          >
+            Cookies &amp; LGPD
+          </button>
           <button
             type="button"
             class="hud-pill"
@@ -278,7 +286,7 @@ import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 })
 export class HudTopbarComponent {
   readonly auth = inject(AuthStore);
-  readonly securityIam = inject(SecurityIamStore);
+  readonly privacy = inject(PrivacyConsentStore);
   readonly systemStatus = inject(SystemStatusStore);
   readonly ticker = inject(WorldTickerStore);
 

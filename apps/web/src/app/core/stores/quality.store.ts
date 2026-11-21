@@ -7,6 +7,7 @@ import {
   type PerfPreference,
   PerfPreferenceSchema,
 } from '@pokeverse/shared';
+import { PrivacyConsentStore } from './privacy-consent.store';
 
 const PERF_STORAGE_KEY = 'pokeverse_perf_pref';
 const PERF_CYCLE: readonly PerfPreference[] = ['auto', 'ultra', 'balanced', 'lite'];
@@ -19,6 +20,7 @@ interface NavigatorWithCapabilities extends Navigator {
 @Injectable({ providedIn: 'root' })
 export class QualityStore {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly privacy = inject(PrivacyConsentStore);
 
   private readonly profileSignal = signal<HardwareProfile>(this.detectInitialProfile());
 
@@ -165,6 +167,9 @@ export class QualityStore {
   }
 
   private loadPreference(): PerfPreference {
+    if (!this.privacy.canPersistFunctionalPreferences()) {
+      return 'auto';
+    }
     try {
       const raw = window.localStorage.getItem(PERF_STORAGE_KEY);
       const parsed = PerfPreferenceSchema.safeParse(raw);
@@ -175,7 +180,7 @@ export class QualityStore {
   }
 
   private persistPreference(preference: PerfPreference): void {
-    if (!this.isBrowser) {
+    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
       return;
     }
     try {

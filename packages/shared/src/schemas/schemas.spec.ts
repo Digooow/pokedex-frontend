@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest';
 import { PLATFORM_MODULES } from '../constants/platform.constants';
 import {
+  ActiveSessionsResponseSchema,
   AuthSessionResponseSchema,
   DisableTotpSchema,
   LoginTrainerSchema,
   MfaChallengeVerifySchema,
+  PRIVACY_CONSENT_VERSION,
+  PrivacyConsentSchema,
   RegisterTrainerSchema,
   ResetPasswordOtpSchema,
+  RevokeOtherSessionsResponseSchema,
   SessionBootstrapResponseSchema,
   TotpEnableResponseSchema,
+  TrainerDataExportSchema,
   VerifyEmailOtpSchema,
 } from './auth.schemas';
 import {
@@ -158,6 +163,75 @@ describe('shared schemas boundary validation', () => {
       TotpEnableResponseSchema.safeParse({
         message: '2FA ativado',
         backupCodes: ['A1B2-C3D4', 'E5F6-G7H8', 'J1K2-M3N4', 'P5Q6-R7S8', 'T1U2-V3W4', 'X5Y6-Z7A8', 'B1C2-D3E4', 'F5G6-H7J8'],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      PrivacyConsentSchema.safeParse({
+        version: PRIVACY_CONSENT_VERSION,
+        essential: true,
+        functionalPreferences: true,
+        optionalTelemetry: false,
+        updatedAt: new Date().toISOString(),
+      }).success,
+    ).toBe(true);
+
+    expect(
+      PrivacyConsentSchema.safeParse({
+        version: PRIVACY_CONSENT_VERSION,
+        essential: false,
+        functionalPreferences: true,
+        optionalTelemetry: false,
+        updatedAt: new Date().toISOString(),
+      }).success,
+    ).toBe(false);
+
+    expect(
+      ActiveSessionsResponseSchema.safeParse({
+        sessions: [
+          {
+            familyId: '550e8400-e29b-41d4-a716-446655440099',
+            createdAt: new Date().toISOString(),
+            expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+            isCurrent: true,
+          },
+        ],
+      }).success,
+    ).toBe(true);
+
+    expect(
+      RevokeOtherSessionsResponseSchema.safeParse({
+        revokedCount: 2,
+        message: 'Outras sessões encerradas.',
+      }).success,
+    ).toBe(true);
+
+    expect(
+      TrainerDataExportSchema.safeParse({
+        exportedAt: new Date().toISOString(),
+        trainer: {
+          id: '550e8400-e29b-41d4-a716-446655440001',
+          username: 'Red_Kanto',
+          email: 'red@example.com',
+          emailVerifiedAt: null,
+          mfaEnabled: false,
+          hasPassword: true,
+          badgesCount: 0,
+          eloRating: 1000,
+          lastMapId: 'pokeverse-town',
+          lastX: 400,
+          lastY: 320,
+          createdAt: new Date().toISOString(),
+        },
+        oauthProviders: [
+          {
+            provider: 'google',
+            email: 'red@example.com',
+            linkedAt: new Date().toISOString(),
+          },
+        ],
+        passkeys: [],
+        pokedexSlots: [],
       }).success,
     ).toBe(true);
   });

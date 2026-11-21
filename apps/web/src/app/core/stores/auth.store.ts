@@ -1,5 +1,6 @@
+import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import {
   type AccessMode,
@@ -21,7 +22,7 @@ import {
   type VerifyEmailOtpInput,
 } from '@pokeverse/shared';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
-import { Observable, catchError, firstValueFrom, finalize, map, of, shareReplay, tap } from 'rxjs';
+import { Observable, catchError, firstValueFrom, finalize, from, map, of, shareReplay, tap } from 'rxjs';
 
 export type AuthDialogMode = 'login' | 'register' | 'forgot' | 'verify-email' | 'mfa-challenge';
 
@@ -42,10 +43,18 @@ function isPasskeyRequestOptions(value: unknown): value is PublicKeyCredentialRe
   return typeof value === 'object' && value !== null && 'challenge' in value;
 }
 
+const AUTH_SYNC_CHANNEL_NAME = 'pokeverse_auth_sync';
+const AUTH_REFRESH_LOCK_NAME = 'pokeverse-auth-refresh';
+
+type AuthSyncBroadcastMessage =
+  | { readonly type: 'session'; readonly session: AuthSessionResponse }
+  | { readonly type: 'logout' };
+
 @Injectable({ providedIn: 'root' })
-export class AuthStore {
+export class AuthStore implements OnDestroy {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   private readonly sessionSignal = signal<AuthSessionResponse | null>(null);
   private readonly visitorPromptSignal = signal<VisitorPromptContext | null>(null);
@@ -60,6 +69,7 @@ export class AuthStore {
     webauthnEnabled: true,
   });
   private inflightRefresh$: Observable<boolean> | null = null;
+  private readonly syncChannel: BroadcastChannel | null = this.openSyncChannel();
 
   readonly trainer = computed<TrainerProfile | null>(() => this.sessionSignal()?.trainer ?? null);
   readonly sessionState = computed<SessionAuthState | null>(
@@ -257,7 +267,7 @@ export class AuthStore {
         }
         const current = this.sessionSignal();
         const normalizedInputEmail = input.email.trim().toLowerCase();
-        if (current && current.trainer.email.toLowerCase() === normalizedInputEmail) {
+        if (current?.trainer.email.toLowerCase() === normalizedInputEmail) {
           this.sessionSignal.set({
             ...current,
             trainer: {
@@ -320,6 +330,7 @@ export class AuthStore {
         this.handleMessageOutcome(outcome);
         if (!('httpError' in outcome) && outcome.success) {
           this.sessionSignal.set(null);
+          this.broadcastAuthSync({ type: 'logout' });
         }
       });
   }
@@ -329,20 +340,7 @@ export class AuthStore {
       return this.inflightRefresh$;
     }
 
-    this.inflightRefresh$ = this.http.post<unknown>('/api/v1/auth/refresh', null).pipe(
-      map((raw) => {
-        const parsed = AuthSessionResponseSchema.safeParse(raw);
-        if (!parsed.success) {
-          this.sessionSignal.set(null);
-          return false;
-        }
-        this.sessionSignal.set(parsed.data);
-        return true;
-      }),
-      catchError(() => {
-        this.sessionSignal.set(null);
-        return of(false);
-      }),
+    this.inflightRefresh$ = from(this.runSerializedRefresh()).pipe(
       finalize(() => {
         this.inflightRefresh$ = null;
       }),
@@ -357,6 +355,7 @@ export class AuthStore {
     this.mutationSignal.set({ status: 'idle' });
     this.visitorPromptSignal.set(null);
     this.securityModalOpenSignal.set(false);
+    this.broadcastAuthSync({ type: 'logout' });
     this.http
       .post<void>('/api/v1/auth/logout', null)
       .pipe(
@@ -364,6 +363,10 @@ export class AuthStore {
         catchError(() => of(undefined)),
       )
       .subscribe();
+  }
+
+  ngOnDestroy(): void {
+    this.syncChannel?.close();
   }
 
   openMfaChallengePrompt(): void {
@@ -429,6 +432,7 @@ export class AuthStore {
 
     const targetRoute = this.visitorPromptSignal()?.targetRoute;
     this.sessionSignal.set(outcome.data);
+    this.broadcastAuthSync({ type: 'session', session: outcome.data });
     this.mutationSignal.set({ status: 'idle' });
     if (outcome.data.sessionState === 'MFA_PENDING') {
       this.openMfaChallengePrompt();
@@ -479,7 +483,8 @@ export class AuthStore {
       params.delete('authError');
       params.delete('mfaPending');
       const nextSearch = params.toString();
-      const cleanUrl = `${loc.pathname || '/'}${nextSearch ? `?${nextSearch}` : ''}${loc.hash ?? ''}`;
+      const searchPart = nextSearch ? `?${nextSearch}` : '';
+      const cleanUrl = `${loc.pathname || '/'}${searchPart}${loc.hash ?? ''}`;
       globalThis.history?.replaceState(null, '', cleanUrl);
     }
 
@@ -514,6 +519,75 @@ export class AuthStore {
         return 'Verifique o e-mail da sua conta antes de vincular o Google.';
       default:
         return 'Não foi possível autenticar com o Google. Tente novamente.';
+    }
+  }
+
+  private async runSerializedRefresh(): Promise<boolean> {
+    const executeRefresh = async (): Promise<boolean> => {
+      try {
+        const raw = await firstValueFrom(this.http.post<unknown>('/api/v1/auth/refresh', null));
+        const parsed = AuthSessionResponseSchema.safeParse(raw);
+        if (!parsed.success) {
+          this.sessionSignal.set(null);
+          this.broadcastAuthSync({ type: 'logout' });
+          return false;
+        }
+        this.sessionSignal.set(parsed.data);
+        this.broadcastAuthSync({ type: 'session', session: parsed.data });
+        return true;
+      } catch {
+        this.sessionSignal.set(null);
+        this.broadcastAuthSync({ type: 'logout' });
+        return false;
+      }
+    };
+
+    if (
+      this.isBrowser &&
+      typeof navigator !== 'undefined' &&
+      navigator.locks &&
+      typeof navigator.locks.request === 'function'
+    ) {
+      return navigator.locks.request(AUTH_REFRESH_LOCK_NAME, executeRefresh);
+    }
+    return executeRefresh();
+  }
+
+  private openSyncChannel(): BroadcastChannel | null {
+    if (!this.isBrowser || typeof BroadcastChannel !== 'function') {
+      return null;
+    }
+    try {
+      const ch = new BroadcastChannel(AUTH_SYNC_CHANNEL_NAME);
+      ch.addEventListener('message', (event: MessageEvent<unknown>) => {
+        if (typeof event.data !== 'object' || event.data === null) {
+          return;
+        }
+        const msg = event.data as Partial<AuthSyncBroadcastMessage>;
+        if (msg.type === 'logout') {
+          this.sessionSignal.set(null);
+          this.visitorPromptSignal.set(null);
+          this.securityModalOpenSignal.set(false);
+          return;
+        }
+        if (msg.type === 'session') {
+          const parsed = AuthSessionResponseSchema.safeParse(msg.session);
+          if (parsed.success) {
+            this.sessionSignal.set(parsed.data);
+          }
+        }
+      });
+      return ch;
+    } catch {
+      return null;
+    }
+  }
+
+  private broadcastAuthSync(message: AuthSyncBroadcastMessage): void {
+    try {
+      this.syncChannel?.postMessage(message);
+    } catch {
+      return;
     }
   }
 

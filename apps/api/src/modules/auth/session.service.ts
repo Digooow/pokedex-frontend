@@ -49,6 +49,7 @@ export class SessionService {
   getCookieNames(): {
     readonly sessionCookieName: string;
     readonly refreshCookieName: string;
+    readonly oauthBindCookieName: string;
     readonly secure: boolean;
     readonly sameSite: 'lax' | 'strict' | 'none';
     readonly domain?: string;
@@ -69,7 +70,12 @@ export class SessionService {
       sessionCookieName: useHostPrefix
         ? '__Host-pokeverse_session'
         : 'pokeverse_session',
-      refreshCookieName: 'pokeverse_refresh',
+      refreshCookieName: secure
+        ? '__Secure-pokeverse_refresh'
+        : 'pokeverse_refresh',
+      oauthBindCookieName: secure
+        ? '__Secure-pokeverse_oauth_bind'
+        : 'pokeverse_oauth_bind',
       secure,
       sameSite,
       ...(domain ? { domain } : {}),
@@ -195,6 +201,42 @@ export class SessionService {
     const keysToDelete = sidHashes.map((sidHash) => this.sessionKey(sidHash));
     keysToDelete.push(indexKey);
     await this.redis.delKeys(...keysToDelete);
+  }
+
+  async revokeOtherSessionsForTrainer(
+    trainerId: string,
+    currentFamilyId: string,
+  ): Promise<number> {
+    const indexKey = this.trainerSessionsKey(trainerId);
+    const sidHashes = await this.redis.getSetMembers(indexKey);
+    const keysToDelete: string[] = [];
+    const membersToRemove: string[] = [];
+    let revokedCount = 0;
+
+    const entries = await Promise.all(
+      sidHashes.map(async (sidHash) => ({
+        sidHash,
+        session: await this.redis.getJson<ActiveRedisSession>(
+          this.sessionKey(sidHash),
+        ),
+      })),
+    );
+
+    for (const { sidHash, session } of entries) {
+      if (!session) {
+        membersToRemove.push(sidHash);
+        continue;
+      }
+      if (session.familyId !== currentFamilyId) {
+        keysToDelete.push(this.sessionKey(sidHash));
+        membersToRemove.push(sidHash);
+        revokedCount += 1;
+      }
+    }
+
+    await this.redis.delKeys(...keysToDelete);
+    await this.redis.removeSetMembers(indexKey, ...membersToRemove);
+    return revokedCount;
   }
 
   private sessionKey(sidHash: string): string {

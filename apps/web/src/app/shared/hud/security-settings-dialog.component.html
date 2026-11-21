@@ -202,6 +202,65 @@
             </p>
           }
         </section>
+
+        <section class="sec-panel" aria-labelledby="pv-sessions-heading">
+          <h3 id="pv-sessions-heading" class="sec-panel__title">Sessões e Cookies Ativos</h3>
+          @let sessionsState = iam.sessionsState();
+          @if (sessionsState.status === 'loading') {
+            <p class="sec-muted">Consultando sessões ativas...</p>
+          } @else if (sessionsState.status === 'error') {
+            <div class="sec-inline-form">
+              <p class="sec-muted">{{ sessionsState.message }}</p>
+              <button type="button" class="sec-btn" (click)="iam.loadSessions()">Atualizar</button>
+            </div>
+          } @else if (sessionsState.status === 'ready') {
+            @if (sessionsState.sessions.length === 0) {
+              <p class="sec-muted">Nenhuma família de refresh token persistida no momento.</p>
+            } @else {
+              <ul class="sec-list">
+                @for (sess of sessionsState.sessions; track sess.familyId) {
+                  <li class="sec-list__item">
+                    <span>
+                      <strong>{{ sess.isCurrent ? 'Sessão atual' : 'Outro dispositivo' }}</strong>
+                      · iniciada em {{ formatDate(sess.createdAt) }}
+                    </span>
+                    <span class="sec-muted">expira {{ formatDate(sess.expiresAt) }}</span>
+                  </li>
+                }
+              </ul>
+              @if (hasOtherSessions(sessionsState.sessions)) {
+                <button
+                  type="button"
+                  class="sec-btn"
+                  [disabled]="iam.busyAction() !== null"
+                  (click)="iam.revokeOtherSessions()"
+                >
+                  Encerrar outras sessões
+                </button>
+              }
+            }
+          }
+        </section>
+
+        <section class="sec-panel" aria-labelledby="pv-lgpd-heading">
+          <h3 id="pv-lgpd-heading" class="sec-panel__title">Privacidade e Dados (LGPD)</h3>
+          <p class="sec-muted">
+            Exporte uma cópia legível dos seus dados de Treinador, vínculos e slots salvos, ou ajuste suas preferências de cookies.
+          </p>
+          <div class="sec-inline-form">
+            <button
+              type="button"
+              class="sec-btn sec-btn--primary"
+              [disabled]="iam.busyAction() !== null"
+              (click)="iam.exportTrainerData()"
+            >
+              Exportar meus dados (JSON)
+            </button>
+            <button type="button" class="sec-btn" (click)="openPrivacyCenter()">
+              Preferências de Cookies
+            </button>
+          </div>
+        </section>
       }
     </div>
   }

@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import {
+  type ActiveSessionsResponse,
   type AuthSessionResponse,
   type ForgotPasswordInput,
   ForgotPasswordSchema,
@@ -23,7 +24,9 @@ import {
   ResendEmailOtpSchema,
   type ResetPasswordOtpInput,
   ResetPasswordOtpSchema,
+  type RevokeOtherSessionsResponse,
   type SessionBootstrapResponse,
+  type TrainerDataExport,
   type TrainerProfile,
   type VerifyEmailOtpInput,
   VerifyEmailOtpSchema,
@@ -216,5 +219,33 @@ export class AuthController {
   @Get('me')
   me(@CurrentTrainer() trainer: AuthenticatedTrainer): Promise<TrainerProfile> {
     return this.authService.getMe(trainer.trainerId);
+  }
+
+  @Get('me/export')
+  exportMyData(
+    @CurrentTrainer() trainer: AuthenticatedTrainer,
+  ): Promise<TrainerDataExport> {
+    return this.authService.exportTrainerData(trainer.trainerId);
+  }
+
+  @Get('sessions')
+  getActiveSessions(
+    @CurrentTrainer() trainer: AuthenticatedTrainer,
+  ): Promise<ActiveSessionsResponse> {
+    return this.authService.listActiveSessions(
+      trainer.trainerId,
+      trainer.familyId,
+    );
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('sessions/revoke-others')
+  revokeOtherSessions(
+    @CurrentTrainer() trainer: AuthenticatedTrainer,
+  ): Promise<RevokeOtherSessionsResponse> {
+    return this.authService.revokeOtherSessions(
+      trainer.trainerId,
+      trainer.familyId,
+    );
   }
 }
