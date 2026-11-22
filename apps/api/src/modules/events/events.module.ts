@@ -2,12 +2,14 @@ import { Module } from '@nestjs/common';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { WorldModule } from '../world/world.module';
 import { EmailNotificationsConsumerService } from './email-notifications.consumer';
+import { OutboxEventRepository } from './outbox-event.repository';
 import { OutboxRelayService } from './outbox-relay.service';
 import { WorldEventsConsumerService } from './world-events.consumer';
 
 @Module({
   imports: [WorldModule, NotificationsModule],
   providers: [
+    OutboxEventRepository,
     OutboxRelayService,
     WorldEventsConsumerService,
     EmailNotificationsConsumerService,

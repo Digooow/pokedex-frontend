@@ -12,6 +12,7 @@ import {
   PokeApiCatalogResponseSchema,
   type PokemonDetailDto,
   PokemonDetailSchema,
+  PokemonIdentifierParamSchema,
   formatPokeApiText,
 } from '@pokeverse/shared';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
@@ -25,7 +26,6 @@ const CACHE_TTL_24H_SEC = 86_400;
 const CACHE_STALE_TTL_7D_SEC = 604_800;
 const CB_FAILURE_THRESHOLD = 3;
 const CB_OPEN_COOLDOWN_MS = 30_000;
-const SAFE_POKEMON_PARAM = /^[a-z0-9-]{1,64}$/;
 
 @Injectable()
 export class PokeApiCacheService {
@@ -69,10 +69,12 @@ export class PokeApiCacheService {
   }
 
   async getPokemon(rawIdOrName: string): Promise<CachedPokemonResponse> {
-    const normalized = rawIdOrName.trim().toLowerCase();
-    if (!normalized || !SAFE_POKEMON_PARAM.test(normalized)) {
+    const parsed = PokemonIdentifierParamSchema.safeParse(rawIdOrName);
+    if (!parsed.success) {
       throw new BadRequestException('Identificador de Pokémon inválido.');
     }
+
+    const normalized = parsed.data;
 
     const cacheKey = `pokeapi:v2:pokemon:${normalized}`;
     const cached = await this.safeRedisGet(cacheKey, PokemonDetailSchema);

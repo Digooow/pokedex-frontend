@@ -1,30 +1,28 @@
-import { ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { KAFKA_TOPICS } from '@pokeverse/shared';
-import type { PrismaService } from '../../infra/prisma.service';
+import type { PokedexSlotRepository } from './pokedex-slot.repository';
 import { PokedexSlotsService } from './pokedex-slots.service';
 
-describe('PokedexSlotsService (ACID 10-slot uniqueness & Outbox events)', () => {
+describe('PokedexSlotsService (domain orchestration over PokedexSlotRepository)', () => {
   const trainerId = '550e8400-e29b-41d4-a716-446655440000';
 
   it('lists saved trainer slots normalized as ISO datetimes', async () => {
     const now = new Date('2026-11-20T10:00:00.000Z');
-    const prismaMock = {
-      pokedexSlot: {
-        findMany: jest.fn().mockResolvedValue([
-          {
-            slotIndex: 0,
-            pokemonId: 25,
-            pokemonName: 'pikachu',
-            nickname: 'Sparky',
-            spriteUrl:
-              'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
-            updatedAt: now,
-          },
-        ]),
-      },
-    } as unknown as PrismaService;
+    const repositoryMock = {
+      findByTrainerId: jest.fn().mockResolvedValue([
+        {
+          slotIndex: 0,
+          pokemonId: 25,
+          pokemonName: 'pikachu',
+          nickname: 'Sparky',
+          spriteUrl:
+            'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
+          updatedAt: now,
+        },
+      ]),
+    } as unknown as PokedexSlotRepository;
 
-    const service = new PokedexSlotsService(prismaMock);
+    const service = new PokedexSlotsService(repositoryMock);
     const slots = await service.listSlots(trainerId);
 
     expect(slots).toHaveLength(1);
@@ -39,24 +37,29 @@ describe('PokedexSlotsService (ACID 10-slot uniqueness & Outbox events)', () => 
     });
   });
 
-  it('rejects duplicate Pokémon in another slot with 409 Conflict and emits Outbox event on save', async () => {
-    const findFirst = jest.fn();
-    const upsert = jest.fn();
-    const outboxCreate = jest.fn().mockResolvedValue({ id: 'ev-1' });
+  it('rejects mismatched slotIndex and duplicate Pokemon while emitting validated Outbox payload on save', async () => {
+    const upsertSlotWithOutbox = jest.fn();
+    const repositoryMock = {
+      upsertSlotWithOutbox,
+    } as unknown as PokedexSlotRepository;
 
-    const txMock = {
-      pokedexSlot: { findFirst, upsert },
-      outboxEvent: { create: outboxCreate },
-    };
-    const prismaMock = {
-      $transaction: jest.fn((fn: (tx: typeof txMock) => Promise<unknown>) =>
-        fn(txMock),
+    const service = new PokedexSlotsService(repositoryMock);
+
+    await expect(
+      service.upsertSlot(
+        trainerId,
+        'Red_Kanto',
+        1,
+        { slotIndex: 2, pokemonId: 25, pokemonName: 'pikachu' },
+        null,
       ),
-    } as unknown as PrismaService;
+    ).rejects.toThrow(BadRequestException);
+    expect(upsertSlotWithOutbox).not.toHaveBeenCalled();
 
-    const service = new PokedexSlotsService(prismaMock);
-
-    findFirst.mockResolvedValueOnce({ slotIndex: 0 });
+    upsertSlotWithOutbox.mockResolvedValueOnce({
+      status: 'duplicate',
+      existingSlotIndex: 0,
+    });
     await expect(
       service.upsertSlot(
         trainerId,
@@ -66,17 +69,18 @@ describe('PokedexSlotsService (ACID 10-slot uniqueness & Outbox events)', () => 
         null,
       ),
     ).rejects.toThrow(ConflictException);
-    expect(upsert).not.toHaveBeenCalled();
 
     const updatedAt = new Date('2026-11-21T12:00:00.000Z');
-    findFirst.mockResolvedValueOnce(null);
-    upsert.mockResolvedValueOnce({
-      slotIndex: 2,
-      pokemonId: 25,
-      pokemonName: 'pikachu',
-      nickname: 'Bolt',
-      spriteUrl: null,
-      updatedAt,
+    upsertSlotWithOutbox.mockResolvedValueOnce({
+      status: 'saved',
+      slot: {
+        slotIndex: 2,
+        pokemonId: 25,
+        pokemonName: 'pikachu',
+        nickname: 'Bolt',
+        spriteUrl: null,
+        updatedAt,
+      },
     });
 
     const saved = await service.upsertSlot(
@@ -89,44 +93,65 @@ describe('PokedexSlotsService (ACID 10-slot uniqueness & Outbox events)', () => 
 
     expect(saved.slotIndex).toBe(2);
     expect(saved.nickname).toBe('Bolt');
-    expect(outboxCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
-        aggregateType: 'PokedexSlot',
+    expect(upsertSlotWithOutbox).toHaveBeenLastCalledWith({
+      trainerId,
+      slotIndex: 2,
+      input: {
+        slotIndex: 2,
+        pokemonId: 25,
+        pokemonName: 'pikachu',
+        nickname: 'Bolt',
+      },
+      outboxEvent: {
+        id: expect.any(String) as string,
         aggregateId: `${trainerId}:2`,
         eventType: KAFKA_TOPICS.WORLD_EVENTS,
-        status: 'PENDING',
-      }) as unknown,
+        payload: expect.objectContaining({
+          eventType: 'pokedex.slot.saved',
+          trainerId,
+          username: 'Red_Kanto',
+          traceId: '0123456789abcdef0123456789abcdef',
+        }) as unknown,
+      },
     });
   });
 
-  it('clears individual and all slots while emitting Outbox events only when rows existed', async () => {
-    const deleteMany = jest.fn();
-    const outboxCreate = jest.fn().mockResolvedValue({ id: 'ev-2' });
+  it('delegates slot clearing with validated Outbox events', async () => {
+    const deleteSlotWithOutbox = jest
+      .fn()
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    const deleteAllSlotsWithOutbox = jest.fn().mockResolvedValueOnce(3);
+    const repositoryMock = {
+      deleteSlotWithOutbox,
+      deleteAllSlotsWithOutbox,
+    } as unknown as PokedexSlotRepository;
 
-    const txMock = {
-      pokedexSlot: { deleteMany },
-      outboxEvent: { create: outboxCreate },
-    };
-    const prismaMock = {
-      $transaction: jest.fn((fn: (tx: typeof txMock) => Promise<unknown>) =>
-        fn(txMock),
-      ),
-    } as unknown as PrismaService;
+    const service = new PokedexSlotsService(repositoryMock);
 
-    const service = new PokedexSlotsService(prismaMock);
-
-    deleteMany.mockResolvedValueOnce({ count: 0 });
     expect(await service.clearSlot(trainerId, 'Red_Kanto', 1, null)).toBe(
       false,
     );
-    expect(outboxCreate).not.toHaveBeenCalled();
-
-    deleteMany.mockResolvedValueOnce({ count: 1 });
     expect(await service.clearSlot(trainerId, 'Red_Kanto', 1, null)).toBe(true);
-    expect(outboxCreate).toHaveBeenCalledTimes(1);
+    expect(deleteSlotWithOutbox).toHaveBeenLastCalledWith(trainerId, 1, {
+      id: expect.any(String) as string,
+      aggregateId: `${trainerId}:1`,
+      eventType: KAFKA_TOPICS.WORLD_EVENTS,
+      payload: expect.objectContaining({
+        eventType: 'pokedex.slot.cleared',
+        trainerId,
+      }) as unknown,
+    });
 
-    deleteMany.mockResolvedValueOnce({ count: 3 });
     expect(await service.clearAllSlots(trainerId, 'Red_Kanto', null)).toBe(3);
-    expect(outboxCreate).toHaveBeenCalledTimes(2);
+    expect(deleteAllSlotsWithOutbox).toHaveBeenCalledWith(trainerId, {
+      id: expect.any(String) as string,
+      aggregateId: `${trainerId}:all`,
+      eventType: KAFKA_TOPICS.WORLD_EVENTS,
+      payload: expect.objectContaining({
+        eventType: 'pokedex.slot.cleared',
+        trainerId,
+      }) as unknown,
+    });
   });
 });

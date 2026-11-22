@@ -220,4 +220,39 @@ describe('PokéVerse API (e2e)', () => {
       service: 'pokeverse-api',
     });
   });
+
+  it('validates Pokedex route params at the HTTP edge via ZodValidationPipe', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/pokedex/pokemon/invalid!name')
+      .expect(400);
+
+    const sessionService = app.get(SessionService);
+    const { rawSid } = await sessionService.createSession({
+      trainerId: '550e8400-e29b-41d4-a716-446655440000',
+      username: 'Red_Kanto',
+      familyId: '550e8400-e29b-41d4-a716-446655440098',
+      state: 'AUTHENTICATED',
+      mfaMethods: [],
+    });
+
+    await request(app.getHttpServer())
+      .put('/api/v1/pokedex/slots/10')
+      .set('Origin', 'http://localhost:4200')
+      .set('Cookie', `pokeverse_session=${rawSid}`)
+      .send({ slotIndex: 9, pokemonId: 25, pokemonName: 'pikachu' })
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/pokedex/slots/abc')
+      .set('Origin', 'http://localhost:4200')
+      .set('Cookie', `pokeverse_session=${rawSid}`)
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .put('/api/v1/pokedex/slots/2')
+      .set('Origin', 'http://localhost:4200')
+      .set('Cookie', `pokeverse_session=${rawSid}`)
+      .send({ slotIndex: 3, pokemonId: 25, pokemonName: 'pikachu' })
+      .expect(400);
+  });
 });

@@ -22,7 +22,13 @@ import {
   WorldTickerEventSchema,
 } from './events.schemas';
 import { ReadinessResponseSchema, SystemBootstrapSchema } from './health.schemas';
-import { PokedexSlotRecordSchema, PokemonDetailSchema, SavePokedexSlotSchema } from './pokedex.schemas';
+import {
+  PokedexSlotIndexParamSchema,
+  PokedexSlotRecordSchema,
+  PokemonDetailSchema,
+  PokemonIdentifierParamSchema,
+  SavePokedexSlotSchema,
+} from './pokedex.schemas';
 
 describe('shared schemas boundary validation', () => {
   it('validates strict SavePokedexSlotSchema bounds', () => {
@@ -273,5 +279,24 @@ describe('shared schemas boundary validation', () => {
       sprites: { front_default: null, front_shiny: null },
     });
     expect(parsed.success).toBe(true);
+  });
+
+  it('validates PokedexSlotIndexParamSchema and PokemonIdentifierParamSchema boundaries', () => {
+    expect(PokedexSlotIndexParamSchema.parse('0')).toBe(0);
+    expect(PokedexSlotIndexParamSchema.parse('9')).toBe(9);
+    expect(PokedexSlotIndexParamSchema.parse(0)).toBe(0);
+    expect(PokedexSlotIndexParamSchema.parse(9)).toBe(9);
+
+    for (const invalidIndex of ['-1', '10', '1.5', 'abc', '', ' 2 ', -1, 10, 1.5]) {
+      expect(PokedexSlotIndexParamSchema.safeParse(invalidIndex).success).toBe(false);
+    }
+
+    expect(PokemonIdentifierParamSchema.parse('Pikachu')).toBe('pikachu');
+    expect(PokemonIdentifierParamSchema.parse(' 25 ')).toBe('25');
+    expect(PokemonIdentifierParamSchema.parse('mr-mime')).toBe('mr-mime');
+
+    for (const invalidIdentifier of ['../etc/passwd', '   ', '', 'a'.repeat(65), 'pikachu!']) {
+      expect(PokemonIdentifierParamSchema.safeParse(invalidIdentifier).success).toBe(false);
+    }
   });
 });

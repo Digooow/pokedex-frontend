@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -7,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
   Put,
   Req,
   Res,
@@ -15,11 +13,12 @@ import {
 import {
   type CachedCatalogResponse,
   type CachedPokemonResponse,
+  PokedexSlotIndexParamSchema,
   type PokedexSlotRecord,
   PokedexSlotsListResponseSchema,
+  PokemonIdentifierParamSchema,
   type SavePokedexSlotInput,
   SavePokedexSlotSchema,
-  TOTAL_POKEDEX_SLOTS,
 } from '@pokeverse/shared';
 import type { Response } from 'express';
 import {
@@ -52,7 +51,8 @@ export class PokedexController {
   @Public()
   @Get('pokemon/:idOrName')
   async getPokemon(
-    @Param('idOrName') idOrName: string,
+    @Param('idOrName', new ZodValidationPipe(PokemonIdentifierParamSchema))
+    idOrName: string,
     @Res({ passthrough: true }) res: Response,
   ): Promise<CachedPokemonResponse> {
     const result = await this.pokeApiCache.getPokemon(idOrName);
@@ -70,19 +70,13 @@ export class PokedexController {
 
   @Put('slots/:index')
   saveSlot(
-    @Param('index', ParseIntPipe) index: number,
+    @Param('index', new ZodValidationPipe(PokedexSlotIndexParamSchema))
+    index: number,
     @Body(new ZodValidationPipe(SavePokedexSlotSchema))
     body: SavePokedexSlotInput,
     @CurrentTrainer() trainer: AuthenticatedTrainer,
     @Req() req: RequestWithTrace,
   ): Promise<PokedexSlotRecord> {
-    this.assertValidSlotIndex(index);
-    if (body.slotIndex !== index) {
-      throw new BadRequestException(
-        'O slotIndex do corpo deve corresponder ao parâmetro da URL.',
-      );
-    }
-
     return this.slotsService.upsertSlot(
       trainer.trainerId,
       trainer.username,
@@ -95,11 +89,11 @@ export class PokedexController {
   @Delete('slots/:index')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteSlot(
-    @Param('index', ParseIntPipe) index: number,
+    @Param('index', new ZodValidationPipe(PokedexSlotIndexParamSchema))
+    index: number,
     @CurrentTrainer() trainer: AuthenticatedTrainer,
     @Req() req: RequestWithTrace,
   ): Promise<void> {
-    this.assertValidSlotIndex(index);
     await this.slotsService.clearSlot(
       trainer.trainerId,
       trainer.username,
@@ -119,11 +113,5 @@ export class PokedexController {
       trainer.username,
       req.traceId ?? null,
     );
-  }
-
-  private assertValidSlotIndex(index: number): void {
-    if (index < 0 || index >= TOTAL_POKEDEX_SLOTS) {
-      throw new BadRequestException('Índice de slot deve estar entre 0 e 9.');
-    }
   }
 }

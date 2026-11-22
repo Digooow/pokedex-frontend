@@ -1,4 +1,31 @@
 import * as z from 'zod';
+import { TOTAL_POKEDEX_SLOTS } from '../constants/platform.constants';
+
+const MAX_POKEDEX_SLOT_INDEX = TOTAL_POKEDEX_SLOTS - 1;
+const INVALID_SLOT_INDEX_MESSAGE = `Índice de slot deve estar entre 0 e ${MAX_POKEDEX_SLOT_INDEX}.`;
+const POKEMON_IDENTIFIER_REGEX = /^[a-z0-9-]{1,64}$/;
+
+export const PokedexSlotIndexParamSchema = z
+  .union([
+    z.number().int(),
+    z
+      .string()
+      .regex(/^\d+$/, INVALID_SLOT_INDEX_MESSAGE)
+      .transform((raw) => Number.parseInt(raw, 10)),
+  ])
+  .pipe(
+    z
+      .number()
+      .int()
+      .min(0, INVALID_SLOT_INDEX_MESSAGE)
+      .max(MAX_POKEDEX_SLOT_INDEX, INVALID_SLOT_INDEX_MESSAGE),
+  );
+
+export const PokemonIdentifierParamSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(POKEMON_IDENTIFIER_REGEX, 'Identificador de Pokémon inválido.');
 
 export const PokeApiNamedResourceSchema = z.object({
   name: z.string().min(1),
@@ -64,7 +91,7 @@ export type PokemonDetailDto = z.infer<typeof PokemonDetailSchema>;
 
 export const SavePokedexSlotSchema = z
   .object({
-    slotIndex: z.number().int().min(0).max(9),
+    slotIndex: z.number().int().min(0).max(MAX_POKEDEX_SLOT_INDEX),
     pokemonId: z.number().int().positive(),
     pokemonName: z.string().trim().min(1).max(64),
     nickname: z.string().trim().min(1).max(40).nullable().optional(),
@@ -75,7 +102,7 @@ export const SavePokedexSlotSchema = z
 export type SavePokedexSlotInput = z.infer<typeof SavePokedexSlotSchema>;
 
 export const PokedexSlotRecordSchema = z.object({
-  slotIndex: z.number().int().min(0).max(9),
+  slotIndex: z.number().int().min(0).max(MAX_POKEDEX_SLOT_INDEX),
   pokemonId: z.number().int().positive(),
   pokemonName: z.string().min(1).max(64),
   nickname: z.string().nullable(),

@@ -1,41 +1,31 @@
 import { randomUUID } from 'node:crypto';
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 import {
   KAFKA_TOPICS,
   type PokedexSlotRecord,
   PokedexSlotRecordSchema,
   type SavePokedexSlotInput,
+  type WorldEventType,
   WorldTickerEventSchema,
   formatPokeApiText,
 } from '@pokeverse/shared';
-import { PrismaService } from '../../infra/prisma.service';
-
-const SLOT_SELECT = {
-  slotIndex: true,
-  pokemonId: true,
-  pokemonName: true,
-  nickname: true,
-  spriteUrl: true,
-  updatedAt: true,
-} as const;
+import {
+  type PersistedPokedexSlot,
+  PokedexSlotRepository,
+  type SlotOutboxEventInput,
+} from './pokedex-slot.repository';
 
 @Injectable()
 export class PokedexSlotsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly slotRepository: PokedexSlotRepository) {}
 
   async listSlots(trainerId: string): Promise<PokedexSlotRecord[]> {
-    const rows = await this.prisma.pokedexSlot.findMany({
-      where: { trainerId },
-      orderBy: { slotIndex: 'asc' },
-      select: SLOT_SELECT,
-    });
-
-    return rows.map((row) =>
-      PokedexSlotRecordSchema.parse({
-        ...row,
-        updatedAt: row.updatedAt.toISOString(),
-      }),
-    );
+    const rows = await this.slotRepository.findByTrainerId(trainerId);
+    return rows.map((row) => this.toSlotRecord(row));
   }
 
   async upsertSlot(
@@ -45,77 +35,37 @@ export class PokedexSlotsService {
     input: SavePokedexSlotInput,
     traceId: string | null,
   ): Promise<PokedexSlotRecord> {
-    const saved = await this.prisma.$transaction(async (tx) => {
-      const duplicate = await tx.pokedexSlot.findFirst({
-        where: {
-          trainerId,
-          slotIndex: { not: slotIndex },
-          OR: [
-            { pokemonId: input.pokemonId },
-            { pokemonName: { equals: input.pokemonName, mode: 'insensitive' } },
-          ],
-        },
-        select: { slotIndex: true },
-      });
+    if (input.slotIndex !== slotIndex) {
+      throw new BadRequestException(
+        'O slotIndex do corpo deve corresponder ao parâmetro da URL.',
+      );
+    }
 
-      if (duplicate) {
-        throw new ConflictException(
-          'Este Pokémon já está registrado em outro slot da Pokédex.',
-        );
-      }
-
-      const slot = await tx.pokedexSlot.upsert({
-        where: {
-          trainerId_slotIndex: { trainerId, slotIndex },
-        },
-        update: {
-          pokemonId: input.pokemonId,
-          pokemonName: input.pokemonName,
-          nickname: input.nickname ?? null,
-          spriteUrl: input.spriteUrl ?? null,
-        },
-        create: {
-          trainerId,
-          slotIndex,
-          pokemonId: input.pokemonId,
-          pokemonName: input.pokemonName,
-          nickname: input.nickname ?? null,
-          spriteUrl: input.spriteUrl ?? null,
-        },
-        select: SLOT_SELECT,
-      });
-
-      const eventId = randomUUID();
-      const displayPokemon = formatPokeApiText(input.pokemonName);
-      const paddedId = `#${String(input.pokemonId).padStart(4, '0')}`;
-      const tickerEvent = WorldTickerEventSchema.parse({
-        eventId,
-        eventType: 'pokedex.slot.saved',
-        trainerId,
-        username,
-        summary: `${username} gravou ${displayPokemon} (${paddedId}) no Slot ${slotIndex + 1}.`,
-        occurredAt: new Date().toISOString(),
-        traceId,
-      });
-
-      await tx.outboxEvent.create({
-        data: {
-          id: eventId,
-          aggregateType: 'PokedexSlot',
-          aggregateId: `${trainerId}:${slotIndex}`,
-          eventType: KAFKA_TOPICS.WORLD_EVENTS,
-          payload: tickerEvent,
-          status: 'PENDING',
-        },
-      });
-
-      return slot;
+    const displayPokemon = formatPokeApiText(input.pokemonName);
+    const paddedId = `#${String(input.pokemonId).padStart(4, '0')}`;
+    const outboxEvent = this.buildTickerOutboxEvent({
+      eventType: 'pokedex.slot.saved',
+      trainerId,
+      username,
+      aggregateId: `${trainerId}:${slotIndex}`,
+      summary: `${username} gravou ${displayPokemon} (${paddedId}) no Slot ${slotIndex + 1}.`,
+      traceId,
     });
 
-    return PokedexSlotRecordSchema.parse({
-      ...saved,
-      updatedAt: saved.updatedAt.toISOString(),
+    const result = await this.slotRepository.upsertSlotWithOutbox({
+      trainerId,
+      slotIndex,
+      input,
+      outboxEvent,
     });
+
+    if (result.status === 'duplicate') {
+      throw new ConflictException(
+        'Este Pokémon já está registrado em outro slot da Pokédex.',
+      );
+    }
+
+    return this.toSlotRecord(result.slot);
   }
 
   clearSlot(
@@ -124,39 +74,20 @@ export class PokedexSlotsService {
     slotIndex: number,
     traceId: string | null,
   ): Promise<boolean> {
-    return this.prisma.$transaction(async (tx) => {
-      const deleted = await tx.pokedexSlot.deleteMany({
-        where: { trainerId, slotIndex },
-      });
-
-      if (deleted.count === 0) {
-        return false;
-      }
-
-      const eventId = randomUUID();
-      const tickerEvent = WorldTickerEventSchema.parse({
-        eventId,
-        eventType: 'pokedex.slot.cleared',
-        trainerId,
-        username,
-        summary: `${username} liberou o Slot ${slotIndex + 1} da Pokédex.`,
-        occurredAt: new Date().toISOString(),
-        traceId,
-      });
-
-      await tx.outboxEvent.create({
-        data: {
-          id: eventId,
-          aggregateType: 'PokedexSlot',
-          aggregateId: `${trainerId}:${slotIndex}`,
-          eventType: KAFKA_TOPICS.WORLD_EVENTS,
-          payload: tickerEvent,
-          status: 'PENDING',
-        },
-      });
-
-      return true;
+    const outboxEvent = this.buildTickerOutboxEvent({
+      eventType: 'pokedex.slot.cleared',
+      trainerId,
+      username,
+      aggregateId: `${trainerId}:${slotIndex}`,
+      summary: `${username} liberou o Slot ${slotIndex + 1} da Pokédex.`,
+      traceId,
     });
+
+    return this.slotRepository.deleteSlotWithOutbox(
+      trainerId,
+      slotIndex,
+      outboxEvent,
+    );
   }
 
   clearAllSlots(
@@ -164,38 +95,49 @@ export class PokedexSlotsService {
     username: string,
     traceId: string | null,
   ): Promise<number> {
-    return this.prisma.$transaction(async (tx) => {
-      const deleted = await tx.pokedexSlot.deleteMany({
-        where: { trainerId },
-      });
+    const outboxEvent = this.buildTickerOutboxEvent({
+      eventType: 'pokedex.slot.cleared',
+      trainerId,
+      username,
+      aggregateId: `${trainerId}:all`,
+      summary: `${username} liberou todos os slots salvos da Pokédex.`,
+      traceId,
+    });
 
-      if (deleted.count === 0) {
-        return 0;
-      }
+    return this.slotRepository.deleteAllSlotsWithOutbox(trainerId, outboxEvent);
+  }
 
-      const eventId = randomUUID();
-      const tickerEvent = WorldTickerEventSchema.parse({
-        eventId,
-        eventType: 'pokedex.slot.cleared',
-        trainerId,
-        username,
-        summary: `${username} liberou todos os slots salvos da Pokédex.`,
-        occurredAt: new Date().toISOString(),
-        traceId,
-      });
+  private buildTickerOutboxEvent(params: {
+    readonly eventType: WorldEventType;
+    readonly trainerId: string;
+    readonly username: string;
+    readonly aggregateId: string;
+    readonly summary: string;
+    readonly traceId: string | null;
+  }): SlotOutboxEventInput {
+    const eventId = randomUUID();
+    const tickerEvent = WorldTickerEventSchema.parse({
+      eventId,
+      eventType: params.eventType,
+      trainerId: params.trainerId,
+      username: params.username,
+      summary: params.summary,
+      occurredAt: new Date().toISOString(),
+      traceId: params.traceId,
+    });
 
-      await tx.outboxEvent.create({
-        data: {
-          id: eventId,
-          aggregateType: 'PokedexSlot',
-          aggregateId: `${trainerId}:all`,
-          eventType: KAFKA_TOPICS.WORLD_EVENTS,
-          payload: tickerEvent,
-          status: 'PENDING',
-        },
-      });
+    return {
+      id: eventId,
+      aggregateId: params.aggregateId,
+      eventType: KAFKA_TOPICS.WORLD_EVENTS,
+      payload: tickerEvent,
+    };
+  }
 
-      return deleted.count;
+  private toSlotRecord(row: PersistedPokedexSlot): PokedexSlotRecord {
+    return PokedexSlotRecordSchema.parse({
+      ...row,
+      updatedAt: row.updatedAt.toISOString(),
     });
   }
 }

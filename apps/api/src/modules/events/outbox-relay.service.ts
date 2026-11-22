@@ -3,20 +3,17 @@ import { ConfigService } from '@nestjs/config';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { KafkaService } from '../../infra/kafka.service';
-import { PrismaService } from '../../infra/prisma.service';
+import {
+  type ClaimedOutboxEvent,
+  OutboxEventRepository,
+} from './outbox-event.repository';
 
 const OUTBOX_BATCH_SIZE = 25;
+const OUTBOX_LEASE_SECONDS = 60;
 const OUTBOX_IDLE_POLL_MS = 750;
 const OUTBOX_BUSY_POLL_MS = 100;
 const MAX_OUTBOX_RETRIES = 5;
-
-interface ClaimedOutboxRow {
-  readonly id: string;
-  readonly aggregateId: string;
-  readonly eventType: string;
-  readonly payload: unknown;
-  readonly retryCount: number;
-}
+const MAX_LAST_ERROR_LENGTH = 500;
 
 @Injectable()
 export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
@@ -25,7 +22,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   private currentBatchPromise: Promise<void> | null = null;
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly outboxRepository: OutboxEventRepository,
     private readonly kafka: KafkaService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
     private readonly logger: StructuredLoggerService,
@@ -39,24 +36,10 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   }
 
   async processPendingBatch(): Promise<number> {
-    const pendingRows = await this.prisma.$transaction((tx) => {
-      return tx.$queryRaw<ClaimedOutboxRow[]>`
-        WITH claimed AS (
-          SELECT id
-          FROM "OutboxEvent"
-          WHERE "status" = 'PENDING'
-            AND ("processedAt" IS NULL OR "processedAt" < NOW() - INTERVAL '60 seconds')
-          ORDER BY "createdAt" ASC
-          LIMIT ${OUTBOX_BATCH_SIZE}
-          FOR UPDATE SKIP LOCKED
-        )
-        UPDATE "OutboxEvent" AS o
-        SET "processedAt" = NOW()
-        FROM claimed
-        WHERE o.id = claimed.id
-        RETURNING o.id, o."aggregateId", o."eventType", o.payload, o."retryCount"
-      `;
-    });
+    const pendingRows = await this.outboxRepository.claimPendingBatch(
+      OUTBOX_BATCH_SIZE,
+      OUTBOX_LEASE_SECONDS,
+    );
 
     if (pendingRows.length === 0) {
       return 0;
@@ -68,17 +51,14 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
     const publishedIds = outcomes.filter((id): id is string => id !== null);
 
     if (publishedIds.length > 0) {
-      await this.prisma.outboxEvent.updateMany({
-        where: { id: { in: publishedIds } },
-        data: { status: 'PUBLISHED', processedAt: new Date() },
-      });
+      await this.outboxRepository.markBatchPublished(publishedIds);
     }
 
     return pendingRows.length;
   }
 
   private async publishOutboxRow(
-    row: ClaimedOutboxRow,
+    row: ClaimedOutboxEvent,
   ): Promise<string | null> {
     const traceId = this.extractTraceId(row.payload);
     try {
@@ -139,7 +119,7 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async recordDeliveryFailure(
-    row: ClaimedOutboxRow,
+    row: ClaimedOutboxEvent,
     error: unknown,
     traceId: string | null,
   ): Promise<void> {
@@ -148,14 +128,11 @@ export class OutboxRelayService implements OnModuleInit, OnModuleDestroy {
       error instanceof Error ? error.message : 'Kafka publish failed';
     const exhausted = nextRetry >= MAX_OUTBOX_RETRIES;
 
-    await this.prisma.outboxEvent.update({
-      where: { id: row.id },
-      data: {
-        retryCount: nextRetry,
-        lastError: reason.slice(0, 500),
-        processedAt: exhausted ? new Date() : null,
-        ...(exhausted ? { status: 'FAILED' } : {}),
-      },
+    await this.outboxRepository.recordDeliveryFailure({
+      id: row.id,
+      retryCount: nextRetry,
+      lastError: reason.slice(0, MAX_LAST_ERROR_LENGTH),
+      exhausted,
     });
 
     if (exhausted) {

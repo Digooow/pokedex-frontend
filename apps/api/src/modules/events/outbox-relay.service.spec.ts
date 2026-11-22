@@ -2,39 +2,11 @@ import { ConfigService } from '@nestjs/config';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import type { KafkaService } from '../../infra/kafka.service';
-import type { PrismaService } from '../../infra/prisma.service';
+import type {
+  ClaimedOutboxEvent,
+  OutboxEventRepository,
+} from './outbox-event.repository';
 import { OutboxRelayService } from './outbox-relay.service';
-
-interface ClaimedRowFixture {
-  readonly id: string;
-  readonly aggregateId: string;
-  readonly eventType: string;
-  readonly payload: unknown;
-  readonly retryCount: number;
-}
-
-function createRelayPrismaMock(claimedRows: readonly ClaimedRowFixture[]) {
-  const outboxUpdateMany = jest.fn().mockResolvedValue({ count: 1 });
-  const outboxUpdate = jest.fn().mockResolvedValue({});
-  const prismaMock = {
-    $transaction: jest.fn(
-      (
-        fn: (tx: {
-          $queryRaw: () => Promise<readonly ClaimedRowFixture[]>;
-        }) => Promise<readonly ClaimedRowFixture[]>,
-      ) =>
-        fn({
-          $queryRaw: jest.fn().mockResolvedValue(claimedRows),
-        }),
-    ),
-    outboxEvent: {
-      updateMany: outboxUpdateMany,
-      update: outboxUpdate,
-    },
-  } as unknown as PrismaService;
-
-  return { prismaMock, outboxUpdateMany, outboxUpdate };
-}
 
 describe('OutboxRelayService atomic lease & DLQ handling', () => {
   const configMock = {
@@ -42,7 +14,7 @@ describe('OutboxRelayService atomic lease & DLQ handling', () => {
   } as unknown as ConfigService<ApiEnvConfig, true>;
 
   it('publishes claimed rows, marks published on success, and releases lease on non-exhausted failure', async () => {
-    const claimedRows: ClaimedRowFixture[] = [
+    const claimedRows: ClaimedOutboxEvent[] = [
       {
         id: 'ev-1',
         aggregateId: 'agg-1',
@@ -62,8 +34,14 @@ describe('OutboxRelayService atomic lease & DLQ handling', () => {
       },
     ];
 
-    const { prismaMock, outboxUpdateMany, outboxUpdate } =
-      createRelayPrismaMock(claimedRows);
+    const claimPendingBatch = jest.fn().mockResolvedValue(claimedRows);
+    const markBatchPublished = jest.fn().mockResolvedValue(undefined);
+    const recordDeliveryFailure = jest.fn().mockResolvedValue(undefined);
+    const repositoryMock = {
+      claimPendingBatch,
+      markBatchPublished,
+      recordDeliveryFailure,
+    } as unknown as OutboxEventRepository;
 
     const publish = jest
       .fn()
@@ -73,7 +51,7 @@ describe('OutboxRelayService atomic lease & DLQ handling', () => {
     const kafkaMock = { publish, publishDlq } as unknown as KafkaService;
 
     const relay = new OutboxRelayService(
-      prismaMock,
+      repositoryMock,
       kafkaMock,
       configMock,
       new StructuredLoggerService(),
@@ -82,25 +60,21 @@ describe('OutboxRelayService atomic lease & DLQ handling', () => {
     const processed = await relay.processPendingBatch();
 
     expect(processed).toBe(2);
+    expect(claimPendingBatch).toHaveBeenCalledWith(25, 60);
     expect(publish).toHaveBeenCalledTimes(2);
-    expect(outboxUpdateMany).toHaveBeenCalledWith({
-      where: { id: { in: ['ev-1'] } },
-      data: { status: 'PUBLISHED', processedAt: expect.any(Date) as Date },
-    });
-    expect(outboxUpdate).toHaveBeenCalledWith({
-      where: { id: 'ev-2' },
-      data: {
-        retryCount: 2,
-        lastError: 'Kafka broker busy',
-        processedAt: null,
-      },
+    expect(markBatchPublished).toHaveBeenCalledWith(['ev-1']);
+    expect(recordDeliveryFailure).toHaveBeenCalledWith({
+      id: 'ev-2',
+      retryCount: 2,
+      lastError: 'Kafka broker busy',
+      exhausted: false,
     });
     expect(publishDlq).not.toHaveBeenCalled();
   });
 
   it('marks row FAILED and publishes to DLQ when MAX_OUTBOX_RETRIES is exhausted', async () => {
     const traceId = 'abcdef0123456789abcdef0123456789';
-    const exhaustedRow: ClaimedRowFixture[] = [
+    const exhaustedRow: ClaimedOutboxEvent[] = [
       {
         id: 'ev-3',
         aggregateId: 'agg-3',
@@ -110,15 +84,21 @@ describe('OutboxRelayService atomic lease & DLQ handling', () => {
       },
     ];
 
-    const { prismaMock, outboxUpdateMany, outboxUpdate } =
-      createRelayPrismaMock(exhaustedRow);
+    const claimPendingBatch = jest.fn().mockResolvedValue(exhaustedRow);
+    const markBatchPublished = jest.fn().mockResolvedValue(undefined);
+    const recordDeliveryFailure = jest.fn().mockResolvedValue(undefined);
+    const repositoryMock = {
+      claimPendingBatch,
+      markBatchPublished,
+      recordDeliveryFailure,
+    } as unknown as OutboxEventRepository;
 
     const publish = jest.fn().mockRejectedValue(new Error('Permanent outage'));
     const publishDlq = jest.fn().mockResolvedValue(undefined);
     const kafkaMock = { publish, publishDlq } as unknown as KafkaService;
 
     const relay = new OutboxRelayService(
-      prismaMock,
+      repositoryMock,
       kafkaMock,
       configMock,
       new StructuredLoggerService(),
@@ -127,15 +107,12 @@ describe('OutboxRelayService atomic lease & DLQ handling', () => {
     const processed = await relay.processPendingBatch();
 
     expect(processed).toBe(1);
-    expect(outboxUpdateMany).not.toHaveBeenCalled();
-    expect(outboxUpdate).toHaveBeenCalledWith({
-      where: { id: 'ev-3' },
-      data: {
-        retryCount: 5,
-        lastError: 'Permanent outage',
-        processedAt: expect.any(Date) as Date,
-        status: 'FAILED',
-      },
+    expect(markBatchPublished).not.toHaveBeenCalled();
+    expect(recordDeliveryFailure).toHaveBeenCalledWith({
+      id: 'ev-3',
+      retryCount: 5,
+      lastError: 'Permanent outage',
+      exhausted: true,
     });
     expect(publishDlq).toHaveBeenCalledWith(
       'pokeverse.world.events.v1',
