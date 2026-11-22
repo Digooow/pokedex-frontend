@@ -1,0 +1,168 @@
+<div class="slots-config-painel">
+  <div class="slots-config-topo">
+    <div>
+      <h3 class="slots-config-titulo">Configurar Pokémon Salvos</h3>
+      <p class="slot-cloud-sync-hint">
+        @if (slotsStore.isCloudBacked()) {
+          <span>Sincronizado na nuvem (Neon PostgreSQL)</span>
+        } @else {
+          <span>Modo Visitante (salvo neste navegador)</span>
+          <button
+            type="button"
+            class="btn-slot-acao"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="0"
+            (click)="onRequestTrainerLogin($event)"
+          >
+            Sincronizar na nuvem
+          </button>
+        }
+      </p>
+    </div>
+
+    <div class="slots-config-acoes-globais">
+      @if (slotsStore.hasAnySavedSlot()) {
+        <button
+          type="button"
+          class="btn-slot-acao btn-slot-acao--perigo"
+          [pvRpgFocusable]="'visor'"
+          [pvRpgOrder]="1"
+          [disabled]="slotsStore.busySlot() !== null"
+          (click)="onClearAll($event)"
+        >
+          Limpar todos
+        </button>
+      }
+      <button
+        type="button"
+        class="btn-slot-acao"
+        [pvRpgFocusable]="'visor'"
+        [pvRpgOrder]="2"
+        (click)="onCloseConfig($event)"
+      >
+        Voltar ao visor
+      </button>
+    </div>
+  </div>
+
+  @if (slotsStore.feedback(); as feedback) {
+    <p class="slot-feedback-banner" aria-live="polite">{{ feedback }}</p>
+  }
+
+  <ul class="slots-config-lista">
+    @for (idx of indices; track idx) {
+      @let slot = getSlot(idx);
+      <li class="slot-config-item">
+        <div class="slot-config-linha">
+          <div class="slot-config-info">
+            <span class="slot-config-num">#{{ padIndex(idx) }}</span>
+            @if (slot) {
+              <span class="slot-config-nome">{{ formatSlotLabel(slot) }}</span>
+            } @else {
+              <span class="slot-config-nome slot-config-nome--vazio">Slot vazio</span>
+            }
+          </div>
+
+          <div class="slot-config-botoes">
+            @if (slot) {
+              <button
+                type="button"
+                class="btn-slot-acao"
+                [pvRpgFocusable]="'visor'"
+                [pvRpgOrder]="10 + idx * 4"
+                (click)="onOpenSlot(slot, $event)"
+              >
+                Abrir
+              </button>
+              <button
+                type="button"
+                class="btn-slot-acao"
+                [pvRpgFocusable]="'visor'"
+                [pvRpgOrder]="10 + idx * 4 + 1"
+                data-acao-slot="editar"
+                (click)="onToggleEditSlot(slot, idx, $event)"
+              >
+                Editar
+              </button>
+              <button
+                type="button"
+                class="btn-slot-acao btn-slot-acao--perigo"
+                [pvRpgFocusable]="'visor'"
+                [pvRpgOrder]="10 + idx * 4 + 2"
+                [disabled]="slotsStore.busySlot() === idx"
+                (click)="onRemoveSlot(idx, $event)"
+              >
+                Remover
+              </button>
+            } @else if (pokedex.selectedPokemon(); as active) {
+              @let dupSlot = findSavedSlot(active.id, active.name);
+              @if (dupSlot !== null) {
+                <span class="slot-cloud-sync-hint">Já salvo no #{{ padIndex(dupSlot) }}</span>
+              } @else {
+                <button
+                  type="button"
+                  class="btn-slot-acao"
+                  [pvRpgFocusable]="'visor'"
+                  [pvRpgOrder]="10 + idx * 4"
+                  [disabled]="slotsStore.busySlot() === idx"
+                  (click)="onRecordCurrent(idx, $event)"
+                >
+                  Gravar {{ active.displayName }}
+                </button>
+              }
+            }
+          </div>
+        </div>
+
+        @if (slot && slotsStore.editingSlotIndex() === idx) {
+          <form class="slot-form-editar" pvRpgEditForm (submit)="onSaveEdit($event, idx, slot)">
+            <div class="slot-form-campos">
+              <input
+                type="text"
+                class="slot-form-input"
+                [pvRpgFocusable]="'edicao'"
+                [pvRpgOrder]="0"
+                [value]="draftTerm()"
+                placeholder="Nome ou ID na PokéAPI"
+                [attr.aria-label]="'Nome ou ID da PokéAPI para o slot ' + (idx + 1)"
+                (input)="draftTerm.set(readValue($event))"
+              />
+              <input
+                type="text"
+                class="slot-form-input"
+                [pvRpgFocusable]="'edicao'"
+                [pvRpgOrder]="1"
+                maxlength="40"
+                [value]="draftNickname()"
+                placeholder="Apelido opcional"
+                [attr.aria-label]="'Apelido opcional para o slot ' + (idx + 1)"
+                (input)="draftNickname.set(readValue($event))"
+              />
+              <button
+                type="submit"
+                class="btn-slot-acao"
+                [pvRpgFocusable]="'edicao'"
+                [pvRpgOrder]="2"
+                [disabled]="savingEdit()"
+              >
+                {{ savingEdit() ? 'Validando...' : 'Salvar' }}
+              </button>
+              <button
+                type="button"
+                class="btn-slot-acao"
+                [pvRpgFocusable]="'edicao'"
+                [pvRpgOrder]="3"
+                (click)="onCancelEdit($event)"
+              >
+                Cancelar
+              </button>
+            </div>
+            @if (editError(); as error) {
+              <p class="slot-form-erro">{{ error }}</p>
+            }
+          </form>
+        }
+      </li>
+    }
+  </ul>
+</div>

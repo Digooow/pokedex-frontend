@@ -1,0 +1,206 @@
+<section
+  id="resultado-area"
+  class="painel-resultado"
+  [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('visor')"
+  [class.is-selecionando-pokemon]="rpg.isVisorSelectingList()"
+  aria-labelledby="titulo-resultado"
+  (click)="rpg.setScreenFocus('visor', 'itens')"
+>
+  <div class="painel-cabecalho">
+    <h2 id="titulo-resultado" class="painel-titulo">Visor de Resultados</h2>
+    <span id="status-badge" [class]="'status-badge status-badge--' + badgeVariant()">
+      {{ badgeLabel() }}
+    </span>
+  </div>
+
+  <div
+    id="resultado-conteudo"
+    class="resultado-conteudo"
+    [pvRpgContainer]="'visor'"
+    aria-live="polite"
+    [attr.aria-busy]="detailState().status === 'loading'"
+  >
+    @if (slotsStore.editMode()) {
+      <pv-pokedex-slots-config
+        (closeRequested)="slotsStore.setEditMode(false)"
+        (slotOpened)="slotOpened.emit($event)"
+      />
+    } @else {
+      @switch (detailState().status) {
+        @case ('empty') {
+          <div class="estado-vazio">
+            <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+              <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
+              <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
+            </svg>
+            <h3>Nenhum Pokémon no visor</h3>
+            <p>
+              Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir
+              os dados da PokéAPI aqui no visor.
+            </p>
+          </div>
+        }
+
+        @case ('idle') {
+          <div class="estado-vazio">
+            <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+              <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
+              <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
+            </svg>
+            <h3>Nenhum Pokémon no visor</h3>
+            <p>
+              Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir
+              os dados da PokéAPI aqui no visor.
+            </p>
+          </div>
+        }
+
+        @case ('loading') {
+          <div class="skeleton-card" aria-label="Carregando dados do Pokémon na PokéAPI">
+            <div class="skeleton-cabecalho">
+              <div class="skeleton-bloco skeleton-imagem"></div>
+              <div class="skeleton-resumo">
+                <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
+                <div class="skeleton-bloco skeleton-linha skeleton-linha--media"></div>
+                <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
+              </div>
+            </div>
+            <div class="skeleton-lista">
+              <div class="skeleton-bloco skeleton-item"></div>
+              <div class="skeleton-bloco skeleton-item"></div>
+              <div class="skeleton-bloco skeleton-item"></div>
+              <div class="skeleton-bloco skeleton-item"></div>
+              <div class="skeleton-bloco skeleton-item"></div>
+            </div>
+          </div>
+        }
+
+        @case ('error') {
+          @let notFound = isNotFoundError();
+          <div
+            [class]="'estado-alerta ' + (notFound ? 'estado-alerta--aviso' : 'estado-alerta--erro')"
+            [attr.role]="notFound ? null : 'alert'"
+          >
+            <span class="alerta-icone" aria-hidden="true">
+              @if (notFound) {
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.8-3.8" />
+                </svg>
+              } @else {
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3L2 20h20L12 3z" />
+                  <path d="M12 9v5M12 17h.01" />
+                </svg>
+              }
+            </span>
+            <h3>{{ notFound ? 'Pokémon não encontrado' : 'Erro na comunicação com a API' }}</h3>
+            <p>{{ errorMessage() }}</p>
+
+            @if (notFound && suggestions().length > 0) {
+              <div class="sugestoes-404">
+                <span class="sugestoes-404-titulo">Você quis dizer:</span>
+                <div class="sugestoes-404-lista">
+                  @for (item of suggestions(); track item.id; let idx = $index) {
+                    <button
+                      type="button"
+                      class="btn-sugestao"
+                      [pvRpgFocusable]="'visor'"
+                      [pvRpgOrder]="idx"
+                      (click)="onSelectSuggestion($event, item.name)"
+                    >
+                      #{{ padId(item.id) }} {{ item.displayName }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (!notFound) {
+              <button
+                type="button"
+                class="btn-secundario"
+                [pvRpgFocusable]="'visor'"
+                [pvRpgOrder]="0"
+                (click)="onRetryClick($event)"
+              >
+                Tentar novamente
+              </button>
+            }
+          </div>
+        }
+
+        @case ('success') {
+          @if (pokemonData(); as pokemon) {
+            <article class="pokemon-ficha">
+              <div class="pokemon-cabecalho">
+                <div class="pokemon-imagem-box">
+                  @if (activeSpriteUrl(pokemon); as imgUrl) {
+                    <img
+                      class="pokemon-imagem"
+                      [src]="imgUrl"
+                      [alt]="'Ilustração oficial de ' + pokemon.displayName"
+                      width="124"
+                      height="124"
+                      fetchpriority="high"
+                      (error)="onSpriteError(pokemon)"
+                    />
+                  } @else {
+                    <p class="pokemon-imagem-fallback">
+                      {{ imageFailed() ? 'Não foi possível carregar a imagem' : 'Imagem indisponível na API' }}
+                    </p>
+                  }
+                </div>
+
+                <div class="pokemon-resumo">
+                  <span class="pokemon-id-destaque">{{ pokemon.paddedId }}</span>
+                  <h3 class="pokemon-nome">{{ pokemon.displayName }}</h3>
+                  @if (pokemon.types.length > 0) {
+                    <ul class="pokemon-tipos" aria-label="Tipos do Pokémon">
+                      @for (tipo of pokemon.types; track tipo) {
+                        <li class="tipo-badge">{{ tipo }}</li>
+                      }
+                    </ul>
+                  }
+                </div>
+              </div>
+
+              <ul id="pokemon-dados" class="pokemon-lista-dados" aria-label="Dados do Pokémon">
+                <li class="pokemon-dado-item">
+                  <span class="dado-rotulo">Nome:</span>
+                  <span class="dado-valor">{{ pokemon.displayName }}</span>
+                </li>
+                <li class="pokemon-dado-item">
+                  <span class="dado-rotulo">Número de identificação (ID):</span>
+                  <span class="dado-valor numero-tabular">{{ pokemon.paddedId }} ({{ pokemon.id }})</span>
+                </li>
+                <li class="pokemon-dado-item">
+                  <span class="dado-rotulo">Altura:</span>
+                  <span class="dado-valor numero-tabular">{{ pokemon.heightMeters }} ({{ pokemon.heightRawDm }} dm)</span>
+                </li>
+                <li class="pokemon-dado-item">
+                  <span class="dado-rotulo">Peso:</span>
+                  <span class="dado-valor numero-tabular">{{ pokemon.weightKg }} ({{ pokemon.weightRawHg }} hg)</span>
+                </li>
+                <li class="pokemon-dado-item pokemon-dado-item--habilidades">
+                  <span class="dado-rotulo">Habilidades (abilities):</span>
+                  @if (pokemon.abilities.length > 0) {
+                    <ul class="lista-habilidades">
+                      @for (ability of pokemon.abilities; track ability) {
+                        <li class="habilidade-item">{{ ability }}</li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="dado-valor">Nenhuma habilidade informada pela API.</span>
+                  }
+                </li>
+              </ul>
+            </article>
+          }
+        }
+      }
+    }
+  </div>
+</section>

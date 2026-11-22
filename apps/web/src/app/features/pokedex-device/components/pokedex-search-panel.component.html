@@ -1,0 +1,184 @@
+<div
+  id="pokedex-ala-scanner"
+  class="aba-face aba-face--verso pokedex-ala pokedex-ala--scanner"
+  [inert]="!store.coverOpen() && !rpg.isAnimating()"
+>
+  <header class="ala-topo ala-topo--scanner">
+    <div class="pokedex-luzes" aria-hidden="true">
+      <span class="camera-lente-principal">
+        <span class="camera-anel-externo">
+          <span class="camera-barril-optico">
+            <span class="camera-vidro-safira"></span>
+          </span>
+        </span>
+      </span>
+      <span class="luz-trio">
+        <span class="luz luz--vermelha"></span>
+        <span class="luz luz--amarela"></span>
+        <span class="luz luz--verde"></span>
+      </span>
+    </div>
+    <div class="pokedex-titulo-grupo">
+      <span class="capa-titulo">Módulo de Busca</span>
+    </div>
+  </header>
+
+  <section class="painel-busca" aria-labelledby="titulo-busca">
+    <div
+      id="painel-busca-form"
+      class="painel-busca-form"
+      [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('busca')"
+      (click)="onFormAreaClick($event)"
+    >
+      <div class="painel-cabecalho">
+        <h2 id="titulo-busca" class="painel-titulo">Pesquisar Pokémon</h2>
+      </div>
+
+      <search>
+        <form id="form-pokedex" class="form-pokedex" novalidate (submit)="onSubmit($event)">
+          <label for="pokemon-input" class="campo-label">
+            Nome ou ID <span aria-hidden="true">*</span>
+          </label>
+          <div class="campo-linha">
+            <input
+              #searchInputEl
+              type="text"
+              id="pokemon-input"
+              name="pokemon"
+              class="campo-input"
+              [pvRpgFocusable]="'busca'"
+              [pvRpgOrder]="0"
+              [class.user-invalid-fallback]="showFieldError()"
+              [value]="store.query()"
+              placeholder="Ex.: pikachu, pikaxu ou 25"
+              required
+              [attr.pattern]="nonWhitespacePattern"
+              autocorrect="off"
+              autocapitalize="none"
+              spellcheck="false"
+              enterkeyhint="search"
+              [attr.aria-describedby]="showFieldError() ? 'pokemon-dica pokemon-erro-campo' : 'pokemon-dica'"
+              [attr.aria-invalid]="showFieldError() ? 'true' : 'false'"
+              data-error="pokemon-erro-campo"
+              (focus)="onInputFocus()"
+              (blur)="onInputBlur()"
+              (input)="onInput($event)"
+            />
+            <button
+              type="submit"
+              id="btn-buscar"
+              class="btn-primario"
+              [pvRpgFocusable]="'busca'"
+              [pvRpgOrder]="1"
+              [disabled]="isSearching()"
+            >
+              {{ isSearching() ? 'Buscando...' : 'Buscar Pokémon' }}
+            </button>
+          </div>
+          <p id="pokemon-dica" class="campo-dica">
+            Filtre a lista abaixo ao digitar (aceita aproximação) ou use as setas para navegar.
+          </p>
+          <div id="pokemon-erro-campo" class="mensagem-campo-erro" aria-live="polite">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+              <circle cx="8" cy="8" r="6.5" />
+              <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" />
+            </svg>
+            <span id="pokemon-erro-texto">Informe o nome de um Pokémon antes de pesquisar.</span>
+          </div>
+        </form>
+      </search>
+    </div>
+
+    <div
+      id="pokemon-catalogo-area"
+      class="pokemon-catalogo-area"
+      [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('lista')"
+      (click)="onCatalogAreaClick()"
+    >
+      <div class="catalogo-cabecalho">
+        <span id="catalogo-status" class="catalogo-status">{{ catalogStatusText() }}</span>
+        <button
+          type="button"
+          id="btn-recarregar-catalogo"
+          class="btn-catalogo-recarregar"
+          [hidden]="store.catalogState().status !== 'error'"
+          (click)="onReloadCatalog($event)"
+        >
+          Recarregar
+        </button>
+      </div>
+
+      <ul
+        id="pokemon-catalogo"
+        class="pokemon-catalogo-lista"
+        [pvRpgContainer]="'lista'"
+        aria-label="Lista de Pokémon disponíveis na PokéAPI"
+        (scroll)="onCatalogScroll($event)"
+      >
+        @switch (store.catalogState().status) {
+          @case ('loading') {
+            <li class="catalogo-vazio">Carregando catálogo da PokéAPI...</li>
+          }
+          @case ('error') {
+            <li class="catalogo-vazio">
+              Não foi possível carregar a lista completa agora. Você ainda pode buscar pelo nome acima.
+            </li>
+          }
+          @case ('success') {
+            @let filtered = store.filteredCatalog();
+            @if (filtered.items.length === 0) {
+              <li class="catalogo-vazio">
+                Nenhum Pokémon parecido foi localizado na lista. Você ainda pode pesquisar diretamente acima.
+              </li>
+            } @else {
+              @for (item of filtered.items; track item.id; let idx = $index) {
+                <li class="catalogo-item-wrapper">
+                  <button
+                    type="button"
+                    class="catalogo-item"
+                    [pvRpgFocusable]="'lista'"
+                    [pvRpgOrder]="idx"
+                    [class.is-selecionado]="store.selectedId() === item.id"
+                    [class.is-cursor]="rpg.rpgCatalogIndex() === idx"
+                    [class.is-rpg-foco]="rpg.isVisorSelectingList() && rpg.rpgCatalogIndex() === idx"
+                    [attr.aria-current]="store.selectedId() === item.id ? 'true' : null"
+                    (click)="onCatalogItemClick(item, idx, $event)"
+                  >
+                    <span class="catalogo-item-esquerda">
+                      <span class="catalogo-item-id">#{{ formatCatalogId(item.id) }}</span>
+                      <span class="catalogo-item-nome">{{ item.displayName }}</span>
+                    </span>
+                    @if (item.approximate) {
+                      <span class="catalogo-item-tag">Aproximado</span>
+                    }
+                  </button>
+                </li>
+              }
+
+              @if (store.hasMoreCatalog()) {
+                <li class="catalogo-item-wrapper">
+                  <button
+                    type="button"
+                    class="btn-catalogo-mais"
+                    (click)="onLoadMore($event)"
+                  >
+                    Carregar mais Pokémon (restam {{ remainingCount() }})
+                  </button>
+                </li>
+              }
+            }
+          }
+        }
+      </ul>
+    </div>
+  </section>
+
+  <pv-pokedex-physical-controls
+    [redTooltip]="rpg.redButtonTooltip()"
+    [blueTooltip]="rpg.blueButtonTooltip()"
+    (dpadPressed)="onDpadClick($event)"
+    (redPressed)="onRedButtonClick()"
+    (bluePressed)="onBlueButtonClick()"
+    (aPressed)="onAButtonClick()"
+  />
+</div>

@@ -1,0 +1,85 @@
+<header class="hud-topbar">
+  <a
+    [routerLink]="[]"
+    fragment="main-heading"
+    class="skip-link visually-hidden"
+    (click)="jumpToMainContent($event)"
+  >
+    Pular para o conteúdo principal
+  </a>
+
+  <div class="hud-topbar__inner">
+    <div class="hud-topbar__left">
+      <a routerLink="/" class="hud-brand">
+        <span class="hud-brand__lens" aria-hidden="true"></span>
+        <span class="hud-brand__name">PokéVerse OS</span>
+      </a>
+
+      @if (auth.trainer(); as trainer) {
+        <span class="hud-pill hud-pill--trainer tabular-nums">
+          {{ trainer.username }} • ELO {{ trainer.eloRating }}
+        </span>
+        @if (auth.isMfaPending()) {
+          <button
+            type="button"
+            class="hud-pill hud-pill--warn"
+            (click)="auth.openMfaChallengePrompt()"
+          >
+            Concluir 2FA
+          </button>
+        } @else {
+          @if (!trainer.emailVerifiedAt) {
+            <button
+              type="button"
+              class="hud-pill hud-pill--warn"
+              (click)="openVerifyEmail(trainer.email)"
+            >
+              Verificar E-mail (OTP)
+            </button>
+          }
+          <button
+            type="button"
+            class="hud-pill"
+            [attr.aria-pressed]="auth.securityModalOpen()"
+            (click)="auth.openSecuritySettings()"
+          >
+            {{ trainer.mfaEnabled ? '2FA: Ativo' : 'Segurança / 2FA' }}
+          </button>
+        }
+        <button type="button" class="hud-pill" (click)="auth.logout()">Sair</button>
+      } @else {
+        <button type="button" class="hud-pill hud-pill--visitor" (click)="openVisitorInfo()">
+          Modo Visitante • Entrar
+        </button>
+      }
+    </div>
+
+    @if (ticker.latestEvent(); as liveEvent) {
+      <p class="hud-ticker" aria-live="polite">
+        <span class="hud-ticker__dot" aria-hidden="true"></span>
+        <span class="hud-ticker__text">{{ liveEvent.summary }}</span>
+      </p>
+    }
+
+    <div class="hud-topbar__right">
+      <button
+        type="button"
+        class="hud-pill"
+        [attr.aria-pressed]="privacy.dialogOpen()"
+        (click)="privacy.openDialog()"
+      >
+        Cookies &amp; LGPD
+      </button>
+      <button
+        type="button"
+        class="hud-pill"
+        [class.is-ok]="statusBadge().tone === 'ok'"
+        [class.is-error]="statusBadge().tone === 'warn'"
+        (click)="systemStatus.refresh()"
+        [title]="statusBadge().title"
+      >
+        {{ statusBadge().label }}
+      </button>
+    </div>
+  </div>
+</header>

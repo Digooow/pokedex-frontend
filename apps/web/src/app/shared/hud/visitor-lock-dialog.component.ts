@@ -8,16 +8,12 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
-import {
-  ForgotPasswordSchema,
-  LoginTrainerSchema,
-  MfaChallengeVerifySchema,
-  RegisterTrainerSchema,
-  ResendEmailOtpSchema,
-  ResetPasswordOtpSchema,
-  VerifyEmailOtpSchema,
-} from '@pokeverse/shared';
 import { type AuthDialogMode, AuthStore } from '../../core/stores/auth.store';
+import {
+  validateAuthDialogSubmission,
+  validateForgotPasswordEmail,
+  validateResendVerificationEmail,
+} from './auth-dialog-validator.util';
 
 @Component({
   selector: 'pv-visitor-lock-dialog',
@@ -42,9 +38,7 @@ export class VisitorLockDialogComponent {
   readonly isSubmitting = computed(() => this.auth.mutationState().status === 'submitting');
   readonly activeErrorMessage = computed(() => {
     const local = this.localValidationError();
-    if (local) {
-      return local;
-    }
+    if (local) return local;
     const serverState = this.auth.mutationState();
     return serverState.status === 'error' ? serverState.message : null;
   });
@@ -57,22 +51,16 @@ export class VisitorLockDialogComponent {
     effect(() => {
       const prompt = this.auth.visitorPrompt();
       const dialog = this.dialogRef()?.nativeElement;
-      if (!dialog) {
+      if (!dialog) return;
+      if (!prompt) {
+        if (dialog.open) dialog.close();
         return;
       }
-      if (prompt) {
-        this.localValidationError.set(null);
-        this.mode.set(prompt.initialMode ?? 'login');
-        const loggedTrainer = this.auth.trainer();
-        if (loggedTrainer && !this.email()) {
-          this.email.set(loggedTrainer.email);
-        }
-        if (!dialog.open && typeof dialog.showModal === 'function') {
-          dialog.showModal();
-        }
-      } else if (dialog.open) {
-        dialog.close();
-      }
+      this.localValidationError.set(null);
+      this.mode.set(prompt.initialMode ?? 'login');
+      const loggedTrainer = this.auth.trainer();
+      if (loggedTrainer && !this.email()) this.email.set(loggedTrainer.email);
+      if (!dialog.open && typeof dialog.showModal === 'function') dialog.showModal();
     });
   }
 
@@ -87,150 +75,84 @@ export class VisitorLockDialogComponent {
     const value = (event.target as HTMLInputElement).value;
     this.localValidationError.set(null);
     this.auth.clearMutationFeedback();
-
-    switch (field) {
-      case 'username':
-        this.username.set(value);
-        break;
-      case 'email':
-        this.email.set(value);
-        break;
-      case 'password':
-        this.password.set(value);
-        break;
-      case 'otpCode':
-        this.otpCode.set(value);
-        break;
-    }
+    if (field === 'username') this.username.set(value);
+    else if (field === 'email') this.email.set(value);
+    else if (field === 'password') this.password.set(value);
+    else this.otpCode.set(value);
   }
 
   onPasskeySignIn(): void {
-    if (this.isSubmitting()) {
-      return;
-    }
+    if (this.isSubmitting()) return;
     const rawEmail = this.email().trim().toLowerCase();
     void this.auth.loginWithPasskey(rawEmail || undefined);
   }
 
   onResendVerificationOtp(): void {
-    if (this.isSubmitting()) {
+    if (this.isSubmitting()) return;
+    const result = validateResendVerificationEmail(this.email());
+    if (!result.ok) {
+      this.localValidationError.set(result.error);
       return;
     }
-    const parsed = ResendEmailOtpSchema.safeParse({ email: this.email() });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'E-mail inválido.');
-      return;
-    }
-    this.auth.resendVerificationOtp(parsed.data);
+    this.auth.resendVerificationOtp(result.data);
   }
 
   onRequestForgotOtp(): void {
-    if (this.isSubmitting()) {
-      return;
-    }
-    const parsed = ForgotPasswordSchema.safeParse({ email: this.email() });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'E-mail inválido.');
+    if (this.isSubmitting()) return;
+    const result = validateForgotPasswordEmail(this.email());
+    if (!result.ok) {
+      this.localValidationError.set(result.error);
       return;
     }
     this.resetCodeRequested.set(true);
-    this.auth.requestPasswordReset(parsed.data);
+    this.auth.requestPasswordReset(result.data);
   }
 
   onSubmit(event: Event): void {
     event.preventDefault();
-    if (this.isSubmitting()) {
-      return;
-    }
+    if (this.isSubmitting()) return;
 
-    const activeMode = this.mode();
-    if (activeMode === 'mfa-challenge') {
-      this.submitMfaChallenge();
-      return;
-    }
-    if (activeMode === 'register') {
-      this.submitRegister();
-      return;
-    }
-    if (activeMode === 'verify-email') {
-      this.submitVerifyEmail();
-      return;
-    }
-    if (activeMode === 'forgot') {
-      if (!this.resetCodeRequested()) {
-        this.onRequestForgotOtp();
-        return;
-      }
-      this.submitResetPassword();
-      return;
-    }
-
-    const parsed = LoginTrainerSchema.safeParse({
-      email: this.email(),
-      password: this.password(),
-    });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Credenciais inválidas.');
-      return;
-    }
-    this.auth.login(parsed.data);
-  }
-
-  private submitMfaChallenge(): void {
-    const parsed = MfaChallengeVerifySchema.safeParse({
-      method: this.useBackupCode() ? 'backup_code' : 'totp',
-      code: this.otpCode(),
-    });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Código 2FA inválido.');
-      return;
-    }
-    this.auth.verifyMfaChallenge(parsed.data);
-  }
-
-  private submitRegister(): void {
-    const parsed = RegisterTrainerSchema.safeParse({
+    const result = validateAuthDialogSubmission({
+      mode: this.mode(),
       username: this.username(),
       email: this.email(),
       password: this.password(),
+      otpCode: this.otpCode(),
+      useBackupCode: this.useBackupCode(),
+      resetCodeRequested: this.resetCodeRequested(),
     });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
+    if (!result.ok) {
+      this.localValidationError.set(result.error);
       return;
     }
-    this.auth.register(parsed.data);
-  }
 
-  private submitVerifyEmail(): void {
-    const parsed = VerifyEmailOtpSchema.safeParse({
-      email: this.email(),
-      code: this.otpCode(),
-    });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Código OTP inválido.');
-      return;
+    const { command } = result;
+    switch (command.kind) {
+      case 'login':
+        this.auth.login(command.data);
+        return;
+      case 'register':
+        this.auth.register(command.data);
+        return;
+      case 'mfa-challenge':
+        this.auth.verifyMfaChallenge(command.data);
+        return;
+      case 'verify-email':
+        this.auth.verifyEmailOtp(command.data);
+        return;
+      case 'forgot-request':
+        this.resetCodeRequested.set(true);
+        this.auth.requestPasswordReset(command.data);
+        return;
+      case 'forgot-reset':
+        this.auth.resetPasswordWithOtp(command.data);
+        return;
     }
-    this.auth.verifyEmailOtp(parsed.data);
-  }
-
-  private submitResetPassword(): void {
-    const parsed = ResetPasswordOtpSchema.safeParse({
-      email: this.email(),
-      code: this.otpCode(),
-      newPassword: this.password(),
-    });
-    if (!parsed.success) {
-      this.localValidationError.set(parsed.error.issues[0]?.message ?? 'Dados inválidos.');
-      return;
-    }
-    this.auth.resetPasswordWithOtp(parsed.data);
   }
 
   onNativeClose(): void {
     const dialog = this.dialogRef()?.nativeElement;
-    if (dialog) {
-      dialog.returnValue = '';
-    }
+    if (dialog) dialog.returnValue = '';
     this.localValidationError.set(null);
     this.password.set('');
     this.otpCode.set('');
@@ -238,21 +160,15 @@ export class VisitorLockDialogComponent {
   }
 
   onPointerDown(event: PointerEvent): void {
-    if ('closedBy' in HTMLDialogElement.prototype) {
-      return;
-    }
+    if ('closedBy' in HTMLDialogElement.prototype) return;
     const dialog = this.dialogRef()?.nativeElement;
     this.pressedOutside = dialog ? this.isOutsideBoundingBox(event, dialog) : false;
   }
 
   onPointerUp(event: PointerEvent): void {
-    if ('closedBy' in HTMLDialogElement.prototype) {
-      return;
-    }
+    if ('closedBy' in HTMLDialogElement.prototype) return;
     const dialog = this.dialogRef()?.nativeElement;
-    if (this.pressedOutside && dialog && this.isOutsideBoundingBox(event, dialog)) {
-      dialog.close();
-    }
+    if (this.pressedOutside && dialog && this.isOutsideBoundingBox(event, dialog)) dialog.close();
     this.pressedOutside = false;
   }
 

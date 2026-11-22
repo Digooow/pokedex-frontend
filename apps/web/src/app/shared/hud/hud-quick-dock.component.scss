@@ -1,0 +1,111 @@
+.hud-dock {
+  position: sticky;
+  inset-block-end: 0.35rem;
+  z-index: var(--pv-z-hud);
+  inline-size: fit-content;
+  max-inline-size: calc(100vw - 1rem);
+  margin: 0.15rem auto 0.35rem;
+  padding: 0.25rem;
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-hud-border);
+  background-color: var(--pv-hud-dock-bg);
+  box-shadow: var(--pv-hud-dock-shadow);
+}
+
+@supports (backdrop-filter: blur(8px)) {
+  .hud-dock {
+    background-color: var(--pv-hud-bar-bg-blur);
+    backdrop-filter: blur(8px);
+  }
+}
+
+:host-context(html[data-perf-tier='lite']) .hud-dock {
+  backdrop-filter: none;
+  background-color: var(--pv-hud-bar-bg-lite);
+}
+
+.hud-dock__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-inline-size: 0;
+}
+
+.hud-dock__item {
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.hud-dock__link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-block-size: 1.9rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: calc(var(--pv-radius-md) - 4px);
+  border: 1px solid var(--pv-hud-border);
+  background-color: var(--pv-hud-pill-bg);
+  color: var(--pv-ink-primary);
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: var(--pv-hud-pill-shadow);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 80ms ease;
+}
+
+@media (min-width: 880px) {
+  .hud-dock__link {
+    min-block-size: 1.75rem;
+  }
+}
+
+.hud-dock__link:hover {
+  background-color: var(--pv-hud-pill-bg-hover);
+  border-color: var(--pv-cyan);
+  color: var(--pv-ink-on-accent);
+}
+
+.hud-dock__link:active {
+  transform: translateY(1px);
+  box-shadow: var(--pv-hud-pill-shadow-active);
+}
+
+.hud-dock__link.is-active {
+  border-color: var(--pv-hud-dock-active-border);
+  background: var(--pv-hud-dock-active-bg);
+  color: var(--pv-ink-on-accent);
+  box-shadow: var(--pv-hud-dock-active-shadow);
+}
+
+.hud-dock__link--locked {
+  opacity: 0.9;
+}
+
+.hud-dock__lock {
+  display: inline-flex;
+  align-items: center;
+}
+
+.hud-dock__key {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.1rem;
+  block-size: 1.1rem;
+  border-radius: 0.25rem;
+  background: var(--pv-hud-key-bg);
+  border: 1px solid var(--pv-hud-key-border);
+  font-size: 0.6875rem;
+  font-weight: 800;
+}

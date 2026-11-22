@@ -14,276 +14,20 @@ import {
   PvRpgFocusableDirective,
 } from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
+import { type RpgDirection, resolveStepBackTargetIdentifier } from '../services/pokedex-rpg-nav.util';
 import { PokedexStore } from '../services/pokedex.store';
+import { PokedexPhysicalControlsComponent } from './pokedex-physical-controls.component';
 
 @Component({
   selector: 'pv-pokedex-search-panel',
-  imports: [PvRpgFocusableDirective, PvRpgContainerDirective],
+  imports: [PvRpgFocusableDirective, PvRpgContainerDirective, PokedexPhysicalControlsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [
-    `
-      :host {
-        display: contents;
-      }
-    `,
-  ],
-  template: `
-    <div
-      id="pokedex-ala-scanner"
-      class="aba-face aba-face--verso pokedex-ala pokedex-ala--scanner"
-      [inert]="!store.coverOpen() && !rpg.isAnimating()"
-    >
-      <header class="ala-topo ala-topo--scanner">
-        <div class="pokedex-luzes" aria-hidden="true">
-          <span class="camera-lente-principal">
-            <span class="camera-anel-externo">
-              <span class="camera-barril-optico">
-                <span class="camera-vidro-safira"></span>
-              </span>
-            </span>
-          </span>
-          <span class="luz-trio">
-            <span class="luz luz--vermelha"></span>
-            <span class="luz luz--amarela"></span>
-            <span class="luz luz--verde"></span>
-          </span>
-        </div>
-        <div class="pokedex-titulo-grupo">
-          <span class="capa-titulo">Módulo de Busca</span>
-        </div>
-      </header>
-
-      <section class="painel-busca" aria-labelledby="titulo-busca">
-        <div
-          id="painel-busca-form"
-          class="painel-busca-form"
-          [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('busca')"
-          (click)="onFormAreaClick($event)"
-        >
-          <div class="painel-cabecalho">
-            <h2 id="titulo-busca" class="painel-titulo">Pesquisar Pokémon</h2>
-          </div>
-
-          <search>
-            <form id="form-pokedex" class="form-pokedex" novalidate (submit)="onSubmit($event)">
-              <label for="pokemon-input" class="campo-label">
-                Nome ou ID <span aria-hidden="true">*</span>
-              </label>
-              <div class="campo-linha">
-                <input
-                  #searchInputEl
-                  type="text"
-                  id="pokemon-input"
-                  name="pokemon"
-                  class="campo-input"
-                  [pvRpgFocusable]="'busca'"
-                  [pvRpgOrder]="0"
-                  [class.user-invalid-fallback]="showFieldError()"
-                  [value]="store.query()"
-                  placeholder="Ex.: pikachu, pikaxu ou 25"
-                  required
-                  [attr.pattern]="nonWhitespacePattern"
-                  autocorrect="off"
-                  autocapitalize="none"
-                  spellcheck="false"
-                  enterkeyhint="search"
-                  [attr.aria-describedby]="showFieldError() ? 'pokemon-dica pokemon-erro-campo' : 'pokemon-dica'"
-                  [attr.aria-invalid]="showFieldError() ? 'true' : 'false'"
-                  data-error="pokemon-erro-campo"
-                  (focus)="onInputFocus()"
-                  (blur)="onInputBlur()"
-                  (input)="onInput($event)"
-                />
-                <button
-                  type="submit"
-                  id="btn-buscar"
-                  class="btn-primario"
-                  [pvRpgFocusable]="'busca'"
-                  [pvRpgOrder]="1"
-                  [disabled]="isSearching()"
-                >
-                  {{ isSearching() ? 'Buscando...' : 'Buscar Pokémon' }}
-                </button>
-              </div>
-              <p id="pokemon-dica" class="campo-dica">
-                Filtre a lista abaixo ao digitar (aceita aproximação) ou use as setas para navegar.
-              </p>
-              <div id="pokemon-erro-campo" class="mensagem-campo-erro" aria-live="polite">
-                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-                  <circle cx="8" cy="8" r="6.5" />
-                  <path d="M5.5 5.5l5 5M10.5 5.5l-5 5" />
-                </svg>
-                <span id="pokemon-erro-texto">Informe o nome de um Pokémon antes de pesquisar.</span>
-              </div>
-            </form>
-          </search>
-        </div>
-
-        <div
-          id="pokemon-catalogo-area"
-          class="pokemon-catalogo-area"
-          [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('lista')"
-          (click)="onCatalogAreaClick()"
-        >
-          <div class="catalogo-cabecalho">
-            <span id="catalogo-status" class="catalogo-status">{{ catalogStatusText() }}</span>
-            <button
-              type="button"
-              id="btn-recarregar-catalogo"
-              class="btn-catalogo-recarregar"
-              [hidden]="store.catalogState().status !== 'error'"
-              (click)="onReloadCatalog($event)"
-            >
-              Recarregar
-            </button>
-          </div>
-
-          <ul
-            id="pokemon-catalogo"
-            class="pokemon-catalogo-lista"
-            [pvRpgContainer]="'lista'"
-            aria-label="Lista de Pokémon disponíveis na PokéAPI"
-            (scroll)="onCatalogScroll($event)"
-          >
-            @switch (store.catalogState().status) {
-              @case ('loading') {
-                <li class="catalogo-vazio">Carregando catálogo da PokéAPI...</li>
-              }
-              @case ('error') {
-                <li class="catalogo-vazio">
-                  Não foi possível carregar a lista completa agora. Você ainda pode buscar pelo nome acima.
-                </li>
-              }
-              @case ('success') {
-                @let filtered = store.filteredCatalog();
-                @if (filtered.items.length === 0) {
-                  <li class="catalogo-vazio">
-                    Nenhum Pokémon parecido foi localizado na lista. Você ainda pode pesquisar diretamente acima.
-                  </li>
-                } @else {
-                  @for (item of filtered.items; track item.id; let idx = $index) {
-                    <li class="catalogo-item-wrapper">
-                      <button
-                        type="button"
-                        class="catalogo-item"
-                        [pvRpgFocusable]="'lista'"
-                        [pvRpgOrder]="idx"
-                        [class.is-selecionado]="store.selectedId() === item.id"
-                        [class.is-cursor]="rpg.rpgCatalogIndex() === idx"
-                        [class.is-rpg-foco]="rpg.isVisorSelectingList() && rpg.rpgCatalogIndex() === idx"
-                        [attr.aria-current]="store.selectedId() === item.id ? 'true' : null"
-                        (click)="onCatalogItemClick(item, idx, $event)"
-                      >
-                        <span class="catalogo-item-esquerda">
-                          <span class="catalogo-item-id">#{{ formatCatalogId(item.id) }}</span>
-                          <span class="catalogo-item-nome">{{ item.displayName }}</span>
-                        </span>
-                        @if (item.approximate) {
-                          <span class="catalogo-item-tag">Aproximado</span>
-                        }
-                      </button>
-                    </li>
-                  }
-
-                  @if (store.hasMoreCatalog()) {
-                    <li class="catalogo-item-wrapper">
-                      <button
-                        type="button"
-                        class="btn-catalogo-mais"
-                        (click)="onLoadMore($event)"
-                      >
-                        Carregar mais Pokémon (restam {{ remainingCount() }})
-                      </button>
-                    </li>
-                  }
-                }
-              }
-            }
-          </ul>
-        </div>
-      </section>
-
-      <div class="pokedex-controles-fisicos">
-        <fieldset class="controle-dpad controle-interativo">
-          <legend class="visually-hidden">Navegar pelos menus e botões da Pokédex</legend>
-          <button
-            type="button"
-            id="btn-dpad-cima"
-            class="dpad-btn dpad-btn--cima"
-            aria-label="Mover seleção para cima"
-            title="Cima (↑)"
-            (click)="onDpadClick('cima', $event)"
-          >
-            ▲
-          </button>
-          <button
-            type="button"
-            id="btn-dpad-direita"
-            class="dpad-btn dpad-btn--direita"
-            aria-label="Mover seleção para a direita"
-            title="Direita (→)"
-            (click)="onDpadClick('direita', $event)"
-          >
-            ▶
-          </button>
-          <button
-            type="button"
-            id="btn-dpad-baixo"
-            class="dpad-btn dpad-btn--baixo"
-            aria-label="Mover seleção para baixo"
-            title="Baixo (↓)"
-            (click)="onDpadClick('baixo', $event)"
-          >
-            ▼
-          </button>
-          <button
-            type="button"
-            id="btn-dpad-esquerda"
-            class="dpad-btn dpad-btn--esquerda"
-            aria-label="Mover seleção para a esquerda"
-            title="Esquerda (←)"
-            (click)="onDpadClick('esquerda', $event)"
-          >
-            ◀
-          </button>
-          <span class="dpad-miolo" aria-hidden="true"></span>
-        </fieldset>
-
-        <div class="controle-fendas controle-interativo">
-          <button
-            type="button"
-            id="btn-limpar-form"
-            class="btn-fenda btn-fenda--vermelha"
-            aria-label="Voltar menu ou limpar formulário"
-            [title]="rpg.redButtonTooltip()"
-            (click)="onRedButtonClick($event)"
-          ></button>
-          <button
-            type="button"
-            id="btn-limpar-visor"
-            class="btn-fenda btn-fenda--azul"
-            aria-label="Avançar menu ou limpar visor"
-            [title]="rpg.blueButtonTooltip()"
-            (click)="onBlueButtonClick($event)"
-          ></button>
-        </div>
-
-        <button
-          type="button"
-          id="btn-controle-selecionar"
-          class="controle-botao-a controle-interativo"
-          aria-label="Confirmar ou selecionar item destacado"
-          title="Confirmar / Selecionar (Enter)"
-          (click)="onAButtonClick($event)"
-        ></button>
-      </div>
-    </div>
-  `,
+  styles: [`:host { display: contents; }`],
+  templateUrl: './pokedex-search-panel.component.html',
 })
 export class PokedexSearchPanelComponent {
   readonly store = inject(PokedexStore);
   readonly rpg = inject(PokedexRpgNavService);
-
   private readonly searchInputEl = viewChild<ElementRef<HTMLInputElement>>('searchInputEl');
 
   readonly blueAdvanceOrClear = output<void>();
@@ -294,11 +38,9 @@ export class PokedexSearchPanelComponent {
   readonly nonWhitespacePattern = String.raw`.*\S.*`;
 
   readonly isSearching = computed(() => this.store.detailState().status === 'loading');
-
   readonly showFieldError = computed(
     () => !this.store.query().trim() && (this.forceValidationError() || this.inputTouched()),
   );
-
   readonly remainingCount = computed(() =>
     Math.max(0, this.store.catalogTotalCount() - this.store.filteredCatalog().items.length),
   );
@@ -317,33 +59,23 @@ export class PokedexSearchPanelComponent {
     return `${filtered.items.length} Pokémon encontrados`;
   });
 
-  focusInput(): void {
-    this.searchInputEl()?.nativeElement.focus();
-  }
+  focusInput = () => this.searchInputEl()?.nativeElement.focus();
 
   stepBackOrClearForm(): void {
     const prev = this.store.previousQuery().trim();
     const currentQuery = this.store.query().trim();
     if (prev && prev.toLowerCase() !== currentQuery.toLowerCase()) {
-      const targetIdentifier =
-        this.store.selectedPokemon()?.name ?? currentQuery.toLowerCase();
+      const target = this.store.selectedPokemon()?.name ?? currentQuery.toLowerCase();
       this.store.setQuery(this.store.consumePreviousQuery());
-      const idx = this.store.findCatalogIndex(targetIdentifier);
-      this.rpg.scrollCatalogIndexIntoView(Math.max(0, idx));
+      this.rpg.scrollCatalogIndexIntoView(Math.max(0, this.store.findCatalogIndex(target)));
       return;
     }
 
     if (currentQuery) {
-      const filteredItems = this.store.filteredCatalog().items;
-      const fallbackHighlight = filteredItems[this.rpg.rpgCatalogIndex()]?.name ?? null;
-      const targetIdentifier =
-        this.store.selectedPokemon()?.name ??
-        fallbackHighlight ??
-        currentQuery.toLowerCase();
-      this.store.clearQuery();
-      this.forceValidationError.set(false);
-      this.inputTouched.set(false);
-      const fullIdx = this.store.findCatalogIndex(targetIdentifier);
+      const highlighted = this.store.filteredCatalog().items[this.rpg.rpgCatalogIndex()]?.name ?? null;
+      const target = resolveStepBackTargetIdentifier(this.store.selectedPokemon()?.name, highlighted, currentQuery);
+      this.resetFormValidation();
+      const fullIdx = this.store.findCatalogIndex(target);
       if (fullIdx >= 0) {
         this.store.ensureCatalogIndexVisible(fullIdx);
         this.rpg.scrollCatalogIndexIntoView(fullIdx);
@@ -353,17 +85,13 @@ export class PokedexSearchPanelComponent {
       return;
     }
 
-    this.store.clearQuery();
-    this.forceValidationError.set(false);
-    this.inputTouched.set(false);
+    this.resetFormValidation();
     this.rpg.rpgLevel.set('telas');
     this.rpg.scrollCatalogToTop();
     this.focusInput();
   }
 
-  formatCatalogId(id: number): string {
-    return id > 0 ? String(id).padStart(4, '0') : '----';
-  }
+  formatCatalogId = (id: number) => (id > 0 ? String(id).padStart(4, '0') : '----');
 
   onFormAreaClick(event: Event): void {
     this.rpg.deactivateKeyboardMode();
@@ -378,15 +106,8 @@ export class PokedexSearchPanelComponent {
     }
   }
 
-  onInputFocus(): void {
-    this.store.ensureCatalogLoaded();
-  }
-
-  onInputBlur(): void {
-    if (this.store.query().length > 0) {
-      this.inputTouched.set(true);
-    }
-  }
+  onInputFocus = () => this.store.ensureCatalogLoaded();
+  onInputBlur = () => { if (this.store.query().length > 0) this.inputTouched.set(true); };
 
   onInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -395,12 +116,7 @@ export class PokedexSearchPanelComponent {
       this.forceValidationError.set(false);
       this.inputTouched.set(false);
     }
-    this.rpg.rpgLevel.set('itens');
-    this.rpg.rpgScreen.set('busca');
-    this.rpg.rpgCatalogIndex.set(0);
-    this.rpg.rpgControlIndices.update((prev) => ({ ...prev, busca: 0 }));
-    this.store.ensureCatalogLoaded();
-    this.rpg.syncFocusVisuals(false);
+    this.rpg.onSearchInputEdited();
   }
 
   onSubmit(event: Event): void {
@@ -427,24 +143,16 @@ export class PokedexSearchPanelComponent {
       this.rpg.rpgCatalogIndex() === index;
 
     this.rpg.setCatalogCursor(index);
-
-    if (!alreadyHighlighted && clickDetail < 2) {
-      return;
-    }
+    if (!alreadyHighlighted && clickDetail < 2) return;
 
     this.forceValidationError.set(false);
     this.store.selectFromCatalog(item.name);
   }
 
   onCatalogScroll(event: Event): void {
-    if (!this.store.hasMoreCatalog()) {
-      return;
-    }
+    if (!this.store.hasMoreCatalog()) return;
     const listEl = event.target as HTMLElement;
-    const distanceToBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight;
-    if (distanceToBottom < 120) {
-      this.store.loadMoreCatalog();
-    }
+    if (listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 120) this.store.loadMoreCatalog();
   }
 
   onLoadMore(event: Event): void {
@@ -459,32 +167,30 @@ export class PokedexSearchPanelComponent {
     this.store.ensureCatalogLoaded(true);
   }
 
-  onDpadClick(direction: 'cima' | 'baixo' | 'esquerda' | 'direita', event: Event): void {
-    event.stopPropagation();
+  onDpadClick(direction: RpgDirection): void {
     this.rpg.deactivateKeyboardMode();
-    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.searchInputEl()?.nativeElement.blur();
     this.rpg.navigate(direction);
   }
 
-  onRedButtonClick(event: Event): void {
-    event.stopPropagation();
+  onRedButtonClick(): void {
     this.rpg.deactivateKeyboardMode();
-    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.rpg.goBackOrClearForm(() => this.stepBackOrClearForm(), true);
   }
 
-  onBlueButtonClick(event: Event): void {
-    event.stopPropagation();
+  onBlueButtonClick(): void {
     this.rpg.deactivateKeyboardMode();
-    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.blueAdvanceOrClear.emit();
   }
 
-  onAButtonClick(event: Event): void {
-    event.stopPropagation();
+  onAButtonClick(): void {
     this.rpg.deactivateKeyboardMode();
-    (event.currentTarget as HTMLElement | null)?.blur?.();
     this.aConfirm.emit();
+  }
+
+  private resetFormValidation(): void {
+    this.store.clearQuery();
+    this.forceValidationError.set(false);
+    this.inputTouched.set(false);
   }
 }

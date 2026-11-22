@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
 
 interface RegionPreview {
   readonly id: string;
@@ -20,14 +21,14 @@ const REGIONS_ATLAS: readonly RegionPreview[] = [
 
 @Component({
   selector: 'pv-museum-page',
-  imports: [RouterLink],
+  imports: [RouterLink, PvMainHeadingDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="museum-page" aria-labelledby="main-heading">
       <header class="museum-page__header">
         <div>
           <span class="museum-page__tag">ACESSO PÚBLICO • MÓDULO 02</span>
-          <h1 id="main-heading" tabindex="-1" class="museum-page__title">
+          <h1 id="main-heading" tabindex="-1" pvMainHeading class="museum-page__title">
             Museu das Regiões & História
           </h1>
           <p class="museum-page__subtitle">

@@ -1,61 +1,29 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import {
   type AsyncState,
-  CachedCatalogResponseSchema,
-  CachedPokemonResponseSchema,
-  PokeApiCatalogResponseSchema,
-  type PokemonDetailDto,
-  PokemonDetailSchema,
   type SearchablePokemonItem,
-  buildSearchableCatalogItem,
-  extractPokemonIdFromUrl,
   filterPokemonCatalog,
-  formatPokeApiText,
   normalizePokemonName,
 } from '@pokeverse/shared';
-import { Subscription, catchError, firstValueFrom, map, of, timeout } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { type ScenarioId, ScenarioStore } from '../../../core/stores/scenario.store';
+import { PokedexApiClient } from './pokedex-api.client';
+import {
+  type PokemonDetailView,
+  type ResolvedPokemonForSlot,
+  buildPokemonFetchErrorMessage,
+  mapCatalogEntriesToSearchable,
+  mapPokemonDtoToView,
+  toResolvedPokemonForSlot,
+} from './pokedex-view-mapper.util';
 
-const API_CATALOG_URL = '/api/v1/pokedex/catalog';
-const API_POKEMON_BASE = '/api/v1/pokedex/pokemon/';
-const POKEAPI_CATALOG_URL = 'https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0';
-const POKEAPI_DETAIL_BASE = 'https://pokeapi.co/api/v2/pokemon/';
 const CATALOG_BATCH_SIZE = 150;
-const REQUEST_TIMEOUT_MS = 10000;
 
-export interface PokemonDetailView {
-  readonly id: number;
-  readonly name: string;
-  readonly paddedId: string;
-  readonly displayName: string;
-  readonly spriteUrl: string | null;
-  readonly fallbackSpriteUrl: string | null;
-  readonly heightMeters: string;
-  readonly weightKg: string;
-  readonly heightRawDm: number;
-  readonly weightRawHg: number;
-  readonly types: readonly string[];
-  readonly abilities: readonly string[];
-  readonly stats: readonly { readonly label: string; readonly value: number }[];
-}
-
-export interface ResolvedPokemonForSlot {
-  readonly id: number;
-  readonly name: string;
-  readonly displayName: string;
-  readonly spriteUrl: string | null;
-}
-
-export type { ScenarioId };
-
-type ResolvedPokemonResult =
-  | { readonly found: true; readonly dto: PokemonDetailDto; readonly source: 'hit' | 'miss' | 'direct' }
-  | { readonly found: false; readonly notFound: boolean; readonly statusCode: number | null };
+export type { PokemonDetailView, ResolvedPokemonForSlot, ScenarioId };
 
 @Injectable({ providedIn: 'root' })
 export class PokedexStore implements OnDestroy {
-  private readonly http = inject(HttpClient);
+  private readonly apiClient = inject(PokedexApiClient);
   private readonly scenarioStore = inject(ScenarioStore);
   private catalogSub: Subscription | null = null;
   private detailSub: Subscription | null = null;
@@ -128,52 +96,30 @@ export class PokedexStore implements OnDestroy {
     this.catalogSub?.unsubscribe();
     this.catalogStateSignal.set({ status: 'loading' });
 
-    this.catalogSub = this.http
-      .get<unknown>(API_CATALOG_URL)
-      .pipe(
-        timeout(REQUEST_TIMEOUT_MS),
-        map((raw) => {
-          const cached = CachedCatalogResponseSchema.safeParse(raw);
-          return cached.success ? cached.data.catalog : null;
-        }),
-        catchError(() =>
-          this.http.get<unknown>(POKEAPI_CATALOG_URL).pipe(
-            timeout(REQUEST_TIMEOUT_MS),
-            map((directRaw) => {
-              const direct = PokeApiCatalogResponseSchema.safeParse(directRaw);
-              return direct.success ? direct.data : null;
-            }),
-            catchError(() => of(null)),
-          ),
-        ),
-      )
-      .subscribe((catalog) => {
-        if (!catalog) {
-          this.catalogStateSignal.set({
-            status: 'error',
-            error: {
-              code: 'CATALOG_UNAVAILABLE',
-              message: 'Não foi possível carregar a lista completa agora.',
-              retryable: true,
-            },
-          });
-          return;
-        }
+    this.catalogSub = this.apiClient.fetchCatalog().subscribe((catalog) => {
+      if (!catalog) {
+        this.catalogStateSignal.set({
+          status: 'error',
+          error: {
+            code: 'CATALOG_UNAVAILABLE',
+            message: 'Não foi possível carregar a lista completa agora.',
+            retryable: true,
+          },
+        });
+        return;
+      }
 
-        const items = catalog.results
-          .map((entry) => buildSearchableCatalogItem(extractPokemonIdFromUrl(entry.url), entry.name))
-          .filter((item) => item.id > 0);
+      const items = mapCatalogEntriesToSearchable(catalog);
+      if (items.length === 0) {
+        this.catalogStateSignal.set({
+          status: 'empty',
+          reason: 'Lista vazia no catálogo PokéAPI.',
+        });
+        return;
+      }
 
-        if (items.length === 0) {
-          this.catalogStateSignal.set({
-            status: 'empty',
-            reason: 'Lista vazia no catálogo PokéAPI.',
-          });
-          return;
-        }
-
-        this.catalogStateSignal.set({ status: 'success', data: items });
-      });
+      this.catalogStateSignal.set({ status: 'success', data: items });
+    });
   }
 
   setQuery(rawQuery: string): void {
@@ -218,7 +164,8 @@ export class PokedexStore implements OnDestroy {
     if (this.querySignal().trim()) {
       const filtered = this.filteredCatalog().items;
       return filtered.findIndex(
-        (item) => item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
+        (item) =>
+          item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
       );
     }
     const state = this.catalogStateSignal();
@@ -226,13 +173,16 @@ export class PokedexStore implements OnDestroy {
       return -1;
     }
     return state.data.findIndex(
-      (item) => item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
+      (item) =>
+        item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
     );
   }
 
   loadMoreCatalog(): void {
     const total = this.catalogTotalCount();
-    this.batchLimitSignal.update((current) => Math.min(total || current + CATALOG_BATCH_SIZE, current + CATALOG_BATCH_SIZE));
+    this.batchLimitSignal.update((current) =>
+      Math.min(total || current + CATALOG_BATCH_SIZE, current + CATALOG_BATCH_SIZE),
+    );
   }
 
   ensureCatalogIndexVisible(index: number): void {
@@ -300,7 +250,7 @@ export class PokedexStore implements OnDestroy {
     this.detailSub?.unsubscribe();
     this.detailStateSignal.set({ status: 'loading' });
 
-    this.detailSub = this.fetchPokemonDto(normalized).subscribe((resolved) => {
+    this.detailSub = this.apiClient.fetchPokemonDto(normalized).subscribe((resolved) => {
       if (!resolved.found) {
         this.cacheSourceSignal.set(null);
         this.selectedIdSignal.set(null);
@@ -308,14 +258,14 @@ export class PokedexStore implements OnDestroy {
           status: 'error',
           error: {
             code: resolved.notFound ? 'POKEMON_NOT_FOUND' : 'POKEMON_FETCH_FAILED',
-            message: this.buildFetchErrorMessage(rawStr, resolved),
+            message: buildPokemonFetchErrorMessage(rawStr, resolved),
             retryable: !resolved.notFound,
           },
         });
         return;
       }
 
-      const vm = this.toViewModel(resolved.dto);
+      const vm = mapPokemonDtoToView(resolved.dto);
       this.selectedIdSignal.set(vm.id);
       this.cacheSourceSignal.set(resolved.source);
       this.detailStateSignal.set({ status: 'success', data: vm });
@@ -327,101 +277,12 @@ export class PokedexStore implements OnDestroy {
     if (!normalized) {
       return null;
     }
-    const resolved = await firstValueFrom(this.fetchPokemonDto(normalized));
-    if (!resolved.found) {
-      return null;
-    }
-    const vm = this.toViewModel(resolved.dto);
-    return {
-      id: vm.id,
-      name: vm.name,
-      displayName: vm.displayName,
-      spriteUrl: vm.spriteUrl,
-    };
+    const resolved = await firstValueFrom(this.apiClient.fetchPokemonDto(normalized));
+    return resolved.found ? toResolvedPokemonForSlot(resolved.dto) : null;
   }
 
   ngOnDestroy(): void {
     this.catalogSub?.unsubscribe();
     this.detailSub?.unsubscribe();
-  }
-
-  private buildFetchErrorMessage(
-    rawTerm: string,
-    err: Extract<ResolvedPokemonResult, { readonly found: false }>,
-  ): string {
-    if (err.notFound) {
-      return `Não encontramos nenhum Pokémon com o nome "${rawTerm}". Verifique a ortografia ou escolha uma sugestão.`;
-    }
-    if (err.statusCode) {
-      return `Não foi possível concluir a comunicação com a PokéAPI no momento (código HTTP ${err.statusCode}).`;
-    }
-    return 'A PokéAPI não respondeu a tempo. Verifique sua conexão com a internet e tente novamente.';
-  }
-
-  private fetchPokemonDto(normalized: string) {
-    return this.http.get<unknown>(`${API_POKEMON_BASE}${encodeURIComponent(normalized)}`).pipe(
-      timeout(REQUEST_TIMEOUT_MS),
-      map((raw): ResolvedPokemonResult => {
-        const parsed = CachedPokemonResponseSchema.safeParse(raw);
-        if (!parsed.success) {
-          return { found: false, notFound: false, statusCode: null };
-        }
-        return {
-          found: true,
-          dto: parsed.data.pokemon,
-          source: parsed.data.cache === 'hit' ? 'hit' : 'miss',
-        };
-      }),
-      catchError((err: unknown) => {
-        if (err instanceof HttpErrorResponse && err.status === 404) {
-          return of<ResolvedPokemonResult>({ found: false, notFound: true, statusCode: 404 });
-        }
-        return this.http.get<unknown>(`${POKEAPI_DETAIL_BASE}${encodeURIComponent(normalized)}`).pipe(
-          timeout(REQUEST_TIMEOUT_MS),
-          map((raw): ResolvedPokemonResult => {
-            const parsed = PokemonDetailSchema.safeParse(raw);
-            return parsed.success
-              ? { found: true, dto: parsed.data, source: 'direct' }
-              : { found: false, notFound: false, statusCode: null };
-          }),
-          catchError((directErr: unknown) => {
-            const status =
-              directErr instanceof HttpErrorResponse ? directErr.status || null : null;
-            return of<ResolvedPokemonResult>({
-              found: false,
-              notFound: status === 404,
-              statusCode: status,
-            });
-          }),
-        );
-      }),
-    );
-  }
-
-  private toViewModel(dto: PokemonDetailDto): PokemonDetailView {
-    const artwork = dto.sprites.other?.['official-artwork']?.front_default ?? null;
-    const defaultSprite = dto.sprites.front_default ?? null;
-    return {
-      id: dto.id,
-      name: dto.name.toLowerCase(),
-      paddedId: `#${String(dto.id).padStart(4, '0')}`,
-      displayName: formatPokeApiText(dto.name),
-      spriteUrl: artwork ?? defaultSprite,
-      fallbackSpriteUrl: defaultSprite,
-      heightMeters: `${(dto.height / 10).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m`,
-      weightKg: `${(dto.weight / 10).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg`,
-      heightRawDm: dto.height,
-      weightRawHg: dto.weight,
-      types: dto.types.map((slot) => formatPokeApiText(slot.type.name)),
-      abilities: dto.abilities.map((slot) =>
-        slot.is_hidden
-          ? `${formatPokeApiText(slot.ability.name)} (oculta)`
-          : formatPokeApiText(slot.ability.name),
-      ),
-      stats: dto.stats.map((entry) => ({
-        label: formatPokeApiText(entry.stat.name),
-        value: entry.base_stat,
-      })),
-    };
   }
 }

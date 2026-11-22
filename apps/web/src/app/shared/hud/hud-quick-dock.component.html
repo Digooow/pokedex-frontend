@@ -1,0 +1,36 @@
+<nav class="hud-dock" aria-label="Viagem Rápida">
+  <ul class="hud-dock__list">
+    @for (mod of modules; track mod.id) {
+      <li class="hud-dock__item">
+        @if (mod.requiresTrainer && !auth.isAuthenticated()) {
+          <button
+            type="button"
+            class="hud-dock__link hud-dock__link--locked"
+            [pvRequiresTrainer]="mod.label"
+            [lockedDescription]="mod.summary"
+            [lockedRoute]="mod.route"
+          >
+            <span class="hud-dock__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
+            <span class="hud-dock__label">{{ mod.label }}</span>
+            <span class="hud-dock__lock" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                <path d="M5 7V5a3 3 0 0 1 6 0v2" />
+              </svg>
+            </span>
+          </button>
+        } @else {
+          <a
+            [routerLink]="mod.id === 'pokedex' ? '/' : mod.route"
+            class="hud-dock__link"
+            [class.is-active]="isModuleActive(mod.route, mod.id)"
+            [attr.aria-current]="isModuleActive(mod.route, mod.id) ? 'page' : null"
+          >
+            <span class="hud-dock__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
+            <span class="hud-dock__label">{{ mod.label }}</span>
+          </a>
+        }
+      </li>
+    }
+  </ul>
+</nav>

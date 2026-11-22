@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
 
 @Component({
   selector: 'pv-pokedex-cover',
@@ -13,6 +13,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
   template: `
     <div id="tampa-frente" class="aba-face aba-face--frente" [inert]="coverOpen() && !isAnimating()">
       <button
+        #coverTriggerEl
         type="button"
         id="btn-abrir-pokedex"
         class="pokedex-tampa-fechada"
@@ -85,6 +86,12 @@ export class PokedexCoverComponent {
   readonly coverOpen = input.required<boolean>();
   readonly isAnimating = input(false);
   readonly openRequested = output<void>();
+
+  private readonly triggerBtn = viewChild<ElementRef<HTMLButtonElement>>('coverTriggerEl');
+
+  focusTrigger(): void {
+    this.triggerBtn()?.nativeElement.focus();
+  }
 
   onTriggerClick(event: Event): void {
     event.stopPropagation();

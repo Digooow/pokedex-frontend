@@ -1,0 +1,74 @@
+<div class="pokedex-controles-fisicos">
+  <fieldset class="controle-dpad controle-interativo">
+    <legend class="visually-hidden">Navegar pelos menus e botões da Pokédex</legend>
+    <button
+      type="button"
+      id="btn-dpad-cima"
+      class="dpad-btn dpad-btn--cima"
+      aria-label="Mover seleção para cima"
+      title="Cima (↑)"
+      (click)="onDpad('cima', $event)"
+    >
+      ▲
+    </button>
+    <button
+      type="button"
+      id="btn-dpad-direita"
+      class="dpad-btn dpad-btn--direita"
+      aria-label="Mover seleção para a direita"
+      title="Direita (→)"
+      (click)="onDpad('direita', $event)"
+    >
+      ▶
+    </button>
+    <button
+      type="button"
+      id="btn-dpad-baixo"
+      class="dpad-btn dpad-btn--baixo"
+      aria-label="Mover seleção para baixo"
+      title="Baixo (↓)"
+      (click)="onDpad('baixo', $event)"
+    >
+      ▼
+    </button>
+    <button
+      type="button"
+      id="btn-dpad-esquerda"
+      class="dpad-btn dpad-btn--esquerda"
+      aria-label="Mover seleção para a esquerda"
+      title="Esquerda (←)"
+      (click)="onDpad('esquerda', $event)"
+    >
+      ◀
+    </button>
+    <span class="dpad-miolo" aria-hidden="true"></span>
+  </fieldset>
+
+  <div class="controle-fendas controle-interativo">
+    <button
+      type="button"
+      id="btn-limpar-form"
+      class="btn-fenda btn-fenda--vermelha"
+      aria-label="Voltar menu ou limpar formulário"
+      [title]="redTooltip()"
+      (click)="onRed($event)"
+    ></button>
+    <button
+      type="button"
+      id="btn-limpar-visor"
+      class="btn-fenda btn-fenda--azul"
+      aria-label="Avançar menu ou limpar visor"
+      [title]="blueTooltip()"
+      (click)="onBlue($event)"
+    ></button>
+  </div>
+
+  <button
+    type="button"
+    id="btn-controle-selecionar"
+    class="controle-botao-a controle-interativo"
+    aria-label="Confirmar ou selecionar item destacado"
+    title="Confirmar / Selecionar (Enter)"
+    (click)="onA($event)"
+  ></button>
+</div>

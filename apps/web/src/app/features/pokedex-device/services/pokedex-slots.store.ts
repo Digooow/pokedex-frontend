@@ -1,15 +1,18 @@
-import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
+import { Injectable, type WritableSignal, computed, effect, inject, signal } from '@angular/core';
 import {
   type PokedexSlotRecord,
   PokedexSlotRecordSchema,
   PokedexSlotsListResponseSchema,
   SavePokedexSlotSchema,
+  TOTAL_POKEDEX_SLOTS,
 } from '@pokeverse/shared';
 import { catchError, map, of } from 'rxjs';
 import { AuthStore } from '../../../core/stores/auth.store';
-import { PrivacyConsentStore } from '../../../core/stores/privacy-consent.store';
+import {
+  PokedexLocalSlotsStorage,
+  buildLocalSlotRecord,
+} from './pokedex-local-slots.storage';
 import type { PokemonDetailView, ResolvedPokemonForSlot } from './pokedex.store';
 
 export type SlotConfirmPrompt =
@@ -38,19 +41,19 @@ export type SlotConfirmPrompt =
       readonly occupiedCount: number;
     };
 
-const TOTAL_SLOTS = 10;
-const LOCAL_SLOTS_KEY = 'pokedex_slots_salvos';
+function formatSlotNumber(slotIndex: number): string {
+  return String(slotIndex + 1).padStart(2, '0');
+}
 
 @Injectable({ providedIn: 'root' })
 export class PokedexSlotsStore {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthStore);
-  private readonly privacy = inject(PrivacyConsentStore);
-  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly localSlots = inject(PokedexLocalSlotsStorage);
 
   private readonly cloudSlotsSignal = signal<ReadonlyMap<number, PokedexSlotRecord>>(new Map());
   private readonly localSlotsSignal = signal<ReadonlyMap<number, PokedexSlotRecord>>(
-    this.loadLocalSlots(),
+    this.localSlots.load(),
   );
   private readonly busySlotSignal = signal<number | null>(null);
   private readonly editModeSignal = signal(false);
@@ -74,17 +77,16 @@ export class PokedexSlotsStore {
       if (this.auth.isAuthenticated()) {
         this.editingSlotIndexSignal.set(null);
         this.loadSlots();
-      } else {
-        this.cloudSlotsSignal.set(new Map());
-        this.editingSlotIndexSignal.set(null);
-        this.feedbackSignal.set(null);
+        return;
       }
+      this.cloudSlotsSignal.set(new Map());
+      this.editingSlotIndexSignal.set(null);
+      this.feedbackSignal.set(null);
     });
   }
 
   toggleEditMode(): void {
-    const next = !this.editModeSignal();
-    this.editModeSignal.set(next);
+    this.editModeSignal.set(!this.editModeSignal());
     this.editingSlotIndexSignal.set(null);
     this.feedbackSignal.set(null);
   }
@@ -96,17 +98,9 @@ export class PokedexSlotsStore {
     }
   }
 
-  setEditingSlotIndex(index: number | null): void {
-    this.editingSlotIndexSignal.set(index);
-  }
-
-  requestConfirm(prompt: SlotConfirmPrompt): void {
-    this.pendingConfirmSignal.set(prompt);
-  }
-
-  closeConfirm(): void {
-    this.pendingConfirmSignal.set(null);
-  }
+  setEditingSlotIndex = (index: number | null) => this.editingSlotIndexSignal.set(index);
+  requestConfirm = (prompt: SlotConfirmPrompt) => this.pendingConfirmSignal.set(prompt);
+  closeConfirm = () => this.pendingConfirmSignal.set(null);
 
   findSlotByPokemon(
     pokemonId: number,
@@ -127,7 +121,7 @@ export class PokedexSlotsStore {
 
   loadSlots(): void {
     if (!this.auth.isAuthenticated()) {
-      this.localSlotsSignal.set(this.loadLocalSlots());
+      this.localSlotsSignal.set(this.localSlots.load());
       return;
     }
 
@@ -154,24 +148,23 @@ export class PokedexSlotsStore {
     pokemon: PokemonDetailView | ResolvedPokemonForSlot,
     nickname: string | null = null,
   ): boolean {
-    if (slotIndex < 0 || slotIndex >= TOTAL_SLOTS || this.busySlotSignal() !== null) {
+    if (slotIndex < 0 || slotIndex >= TOTAL_POKEDEX_SLOTS || this.busySlotSignal() !== null) {
       return false;
     }
 
     const duplicateSlot = this.findSlotByPokemon(pokemon.id, pokemon.name, slotIndex);
     if (duplicateSlot !== null) {
       this.feedbackSignal.set(
-        `${pokemon.displayName} já está salvo no Slot ${String(duplicateSlot + 1).padStart(2, '0')}. Cada Pokémon pode ocupar apenas um botão.`,
+        `${pokemon.displayName} já está salvo no Slot ${formatSlotNumber(duplicateSlot)}. Cada Pokémon pode ocupar apenas um botão.`,
       );
       return false;
     }
 
-    const cleanNickname = nickname?.trim() ? nickname.trim() : null;
     const payload = SavePokedexSlotSchema.safeParse({
       slotIndex,
       pokemonId: pokemon.id,
       pokemonName: pokemon.name,
-      nickname: cleanNickname,
+      nickname: nickname?.trim() || null,
       spriteUrl: pokemon.spriteUrl,
     });
 
@@ -181,7 +174,10 @@ export class PokedexSlotsStore {
     }
 
     if (!this.isCloudBacked()) {
-      this.saveLocalSlot(payload.data);
+      const record = buildLocalSlotRecord(payload.data);
+      this.mutateSlotMap(this.localSlotsSignal, (copy) => copy.set(slotIndex, record), true);
+      this.editingSlotIndexSignal.set(null);
+      this.feedbackSignal.set(`Salvo no slot ${formatSlotNumber(slotIndex)}`);
       return true;
     }
 
@@ -198,25 +194,21 @@ export class PokedexSlotsStore {
         this.busySlotSignal.set(null);
         if (!parsed?.success) {
           this.feedbackSignal.set(
-            `Falha ao gravar no Slot ${String(slotIndex + 1).padStart(2, '0')} na nuvem.`,
+            `Falha ao gravar no Slot ${formatSlotNumber(slotIndex)} na nuvem.`,
           );
           return;
         }
-        this.cloudSlotsSignal.update((prev) => {
-          const copy = new Map(prev);
-          copy.set(slotIndex, parsed.data);
-          return copy;
-        });
+        this.mutateSlotMap(this.cloudSlotsSignal, (copy) => copy.set(slotIndex, parsed.data), false);
         this.editingSlotIndexSignal.set(null);
         this.feedbackSignal.set(
-          `Salvo no slot ${String(slotIndex + 1).padStart(2, '0')} (${pokemon.displayName})`,
+          `Salvo no slot ${formatSlotNumber(slotIndex)} (${pokemon.displayName})`,
         );
       });
     return true;
   }
 
   clearSlot(slotIndex: number): void {
-    if (slotIndex < 0 || slotIndex >= TOTAL_SLOTS || this.busySlotSignal() !== null) {
+    if (slotIndex < 0 || slotIndex >= TOTAL_POKEDEX_SLOTS || this.busySlotSignal() !== null) {
       return;
     }
 
@@ -225,13 +217,8 @@ export class PokedexSlotsStore {
     }
 
     if (!this.isCloudBacked()) {
-      this.localSlotsSignal.update((prev) => {
-        const copy = new Map(prev);
-        copy.delete(slotIndex);
-        this.persistLocalSlots(copy);
-        return copy;
-      });
-      this.feedbackSignal.set(`Slot ${String(slotIndex + 1).padStart(2, '0')} liberado.`);
+      this.mutateSlotMap(this.localSlotsSignal, (copy) => copy.delete(slotIndex), true);
+      this.feedbackSignal.set(`Slot ${formatSlotNumber(slotIndex)} liberado.`);
       return;
     }
 
@@ -246,18 +233,12 @@ export class PokedexSlotsStore {
         this.busySlotSignal.set(null);
         if (!ok) {
           this.feedbackSignal.set(
-            `Não foi possível limpar o Slot ${String(slotIndex + 1).padStart(2, '0')}.`,
+            `Não foi possível limpar o Slot ${formatSlotNumber(slotIndex)}.`,
           );
           return;
         }
-        this.cloudSlotsSignal.update((prev) => {
-          const copy = new Map(prev);
-          copy.delete(slotIndex);
-          return copy;
-        });
-        this.feedbackSignal.set(
-          `Slot ${String(slotIndex + 1).padStart(2, '0')} liberado na nuvem.`,
-        );
+        this.mutateSlotMap(this.cloudSlotsSignal, (copy) => copy.delete(slotIndex), false);
+        this.feedbackSignal.set(`Slot ${formatSlotNumber(slotIndex)} liberado na nuvem.`);
       });
   }
 
@@ -267,13 +248,12 @@ export class PokedexSlotsStore {
     if (!this.isCloudBacked()) {
       const empty = new Map<number, PokedexSlotRecord>();
       this.localSlotsSignal.set(empty);
-      this.persistLocalSlots(empty);
+      this.localSlots.persist(empty);
       this.feedbackSignal.set('Todos os slots locais foram limpos.');
       return;
     }
 
-    const occupiedIndices = [...this.cloudSlotsSignal().keys()];
-    if (occupiedIndices.length === 0) {
+    if (this.cloudSlotsSignal().size === 0) {
       return;
     }
 
@@ -295,126 +275,18 @@ export class PokedexSlotsStore {
       });
   }
 
-  private saveLocalSlot(payload: {
-    slotIndex: number;
-    pokemonId: number;
-    pokemonName: string;
-    nickname?: string | null;
-    spriteUrl?: string | null;
-  }): void {
-    const record: PokedexSlotRecord = {
-      slotIndex: payload.slotIndex,
-      pokemonId: payload.pokemonId,
-      pokemonName: payload.pokemonName.toLowerCase(),
-      nickname: payload.nickname ?? null,
-      spriteUrl: payload.spriteUrl ?? null,
-      updatedAt: new Date().toISOString(),
-    };
-    this.localSlotsSignal.update((prev) => {
+  private mutateSlotMap(
+    target: WritableSignal<ReadonlyMap<number, PokedexSlotRecord>>,
+    mutator: (copy: Map<number, PokedexSlotRecord>) => void,
+    persistLocally: boolean,
+  ): void {
+    target.update((prev) => {
       const copy = new Map(prev);
-      copy.set(payload.slotIndex, record);
-      this.persistLocalSlots(copy);
+      mutator(copy);
+      if (persistLocally) {
+        this.localSlots.persist(copy);
+      }
       return copy;
     });
-    this.editingSlotIndexSignal.set(null);
-    this.feedbackSignal.set(`Salvo no slot ${String(payload.slotIndex + 1).padStart(2, '0')}`);
-  }
-
-  private loadLocalSlots(): Map<number, PokedexSlotRecord> {
-    const empty = new Map<number, PokedexSlotRecord>();
-    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
-      return empty;
-    }
-    try {
-      const raw = window.localStorage.getItem(LOCAL_SLOTS_KEY);
-      if (!raw) {
-        return empty;
-      }
-      const parsed: unknown = JSON.parse(raw);
-      if (!Array.isArray(parsed)) {
-        return empty;
-      }
-      const seenIds = new Set<number>();
-      const seenNames = new Set<string>();
-      for (const [idx, item] of parsed.entries()) {
-        if (idx >= TOTAL_SLOTS) {
-          continue;
-        }
-        const entry = this.parseLocalSlotEntry(idx, item);
-        if (!entry) {
-          continue;
-        }
-        if (seenIds.has(entry.pokemonId) || seenNames.has(entry.pokemonName)) {
-          continue;
-        }
-        seenIds.add(entry.pokemonId);
-        seenNames.add(entry.pokemonName);
-        empty.set(idx, entry);
-      }
-      return empty;
-    } catch {
-      return new Map();
-    }
-  }
-
-  private parseLocalSlotEntry(idx: number, item: unknown): PokedexSlotRecord | null {
-    if (typeof item !== 'object' || item === null) {
-      return null;
-    }
-    const candidate = item as Record<string, unknown>;
-    const rawName = candidate['name'] ?? candidate['pokemonName'];
-    if (typeof rawName !== 'string' || !rawName.trim()) {
-      return null;
-    }
-
-    const parsedId = Number(candidate['id'] ?? candidate['pokemonId']) || 1;
-    const nickname = this.extractTrimmedString(candidate['apelido'])
-      ?? this.extractTrimmedString(candidate['nickname']);
-    const spriteUrl = this.extractTrimmedString(candidate['spriteUrl']);
-    const updatedAt =
-      typeof candidate['updatedAt'] === 'string'
-        ? candidate['updatedAt']
-        : new Date().toISOString();
-
-    return {
-      slotIndex: idx,
-      pokemonId: parsedId,
-      pokemonName: rawName.toLowerCase(),
-      nickname,
-      spriteUrl,
-      updatedAt,
-    };
-  }
-
-  private extractTrimmedString(value: unknown): string | null {
-    if (typeof value !== 'string') {
-      return null;
-    }
-    const trimmed = value.trim();
-    return trimmed || null;
-  }
-
-  private persistLocalSlots(slots: ReadonlyMap<number, PokedexSlotRecord>): void {
-    if (!this.isBrowser || !this.privacy.canPersistFunctionalPreferences()) {
-      return;
-    }
-    try {
-      const serialized = Array.from({ length: TOTAL_SLOTS }, (_, idx) => {
-        const entry = slots.get(idx);
-        if (!entry) {
-          return null;
-        }
-        return {
-          name: entry.pokemonName,
-          id: entry.pokemonId,
-          apelido: entry.nickname ?? '',
-          spriteUrl: entry.spriteUrl,
-          updatedAt: entry.updatedAt,
-        };
-      });
-      window.localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(serialized));
-    } catch {
-      return;
-    }
   }
 }

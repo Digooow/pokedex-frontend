@@ -15,6 +15,21 @@ import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/brow
 import { Observable, catchError, firstValueFrom, map, of } from 'rxjs';
 import { extractApiErrorMessage } from '../http/api-error.util';
 
+export type AuthDialogMode = 'login' | 'register' | 'forgot' | 'verify-email' | 'mfa-challenge';
+
+export interface VisitorPromptContext {
+  readonly title: string;
+  readonly description: string;
+  readonly targetRoute?: string;
+  readonly initialMode?: AuthDialogMode;
+}
+
+export type AuthMutationState =
+  | { readonly status: 'idle' }
+  | { readonly status: 'submitting' }
+  | { readonly status: 'success'; readonly message: string }
+  | { readonly status: 'error'; readonly message: string };
+
 export type GenericMessageOutcome =
   | ReturnType<typeof GenericMessageResponseSchema.safeParse>
   | { readonly httpError: unknown };
@@ -22,6 +37,18 @@ export type GenericMessageOutcome =
 export type SessionResponseOutcome =
   | ReturnType<typeof AuthSessionResponseSchema.safeParse>
   | { readonly httpError: unknown };
+
+const DEFAULT_AUTH_ERROR = 'Não foi possível autenticar. Confira os dados e tente novamente.';
+
+export function resolveAuthOutcomeError(
+  outcome: SessionResponseOutcome | GenericMessageOutcome,
+  invalidFallback: string,
+): string | null {
+  if ('httpError' in outcome) {
+    return extractApiErrorMessage(outcome.httpError, DEFAULT_AUTH_ERROR);
+  }
+  return outcome.success ? null : invalidFallback;
+}
 
 function isPasskeyRequestOptions(value: unknown): value is PublicKeyCredentialRequestOptionsJSON {
   return typeof value === 'object' && value !== null && 'challenge' in value;

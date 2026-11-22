@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } 
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
+import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
 import { RequiresTrainerDirective } from '../../shared/directives/requires-trainer.directive';
 import {
   REGIONS_ATLAS_PREVIEW,
@@ -20,7 +21,7 @@ function resolveModuleId(raw: unknown): UnderConstructionModuleId {
 
 @Component({
   selector: 'pv-under-construction',
-  imports: [RouterLink, RequiresTrainerDirective],
+  imports: [RouterLink, RequiresTrainerDirective, PvMainHeadingDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './under-construction.component.html',
   styleUrl: './under-construction.component.scss',

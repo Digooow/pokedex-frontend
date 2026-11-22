@@ -1,0 +1,83 @@
+.slot-dialog {
+  padding: 0;
+  border: 1px solid var(--pv-border-gold);
+  border-radius: var(--pv-radius-lg);
+  background: var(--pv-surface-solid);
+  color: var(--pv-ink-primary);
+  inline-size: min(28rem, calc(100vw - 2rem));
+  box-shadow: 0 24px 60px oklch(0% 0 0 / 0.7);
+}
+
+.slot-dialog:not([open]) {
+  display: none;
+}
+
+.slot-dialog__card {
+  display: grid;
+  gap: var(--pv-space-3);
+  padding: var(--pv-space-5);
+}
+
+.slot-dialog__badge {
+  justify-self: start;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-gold);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--pv-border-gold);
+}
+
+.slot-dialog__title {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.25;
+}
+
+.slot-dialog__desc {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--pv-ink-muted);
+}
+
+.slot-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--pv-space-2);
+  margin-block-start: var(--pv-space-1);
+}
+
+.slot-dialog__btn {
+  min-block-size: 2.5rem;
+  padding: 0.45rem 0.95rem;
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-surface-elevated);
+  color: var(--pv-ink-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 120ms ease, transform 80ms ease;
+}
+
+.slot-dialog__btn:hover {
+  filter: brightness(1.12);
+}
+
+.slot-dialog__btn:active {
+  transform: translateY(1px);
+}
+
+.slot-dialog__btn--primary {
+  border-color: var(--pv-amber);
+  background: linear-gradient(180deg, oklch(68% 0.16 84), oklch(54% 0.15 76));
+  color: oklch(14% 0.02 255);
+}
+
+.slot-dialog__btn--danger {
+  border-color: var(--pv-danger);
+  background: linear-gradient(180deg, oklch(56% 0.21 25), oklch(42% 0.19 25));
+  color: var(--pv-ink-on-accent);
+}

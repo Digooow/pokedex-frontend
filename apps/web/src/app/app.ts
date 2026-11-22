@@ -4,6 +4,7 @@ import { AuthStore } from './core/stores/auth.store';
 import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { SystemStatusStore } from './core/stores/system-status.store';
 import { WorldTickerStore } from './core/stores/world-ticker.store';
+import { PvMainLandmarkDirective } from './shared/directives/main-heading.directive';
 import { CenariosBackdropComponent } from './shared/hud/cenarios-backdrop.component';
 import { CenariosBarComponent } from './shared/hud/cenarios-bar.component';
 import { HudQuickDockComponent } from './shared/hud/hud-quick-dock.component';
@@ -25,6 +26,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
     PrivacyConsentDialogComponent,
     VisitorLockDialogComponent,
     SecuritySettingsDialogComponent,
+    PvMainLandmarkDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',

@@ -1,6 +1,7 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, OnDestroy, PLATFORM_ID, inject } from '@angular/core';
 import { type AuthSessionResponse, AuthSessionResponseSchema } from '@pokeverse/shared';
+import { Observable, finalize, shareReplay } from 'rxjs';
 
 const AUTH_SYNC_CHANNEL_NAME = 'pokeverse_auth_sync';
 const AUTH_REFRESH_LOCK_NAME = 'pokeverse-auth-refresh';
@@ -9,11 +10,22 @@ export type AuthSyncBroadcastMessage =
   | { readonly type: 'session'; readonly session: AuthSessionResponse }
   | { readonly type: 'logout' };
 
+export interface OAuthCallbackParams {
+  readonly googleLinked: boolean;
+  readonly authError: string | null;
+}
+
+export interface SecurityFeedbackBanner {
+  readonly tone: 'ok' | 'error';
+  readonly text: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthCrossTabSyncService implements OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private syncChannel: BroadcastChannel | null = null;
   private listener: ((message: AuthSyncBroadcastMessage) => void) | null = null;
+  private inflightRefresh$: Observable<boolean> | null = null;
 
   connect(onMessage: (message: AuthSyncBroadcastMessage) => void): void {
     this.listener = onMessage;
@@ -52,6 +64,30 @@ export class AuthCrossTabSyncService implements OnDestroy {
     }
   }
 
+  createSingleflightRefresh(execute: () => Promise<boolean>): Observable<boolean> {
+    if (this.inflightRefresh$) {
+      return this.inflightRefresh$;
+    }
+
+    this.inflightRefresh$ = new Observable<boolean>((subscriber) => {
+      this.runWithRefreshLock(execute)
+        .then((ok) => {
+          subscriber.next(ok);
+          subscriber.complete();
+        })
+        .catch(() => {
+          subscriber.next(false);
+          subscriber.complete();
+        });
+    }).pipe(
+      finalize(() => {
+        this.inflightRefresh$ = null;
+      }),
+      shareReplay(1),
+    );
+    return this.inflightRefresh$;
+  }
+
   runWithRefreshLock<T>(work: () => Promise<T>): Promise<T> {
     if (
       this.isBrowser &&
@@ -64,10 +100,7 @@ export class AuthCrossTabSyncService implements OnDestroy {
     return work();
   }
 
-  consumeOAuthCallbackParams(): {
-    readonly googleLinked: boolean;
-    readonly authError: string | null;
-  } {
+  consumeOAuthCallbackParams(): OAuthCallbackParams {
     const loc = globalThis.location;
     if (!loc?.search) {
       return { googleLinked: false, authError: null };
@@ -93,6 +126,16 @@ export class AuthCrossTabSyncService implements OnDestroy {
       googleLinked,
       authError: rawAuthError,
     };
+  }
+
+  resolveAuthenticatedOAuthFeedback(oauthReturn: OAuthCallbackParams): SecurityFeedbackBanner | null {
+    if (oauthReturn.googleLinked) {
+      return { tone: 'ok', text: 'Conta Google vinculada com sucesso via OAuth 2.0 PKCE.' };
+    }
+    if (oauthReturn.authError) {
+      return { tone: 'error', text: this.mapOAuthErrorCode(oauthReturn.authError) };
+    }
+    return null;
   }
 
   mapOAuthErrorCode(code: string): string {

@@ -1,0 +1,42 @@
+<div id="pokedex-rodape-direito" class="pokedex-rodape-direito">
+  <fieldset
+    id="grade-slots-azuis"
+    class="grade-botoes-azuis controle-interativo"
+    [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('slots')"
+  >
+    <legend class="visually-hidden">Botões azuis para gravar e selecionar Pokémon</legend>
+    @for (slotIdx of slotIndices; track slotIdx) {
+      @let ocupacao = getSlot(slotIdx);
+      <button
+        type="button"
+        class="btn-slot-azul"
+        [pvRpgFocusable]="'slots'"
+        [pvRpgOrder]="slotIdx"
+        [attr.data-slot-index]="slotIdx"
+        [class.is-ocupado]="ocupacao !== null"
+        [class.is-ativo]="isSlotActivePokemon(slotIdx)"
+        [class.is-rpg-foco]="isSlotRpgFocused(slotIdx)"
+        [disabled]="slotsStore.busySlot() === slotIdx"
+        [attr.aria-label]="slotAriaLabel(slotIdx)"
+        [title]="slotTitle(slotIdx)"
+        (click)="onSlotClick(slotIdx, $event)"
+      ></button>
+    }
+  </fieldset>
+
+  <div class="mini-indicadores-inferiores">
+    <button
+      type="button"
+      id="btn-config-slots"
+      class="mini-visor-amarelo controle-interativo"
+      [pvRpgFocusable]="'slots'"
+      [pvRpgOrder]="10"
+      [class.is-rpg-foco]="isSlotRpgFocused(10)"
+      [attr.aria-pressed]="slotsStore.editMode()"
+      aria-label="Configurar Pokémon salvos nos botões"
+      title="Editar ou remover Pokémon salvos"
+      (click)="onConfigClick($event)"
+    ></button>
+    <span class="saidas-som" aria-hidden="true"></span>
+  </div>
+</div>

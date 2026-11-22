@@ -53,25 +53,25 @@ describe('PokéVerse OS Shell', () => {
     expect(auth.visitorPrompt()?.title).toBe('Vila Central');
   });
 
-  it('focuses #main-heading in place when activating the skip link', () => {
-    const heading = document.createElement('h1');
-    heading.id = 'main-heading';
-    heading.tabIndex = -1;
-    document.body.appendChild(heading);
+  it('focuses #main-heading in place when activating the skip link', async () => {
+    const router = TestBed.inject(Router);
+    router.resetConfig(routes);
 
-    try {
-      const fixture = TestBed.createComponent(App);
-      fixture.detectChanges();
-      flushInitialRequests(TestBed.inject(HttpTestingController));
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitialRequests(TestBed.inject(HttpTestingController));
 
-      const skipLink = fixture.nativeElement.querySelector('a.skip-link') as HTMLAnchorElement;
-      const focusSpy = vi.spyOn(heading, 'focus');
-      skipLink.click();
+    await router.navigateByUrl('/museu');
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-      expect(focusSpy).toHaveBeenCalledTimes(1);
-    } finally {
-      heading.remove();
-    }
+    const heading = fixture.nativeElement.querySelector('#main-heading') as HTMLHeadingElement;
+    expect(heading).not.toBeNull();
+    const skipLink = fixture.nativeElement.querySelector('a.skip-link') as HTMLAnchorElement;
+    const focusSpy = vi.spyOn(heading, 'focus');
+    skipLink.click();
+
+    expect(focusSpy).toHaveBeenCalledTimes(1);
   });
 
   it('cycles hardware quality preferences safely', () => {
