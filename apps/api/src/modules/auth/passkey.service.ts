@@ -3,11 +3,13 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   type AuthSessionResponse,
+  type MfaMethod,
   type PasskeyLoginVerifyInput,
   type PasskeyRegisterVerifyInput,
   type PasskeySummary,
@@ -22,13 +24,17 @@ import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
-
-type StoredTransports = NonNullable<WebAuthnCredential['transports']>;
 import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
 import { SessionService } from './session.service';
+import {
+  TRAINER_SESSION_SELECT,
+  TrainerSessionIssuer,
+} from './trainer-session-issuer.service';
+
+type StoredTransports = NonNullable<WebAuthnCredential['transports']>;
 
 const CHALLENGE_TTL_SEC = 120;
 
@@ -39,13 +45,20 @@ interface StoredAuthChallenge {
 
 @Injectable()
 export class PasskeyService {
+  private readonly sessionIssuer: TrainerSessionIssuer;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-    private readonly crypto: CryptoService,
+    crypto: CryptoService,
     private readonly sessionService: SessionService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
-  ) {}
+    @Optional() sessionIssuer?: TrainerSessionIssuer,
+  ) {
+    this.sessionIssuer =
+      sessionIssuer ??
+      new TrainerSessionIssuer(prisma, crypto, sessionService, config);
+  }
 
   async listPasskeys(trainerId: string): Promise<PasskeySummary[]> {
     const rows = await this.prisma.trainerPasskey.findMany({
@@ -262,20 +275,7 @@ export class PasskeyService {
         counter: true,
         transports: true,
         trainer: {
-          select: {
-            id: true,
-            username: true,
-            email: true,
-            emailVerifiedAt: true,
-            mfaEnabled: true,
-            passwordHash: true,
-            badgesCount: true,
-            eloRating: true,
-            lastMapId: true,
-            lastX: true,
-            lastY: true,
-            createdAt: true,
-          },
+          select: TRAINER_SESSION_SELECT,
         },
       },
     });
@@ -316,9 +316,7 @@ export class PasskeyService {
 
     let activeSid = currentRawSid;
     let familyId: string = randomUUID();
-    let mfaMethods: readonly ('totp' | 'backup_code' | 'passkey')[] = [
-      'passkey',
-    ];
+    let mfaMethods: readonly MfaMethod[] = ['passkey'];
 
     if (currentRawSid && challengeRecord.expectedTrainerId) {
       const promoted =
@@ -342,16 +340,10 @@ export class PasskeyService {
       activeSid = created.rawSid;
     }
 
-    const rawRefresh = randomBytes(48).toString('hex');
-    const refreshDays = this.config.get('REFRESH_TTL_DAYS', { infer: true });
-    await this.prisma.refreshToken.create({
-      data: {
-        trainerId: passkey.trainer.id,
-        tokenHash: this.crypto.sha256Hex(rawRefresh),
-        familyId,
-        expiresAt: new Date(Date.now() + refreshDays * 86_400_000),
-      },
-    });
+    const refreshToken = await this.sessionIssuer.createRefreshTokenRecord(
+      passkey.trainer.id,
+      familyId,
+    );
 
     const session = this.sessionService.buildAuthSessionResponse(
       passkey.trainer,
@@ -359,7 +351,7 @@ export class PasskeyService {
       mfaMethods,
     );
 
-    return { session, sessionSid: activeSid, refreshToken: rawRefresh };
+    return { session, sessionSid: activeSid, refreshToken };
   }
 
   private getAllowedOrigins(): string[] {

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
 import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
+import { PvRpgContainerDirective } from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 import type { PokemonDetailView } from '../services/pokedex.store';
@@ -7,7 +8,7 @@ import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
 
 @Component({
   selector: 'pv-pokedex-visor',
-  imports: [PokedexSlotsConfigComponent],
+  imports: [PokedexSlotsConfigComponent, PvRpgContainerDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -39,6 +40,7 @@ import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
       <div
         id="resultado-conteudo"
         class="resultado-conteudo"
+        [pvRpgContainer]="'visor'"
         aria-live="polite"
         [attr.aria-busy]="detailState().status === 'loading'"
       >

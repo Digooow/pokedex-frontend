@@ -1,5 +1,7 @@
 # 02 — Front-end Angular, HUD de Jogo e Gerenciamento de Estado
 
+> **Nota de Estado Real (pós-Fase 4A + Doc 17):** A autenticação evoluiu de JWT em RAM para **sessão BFF opaca no Redis + cookies `HttpOnly`**. `AuthStore` foi decomposta com `AuthRecoveryService` e `AuthCrossTabSyncService` (+ `extractApiErrorMessage` em `core/http/api-error.util.ts`); o painel de segurança ganhou `SecurityIamStore` (com exclusão LGPD em 2 etapas), `PrivacyConsentStore` (registro declarativo de chaves não essenciais), e a Pokédex 3D usa `PokedexLidPhysicsService`, diretiva `[pvRpgFocusable]` / `[pvRpgContainer]` (zero `document.querySelector` em serviços) e 5 parciais SCSS modulares em `apps/web/src/styles/pokedex/`. Veja [14 — Status Real](14-status-e-changelog-implementacao.md) e [17 — Plano SOLID](17-plano-solid-clean-code-e-engenharia-big-tech.md).
+
 ## 1. Papel do Angular na Plataforma
 
 Enquanto **Phaser 3 / PixiJS** desenha o mundo explorável 2D/HD-2D e **Three.js** renderiza cenas 3D e hardwares virtuais em WebGL2, o **Angular** atua como o **Sistema Operacional (Shell + HUD)** de toda a aplicação:
@@ -80,11 +82,13 @@ export class AuthStore {
 
 | Store | Status | Responsabilidade Principal | Fonte de Verdade |
 | :--- | :---: | :--- | :--- |
-| **`AuthStore`** | **Implementada (Fase 2)** | Sessão atual, `accessToken` em Signal/RAM, silent refresh, login/registro/logout e prompt de visitante | NestJS `/api/v1/auth/*` + Cookie `HttpOnly` *(alvo de upgrade no [doc 13](13-dossie-de-seguranca-e-blindagem.md))* |
+| **`AuthStore`** *(e `AuthSessionStore`)* | **Implementada + Refatorada SOLID** | Estado reativo da sessão BFF opaca (zero JWT no JS), login/registro/refresh, delegando OTP/recuperação a `AuthRecoveryService` e multi-aba a `AuthCrossTabSyncService` | NestJS `/api/v1/auth/*` + Cookies `HttpOnly` + `BroadcastChannel` |
+| **`SecurityIamStore`** | **Implementada (2B + LGPD)** | Visão geral IAM, setup/ativação/desativação TOTP, registro/exclusão de Passkeys WebAuthn, vínculo Google PKCE, revogação de sessões, exportação JSON e exclusão definitiva (`deleteAccount`) | NestJS `/api/v1/auth/security/*`, `/passkeys/*`, `/me/export`, `DELETE /me` |
+| **`PrivacyConsentStore`** | **Implementada (LGPD)** | Cookie versionado `pokeverse_consent`, registro extensível de chaves opcionais (`registerNonEssentialStorageKey`) e limpeza automática sem opt-in explícito | Cookie first-party `pokeverse_consent` + `BroadcastChannel` |
 | **`WorldTickerStore`** | **Implementada (Fase 2)** | Ticker global em tempo real no HUD com importação dinâmica lazy de `socket.io-client` | WebSocket `/ws/world` (`world:recent-events` / `world:global-event`) |
-| **`PokedexStore` & `PokedexSlotsStore`** | **Implementadas (Fases 1–2)** | Catálogo/detalhes via `/api/v1/pokedex/*` (Redis + fallback direto PokéAPI) e CRUD dos 10 slots na nuvem para logados | NestJS `/api/v1/pokedex/*` + PokéAPI fallback |
-| **`QualityStore`** | **Implementada (Fase 1)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com override manual no HUD | Hardware probe + preferência local não sensível |
-| **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar | NestJS `/health/ready` |
+| **`PokedexStore`, `PokedexSlotsStore` & `PokedexRpgNavService`** | **Implementadas + Refatoradas SOLID (Fases 1–4A)** | Catálogo/detalhes via `/api/v1/pokedex/*` (Redis 24h + stale 7d + fallback direto PokéAPI), CRUD dos 10 slots, cinemática em `PokedexLidPhysicsService` e foco declarativo via `[pvRpgFocusable]` + parciais `styles/pokedex/` | NestJS `/api/v1/pokedex/*` + PokéAPI fallback + `localStorage` (visitante) |
+| **`QualityStore` & `ScenarioStore`** | **Implementadas (Fases 1–4A)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com `FpsWatchdog` e rotação de cenários WebP (`-desktop`/`-mobile`) com opt-in LGPD | Hardware probe + preferências opcionais via `PrivacyConsentStore` |
+| **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar + fase dinâmica (`POKEVERSE_PHASE`) | NestJS `/health/ready` e `/api/v1/system/bootstrap` |
 | **`WorldStore`** | **Planejada (Fase 3)** | Mapa atual, coordenadas do jogador no Overworld e treinadores conectados | WebSocket `WorldGateway` + Phaser `EventBus` |
 | **`ArcadeStore`** | **Planejada (Fase 5)** | Catálogo de ROMs disponíveis, jogo ativo no console 3D, progresso do download e Save States | NestJS `/arcade/roms` + MinIO Stream + WebAssembly |
 | **`BattleStore`** | **Planejada (Fase 6)** | Fila de matchmaking PvP, estado turno-a-turno da partida, HP, buffs, log e times | WebSocket `BattleGateway` + NestJS `/teams` |

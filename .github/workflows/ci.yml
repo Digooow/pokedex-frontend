@@ -35,8 +35,8 @@ jobs:
       - name: Typecheck all workspaces
         run: npm run typecheck
 
-      - name: Lint API
-        run: npm run lint:api
+      - name: Lint all workspaces
+        run: npm run lint
 
       - name: Run unit tests across all workspaces
         run: npm run test

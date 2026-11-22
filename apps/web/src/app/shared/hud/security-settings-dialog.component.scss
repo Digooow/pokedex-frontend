@@ -145,6 +145,21 @@
   color: var(--pv-ink-on-accent);
 }
 
+.sec-btn--danger {
+  border: 1px solid var(--pv-danger);
+  background: var(--pv-dex-red-deep);
+  color: var(--pv-ink-on-accent);
+}
+
+.sec-danger-box {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-danger);
+  background: oklch(22% 0.06 25 / 0.55);
+}
+
 .sec-btn--ghost {
   background: transparent;
 }

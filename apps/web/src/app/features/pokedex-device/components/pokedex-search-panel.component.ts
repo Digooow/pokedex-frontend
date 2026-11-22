@@ -9,11 +9,16 @@ import {
   viewChild,
 } from '@angular/core';
 import type { CatalogMatchItem } from '@pokeverse/shared';
+import {
+  PvRpgContainerDirective,
+  PvRpgFocusableDirective,
+} from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexStore } from '../services/pokedex.store';
 
 @Component({
   selector: 'pv-pokedex-search-panel',
+  imports: [PvRpgFocusableDirective, PvRpgContainerDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -71,6 +76,8 @@ import { PokedexStore } from '../services/pokedex.store';
                   id="pokemon-input"
                   name="pokemon"
                   class="campo-input"
+                  [pvRpgFocusable]="'busca'"
+                  [pvRpgOrder]="0"
                   [class.user-invalid-fallback]="showFieldError()"
                   [value]="store.query()"
                   placeholder="Ex.: pikachu, pikaxu ou 25"
@@ -91,6 +98,8 @@ import { PokedexStore } from '../services/pokedex.store';
                   type="submit"
                   id="btn-buscar"
                   class="btn-primario"
+                  [pvRpgFocusable]="'busca'"
+                  [pvRpgOrder]="1"
                   [disabled]="isSearching()"
                 >
                   {{ isSearching() ? 'Buscando...' : 'Buscar Pokémon' }}
@@ -132,6 +141,7 @@ import { PokedexStore } from '../services/pokedex.store';
           <ul
             id="pokemon-catalogo"
             class="pokemon-catalogo-lista"
+            [pvRpgContainer]="'lista'"
             aria-label="Lista de Pokémon disponíveis na PokéAPI"
             (scroll)="onCatalogScroll($event)"
           >
@@ -156,6 +166,8 @@ import { PokedexStore } from '../services/pokedex.store';
                       <button
                         type="button"
                         class="catalogo-item"
+                        [pvRpgFocusable]="'lista'"
+                        [pvRpgOrder]="idx"
                         [class.is-selecionado]="store.selectedId() === item.id"
                         [class.is-cursor]="rpg.rpgCatalogIndex() === idx"
                         [class.is-rpg-foco]="rpg.isVisorSelectingList() && rpg.rpgCatalogIndex() === idx"

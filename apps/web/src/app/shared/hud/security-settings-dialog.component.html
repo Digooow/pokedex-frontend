@@ -245,7 +245,7 @@
         <section class="sec-panel" aria-labelledby="pv-lgpd-heading">
           <h3 id="pv-lgpd-heading" class="sec-panel__title">Privacidade e Dados (LGPD)</h3>
           <p class="sec-muted">
-            Exporte uma cópia legível dos seus dados de Treinador, vínculos e slots salvos, ou ajuste suas preferências de cookies.
+            Exporte uma cópia legível dos seus dados de Treinador, vínculos e slots salvos, ajuste preferências de cookies ou elimine sua conta.
           </p>
           <div class="sec-inline-form">
             <button
@@ -259,7 +259,42 @@
             <button type="button" class="sec-btn" (click)="openPrivacyCenter()">
               Preferências de Cookies
             </button>
+            @if (!confirmingDelete()) {
+              <button
+                type="button"
+                class="sec-btn sec-btn--danger"
+                [disabled]="iam.busyAction() !== null"
+                (click)="requestDeleteAccount()"
+              >
+                Excluir conta
+              </button>
+            }
           </div>
+          @if (confirmingDelete()) {
+            <div class="sec-danger-box" role="alert">
+              <p class="sec-muted">
+                Esta ação é irreversível: sua conta, sessões, Passkeys e slots salvos serão eliminados permanentemente.
+              </p>
+              <div class="sec-inline-form">
+                <button
+                  type="button"
+                  class="sec-btn sec-btn--danger"
+                  [disabled]="iam.busyAction() !== null"
+                  (click)="confirmDeleteAccount()"
+                >
+                  Confirmar exclusão definitiva
+                </button>
+                <button
+                  type="button"
+                  class="sec-btn"
+                  [disabled]="iam.busyAction() !== null"
+                  (click)="cancelDeleteAccount()"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          }
         </section>
       }
     </div>

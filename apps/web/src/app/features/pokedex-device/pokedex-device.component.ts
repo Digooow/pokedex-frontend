@@ -20,6 +20,7 @@ import { PokedexCoverComponent } from './components/pokedex-cover.component';
 import { PokedexSearchPanelComponent } from './components/pokedex-search-panel.component';
 import { PokedexVisorComponent } from './components/pokedex-visor.component';
 import { SlotConfirmDialogComponent } from './components/slot-confirm-dialog.component';
+import { PvRpgFocusableDirective } from './directives/rpg-focusable.directive';
 import {
   KEY_TO_DIRECTION,
   PokedexRpgNavService,
@@ -36,6 +37,7 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
     PokedexSearchPanelComponent,
     PokedexVisorComponent,
     SlotConfirmDialogComponent,
+    PvRpgFocusableDirective,
   ],
   providers: [PokedexRpgNavService],
   changeDetection: ChangeDetectionStrategy.OnPush,

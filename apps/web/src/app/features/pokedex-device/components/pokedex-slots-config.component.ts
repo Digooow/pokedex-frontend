@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, output, signal } from '@angular/core';
 import { type PokedexSlotRecord, formatPokeApiText } from '@pokeverse/shared';
 import { AuthStore } from '../../../core/stores/auth.store';
+import { PvRpgFocusableDirective } from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 import { PokedexStore } from '../services/pokedex.store';
@@ -9,6 +10,7 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 @Component({
   selector: 'pv-pokedex-slots-config',
+  imports: [PvRpgFocusableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [
     `
@@ -144,6 +146,8 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
                   <input
                     type="text"
                     class="slot-form-input"
+                    [pvRpgFocusable]="'edicao'"
+                    [pvRpgOrder]="0"
                     [value]="draftTerm()"
                     placeholder="Nome ou ID na PokéAPI"
                     [attr.aria-label]="'Nome ou ID da PokéAPI para o slot ' + (idx + 1)"
@@ -152,16 +156,30 @@ const SLOT_INDICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
                   <input
                     type="text"
                     class="slot-form-input"
+                    [pvRpgFocusable]="'edicao'"
+                    [pvRpgOrder]="1"
                     maxlength="40"
                     [value]="draftNickname()"
                     placeholder="Apelido opcional"
                     [attr.aria-label]="'Apelido opcional para o slot ' + (idx + 1)"
                     (input)="draftNickname.set(readValue($event))"
                   />
-                  <button type="submit" class="btn-slot-acao" [disabled]="savingEdit()">
+                  <button
+                    type="submit"
+                    class="btn-slot-acao"
+                    [pvRpgFocusable]="'edicao'"
+                    [pvRpgOrder]="2"
+                    [disabled]="savingEdit()"
+                  >
                     {{ savingEdit() ? 'Validando...' : 'Salvar' }}
                   </button>
-                  <button type="button" class="btn-slot-acao" (click)="onCancelEdit($event)">
+                  <button
+                    type="button"
+                    class="btn-slot-acao"
+                    [pvRpgFocusable]="'edicao'"
+                    [pvRpgOrder]="3"
+                    (click)="onCancelEdit($event)"
+                  >
                     Cancelar
                   </button>
                 </div>

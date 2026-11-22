@@ -58,6 +58,8 @@
                 <button
                   type="button"
                   class="btn-slot-azul"
+                  [pvRpgFocusable]="'slots'"
+                  [pvRpgOrder]="slotIdx"
                   [attr.data-slot-index]="slotIdx"
                   [class.is-ocupado]="ocupacao !== null"
                   [class.is-ativo]="isSlotActivePokemon(slotIdx)"
@@ -75,6 +77,8 @@
                 type="button"
                 id="btn-config-slots"
                 class="mini-visor-amarelo controle-interativo"
+                [pvRpgFocusable]="'slots'"
+                [pvRpgOrder]="10"
                 [class.is-rpg-foco]="isSlotRpgFocused(10)"
                 [attr.aria-pressed]="slotsStore.editMode()"
                 aria-label="Configurar Pokémon salvos nos botões"

@@ -1,5 +1,7 @@
 # 04 — Back-end NestJS, Autenticação e Segurança
 
+> **Nota de Estado Real (Arquitetura BFF + Decomposição SOLID — Doc 13 / Doc 17):** O `AuthModule` já opera integralmente com **sessões BFF opacas no Redis + cookies `HttpOnly` (`__Host-` / `__Secure-`)**, máquina de estados `MFA_PENDING -> AUTHENTICATED`, `CsrfOriginGuard`, `RedisThrottlerStorage`, contadores atômicos em Lua (zero TOCTOU), `MailService` em tabela OCP, além da decomposição SOLID do `AuthService` (fachada sobre `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` + expurgo temporal, `TrainerGdprService` com `GET /me/export` e `DELETE /me`, `TrainerSessionIssuer` e `AuthOutboxPublisher`) e do `GoogleOAuthService` (`GoogleOAuthHttpClient`, `GoogleOidcVerifier`, `GoogleAccountLinker`). As seções históricas 2–5 preservam o desenho inicial da Fase 2 como referência evolutiva; detalhes correntes estão em [13 — Dossiê de Segurança](13-dossie-de-seguranca-e-blindagem.md), [14 — Status Real](14-status-e-changelog-implementacao.md) e [17 — Plano SOLID](17-plano-solid-clean-code-e-engenharia-big-tech.md).
+
 ## 1. Arquitetura Interna do Back-end (`apps/api`)
 
 O back-end em **NestJS (TypeScript estrito)** concentra regras de negócio autoritativas, persistência relacional, integração com cache/storage/mensageria e comunicação em tempo real via WebSockets.
@@ -22,10 +24,10 @@ flowchart LR
 
 | Módulo | Status | Responsabilidade Principal | Acesso |
 | :--- | :---: | :--- | :--- |
-| **`AuthModule`** | **Implementado (Fase 2)** | Registro, login, rotação de *Refresh Token*, logout e `/auth/me` | `@Public()` em `/register`, `/login`, `/refresh` e `/logout` (cookie `HttpOnly`) + Protegido em `/me` |
-| **`PokedexModule`** | **Implementado (Fase 2)** | Proxy com cache Redis da PokéAPI + CRUD dos 10 slots na nuvem | Leitura pública (`GET /pokedex/*`) + Slots protegidos (`JWT` + escopo `trainerId`) |
-| **`WorldModule` & `EventsModule`** | **Parcial (Fase 2)** | `OutboxRelayService` (`SKIP LOCKED`) -> Redpanda -> `WorldEventsConsumerService` -> `WorldGateway` Ticker global | Handshake ticker aberto nesta fase (`WsAuthGuard` obrigatório na Fase 3) |
-| **`HealthModule` & `SystemModule`** | **Implementados (Fases 1–2)** | Endpoints `/health/live`, `/health/ready` e `/api/v1/system/bootstrap` | `@Public()` controlado (infraestrutura) |
+| **`AuthModule`** | **Implementado + Refatorado SOLID (2A–2B + Doc 17)** | Fachada `AuthService` + `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` (c/ expurgo temporal), `TrainerGdprService` (`/me/export`, `DELETE /me`), `TrainerSessionIssuer`, `AuthOutboxPublisher`, `GoogleOAuthService` (`GoogleOAuthHttpClient`, `GoogleOidcVerifier`, `GoogleAccountLinker`), `MfaTotpService`, `PasskeyService`, `OtpService`, `SessionService` | `@Public()` em `/providers`, `/register`, `/login`, `/refresh`, `/logout`, `/verify-email`, `/resend-verification`, `/forgot-password`, `/reset-password`, `/google/*`, `/passkeys/login/*` + BFF/CSRF no restante |
+| **`PokedexModule`** | **Implementado (2–4A)** | Proxy com cache Redis da PokéAPI (TTL 24h + `stale-fallback` 7d) + CRUD atômico dos 10 slots (`409` unicidade e `DELETE /slots`) | Leitura pública (`GET /pokedex/*`) + Slots protegidos (`SessionAuthGuard` + escopo `trainerId`) |
+| **`WorldModule`, `EventsModule` & `NotificationsModule`** | **Implementado (2–Doc 17)** | `OutboxRelayService` (*atomic lease* `UPDATE ... RETURNING`) -> Redpanda -> `WorldEventsConsumerService` + `EmailNotificationsConsumerService` (rollback de idempotência no `catch`) -> `WorldGateway` (`/ws/world`) e `MailService` (tabela OCP) | Handshake ticker aberto nesta fase (`WsAuthGuard` obrigatório na Fase 6/Overworld) |
+| **`HealthModule` & `SystemModule`** | **Implementados (1–Doc 17)** | Endpoints `/health/live`, `/health/ready` e `/api/v1/system/bootstrap` com `POKEVERSE_PHASE` dinâmico (default `'phase-2b'`) | `@Public()` controlado (infraestrutura) |
 | **`TrainersModule`** | **Planejado (Fase 3)** | Perfil do treinador, avatar, últimas coordenadas no Overworld e insígnias | Protegido (`AuthGuard`) |
 | **`MuseumModule`** | **Planejado (Fase 4)** | Entrega estruturada de regiões, ginásios, líderes e linha do tempo de jogos | `@Public()` |
 | **`ArcadeModule`** | **Planejado (Fase 5)** | Catálogo fixo de ROMs, geração de URL/stream autenticado e *Cloud Save States* | Protegido (`AuthGuard`) |

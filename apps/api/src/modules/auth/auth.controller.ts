@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -226,6 +227,27 @@ export class AuthController {
     @CurrentTrainer() trainer: AuthenticatedTrainer,
   ): Promise<TrainerDataExport> {
     return this.authService.exportTrainerData(trainer.trainerId);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Delete('me')
+  async deleteMyAccount(
+    @CurrentTrainer() trainer: AuthenticatedTrainer,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<GenericMessageResponse> {
+    const { sessionCookieName, refreshCookieName } =
+      this.sessionService.getCookieNames();
+    const rawSid = readSessionCookie(req, sessionCookieName);
+    const rawRefresh = readSessionCookie(req, refreshCookieName);
+
+    const result = await this.authService.deleteTrainerAccount(
+      trainer.trainerId,
+      rawSid,
+      rawRefresh,
+    );
+    clearAuthCookies(res, this.sessionService);
+    return GenericMessageResponseSchema.parse(result);
   }
 
   @Get('sessions')

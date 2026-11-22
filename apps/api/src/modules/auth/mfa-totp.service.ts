@@ -1,18 +1,16 @@
-import { createHmac, randomBytes, randomInt, randomUUID } from 'node:crypto';
+import { createHmac, randomBytes, randomInt } from 'node:crypto';
 import {
   BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   type AuthSessionResponse,
   type DisableTotpInput,
-  EmailNotificationEventSchema,
-  EncryptedOutboxPayloadSchema,
-  KAFKA_TOPICS,
   type MfaChallengeVerifyInput,
   type TotpEnableResponse,
   TotpEnableResponseSchema,
@@ -25,7 +23,12 @@ import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
+import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
 import { SessionService } from './session.service';
+import {
+  TRAINER_SESSION_SELECT,
+  TrainerSessionIssuer,
+} from './trainer-session-issuer.service';
 
 const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
 const BACKUP_CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -95,13 +98,23 @@ export function computeTotpAtCounter(
 
 @Injectable()
 export class MfaTotpService {
+  private readonly outboxPublisher: AuthOutboxPublisher;
+  private readonly sessionIssuer: TrainerSessionIssuer;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly crypto: CryptoService,
-    private readonly sessionService: SessionService,
-    private readonly config: ConfigService<ApiEnvConfig, true>,
-  ) {}
+    sessionService: SessionService,
+    config: ConfigService<ApiEnvConfig, true>,
+    @Optional() outboxPublisher?: AuthOutboxPublisher,
+    @Optional() sessionIssuer?: TrainerSessionIssuer,
+  ) {
+    this.outboxPublisher = outboxPublisher ?? new AuthOutboxPublisher(crypto);
+    this.sessionIssuer =
+      sessionIssuer ??
+      new TrainerSessionIssuer(prisma, crypto, sessionService, config);
+  }
 
   async initiateSetup(trainerId: string): Promise<TotpSetupResponse> {
     const trainer = await this.prisma.trainer.findUnique({
@@ -118,8 +131,7 @@ export class MfaTotpService {
       );
     }
 
-    const secretBytes = randomBytes(20);
-    const secretBase32 = encodeBase32(secretBytes);
+    const secretBase32 = encodeBase32(randomBytes(20));
     const label = encodeURIComponent(`PokéVerse OS:${trainer.email}`);
     const issuer = encodeURIComponent('PokéVerse OS');
     const otpauthUri = `otpauth://totp/${label}?secret=${secretBase32}&issuer=${issuer}&algorithm=SHA1&digits=6&period=30`;
@@ -193,31 +205,15 @@ export class MfaTotpService {
         })),
       });
 
-      const eventId = randomUUID();
-      const emailEvent = EmailNotificationEventSchema.parse({
-        eventId,
+      await this.outboxPublisher.enqueueEncryptedEmail(tx, {
+        aggregateId: trainerId,
         template: 'security_alert',
         toEmail: trainer.email,
         username: trainer.username,
         subject: 'PokéVerse OS — Autenticação em 2 etapas (TOTP) ativada',
         detail:
           'Um Authenticator App (2FA TOTP) e 8 códigos de backup foram vinculados à sua conta.',
-        requestedAt: new Date().toISOString(),
         traceId,
-      });
-
-      await tx.outboxEvent.create({
-        data: {
-          id: eventId,
-          aggregateType: 'EmailNotification',
-          aggregateId: trainerId,
-          eventType: KAFKA_TOPICS.NOTIFICATIONS_EMAIL,
-          payload: EncryptedOutboxPayloadSchema.parse({
-            version: 1,
-            ciphertext: this.crypto.encryptJson(emailEvent),
-          }),
-          status: 'PENDING',
-        },
       });
     });
 
@@ -254,19 +250,8 @@ export class MfaTotpService {
     const trainer = await this.prisma.trainer.findUnique({
       where: { id: trainerId },
       select: {
-        id: true,
-        username: true,
-        email: true,
-        emailVerifiedAt: true,
-        mfaEnabled: true,
+        ...TRAINER_SESSION_SELECT,
         totpSecretEncrypted: true,
-        passwordHash: true,
-        badgesCount: true,
-        eloRating: true,
-        lastMapId: true,
-        lastX: true,
-        lastY: true,
-        createdAt: true,
       },
     });
 
@@ -274,61 +259,24 @@ export class MfaTotpService {
       throw new UnauthorizedException('Desafio 2FA não configurado.');
     }
 
-    let verified = false;
-    if (input.method === 'totp') {
-      const secretBase32 = this.crypto.decryptString(
-        trainer.totpSecretEncrypted,
-      );
-      verified =
-        (await this.verifyTotpWithReplayGuard(
-          trainer.id,
-          secretBase32,
-          input.code,
-        )) !== null;
-    } else {
-      verified = await this.consumeBackupCode(trainer.id, input.code);
-    }
+    const verified =
+      input.method === 'totp'
+        ? (await this.verifyTotpWithReplayGuard(
+            trainer.id,
+            this.crypto.decryptString(trainer.totpSecretEncrypted),
+            input.code,
+          )) !== null
+        : await this.consumeBackupCode(trainer.id, input.code);
 
     if (!verified) {
-      if (typeof this.redis.incrementCounterWithTtl === 'function') {
-        await this.redis.incrementCounterWithTtl(failKey, MFA_LOCK_WINDOW_SEC);
-      } else {
-        await this.redis.setStringEx(
-          failKey,
-          MFA_LOCK_WINDOW_SEC,
-          String(failCount + 1),
-        );
-      }
+      await this.recordMfaFailure(failKey, failCount);
       throw new UnauthorizedException(
         'Código 2FA ou código de backup inválido.',
       );
     }
 
     await this.redis.delKeys(failKey);
-
-    const promoted = await this.sessionService.promoteToAuthenticated(rawSid);
-    if (!promoted) {
-      throw new UnauthorizedException('Sessão expirada. Faça login novamente.');
-    }
-
-    const rawRefresh = randomBytes(48).toString('hex');
-    const refreshDays = this.config.get('REFRESH_TTL_DAYS', { infer: true });
-    await this.prisma.refreshToken.create({
-      data: {
-        trainerId: trainer.id,
-        tokenHash: this.crypto.sha256Hex(rawRefresh),
-        familyId: promoted.familyId,
-        expiresAt: new Date(Date.now() + refreshDays * 86_400_000),
-      },
-    });
-
-    const session = this.sessionService.buildAuthSessionResponse(
-      trainer,
-      'AUTHENTICATED',
-      promoted.mfaMethods,
-    );
-
-    return { session, refreshToken: rawRefresh };
+    return this.sessionIssuer.promoteMfaPendingSession(rawSid, trainer);
   }
 
   async disableTotp(
@@ -392,34 +340,33 @@ export class MfaTotpService {
         },
       });
 
-      const eventId = randomUUID();
-      const emailEvent = EmailNotificationEventSchema.parse({
-        eventId,
+      await this.outboxPublisher.enqueueEncryptedEmail(tx, {
+        aggregateId: trainerId,
         template: 'security_alert',
         toEmail: trainer.email,
         username: trainer.username,
         subject: 'PokéVerse OS — 2FA TOTP desativado',
         detail: 'A proteção via Authenticator App foi removida da sua conta.',
-        requestedAt: new Date().toISOString(),
         traceId,
-      });
-
-      await tx.outboxEvent.create({
-        data: {
-          id: eventId,
-          aggregateType: 'EmailNotification',
-          aggregateId: trainerId,
-          eventType: KAFKA_TOPICS.NOTIFICATIONS_EMAIL,
-          payload: EncryptedOutboxPayloadSchema.parse({
-            version: 1,
-            ciphertext: this.crypto.encryptJson(emailEvent),
-          }),
-          status: 'PENDING',
-        },
       });
     });
 
     return { message: '2FA TOTP desativado com sucesso.' };
+  }
+
+  private async recordMfaFailure(
+    failKey: string,
+    failCount: number,
+  ): Promise<void> {
+    if (typeof this.redis.incrementCounterWithTtl === 'function') {
+      await this.redis.incrementCounterWithTtl(failKey, MFA_LOCK_WINDOW_SEC);
+      return;
+    }
+    await this.redis.setStringEx(
+      failKey,
+      MFA_LOCK_WINDOW_SEC,
+      String(failCount + 1),
+    );
   }
 
   private async verifyTotpWithReplayGuard(

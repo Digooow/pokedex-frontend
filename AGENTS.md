@@ -44,3 +44,11 @@ Todo código novo ou refatorado neste repositório DEVE obedecer estritamente ao
    - **Zero TOCTOU em contadores de segurança:** contadores de tentativas/bloqueio (login, OTP, MFA, rate limit) DEVEM ser incrementados atomicamente no Redis via `INCR` + `EXPIRE` (Lua script), nunca por leitura seguida de escrita (`get` + `set`).
    - **Rollback de idempotência em consumidores Kafka:** nunca mantenha lock `SET NX` gravado quando o efeito colateral (envio de e-mail, persistência ou broadcast) lançar exceção transiente; libere o lock no `catch` antes de relançar para retry/DLQ.
    - **Atomic Lease no Transactional Outbox:** `FOR UPDATE SKIP LOCKED` só tem validade dentro da transação; reivindique lotes com `UPDATE ... RETURNING` (lease em `processedAt`) para evitar processamento duplicado entre réplicas concorrentes.
+
+---
+
+## 4. Sincronização Obrigatória de Documentação e `README.md`
+
+1. **Documentação Viva no Mesmo Ciclo:**
+   - **Toda** implementação de funcionalidade, refatoração estrutural/arquitetural, mudança de contratos/endpoints/scripts/testes/bundle ou remoção de código/arquivos no projeto **DEVE** atualizar, na mesma entrega, o [`README.md`](README.md) e os documentos correspondentes em [`docs/`](docs/) (especialmente [`docs/14-status-e-changelog-implementacao.md`](docs/14-status-e-changelog-implementacao.md) e os guias temáticos impactados).
+   - É proibido declarar uma tarefa de código como concluída se `README.md` ou `docs/` estiverem defasados em relação à árvore de arquivos, rotas HTTP/WS, métricas de testes/bundle, comandos CLI ou tabela de dívidas técnicas.

@@ -9,7 +9,7 @@ import {
 const CONSENT_COOKIE_NAME = 'pokeverse_consent';
 const CONSENT_MAX_AGE_SEC = 180 * 86_400;
 const CONSENT_CHANNEL_NAME = 'pokeverse_consent_sync';
-const NON_ESSENTIAL_STORAGE_KEYS = [
+const INITIAL_NON_ESSENTIAL_STORAGE_KEYS = [
   'pokeverse_perf_pref',
   'pokedex_cenario_ativo',
   'pokedex_cenario_auto',
@@ -19,6 +19,7 @@ const NON_ESSENTIAL_STORAGE_KEYS = [
 @Injectable({ providedIn: 'root' })
 export class PrivacyConsentStore implements OnDestroy {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly nonEssentialStorageKeys = new Set<string>(INITIAL_NON_ESSENTIAL_STORAGE_KEYS);
   private readonly consentSignal = signal<PrivacyConsent | null>(this.readConsentCookie());
   private readonly dialogOpenSignal = signal(false);
   private readonly channel: BroadcastChannel | null = this.openBroadcastChannel();
@@ -26,12 +27,24 @@ export class PrivacyConsentStore implements OnDestroy {
   readonly consent = this.consentSignal.asReadonly();
   readonly dialogOpen = this.dialogOpenSignal.asReadonly();
   readonly hasSavedChoice = computed(() => this.consentSignal() !== null);
+  readonly hasExplicitFunctionalOptIn = computed(
+    () => this.consentSignal()?.functionalPreferences === true,
+  );
   readonly canPersistFunctionalPreferences = computed(
     () => this.consentSignal()?.functionalPreferences ?? true,
   );
   readonly optionalTelemetryEnabled = computed(
     () => this.consentSignal()?.optionalTelemetry ?? false,
   );
+
+  registerNonEssentialStorageKey(...keys: readonly string[]): void {
+    for (const key of keys) {
+      const normalized = key.trim();
+      if (normalized) {
+        this.nonEssentialStorageKeys.add(normalized);
+      }
+    }
+  }
 
   openDialog(): void {
     this.dialogOpenSignal.set(true);
@@ -65,7 +78,7 @@ export class PrivacyConsentStore implements OnDestroy {
       return;
     }
     try {
-      for (const key of NON_ESSENTIAL_STORAGE_KEYS) {
+      for (const key of this.nonEssentialStorageKeys) {
         window.localStorage.removeItem(key);
       }
     } catch {

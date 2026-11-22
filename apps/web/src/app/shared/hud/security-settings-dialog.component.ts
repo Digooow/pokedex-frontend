@@ -28,6 +28,7 @@ export class SecuritySettingsDialogComponent {
   readonly disableCredential = signal('');
   readonly passkeyLabel = signal('Meu Dispositivo');
   readonly copiedCodes = signal(false);
+  readonly confirmingDelete = signal(false);
 
   constructor() {
     effect(() => {
@@ -40,6 +41,7 @@ export class SecuritySettingsDialogComponent {
         this.totpCode.set('');
         this.disableCredential.set('');
         this.copiedCodes.set(false);
+        this.confirmingDelete.set(false);
         this.iam.openDialog();
         void this.iam.loadSessions();
         dialog.showModal();
@@ -117,6 +119,18 @@ export class SecuritySettingsDialogComponent {
     this.privacy.openDialog();
   }
 
+  requestDeleteAccount(): void {
+    this.confirmingDelete.set(true);
+  }
+
+  cancelDeleteAccount(): void {
+    this.confirmingDelete.set(false);
+  }
+
+  confirmDeleteAccount(): void {
+    void this.iam.deleteAccount();
+  }
+
   onNativeClose(): void {
     const dialog = this.dialogRef()?.nativeElement;
     if (dialog) {
@@ -124,6 +138,7 @@ export class SecuritySettingsDialogComponent {
     }
     this.totpCode.set('');
     this.disableCredential.set('');
+    this.confirmingDelete.set(false);
     this.iam.closeDialog();
   }
 }

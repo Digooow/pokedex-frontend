@@ -743,6 +743,9 @@ describe('PokéVerse OS Shell', () => {
     const privacy = TestBed.inject(PrivacyConsentStore);
     const quality = TestBed.inject(QualityStore);
     expect(privacy.hasSavedChoice()).toBe(false);
+    expect(privacy.hasExplicitFunctionalOptIn()).toBe(false);
+    privacy.registerNonEssentialStorageKey('custom_non_essential_pref');
+    window.localStorage.setItem('custom_non_essential_pref', '1');
 
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
@@ -760,6 +763,7 @@ describe('PokéVerse OS Shell', () => {
     expect(document.cookie).toContain('pokeverse_consent=');
     expect(window.localStorage.getItem('pokeverse_perf_pref')).toBeNull();
     expect(window.localStorage.getItem('pokedex_cenario_ativo')).toBeNull();
+    expect(window.localStorage.getItem('custom_non_essential_pref')).toBeNull();
 
     quality.setPreference('ultra');
     expect(window.localStorage.getItem('pokeverse_perf_pref')).toBeNull();
@@ -841,5 +845,46 @@ describe('PokéVerse OS Shell', () => {
     } finally {
       fetchSpy.mockRestore();
     }
+  });
+
+  it('deletes trainer account via DELETE /api/v1/auth/me (LGPD) and clears local auth session', async () => {
+    const auth = TestBed.inject(AuthStore);
+    const iam = TestBed.inject(SecurityIamStore);
+    const httpMock = TestBed.inject(HttpTestingController);
+
+    auth.login({ email: 'red@pokeverse.dev', password: 'Password1234!' });
+    httpMock.expectOne('/api/v1/auth/login').flush({
+      authenticated: true,
+      sessionState: 'AUTHENTICATED',
+      mfaMethods: [],
+      expiresInSec: 900,
+      trainer: {
+        id: '550e8400-e29b-41d4-a716-446655440000',
+        username: 'Red_Kanto',
+        email: 'red@pokeverse.dev',
+        emailVerifiedAt: new Date().toISOString(),
+        mfaEnabled: false,
+        hasPassword: true,
+        badgesCount: 0,
+        eloRating: 1000,
+        lastMapId: 'pokeverse-town',
+        lastX: 400,
+        lastY: 320,
+        createdAt: new Date().toISOString(),
+      },
+    });
+    expect(auth.isAuthenticated()).toBe(true);
+
+    const deletePromise = iam.deleteAccount();
+    httpMock.expectOne('/api/v1/auth/me').flush({
+      message: 'Conta de treinador e dados pessoais eliminados permanentemente (LGPD).',
+    });
+    await Promise.resolve();
+    httpMock.expectOne('/api/v1/auth/logout').flush(null, { status: 204, statusText: 'No Content' });
+    await deletePromise;
+
+    expect(iam.dialogOpen()).toBe(false);
+    expect(auth.isAuthenticated()).toBe(false);
+    expect(auth.trainer()).toBeNull();
   });
 });

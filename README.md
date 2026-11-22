@@ -21,7 +21,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-55_passando-3ddc84">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-65_unit_%2B_8_E2E-3ddc84">
   <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
 </p>
 
@@ -99,7 +99,7 @@ A plataforma tem **cinco módulos**, acessíveis pelo dock inferior (atalhos `1`
 - Verificação de e-mail e recuperação de senha por **OTP**
 - **Transactional Outbox**, Redpanda/Kafka, consumidores idempotentes e DLQ
 - Gateway WebSocket `/ws/world` com ticker global
-- Banner de cookies e **LGPD** (consentimento versionado)
+- Banner de cookies e **LGPD** (consentimento versionado, exportação JSON e eliminação em cascata `DELETE /auth/me`)
 - Deploy contínuo em **Cloudflare Pages + Azure Container Apps**
 
 </td>
@@ -339,7 +339,7 @@ stateDiagram-v2
   MFA_PENDING --> Visitante: 5 a 8 falhas, bloqueio atômico no Redis
   Visitante --> AUTHENTICATED: Google OAuth PKCE ou Passkey
   AUTHENTICATED --> AUTHENTICATED: POST /auth/refresh (rotação de família)
-  AUTHENTICATED --> Visitante: POST /auth/logout ou revogação
+  AUTHENTICATED --> Visitante: POST /auth/logout, revogação ou DELETE /auth/me
 ```
 
 ### Eventos confiáveis: Transactional Outbox
@@ -451,7 +451,7 @@ Prefixo global `/api/v1` (exceto `/health`). Validação de entrada com Zod na f
 | | `POST /auth/register` · `login` · `refresh` · `logout` | Ciclo de vida da conta e da sessão |
 | | `POST /auth/verify-email` · `resend-verification` | Verificação por OTP |
 | | `POST /auth/forgot-password` · `reset-password` | Recuperação por OTP |
-| | `GET /auth/me` · `me/export` | Perfil e exportação de dados (LGPD) |
+| | `GET /auth/me` · `me/export` · `DELETE /auth/me` | Perfil, portabilidade e eliminação em cascata (LGPD) |
 | | `GET /auth/sessions` · `POST /auth/sessions/revoke-others` | Gestão de dispositivos |
 | **Google** | `GET /auth/google/start` · `callback` · `DELETE /auth/google` | OAuth com PKCE e vínculo de conta |
 | **MFA** | `GET /auth/security/overview` | Painel de segurança |
@@ -473,7 +473,7 @@ flowchart LR
   subgraph v["CI Verification (GitHub Actions)"]
     direction LR
     s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>3 workspaces"]
-    s2 --> s3["Lint API"]
+    s2 --> s3["Lint (3 workspaces)"]
     s3 --> s4["Testes unitários<br/>Vitest + Jest"]
     s4 --> s5["Testes E2E<br/>da API"]
     s5 --> s6["Build<br/>+ legado da raiz"]
@@ -508,24 +508,25 @@ flowchart LR
 
 | Workspace | Runner | Testes |
 | :--- | :--- | :-: |
-| `@pokeverse/shared` | Vitest | 15 (3 arquivos) |
-| `pokeverse-api` | Jest | 23 (9 suítes) |
-| `pokeverse-web` | Vitest + jsdom | 17 (1 arquivo) |
-| **Total** | | **55 passando** |
+| `@pokeverse/shared` | Vitest 5 | 15 (3 arquivos) |
+| `pokeverse-api` (unit) | Jest 30 | 32 (12 suítes) |
+| `pokeverse-api` (E2E) | Jest + Supertest | 8 (1 suíte) |
+| `pokeverse-web` | Vitest 5 + TestBed | 18 (1 arquivo) |
+| **Total** | | **65 unitários + 8 E2E (73 verificações)** |
 
 ```mermaid
 xychart-beta
   title "Testes automatizados por workspace"
-  x-axis ["shared (Vitest)", "api (Jest)", "web (Vitest)"]
-  y-axis "Testes" 0 --> 30
-  bar [15, 23, 17]
+  x-axis ["shared (Vitest)", "api unit (Jest)", "api E2E", "web (Vitest)"]
+  y-axis "Testes" 0 --> 35
+  bar [15, 32, 8, 18]
 ```
 
-Os testes cobrem busca fuzzy, regras do Laboratório, schemas, TOTP, OAuth, consumidores Kafka, Outbox, health, bootstrap e a Pokédex (incluindo abertura direta pelos slots azuis).
+Os testes cobrem busca fuzzy, regras do Laboratório, schemas, `PokeApiCacheService`, `PokedexSlotsService`, TOTP, Passkeys WebAuthn, OAuth PKCE, consumidores Kafka, Outbox, deleção LGPD, expurgo temporal, health, bootstrap e a Pokédex (incluindo slots azuis e `PrivacyConsentStore`).
 
 ### Bundle do front-end
 
-`494.31 kB` raw e `127.09 kB` de transferência estimada no bundle inicial. O CSS global tem `67.37 kB` e o `main` tem `36.36 kB`. O resto é carregado sob demanda: Pokédex (`79.80 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`23.16 kB`), diálogos de visitante, segurança e privacidade, e Museu (`4.49 kB`).
+`495.13 kB` raw e `127.35 kB` de transferência estimada no bundle inicial. O CSS global tem `67.44 kB` (`11.51 kB` transferido) e o `main` tem `36.61 kB` (`10.06 kB` transferido). O resto é carregado sob demanda: Pokédex (`83.51 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`23.16 kB`), configurações de segurança (`18.18 kB`), diálogo de visitante (`18.02 kB`), diálogo de privacidade/LGPD (`10.70 kB`) e Museu (`4.49 kB`).
 
 ---
 
@@ -562,7 +563,7 @@ flowchart TB
 | **Sessão** | Opaca, no Redis, com `MFA_PENDING` → `AUTHENTICATED`, rotação de refresh por família e revogação instantânea |
 | **MFA** | TOTP (QR Code + 8 backup codes), Passkeys WebAuthn e proteção contra *account takeover* no Google PKCE |
 | **Concorrência** | Zero TOCTOU em contadores (Lua), zero efeito externo antes da constraint `UNIQUE`, lease atômico no Outbox e rollback de idempotência no `catch` |
-| **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), preferências opcionais separadas, exportação de dados em `GET /auth/me/export` e sem rastreadores de terceiros |
+| **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), chaves não essenciais registradas declarativamente, portabilidade em `GET /auth/me/export`, eliminação definitiva em cascata via `DELETE /auth/me` (confirmação em 2 etapas na UI), expurgo temporal de tokens/eventos expirados e zero rastreadores de terceiros |
 | **Infra** | Imagem Docker multi-stage não-root, secrets só em variáveis de ambiente, TLS e mTLS nos serviços gerenciados |
 | **Observabilidade** | Logs JSON estruturados, `x-correlation-id` e `traceparent` W3C, health checks separados de liveness e readiness |
 
@@ -638,17 +639,17 @@ flowchart LR
 
 ### Dívidas técnicas conhecidas
 
-Aqui está a lista honesta do que ainda falta:
+Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 17](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md):
 
 | Item | Situação |
 | :--- | :--- |
-| Lint automatizado | O CI roda ESLint só em `apps/api`. Falta estender a `apps/web` e `packages/shared` com limites de linhas e complexidade ([doc 17](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md)) |
-| Decomposição SOLID do IAM | O `AuthService` concentra responsabilidades e o plano de quebra está no doc 17 |
-| `PokedexRpgNavService` | Serviço grande, com consultas imperativas ao DOM (DIP) e dois vocabulários de tokens em `_tokens.scss` |
-| Cobertura do front-end | 17 testes em um único arquivo (`app.spec.ts`) |
+| Lint e formatação no CI | ✅ **`npm run lint` unificado** nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`) com `@typescript-eslint/no-explicit-any: error`; próximo passo: `prettier --check` e limites graduais de complexidade (`max-lines`) |
+| Decomposição SOLID do IAM e `AuthStore` | ✅ **Concluída:** `AuthService` fatiado em 5 serviços especializados + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; e `AuthStore` com `AuthRecoveryService` + `AuthCrossTabSyncService` |
+| `PokedexRpgNavService` e CSS 3D | ✅ **Refatorados:** extraídos `PokedexLidPhysicsService` + diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` (DIP) e `_pokedex-classic.scss` dividido em 5 parciais em `styles/pokedex/`; resta apenas consolidar o segundo vocabulário legado de tokens em `_tokens.scss` |
+| Cobertura e integração reais | ✅ **65 unitários + 8 E2E** (adicionados testes em `PokeApiCacheService`, `PokedexSlotsService`, `PasskeyService`, deleção LGPD e `PrivacyConsentStore`); pendente fatiar `app.spec.ts` por feature e rodar **Testcontainers** (Postgres + Redis + Redpanda reais) no CI |
+| Observabilidade & Segurança (ondas 2 e 3) | OpenTelemetry SDK completo (OTel + métricas RED/USE), `gitleaks` / `npm audit --audit-level=high` bloqueantes e demais itens do [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) |
 | Domínio próprio | Opcional: conectar `pokedex.<domínio>` no Cloudflare e atualizar `CORS_ORIGINS`, `WEBAUTHN_*` e `GOOGLE_REDIRECT_URI` |
-| Segurança, ondas 2 e 3 | Veja o [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) |
-| `WsAuthGuard` | O `/ws/world` aceita visitantes. Ações do Overworld exigirão sessão |
+| `WsAuthGuard` | O `/ws/world` aceita visitantes para o ticker. Ações do Overworld exigirão sessão autenticada |
 
 ---
 
@@ -704,12 +705,12 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | :--- | :--- |
 | `npm run build` | Build de `shared`, `api` e `web` |
 | `npm run typecheck` | `tsc --noEmit` nos 3 workspaces |
-| `npm run lint:api` | ESLint da API |
+| `npm run lint` | ESLint nos 3 workspaces (`lint:shared`, `lint:api`, `lint:web`) |
 | `npm run test` | Vitest (`shared`, `web`) e Jest (`api`) |
 | `npm run audit:ui` | UI Quality Gate sobre o build do front-end |
 | `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker |
 
-> **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint:api`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
+> **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
 
 ### Variáveis de ambiente
 
@@ -736,14 +737,14 @@ pokedex-frontend/
 │   │       ├── common/            #   guards, filtros, pipes, middleware, telemetria, crypto
 │   │       ├── config/            #   env.schema.ts (validação fail-fast com Zod)
 │   │       ├── infra/             #   Prisma, Redis, Kafka e probes de saúde
-│   │       └── modules/           #   auth · pokedex · events · notifications · world · health · system
+│   │       └── modules/           #   auth (SOLID IAM: AuthService fachada, CredentialsAuth, TokenRefresh, Recovery, SessionMgmt, TrainerGdpr, SessionIssuer, OutboxPublisher, GoogleOAuth*), pokedex · events · notifications · world · health · system
 │   └── web/                       # Angular 22 Standalone + Zoneless
 │       ├── functions/             #   Cloudflare Pages Functions (proxy same-origin)
 │       └── src/
-│           ├── app/core/          #   stores (Signals), guards e interceptors
-│           ├── app/features/      #   pokedex-device · regions-museum · title-screen · under-construction
-│           ├── app/shared/        #   HUD, dock, diálogos e diretivas
-│           └── styles/            #   _tokens.scss e _pokedex-classic.scss (chassi 3D)
+│           ├── app/core/          #   guards · interceptors · http (api-error.util) · stores (Auth, AuthCrossTabSync, AuthRecovery, SecurityIam, PrivacyConsent, Quality, Scenario, SystemStatus, WorldTicker)
+│           ├── app/features/      #   pokedex-device (services/ + directives/ [pvRpgFocusable]) · regions-museum · title-screen · under-construction
+│           ├── app/shared/        #   HUD, dock, diálogos (VisitorLock, SecuritySettings, PrivacyConsent) e diretivas
+│           └── styles/            #   _tokens.scss · _pokedex-classic.scss + parciais styles/pokedex/ (_chassis-3d, _search-scanner, _controls-dpad, _slots-grid, _visor-lcd)
 ├── packages/
 │   └── shared/                    # @pokeverse/shared: schemas Zod, busca fuzzy, 51 endpoints, Laboratório
 ├── infra/docker/                  # api.Dockerfile e docker-compose.yml
@@ -797,6 +798,7 @@ As regras completas estão em [`AGENTS.md`](AGENTS.md) e valem para qualquer pes
 4. **DRY real.** Contratos, schemas e regras de domínio ficam em `@pokeverse/shared`.
 5. **SOLID de verdade.** Services e stores têm até cerca de 300 linhas e componentes de UI até cerca de 150 a 200. Stores nunca tocam o DOM.
 6. **Travas anti-race.** Contadores atômicos em Lua, zero efeito externo antes da constraint, lease atômico no Outbox e rollback de idempotência.
+7. **Documentação e README sempre sincronizados.** Toda implementação, alteração estrutural ou remoção no projeto atualiza também [`README.md`](README.md) e os documentos em [`docs/`](docs/) na mesma entrega.
 
 Os commits seguem [Conventional Commits](https://www.conventionalcommits.org/pt-br/) (`feat:`, `fix:`, `docs:`, `chore:`).
 

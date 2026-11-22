@@ -693,4 +693,65 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       ),
     ).toBe(false);
   });
+
+  it('deletes trainer account permanently (LGPD) and purges expired tokens/outbox rows', async () => {
+    const trainerId = '550e8400-e29b-41d4-a716-446655440000';
+    const redisStore = new Map<string, string>([
+      ['sess:sid-1', '{"trainerId":"550e8400-e29b-41d4-a716-446655440000"}'],
+    ]);
+    const trainerDelete = jest.fn().mockResolvedValue({ id: trainerId });
+    const refreshDeleteMany = jest.fn().mockResolvedValue({ count: 4 });
+    const outboxDeleteMany = jest.fn().mockResolvedValue({ count: 7 });
+
+    const prismaMock = {
+      trainer: { delete: trainerDelete },
+      refreshToken: { deleteMany: refreshDeleteMany },
+      outboxEvent: { deleteMany: outboxDeleteMany },
+    } as unknown as PrismaService;
+
+    const delKeys = jest.fn((...keys: string[]) => {
+      for (const k of keys) {
+        redisStore.delete(k);
+      }
+      return Promise.resolve();
+    });
+    const redisMock = {
+      getSetMembers: jest.fn().mockResolvedValue(['sid-1']),
+      delKeys,
+    } as unknown as RedisService;
+
+    const configMock = createConfigMock();
+    const crypto = new CryptoService(configMock);
+    const sessionService = new SessionService(redisMock, crypto, configMock);
+    const otpService = new OtpService(redisMock, crypto, configMock);
+    const service = new AuthService(
+      prismaMock,
+      redisMock,
+      crypto,
+      sessionService,
+      otpService,
+      configMock,
+      new StructuredLoggerService(),
+    );
+
+    const deleted = await service.deleteTrainerAccount(
+      trainerId,
+      'raw-sid-at-least-twenty-chars',
+      'raw-refresh-token-value',
+    );
+    expect(deleted.message).toContain('LGPD');
+    expect(trainerDelete).toHaveBeenCalledWith({ where: { id: trainerId } });
+    expect(delKeys).toHaveBeenCalled();
+    expect(redisStore.has('sess:sid-1')).toBe(false);
+
+    const purged = await service.purgeExpiredTokensAndEvents(
+      new Date('2026-11-22T00:00:00.000Z'),
+    );
+    expect(purged).toEqual({
+      deletedRefreshTokens: 4,
+      deletedOutboxEvents: 7,
+    });
+    expect(refreshDeleteMany).toHaveBeenCalledTimes(1);
+    expect(outboxDeleteMany).toHaveBeenCalledTimes(1);
+  });
 });

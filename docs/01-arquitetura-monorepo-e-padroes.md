@@ -116,22 +116,26 @@ A fonte única da verdade (**Single Source of Truth**) mora em `packages/shared`
   3. Strings com acentos, Unicode complexo, múltiplos espaços e payload vazio;
   4. Valores ausentes/nulos, falhas de timeout, respostas HTTP `404`/`429`/`500` e mensagens duplicadas no Kafka.
 
+### 4.4. Sincronização Obrigatória de Documentação e `README.md`
+- **Toda** implementação, refatoração estrutural ou remoção de módulos, contratos, endpoints, scripts ou fluxos visuais DEVE atualizar, na mesma entrega, o [`README.md`](../README.md) e os arquivos correspondentes em `docs/`.
+
 ---
 
 ## 5. Convenções de Versionamento e Branching
 
 - **Conventional Commits:** `feat(arcade): ...`, `fix(pokedex): ...`, `docs(arch): ...`, `refactor(battle): ...`, `test(domain): ...`, `chore(infra): ...`.
-- **Branches:** `main` (estável/produção), branches curtas por entrega (`feat/fase-1-monorepo`, `feat/fase-2-auth-slots`, etc.) validadas por CI (`lint`, `typecheck`, `test`, `build`) antes do merge.
+- **Branches:** `main` (estável/produção), branches curtas por entrega (`feat/fase-1-monorepo`, `feat/fase-2-auth-slots`, etc.) validadas por CI (`lint`, `typecheck`, `test`, `build`, `audit:ui`) antes do merge.
 
 ---
 
-## 6. Estado Real do Monorepo (Fases 1 e 2 Entregues)
+## 6. Estado Real do Monorepo (Fases 1–4A + Hardening SOLID/LGPD Entregues)
 
 O repositório utiliza **npm workspaces** (`package.json` raiz, sem Turborepo neste estágio) e o prefixo Angular **`pv-*`** (`[pvRequiresTrainer]`). Já estão ativos no código-fonte:
 
-- `packages/shared`: schemas Zod de Auth, Pokédex/Slots, Saúde e Eventos Kafka + busca fonética/Damerau-Levenshtein portada e testada em Vitest.
-- `apps/api`: módulos `AuthModule`, `PokedexModule`, `EventsModule` (`OutboxRelayService` + `WorldEventsConsumerService`), `WorldModule` (`WorldGateway`), `HealthModule` e `SystemModule` sobre Prisma `6.19.3`, Redis (`ioredis`) e Redpanda (`kafkajs`). Módulos `trainers/`, `museum/`, `arcade/`, `teams/`, `minigames/` e `battle/` pertencem às **Fases 3–6**.
-- `apps/web`: Shell Angular Standalone/Zoneless (`TitleScreenComponent`, `PokedexDevicePageComponent` + `PokedexSlotsStore`, placeholder inicial `MuseumPageComponent`). As features `overworld/`, `holocron-3d/`, `retro-arcade/` e `battle-arena/` pertencem às **Fases 3–6**.
-- `infra/docker/docker-compose.yml`: PostgreSQL 16 (`5433`), Redis 7 (`6379`), Redpanda (`19092`), Redpanda Console (`8085`) e S3 compatível (`pgsty/silo` em `9000/9001`).
+- **Qualidade unificada nos 3 workspaces:** `npm run lint` executa ESLint 9 com TypeScript estrito (`no-explicit-any: error`) em `@pokeverse/shared`, `pokeverse-api` e `pokeverse-web`; `npm run typecheck` valida todos os workspaces e `npm run build:shared` compila ESM/CJS/`.d.ts` com `tsup`.
+- `packages/shared`: schemas Zod v4 (Auth, Pokédex/Slots, Saúde, Sistema, LGPD/Cookies, Eventos Kafka), busca fonética/Damerau-Levenshtein portada e testada em Vitest, catálogo dos `51` endpoints da PokéAPI v2 ([pokeapi-endpoints.ts](../packages/shared/src/domain/pokeapi-endpoints.ts)) e regras puras do Laboratório Genético ([pokemon-lab.ts](../packages/shared/src/domain/pokemon-lab.ts)).
+- `apps/api`: arquitetura **IAM Enterprise BFF** decomposta segundo **SOLID** (`AuthService` como fachada sobre `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` + expurgo temporal, `TrainerGdprService` com exportação e `DELETE /api/v1/auth/me`, `TrainerSessionIssuer`, `AuthOutboxPublisher`, `GoogleOAuthService` + `GoogleOidcVerifier` + `GoogleAccountLinker` + `GoogleOAuthHttpClient`, `MfaTotpService`, `PasskeyService`, `OtpService`, `SessionService`), além de `PokedexModule` (`stale-fallback` 7d e slots ACID), `EventsModule` (`OutboxRelayService` com *atomic lease* `UPDATE ... RETURNING` + consumidores idempotentes com rollback no `catch`), `NotificationsModule` (`MailService` com tabela OCP), `WorldModule` (`WorldGateway`), `HealthModule` e `SystemModule` (`POKEVERSE_PHASE` dinâmico) sobre Prisma `6.19.3` (13 modelos), Redis (`ioredis` + Lua atômico) e Kafka (`kafkajs`). Módulos `trainers/`, `museum/`, `arcade/`, `teams/`, `minigames/` e `battle/` pertencem às **Fases 4B–6**.
+- `apps/web`: Shell Angular 22 Standalone/Zoneless com `core/http/api-error.util.ts`, `AuthStore` + `AuthCrossTabSyncService` + `AuthRecoveryService`, `SecurityIamStore` (inclusa exclusão LGPD em 2 etapas), `PrivacyConsentStore` (consentimento extensível), `PokedexDevicePageComponent` + `PokedexLidPhysicsService` + diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` (DIP) + parciais SCSS em [styles/pokedex/](../apps/web/src/styles/pokedex), `TitleScreenComponent` e `MuseumPageComponent`. As features `overworld/`, `holocron-3d/`, `retro-arcade/` e `battle-arena/` pertencem às **Fases 4B–6**.
+- `infra/docker/docker-compose.yml`: PostgreSQL 16 (`5433`), Redis 7 (`6379`), Redpanda (`19092`), Redpanda Console (`8085`), Mailpit (`1025/8025`) e S3 compatível (`pgsty/silo` em `9000/9001`).
 
-> Detalhes completos de divergências, módulos entregues, blindagem pendente e métricas medidas estão em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md) e [14 — Status Real da Implementação](14-status-e-changelog-implementacao.md).
+> Detalhes completos de divergências, módulos entregues e métricas medidas estão em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md), [14 — Status Real da Implementação](14-status-e-changelog-implementacao.md) e [17 — Plano SOLID e Engenharia Big Tech](17-plano-solid-clean-code-e-engenharia-big-tech.md).

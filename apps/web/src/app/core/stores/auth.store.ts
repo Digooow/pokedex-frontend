@@ -1,28 +1,27 @@
-import { isPlatformBrowser } from '@angular/common';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Injectable, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { Injectable, OnDestroy, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import {
-  type AccessMode,
-  AuthProvidersSchema,
-  type AuthSessionResponse,
-  AuthSessionResponseSchema,
-  type ForgotPasswordInput,
-  GenericMessageResponseSchema,
-  type LoginTrainerInput,
-  type MfaChallengeVerifyInput,
-  type MfaMethod,
-  PasskeyAuthOptionsEnvelopeSchema,
-  type RegisterTrainerInput,
-  type ResendEmailOtpInput,
-  type ResetPasswordOtpInput,
-  type SessionAuthState,
-  SessionBootstrapResponseSchema,
-  type TrainerProfile,
-  type VerifyEmailOtpInput,
+import type {
+  AccessMode,
+  AuthSessionResponse,
+  ForgotPasswordInput,
+  LoginTrainerInput,
+  MfaChallengeVerifyInput,
+  MfaMethod,
+  RegisterTrainerInput,
+  ResendEmailOtpInput,
+  ResetPasswordOtpInput,
+  SessionAuthState,
+  TrainerProfile,
+  VerifyEmailOtpInput,
 } from '@pokeverse/shared';
-import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
-import { Observable, catchError, firstValueFrom, finalize, from, map, of, shareReplay, tap } from 'rxjs';
+import { Observable, finalize, shareReplay } from 'rxjs';
+import { extractApiErrorMessage } from '../http/api-error.util';
+import { AuthCrossTabSyncService } from './auth-cross-tab-sync.service';
+import {
+  AuthRecoveryService,
+  type GenericMessageOutcome,
+  type SessionResponseOutcome,
+} from './auth-recovery.service';
 
 export type AuthDialogMode = 'login' | 'register' | 'forgot' | 'verify-email' | 'mfa-challenge';
 
@@ -39,22 +38,13 @@ export type AuthMutationState =
   | { readonly status: 'success'; readonly message: string }
   | { readonly status: 'error'; readonly message: string };
 
-function isPasskeyRequestOptions(value: unknown): value is PublicKeyCredentialRequestOptionsJSON {
-  return typeof value === 'object' && value !== null && 'challenge' in value;
-}
-
-const AUTH_SYNC_CHANNEL_NAME = 'pokeverse_auth_sync';
-const AUTH_REFRESH_LOCK_NAME = 'pokeverse-auth-refresh';
-
-type AuthSyncBroadcastMessage =
-  | { readonly type: 'session'; readonly session: AuthSessionResponse }
-  | { readonly type: 'logout' };
+const DEFAULT_AUTH_ERROR = 'Não foi possível autenticar. Confira os dados e tente novamente.';
 
 @Injectable({ providedIn: 'root' })
 export class AuthStore implements OnDestroy {
-  private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
-  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly recovery = inject(AuthRecoveryService);
+  private readonly crossTabSync = inject(AuthCrossTabSyncService);
 
   private readonly sessionSignal = signal<AuthSessionResponse | null>(null);
   private readonly visitorPromptSignal = signal<VisitorPromptContext | null>(null);
@@ -69,7 +59,6 @@ export class AuthStore implements OnDestroy {
     webauthnEnabled: true,
   });
   private inflightRefresh$: Observable<boolean> | null = null;
-  private readonly syncChannel: BroadcastChannel | null = this.openSyncChannel();
 
   readonly trainer = computed<TrainerProfile | null>(() => this.sessionSignal()?.trainer ?? null);
   readonly sessionState = computed<SessionAuthState | null>(
@@ -88,50 +77,36 @@ export class AuthStore implements OnDestroy {
   readonly mutationState = this.mutationSignal.asReadonly();
   readonly providers = this.providersSignal.asReadonly();
 
-  restoreSession(): void {
-    const oauthReturn = this.consumeOAuthCallbackParams();
-    this.loadProviders();
-    this.http
-      .get<unknown>('/api/v1/auth/session')
-      .pipe(
-        map((raw) => SessionBootstrapResponseSchema.safeParse(raw)),
-        catchError(() => of(null)),
-      )
-      .subscribe((parsed) => {
-        if (!parsed?.success) {
-          this.sessionSignal.set(null);
-          if (oauthReturn.authError) {
-            this.openGoogleAuthErrorPrompt(oauthReturn.authError);
-          }
-          return;
-        }
-        if (parsed.data.authenticated) {
-          this.sessionSignal.set(parsed.data);
-          if (parsed.data.sessionState === 'MFA_PENDING') {
-            this.openMfaChallengePrompt();
-          } else if (oauthReturn.googleLinked) {
-            this.pendingSecurityFeedbackSignal.set({
-              tone: 'ok',
-              text: 'Conta Google vinculada com sucesso via OAuth 2.0 PKCE.',
-            });
-            this.openSecuritySettings();
-          } else if (oauthReturn.authError) {
-            this.pendingSecurityFeedbackSignal.set({
-              tone: 'error',
-              text: this.mapOAuthErrorCode(oauthReturn.authError),
-            });
-            this.openSecuritySettings();
-          }
-          return;
-        }
+  constructor() {
+    this.crossTabSync.connect((msg) => {
+      if (msg.type === 'logout') {
         this.sessionSignal.set(null);
-        if (parsed.data.canRefresh) {
-          this.refreshSession().subscribe();
-        }
-        if (oauthReturn.authError) {
-          this.openGoogleAuthErrorPrompt(oauthReturn.authError);
-        }
-      });
+        this.visitorPromptSignal.set(null);
+        this.securityModalOpenSignal.set(false);
+        return;
+      }
+      this.sessionSignal.set(msg.session);
+    });
+  }
+
+  restoreSession(): void {
+    const oauthReturn = this.crossTabSync.consumeOAuthCallbackParams();
+    this.loadProviders();
+    this.recovery.fetchSessionBootstrap().subscribe((parsed) => {
+      if (!parsed?.success) {
+        this.sessionSignal.set(null);
+        if (oauthReturn.authError) this.openGoogleAuthErrorPrompt(oauthReturn.authError);
+        return;
+      }
+      if (parsed.data.authenticated) {
+        this.sessionSignal.set(parsed.data);
+        this.handleAuthenticatedOAuthReturn(parsed.data.sessionState, oauthReturn);
+        return;
+      }
+      this.sessionSignal.set(null);
+      if (parsed.data.canRefresh) this.refreshSession().subscribe();
+      if (oauthReturn.authError) this.openGoogleAuthErrorPrompt(oauthReturn.authError);
+    });
   }
 
   consumeSecurityFeedback(): { readonly tone: 'ok' | 'error'; readonly text: string } | null {
@@ -141,99 +116,25 @@ export class AuthStore implements OnDestroy {
   }
 
   loadProviders(): void {
-    this.http
-      .get<unknown>('/api/v1/auth/providers')
-      .pipe(
-        map((raw) => AuthProvidersSchema.safeParse(raw)),
-        catchError(() => of(null)),
-      )
-      .subscribe((parsed) => {
-        if (parsed?.success) {
-          this.providersSignal.set(parsed.data);
-        }
-      });
+    this.recovery.fetchProviders().subscribe((parsed) => {
+      if (parsed?.success) this.providersSignal.set(parsed.data);
+    });
   }
 
-  login(input: LoginTrainerInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    this.http
-      .post<unknown>('/api/v1/auth/login', input)
-      .pipe(
-        map((raw) => AuthSessionResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => this.handleSessionOutcome(outcome));
-  }
-
-  register(input: RegisterTrainerInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    this.http
-      .post<unknown>('/api/v1/auth/register', input)
-      .pipe(
-        map((raw) => AuthSessionResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => this.handleSessionOutcome(outcome));
-  }
-
-  verifyMfaChallenge(input: MfaChallengeVerifyInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    this.http
-      .post<unknown>('/api/v1/auth/mfa/verify', input)
-      .pipe(
-        map((raw) => AuthSessionResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => this.handleSessionOutcome(outcome));
-  }
+  login = (input: LoginTrainerInput) => this.submitSessionPost('/api/v1/auth/login', input);
+  register = (input: RegisterTrainerInput) => this.submitSessionPost('/api/v1/auth/register', input);
+  verifyMfaChallenge = (input: MfaChallengeVerifyInput) =>
+    this.submitSessionPost('/api/v1/auth/mfa/verify', input);
 
   async loginWithPasskey(email?: string): Promise<void> {
-    if (this.mutationSignal().status === 'submitting') {
+    if (this.mutationSignal().status === 'submitting') return;
+    this.mutationSignal.set({ status: 'submitting' });
+    const outcome = await this.recovery.authenticateWithPasskey(email);
+    if ('customError' in outcome) {
+      this.mutationSignal.set({ status: 'error', message: outcome.customError });
       return;
     }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    try {
-      const rawOptions = await firstValueFrom(
-        this.http.post<unknown>('/api/v1/auth/passkeys/login/options', email ? { email } : {}),
-      );
-      const parsedOptions = PasskeyAuthOptionsEnvelopeSchema.safeParse(rawOptions);
-      if (!parsedOptions.success || !isPasskeyRequestOptions(parsedOptions.data.options)) {
-        this.mutationSignal.set({ status: 'error', message: 'Desafio Passkey inválido.' });
-        return;
-      }
-
-      const { startAuthentication } = await import('@simplewebauthn/browser');
-      const assertion = await startAuthentication({ optionsJSON: parsedOptions.data.options });
-
-      const rawSession = await firstValueFrom(
-        this.http.post<unknown>('/api/v1/auth/passkeys/login/verify', {
-          challengeToken: parsedOptions.data.challengeToken,
-          response: assertion,
-        }),
-      );
-      this.handleSessionOutcome(AuthSessionResponseSchema.safeParse(rawSession));
-    } catch (error) {
-      let message = 'Falha ao autenticar via Passkey.';
-      if (error instanceof HttpErrorResponse) {
-        message = this.extractErrorMessage(error);
-      } else if (error instanceof Error && error.name === 'NotAllowedError') {
-        message = 'Autenticação com Passkey cancelada no dispositivo.';
-      }
-      this.mutationSignal.set({ status: 'error', message });
-    }
+    this.handleSessionOutcome(outcome);
   }
 
   signInWithGoogle(): void {
@@ -241,112 +142,69 @@ export class AuthStore implements OnDestroy {
   }
 
   verifyEmailOtp(input: VerifyEmailOtpInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
+    if (this.mutationSignal().status === 'submitting') return;
     this.mutationSignal.set({ status: 'submitting' });
     const targetRoute = this.visitorPromptSignal()?.targetRoute;
 
-    this.http
-      .post<unknown>('/api/v1/auth/verify-email', input)
-      .pipe(
-        map((raw) => GenericMessageResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => {
-        if ('httpError' in outcome) {
-          this.mutationSignal.set({
-            status: 'error',
-            message: this.extractErrorMessage(outcome.httpError),
-          });
-          return;
-        }
-        if (!outcome.success) {
-          this.mutationSignal.set({ status: 'error', message: 'Resposta inválida do servidor.' });
-          return;
-        }
-        const current = this.sessionSignal();
-        const normalizedInputEmail = input.email.trim().toLowerCase();
-        if (current?.trainer.email.toLowerCase() === normalizedInputEmail) {
-          this.sessionSignal.set({
-            ...current,
-            trainer: {
-              ...current.trainer,
-              emailVerifiedAt: new Date().toISOString(),
-            },
-          });
-        }
-        this.mutationSignal.set({ status: 'idle' });
-        this.visitorPromptSignal.set(null);
-        if (targetRoute) {
-          void this.router.navigateByUrl(targetRoute);
-        }
-      });
+    this.recovery.verifyEmailOtp(input).subscribe((outcome) => {
+      if ('httpError' in outcome || !outcome.success) {
+        this.mutationSignal.set({
+          status: 'error',
+          message:
+            'httpError' in outcome
+              ? extractApiErrorMessage(outcome.httpError, DEFAULT_AUTH_ERROR)
+              : 'Resposta inválida do servidor.',
+        });
+        return;
+      }
+      const current = this.sessionSignal();
+      if (current?.trainer.email.toLowerCase() === input.email.trim().toLowerCase()) {
+        this.sessionSignal.set({
+          ...current,
+          trainer: { ...current.trainer, emailVerifiedAt: new Date().toISOString() },
+        });
+      }
+      this.mutationSignal.set({ status: 'idle' });
+      this.visitorPromptSignal.set(null);
+      if (targetRoute) void this.router.navigateByUrl(targetRoute);
+    });
   }
 
   resendVerificationOtp(input: ResendEmailOtpInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    this.http
-      .post<unknown>('/api/v1/auth/resend-verification', input)
-      .pipe(
-        map((raw) => GenericMessageResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => this.handleMessageOutcome(outcome));
+    this.runMessageMutation(this.recovery.resendVerificationOtp(input));
   }
 
   requestPasswordReset(input: ForgotPasswordInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    this.http
-      .post<unknown>('/api/v1/auth/forgot-password', input)
-      .pipe(
-        map((raw) => GenericMessageResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => this.handleMessageOutcome(outcome));
+    this.runMessageMutation(this.recovery.requestPasswordReset(input));
   }
 
   resetPasswordWithOtp(input: ResetPasswordOtpInput): void {
-    if (this.mutationSignal().status === 'submitting') {
-      return;
-    }
-    this.mutationSignal.set({ status: 'submitting' });
-
-    this.http
-      .post<unknown>('/api/v1/auth/reset-password', input)
-      .pipe(
-        map((raw) => GenericMessageResponseSchema.safeParse(raw)),
-        catchError((err: unknown) => of({ httpError: err } as const)),
-      )
-      .subscribe((outcome) => {
-        this.handleMessageOutcome(outcome);
-        if (!('httpError' in outcome) && outcome.success) {
-          this.sessionSignal.set(null);
-          this.broadcastAuthSync({ type: 'logout' });
-        }
-      });
+    this.runMessageMutation(this.recovery.resetPasswordWithOtp(input), () => {
+      this.sessionSignal.set(null);
+      this.crossTabSync.broadcast({ type: 'logout' });
+    });
   }
 
   refreshSession(): Observable<boolean> {
-    if (this.inflightRefresh$) {
-      return this.inflightRefresh$;
-    }
+    if (this.inflightRefresh$) return this.inflightRefresh$;
 
-    this.inflightRefresh$ = from(this.runSerializedRefresh()).pipe(
+    this.inflightRefresh$ = new Observable<boolean>((subscriber) => {
+      this.crossTabSync
+        .runWithRefreshLock(() => this.executeRefresh())
+        .then((ok) => {
+          subscriber.next(ok);
+          subscriber.complete();
+        })
+        .catch(() => {
+          subscriber.next(false);
+          subscriber.complete();
+        });
+    }).pipe(
       finalize(() => {
         this.inflightRefresh$ = null;
       }),
       shareReplay(1),
     );
-
     return this.inflightRefresh$;
   }
 
@@ -355,26 +213,19 @@ export class AuthStore implements OnDestroy {
     this.mutationSignal.set({ status: 'idle' });
     this.visitorPromptSignal.set(null);
     this.securityModalOpenSignal.set(false);
-    this.broadcastAuthSync({ type: 'logout' });
-    this.http
-      .post<void>('/api/v1/auth/logout', null)
-      .pipe(
-        tap(() => this.sessionSignal.set(null)),
-        catchError(() => of(undefined)),
-      )
-      .subscribe();
+    this.crossTabSync.broadcast({ type: 'logout' });
+    this.recovery.postLogout().subscribe(() => this.sessionSignal.set(null));
   }
 
   ngOnDestroy(): void {
-    this.syncChannel?.close();
+    this.crossTabSync.ngOnDestroy();
   }
 
   openMfaChallengePrompt(): void {
-    const preservedTarget = this.visitorPromptSignal()?.targetRoute;
     this.requestTrainerAccess(
       'Verificação em 2 Etapas (2FA)',
       'Sua sessão está em estado MFA_PENDING. Confirme com seu Authenticator App, código de backup ou Passkey.',
-      preservedTarget,
+      this.visitorPromptSignal()?.targetRoute,
       'mfa-challenge',
     );
   }
@@ -394,104 +245,81 @@ export class AuthStore implements OnDestroy {
     this.visitorPromptSignal.set(null);
   }
 
-  openSecuritySettings(): void {
-    this.securityModalOpenSignal.set(true);
-  }
-
-  closeSecuritySettings(): void {
-    this.securityModalOpenSignal.set(false);
-  }
+  openSecuritySettings = () => this.securityModalOpenSignal.set(true);
+  closeSecuritySettings = () => this.securityModalOpenSignal.set(false);
 
   clearMutationFeedback(): void {
     const status = this.mutationSignal().status;
-    if (status === 'error' || status === 'success') {
-      this.mutationSignal.set({ status: 'idle' });
+    if (status === 'error' || status === 'success') this.mutationSignal.set({ status: 'idle' });
+  }
+
+  private submitSessionPost(url: string, body: unknown): void {
+    if (this.mutationSignal().status === 'submitting') return;
+    this.mutationSignal.set({ status: 'submitting' });
+    this.recovery.postSession(url, body).subscribe((outcome) => this.handleSessionOutcome(outcome));
+  }
+
+  private runMessageMutation(
+    obs: Observable<GenericMessageOutcome>,
+    onSuccess?: () => void,
+  ): void {
+    if (this.mutationSignal().status === 'submitting') return;
+    this.mutationSignal.set({ status: 'submitting' });
+    obs.subscribe((outcome) => {
+      if ('httpError' in outcome) {
+        this.mutationSignal.set({
+          status: 'error',
+          message: extractApiErrorMessage(outcome.httpError, DEFAULT_AUTH_ERROR),
+        });
+        return;
+      }
+      if (!outcome.success) {
+        this.mutationSignal.set({ status: 'error', message: 'Resposta inválida do servidor.' });
+        return;
+      }
+      this.mutationSignal.set({ status: 'success', message: outcome.data.message });
+      onSuccess?.();
+    });
+  }
+
+  private handleAuthenticatedOAuthReturn(
+    sessionState: SessionAuthState,
+    oauthReturn: { readonly googleLinked: boolean; readonly authError: string | null },
+  ): void {
+    if (sessionState === 'MFA_PENDING') {
+      this.openMfaChallengePrompt();
+    } else if (oauthReturn.googleLinked || oauthReturn.authError) {
+      this.pendingSecurityFeedbackSignal.set(
+        oauthReturn.googleLinked
+          ? { tone: 'ok', text: 'Conta Google vinculada com sucesso via OAuth 2.0 PKCE.' }
+          : { tone: 'error', text: this.crossTabSync.mapOAuthErrorCode(oauthReturn.authError ?? '') },
+      );
+      this.openSecuritySettings();
     }
   }
 
-  private handleSessionOutcome(
-    outcome:
-      | ReturnType<typeof AuthSessionResponseSchema.safeParse>
-      | { readonly httpError: unknown },
-  ): void {
-    if ('httpError' in outcome) {
+  private handleSessionOutcome(outcome: SessionResponseOutcome): void {
+    if ('httpError' in outcome || !outcome.success) {
       this.mutationSignal.set({
         status: 'error',
-        message: this.extractErrorMessage(outcome.httpError),
-      });
-      return;
-    }
-
-    if (!outcome.success) {
-      this.mutationSignal.set({
-        status: 'error',
-        message: 'Resposta de sessão inválida recebida do servidor.',
+        message:
+          'httpError' in outcome
+            ? extractApiErrorMessage(outcome.httpError, DEFAULT_AUTH_ERROR)
+            : 'Resposta de sessão inválida recebida do servidor.',
       });
       return;
     }
 
     const targetRoute = this.visitorPromptSignal()?.targetRoute;
     this.sessionSignal.set(outcome.data);
-    this.broadcastAuthSync({ type: 'session', session: outcome.data });
+    this.crossTabSync.broadcast({ type: 'session', session: outcome.data });
     this.mutationSignal.set({ status: 'idle' });
     if (outcome.data.sessionState === 'MFA_PENDING') {
       this.openMfaChallengePrompt();
       return;
     }
     this.visitorPromptSignal.set(null);
-    if (targetRoute) {
-      void this.router.navigateByUrl(targetRoute);
-    }
-  }
-
-  private handleMessageOutcome(
-    outcome:
-      | ReturnType<typeof GenericMessageResponseSchema.safeParse>
-      | { readonly httpError: unknown },
-  ): void {
-    if ('httpError' in outcome) {
-      this.mutationSignal.set({
-        status: 'error',
-        message: this.extractErrorMessage(outcome.httpError),
-      });
-      return;
-    }
-    if (!outcome.success) {
-      this.mutationSignal.set({ status: 'error', message: 'Resposta inválida do servidor.' });
-      return;
-    }
-    this.mutationSignal.set({ status: 'success', message: outcome.data.message });
-  }
-
-  private consumeOAuthCallbackParams(): {
-    readonly googleLinked: boolean;
-    readonly authError: string | null;
-  } {
-    const loc = globalThis.location;
-    if (!loc?.search) {
-      return { googleLinked: false, authError: null };
-    }
-
-    const params = new URLSearchParams(loc.search);
-    const googleLinked = params.get('googleLinked') === '1';
-    const rawAuthError = params.get('authError')?.trim() || null;
-    const hasOAuthParams =
-      params.has('googleLinked') || params.has('authError') || params.has('mfaPending');
-
-    if (hasOAuthParams) {
-      params.delete('googleLinked');
-      params.delete('authError');
-      params.delete('mfaPending');
-      const nextSearch = params.toString();
-      const searchPart = nextSearch ? `?${nextSearch}` : '';
-      const cleanUrl = `${loc.pathname || '/'}${searchPart}${loc.hash ?? ''}`;
-      globalThis.history?.replaceState(null, '', cleanUrl);
-    }
-
-    return {
-      googleLinked,
-      authError: rawAuthError,
-    };
+    if (targetRoute) void this.router.navigateByUrl(targetRoute);
   }
 
   private openGoogleAuthErrorPrompt(errorCode: string): void {
@@ -503,104 +331,21 @@ export class AuthStore implements OnDestroy {
     );
     this.mutationSignal.set({
       status: 'error',
-      message: this.mapOAuthErrorCode(errorCode),
+      message: this.crossTabSync.mapOAuthErrorCode(errorCode),
     });
   }
 
-  private mapOAuthErrorCode(code: string): string {
-    switch (code) {
-      case 'google_cancelled':
-        return 'Autenticação com Google foi cancelada.';
-      case 'oauth_state_invalid':
-        return 'Sessão OAuth expirada ou inválida. Tente novamente.';
-      case 'google_already_linked':
-        return 'Esta conta Google já está vinculada a outro Treinador.';
-      case 'verify_email_before_google_link':
-        return 'Verifique o e-mail da sua conta antes de vincular o Google.';
-      default:
-        return 'Não foi possível autenticar com o Google. Tente novamente.';
+  private async executeRefresh(): Promise<boolean> {
+    const parsed = await this.recovery.postRefreshToken();
+    if (!parsed?.success) {
+      this.sessionSignal.set(null);
+      this.crossTabSync.broadcast({ type: 'logout' });
+      return false;
     }
-  }
-
-  private async runSerializedRefresh(): Promise<boolean> {
-    const executeRefresh = async (): Promise<boolean> => {
-      try {
-        const raw = await firstValueFrom(this.http.post<unknown>('/api/v1/auth/refresh', null));
-        const parsed = AuthSessionResponseSchema.safeParse(raw);
-        if (!parsed.success) {
-          this.sessionSignal.set(null);
-          this.broadcastAuthSync({ type: 'logout' });
-          return false;
-        }
-        this.sessionSignal.set(parsed.data);
-        this.broadcastAuthSync({ type: 'session', session: parsed.data });
-        return true;
-      } catch {
-        this.sessionSignal.set(null);
-        this.broadcastAuthSync({ type: 'logout' });
-        return false;
-      }
-    };
-
-    if (
-      this.isBrowser &&
-      typeof navigator !== 'undefined' &&
-      navigator.locks &&
-      typeof navigator.locks.request === 'function'
-    ) {
-      return navigator.locks.request(AUTH_REFRESH_LOCK_NAME, executeRefresh);
-    }
-    return executeRefresh();
-  }
-
-  private openSyncChannel(): BroadcastChannel | null {
-    if (!this.isBrowser || typeof BroadcastChannel !== 'function') {
-      return null;
-    }
-    try {
-      const ch = new BroadcastChannel(AUTH_SYNC_CHANNEL_NAME);
-      ch.addEventListener('message', (event: MessageEvent<unknown>) => {
-        if (typeof event.data !== 'object' || event.data === null) {
-          return;
-        }
-        const msg = event.data as Partial<AuthSyncBroadcastMessage>;
-        if (msg.type === 'logout') {
-          this.sessionSignal.set(null);
-          this.visitorPromptSignal.set(null);
-          this.securityModalOpenSignal.set(false);
-          return;
-        }
-        if (msg.type === 'session') {
-          const parsed = AuthSessionResponseSchema.safeParse(msg.session);
-          if (parsed.success) {
-            this.sessionSignal.set(parsed.data);
-          }
-        }
-      });
-      return ch;
-    } catch {
-      return null;
-    }
-  }
-
-  private broadcastAuthSync(message: AuthSyncBroadcastMessage): void {
-    try {
-      this.syncChannel?.postMessage(message);
-    } catch {
-      return;
-    }
-  }
-
-  private extractErrorMessage(err: unknown): string {
-    if (err instanceof HttpErrorResponse) {
-      const body = err.error as { message?: unknown } | null;
-      if (body && typeof body.message === 'string' && body.message.trim()) {
-        return body.message;
-      }
-      if (err.status === 0) {
-        return 'API indisponível no momento. Verifique se o servidor NestJS está rodando.';
-      }
-    }
-    return 'Não foi possível autenticar. Confira os dados e tente novamente.';
+    this.sessionSignal.set(parsed.data);
+    this.crossTabSync.broadcast({ type: 'session', session: parsed.data });
+    return true;
   }
 }
+
+export { AuthStore as AuthSessionStore };
