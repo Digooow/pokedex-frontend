@@ -29,6 +29,7 @@
       class="painel-busca-form"
       [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('busca')"
       (click)="onFormAreaClick($event)"
+      (keydown)="onAreaKeyDown('busca', $event)"
     >
       <div class="painel-cabecalho">
         <h2 id="titulo-busca" class="painel-titulo">Pesquisar Pokémon</h2>
@@ -94,6 +95,7 @@
       class="pokemon-catalogo-area"
       [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('lista')"
       (click)="onCatalogAreaClick()"
+      (keydown)="onAreaKeyDown('lista', $event)"
     >
       <div class="catalogo-cabecalho">
         <span id="catalogo-status" class="catalogo-status">{{ catalogStatusText() }}</span>

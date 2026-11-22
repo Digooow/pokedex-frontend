@@ -22,7 +22,7 @@ function normalizePem(raw: string): string | undefined {
       'utf8',
     );
   }
-  return trimmed.replace(/\\n/g, '\n');
+  return trimmed.replaceAll(String.raw`\n`, '\n');
 }
 
 function buildSaslOptions(

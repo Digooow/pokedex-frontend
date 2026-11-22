@@ -25,9 +25,6 @@ import {
 } from './mfa-totp.repository';
 import {
   buildTotpOtpauthUri,
-  computeTotpAtCounter,
-  decodeBase32,
-  encodeBase32,
   findMatchingTotpStep,
   generateBackupCodes,
   generateTotpSecretBase32,
@@ -35,7 +32,11 @@ import {
 } from './totp-crypto.util';
 import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
-export { computeTotpAtCounter, decodeBase32, encodeBase32 };
+export {
+  computeTotpAtCounter,
+  decodeBase32,
+  encodeBase32,
+} from './totp-crypto.util';
 
 const SETUP_TTL_SEC = 600;
 const MFA_MAX_FAILURES = 5;

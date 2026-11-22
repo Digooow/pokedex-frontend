@@ -81,3 +81,13 @@
   background: linear-gradient(180deg, oklch(56% 0.21 25), oklch(42% 0.19 25));
   color: var(--pv-ink-on-accent);
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .slot-dialog__btn {
+    transition: none;
+  }
+
+  .slot-dialog__btn:active {
+    transform: none;
+  }
+}

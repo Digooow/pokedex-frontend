@@ -309,13 +309,13 @@ export class PokedexRpgNavService {
     this.focusRegistry.afterTick(() => this.syncFocusVisuals(true));
   }
 
-  private activeFocusGroup = (): RpgFocusGroup =>
+  private readonly activeFocusGroup = (): RpgFocusGroup =>
     rpgNav.resolveFocusGroup(this.rpgLevel(), this.rpgScreen());
-  private collectScreenControls = (group: RpgFocusGroup) =>
+  private readonly collectScreenControls = (group: RpgFocusGroup) =>
     this.focusRegistry.collectGroupControls(this.hostEl, group);
-  private setControlIndex = (key: 'busca' | 'visor' | 'edicao', value: number) =>
+  private readonly setControlIndex = (key: 'busca' | 'visor' | 'edicao', value: number) =>
     this.rpgControlIndices.update((prev) => ({ ...prev, [key]: value }));
-  private willBlueButtonEnterSubmenu = () =>
+  private readonly willBlueButtonEnterSubmenu = () =>
     rpgNav.shouldBlueButtonEnterFromVisor(
       this.navSnapshot(),
       this.collectScreenControls('visor'),

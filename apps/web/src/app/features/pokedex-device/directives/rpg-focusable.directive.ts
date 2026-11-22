@@ -161,7 +161,7 @@ export class PvRpgFocusableDirective {
   private readonly destroyRef = inject(DestroyRef);
 
   readonly group = input.required<RpgFocusGroup>({ alias: 'pvRpgFocusable' });
-  readonly order = input<number | undefined>(undefined, { alias: 'pvRpgOrder' });
+  readonly pvRpgOrder = input<number | undefined>(undefined);
 
   constructor() {
     let unregister: (() => void) | null = null;
@@ -170,7 +170,7 @@ export class PvRpgFocusableDirective {
       unregister = this.registry.register(
         this.group(),
         this.elementRef.nativeElement,
-        this.order(),
+        this.pvRpgOrder(),
       );
       onCleanup(() => {
         unregister?.();

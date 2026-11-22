@@ -10,17 +10,15 @@ import {
 } from './google-account-linker.service';
 import { GoogleOAuthHttpClient } from './google-oauth-http.client';
 import {
-  type GoogleJwkEntry,
   GoogleOidcVerifier,
   type VerifiedGoogleClaims,
-  verifyGoogleIdTokenSignature,
 } from './google-oidc.verifier';
 
 export {
   type GoogleJwkEntry,
   type VerifiedGoogleClaims,
   verifyGoogleIdTokenSignature,
-};
+} from './google-oidc.verifier';
 
 const GOOGLE_AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth';
 const OAUTH_STATE_TTL_SEC = 300;

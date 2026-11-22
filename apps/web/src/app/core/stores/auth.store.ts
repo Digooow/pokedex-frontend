@@ -208,7 +208,7 @@ export class AuthStore implements OnDestroy {
     return true;
   }
 
-  private setMutationError = (message: string) =>
+  private readonly setMutationError = (message: string) =>
     this.mutationSignal.set({ status: 'error', message });
 
   private clearLocalSessionState(): void {

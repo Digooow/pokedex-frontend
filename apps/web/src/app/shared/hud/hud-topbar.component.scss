@@ -174,3 +174,15 @@ button.hud-pill:active {
   font-weight: 700;
   text-decoration: none;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-brand,
+  .hud-pill {
+    transition: none;
+  }
+
+  .hud-brand:active,
+  button.hud-pill:active {
+    transform: none;
+  }
+}

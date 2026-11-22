@@ -120,6 +120,13 @@ export class PokedexSearchPanelComponent {
     }
   }
 
+  onAreaKeyDown(screen: 'busca' | 'lista', event: KeyboardEvent): void {
+    if (event.target !== event.currentTarget) return;
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    this.rpg.setScreenFocus(screen, 'itens');
+  }
+
   onInputFocus = () => this.store.ensureCatalogLoaded();
   onInputBlur = () => {
     if (this.store.query().length > 0) this.inputTouched.set(true);

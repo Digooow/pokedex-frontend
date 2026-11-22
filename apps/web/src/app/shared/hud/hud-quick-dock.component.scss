@@ -109,3 +109,13 @@
   font-size: 0.6875rem;
   font-weight: 800;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-dock__link {
+    transition: none;
+  }
+
+  .hud-dock__link:active {
+    transform: none;
+  }
+}

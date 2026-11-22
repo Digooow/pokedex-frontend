@@ -12,9 +12,8 @@ import { CredentialsAuthService } from './credentials-auth.service';
 import { SessionManagementService } from './session-management.service';
 import { TokenRefreshService } from './token-refresh.service';
 import { TrainerGdprService } from './trainer-gdpr.service';
-import type { AuthSessionWithCookies } from './trainer-session-issuer.service';
 
-export type { AuthSessionWithCookies };
+export type { AuthSessionWithCookies } from './trainer-session-issuer.service';
 
 @Injectable()
 export class AuthService implements OnModuleInit {

@@ -23,6 +23,11 @@ const LIST_STEP_BY_DIR: Readonly<Record<RpgDirection, number>> = {
   direita: 5,
 };
 
+const VISOR_SCROLL_DELTA_BY_DIR: Partial<Record<RpgDirection, number>> = {
+  baixo: 72,
+  cima: -72,
+};
+
 export const KEY_TO_DIRECTION: Readonly<Record<string, RpgDirection>> = {
   ArrowUp: 'cima',
   ArrowDown: 'baixo',
@@ -99,7 +104,7 @@ export function resolveRpgNavigationAction(
     return { kind: 'slot', nextSlotIndex: nextSlotIndexForDirection(slotFocusIndex, direction) };
   }
   if (level === 'itens' && screen === 'visor' && controlsCount === 0) {
-    const deltaY = direction === 'baixo' ? 72 : direction === 'cima' ? -72 : 0;
+    const deltaY = VISOR_SCROLL_DELTA_BY_DIR[direction] ?? 0;
     return { kind: 'visor-scroll', deltaY };
   }
   const step = direction === 'cima' || direction === 'esquerda' ? -1 : 1;

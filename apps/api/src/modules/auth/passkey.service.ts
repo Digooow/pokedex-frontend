@@ -147,11 +147,10 @@ export class PasskeyService {
     readonly pendingTrainerId?: string;
   }) {
     const targetTrainerId = params.pendingTrainerId ?? null;
-    const selector = targetTrainerId
-      ? { trainerId: targetTrainerId }
-      : params.email
-        ? { email: params.email }
-        : null;
+    const selector = this.resolveLoginPasskeySelector(
+      targetTrainerId,
+      params.email,
+    );
 
     const descriptors = selector
       ? await this.passkeyRepository.findPasskeyDescriptorsForLogin(selector)
@@ -285,6 +284,15 @@ export class PasskeyService {
     );
 
     return { session, sessionSid: activeSid, refreshToken };
+  }
+
+  private resolveLoginPasskeySelector(
+    trainerId: string | null,
+    email?: string,
+  ): { trainerId: string } | { email: string } | null {
+    if (trainerId) return { trainerId };
+    if (email) return { email };
+    return null;
   }
 
   private toPasskeySummary(row: PersistedPasskeySummary): PasskeySummary {
