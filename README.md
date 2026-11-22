@@ -641,10 +641,11 @@ flowchart LR
 
 ### Dívidas técnicas conhecidas
 
-Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 17](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md):
+Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 17](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) e a auditoria frente ao Contrato de Qualidade no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md):
 
 | Item | Situação |
 | :--- | :--- |
+| Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | ⏳ **Mapeada no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota atual `9,1 / 10`):** extrair repositórios Prisma isolados na API (`DT-01`), aplicar `ZodValidationPipe` em `@Param`/`@Query` (`DT-02`), adicionar `take` explícito em `.findMany()` (`DT-03`), enquadrar stores/componentes da Pokédex nos limites SRP (`DT-04`/`DT-05`) e uniformizar guardrails ESLint/Prettier + fatiar `app.spec.ts` (`DT-06`) |
 | Lint e formatação no CI | ✅ **`npm run lint` unificado** nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`) com `@typescript-eslint/no-explicit-any: error`; próximo passo: `prettier --check` e limites graduais de complexidade (`max-lines`) |
 | Decomposição SOLID do IAM e `AuthStore` | ✅ **Concluída:** `AuthService` fatiado em 5 serviços especializados + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; e `AuthStore` com `AuthRecoveryService` + `AuthCrossTabSyncService` |
 | `PokedexRpgNavService` e CSS 3D | ✅ **Refatorados:** extraídos `PokedexLidPhysicsService` + diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` (DIP) e `_pokedex-classic.scss` dividido em 5 parciais em `styles/pokedex/`; resta apenas consolidar o segundo vocabulário legado de tokens em `_tokens.scss` |
@@ -753,7 +754,7 @@ pokedex-frontend/
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
 ├── .github/workflows/             # ci.yml e deploy.yml
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
-├── docs/                          # Documentação (00 a 17), Capítulo Zero e Guias de Estudos
+├── docs/                          # Documentação (00 a 18), Capítulo Zero e Guias de Estudos
 ├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
@@ -784,6 +785,7 @@ pokedex-frontend/
 | 15 | [Pokédex Suprema: auditoria, 51 endpoints e Laboratório Genético](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md) |
 | 16 | [Cookies, LGPD e levantamento de requisitos](docs/16-cookies-lgpd-e-requisitos.md) |
 | 17 | [Plano SOLID, Clean Code e engenharia Big Tech](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) |
+| 18 | [Auditoria técnica e plano de dívida técnica (`ARCHITECTURE.md`)](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) |
 | Guia 0 | **[Capítulo Zero — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-zero-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
 | Guia 1 | **[Capítulo 1 — Guia de estudos full-stack do PokéVerse OS](docs/capitulo-um-guia-de-estudos-pokedex.md)**, escopo completo de tecnologias, arquitetura e boas práticas do projeto atual |
 
