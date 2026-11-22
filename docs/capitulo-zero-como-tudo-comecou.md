@@ -4,7 +4,7 @@
   <img src="assets/screenshots/10-fase0-estatica-aberta.webp" alt="A Pokédex original, em HTML, CSS e JavaScript puro, aberta no cenário de Hoenn" width="860">
 </p>
 
-> **Nota de arquivo.** Este documento conta como o projeto começou e guarda, como recordação, o `README.md` exatamente como ele era antes da reescrita (commit `e79bcde`, 20/11/2026). Esse texto descreve o estado da plataforma ao fim da **Fase 4A**, já em monorepo Angular + NestJS. O README atual do repositório, que cobre o estado real e o futuro do projeto, está em [`../README.md`](../README.md).
+> **Nota de arquivo.** Este documento conta como o projeto começou e guarda, como recordação, o último `README.md` da fase estática da **Pokédex** (commit `f61712d`, 17/11/2026), imediatamente antes da migração para o monorepo **PokéVerse OS** (`92fe70e` / `a96dd49`). O README atual do repositório, que cobre o estado real e o futuro da plataforma, está em [`../README.md`](../README.md).
 
 ---
 
@@ -96,125 +96,84 @@ flowchart LR
 
 ---
 
-## 5. O README anterior (preservado sem alterações)
+## 5. O último README da Pokédex (preservado sem alterações)
 
-O texto abaixo é a cópia fiel do `README.md` como ele estava antes da reescrita. Ele reflete o estado do projeto naquele momento, então **está desatualizado de propósito**. A única adaptação foi nos destinos dos links relativos, que ganharam o prefixo `../` para continuarem funcionando a partir da pasta `docs/`. Para o estado atual do projeto, leia o [README principal](../README.md).
+O texto abaixo é a cópia fiel do último `README.md` do projeto ainda como **Pokédex** estática em HTML5, CSS3 e JavaScript puro (commit `f61712d`, 17/11/2026), logo antes da inicialização do monorepo e da mudança para **PokéVerse OS**. Ele reflete o estado do projeto naquele momento, então **está desatualizado de propósito**. A única adaptação foi nos destinos dos links relativos, que ganharam o prefixo `../` para continuarem funcionando a partir da pasta `docs/`. Para o estado atual do projeto, leia o [README principal](../README.md).
 
-<!-- INÍCIO DO README ANTERIOR (commit e79bcde) -->
+<!-- INÍCIO DO README ORIGINAL DA POKÉDEX (commit f61712d) -->
 
-# PokéVerse OS — Pokédex 3D Interativa & Plataforma Full-Stack
+# Pokédex
 
-> **Plataforma em produção (Cloudflare Pages + Azure Container Apps):** [https://pokeverse.pages.dev/](https://pokeverse.pages.dev/)
-> A versão estática original da Fase 0 ([index.html](../index.html), [css/style.css](../css/style.css), [js/app.js](../js/app.js) e [assets/](../assets/)) permanece preservada intacta na raiz como referência visual canônica da Pokédex.
+> **Site publicado (hospedagem estática no GitHub Pages):** [https://digooow.github.io/pokedex-frontend/](https://digooow.github.io/pokedex-frontend/)
 
-Aplicação web full-stack em monorepo (**Angular 22 Standalone/Zoneless**, **NestJS 11**, **Prisma/PostgreSQL**, **Redis**, **Redpanda/Kafka** e contratos compartilhados **Zod v4** em `@pokeverse/shared`) construída ao redor de uma **Pokédex 3D interativa** que consome a [PokéAPI v2](https://pokeapi.co/) com cache distribuído, autenticação BFF segura e validação automatizada de qualidade visual e contraste.
+Aplicação web desenvolvida com **HTML5**, **CSS3** e **JavaScript puro** no formato de **Pokédex 3D interativa** sobre 4 cenários Pokémon em alta resolução, consumindo em tempo real a API pública [PokéAPI](https://pokeapi.co/).
 
----
+## Requisitos e Funcionalidades
 
-## O que Já Está Implementado
+- **Estrutura HTML semântica**:
+  - Título principal (`<h1>`) com o nome do sistema (**Pokédex**).
+  - Formulário (`<form>`) dentro de `<search>` com campo de texto (`<input type="text">`) e botão de pesquisa (`<button type="submit">`).
+  - Área dedicada para exibição dos resultados (`#resultado-area`).
+  - Lista HTML (`<ul>`) apresentando nome, número de identificação (ID), altura, peso e habilidades (*abilities*) obtidos da API.
+- **Consumo de API pública (`fetch`)**:
+  - Consulta dinâmica ao endpoint `https://pokeapi.co/api/v2/pokemon/NOME_DO_POKEMON` utilizando `fetch()`, `async/await` e `AbortController` (para cancelamento de buscas concorrentes e timeout).
+  - Carregamento completo dos nomes disponíveis na PokéAPI via `https://pokeapi.co/api/v2/pokemon?limit=100000&offset=0`, exibidos em uma lista selecionável dentro do módulo de busca com filtragem tolerante a erros de digitação (fonética e distância Damerau-Levenshtein).
+  - Câmera ótica principal (frente na capa e verso na ala esquerda) com flashes vermelho/amarelo/verde reativos (`.is-scanning`) durante a busca na API.
+  - Nenhum dado de Pokémon é cadastrado manualmente no código.
+- **Controles Interativos da Pokédex**:
+  - **Direcional (D-Pad) à esquerda e botão circular de seleção à direita**: navegam no estilo menu RPG pelas telas (`busca`, `lista`, `visor` e `slots`), itens do catálogo da PokéAPI (`.is-cursor`), botões de slot e campos de edição, confirmando pelo botão redondo ou pela tecla `Enter`.
+  - **Botões centrais (vermelho e azul)**: no modo RPG, o botão azul entra na tela/submenu destacado e limpa o visor de resultados quando já está em uma tela sem submenu; o botão vermelho recua um nível do menu e limpa o formulário de busca quando está na raiz.
+  - **10 botões de gravação rápida à direita + botão amarelo compacto**: sinalizam por cor se o slot está livre (azul) ou utilizado (verde), permitindo gravar/carregar com um clique ou abrir o editor no visor pelo botão amarelo para alterar nome/apelido ou remover registros salvos em `localStorage`.
+- **Estilização CSS e Experiência Pokédex 3D**:
+  - Uso explícito de `background-color`, `padding`, `margin` e `display: flex`.
+  - **Acabamento realista em metal, plástico, vidro e telas eletrônicas (`oklch` + microtexturas WebP pré-assadas)**: carcaça externa em metal vermelho granulado semi-opaco com reflexo sutil ao ponteiro (`@property --luz-x/--luz-y` via `requestAnimationFrame`, incluindo a dobradiça lateral quando fechada e respeitando `prefers-reduced-motion`), moldura esquerda em cinza metálico (`#painel-busca`), relevos em plástico ABS fosco texturizado (`assets/textures/*.webp`), câmera com lente de safira/vidro e LEDs luminosos, botões de slot inferiores com tampa de plástico transparente iluminado por baixo e visores internos com moldura rebaixada e textura LCD sutil que preserva a legibilidade.
+  - **Cards giratórios em 3D (`preserve-3d`) sem reflow por quadro no mobile**: a capa fechada e a ala esquerda ocupam as duas faces do mesmo card giratório (`rotateY(-180deg)` com `translateX` no desktop / `rotateX(180deg)` com reserva estática de espaço e rolagem natural da página no mobile), eliminando animações de `padding-top` e comportando integralmente busca, lista, controles, visor e slots em celulares.
+  - **Detecção Automática de Hardware & Modo Lite (`Perf: Auto`)**: identifica automaticamente RAM, núcleos de CPU, rede (`saveData`) e tela touch para escolher entre os perfis **Ultra**, **Equilibrado** ou **Lite**, além de monitorar quadros (`requestAnimationFrame`) durante transições para rebaixar efeitos pesados automaticamente em celulares e PCs modestos (com alternância manual pelo botão no topo).
+  - **Proteção de scroll e fechamento intuitivo**: clicar e rolar dentro do visor de resultados (incluindo arraste pela barra de rolagem) não fecha o aparelho; clicar em partes externas às telas e controles ou pressionar `Escape` gira a tampa de volta.
+  - **4 cenários responsivos em WebP sob demanda** (`assets/backgrounds/*-desktop.webp` `1920px` e `*-mobile.webp` `820px`) carregando apenas o cenário ativo na GPU e descartando inativos fora do modo Ultra, substituindo `9,34 MB` de JPEGs 4K simultâneos para rodar liso em celulares.
+- **Tratamento de situações**:
+  - Validação para campo vazio ou somente espaços.
+  - Mensagem dedicada quando o Pokémon não é encontrado (HTTP `404`), com sugestões clicáveis *"Você quis dizer"* baseadas na lista da API.
+  - Mensagem amigável com botão **Tentar novamente** quando ocorre falha de comunicação ou tempo limite excedido.
 
-### 1. Pokédex 3D & Experiência Visual (`apps/web`)
-- **Chassi 3D skeuomórfico fiel (`_pokedex-classic.scss`):**
-  - Carcaça vermelha metálica com iluminação dinâmica por ponteiro (`--luz-x`/`--luz-y`), microtexturas WebP (`metal-floco.webp` e `plastico-grao.webp`), dobradiça lateral articulada, câmera com lente de safira e trio de LEDs reativos ao carregamento.
-  - **Abertura e fechamento 3D reversíveis em voo:** clicar para abrir ou fechar reverte a animação `rotateY(-180deg)` / `rotateX(180deg)` suavemente sem esperar o fim do ciclo.
-- **Busca inteligente e navegação progressiva em 1 clique:**
-  - Catálogo completo da PokéAPI com filtro instantâneo por ID/nome, chave fonética PT/EN e aproximação Damerau-Levenshtein (via `@pokeverse/shared`).
-  - **Seleção em 2 passos na lista:** 1º clique destaca o item (`.is-cursor`) e 2º clique (ou botão circular `A` / `Enter`) carrega os detalhes no visor.
-  - **Botão vermelho com histórico progressivo:** se um Pokémon específico foi escolhido a partir de uma busca ampla (ex.: `"pikachu"` -> `"pikachu-original-cap"`), o primeiro clique volta 1 passo para a busca `"pikachu"` mantendo o item destacado/centralizado; o clique seguinte volta para `"Todos os Pokémon"` na posição do Pokémon selecionado; mais um clique retorna ao topo da lista (`#0001`).
-- **10 Slots Azuis de Gravação Rápida & Edição:**
-  - Luz azul (slot livre), verde (slot ocupado) e contorno amarelo no Pokémon atualmente exibido; regra estrita de 1 Pokémon por botão (front-end + `409 Conflict` na API).
-  - Clicar em qualquer botão azul ocupado abre diretamente o Pokémon salvo no visor sem pop-ups intermediários.
-  - Clicar em um slot vazio grava o Pokémon exibido (em `localStorage` no modo visitante ou persistido em PostgreSQL quando autenticado); substituição por slot, apelidos e exclusões contam com confirmação explícita no editor (`Config`) e sincronização atômica via `DELETE /api/v1/pokedex/slots`.
-- **HUD Compacta, Cenários e Rotas da Plataforma:**
-  - Barra superior com estado da sessão, verificação de e-mail por OTP (com fechamento automático e redirecionamento pós-confirmação), segurança/2FA e ticker global em tempo real (`/ws/world`).
-  - Seletor compacto de cenários de fundo (**Hoenn**, **Cidade**, **Vila**, **Floresta**) em botão único cíclico + alternância **Auto** + detector automático de hardware (`Perf: Auto — Ultra / Equil. / Lite`).
-  - Dock inferior compacto em vidro translúcido ligando os 5 módulos: `1 Vila Central` (`/mundo`), `2 Pokédex 3D` (`/pokedex`), `3 Museu` (`/museu`, com cards das gerações sobre cabeçalho frosted de alto contraste), `4 Arcade Retrô` (`/arcade`) e `5 Battle Frontier` (`/arena`). Rotas ainda em desenvolvimento exibem telas dedicadas de status em construção.
-
-### 2. Back-end NestJS, Cache, IAM BFF & Mensageria (`apps/api`)
-- **Proxy e Cache PokéAPI (`/api/v1/pokedex/*`):** cache em Redis com `stale-fallback` de 7 dias e fallback automático para a PokéAPI direta no cliente em caso de indisponibilidade local.
-- **Autenticação & IAM Enterprise BFF:** sessões opacas armazenadas em Redis com cookies `HttpOnly`, sem exposição de JWT no JavaScript do navegador, máquina de estados `MFA_PENDING -> AUTHENTICATED`, proteção `CsrfOriginGuard`, hash `Argon2id`, 2FA TOTP com QR Code + códigos de backup, Google OAuth PKCE, Passkeys WebAuthn e fluxos OTP de verificação de e-mail / redefinição de senha via Redpanda + SMTP/Resend.
-- **Persistência & Eventos (`PostgreSQL` + `Prisma` + `Redpanda`):** 10 modelos no schema Prisma, Transactional Outbox com `SKIP LOCKED`, consumidor idempotente em Redis e Gateway WebSocket `/ws/world`.
-
-### 3. Domínio Futuro Modelado em `@pokeverse/shared`
-- Catálogo estruturado dos **51 endpoints da PokéAPI v2** e modelo de filtros avançados ([pokeapi-endpoints.ts](../packages/shared/src/domain/pokeapi-endpoints.ts)).
-- Regras puras do **Laboratório Genético e Evolução** — cálculo de atributos por nível, chances de evolução, clonagem, replicação e conversão em Bio-Essência ([pokemon-lab.ts](../packages/shared/src/domain/pokemon-lab.ts)).
-
----
-
-## Qualidade Automatizada & UI Quality Gate
-
-O repositório bloqueia commits e deploys caso qualquer regressão visual ou técnica ocorra:
-
-- **UI Quality Gate (`npm run audit:ui` via [scripts/ui-quality-gate.mjs](../scripts/ui-quality-gate.mjs)):** executa Chrome/Chromium headless com CDP em Desktop (`1440×900`) e Mobile (`375×812`) sobre o bundle compilado (`/`, `/pokedex?q=pikachu`, `/museu`, `/mundo`), reprovando:
-  - Textos sobre cenário sem fundo escuro/translúcido adequado (`effectiveSurfaceAlpha < 0.55`);
-  - Contraste WCAG AA insuficiente (`< 4.5:1` texto normal / `< 3.0:1` texto grande), simulado inclusive sobre fundo diurno claro;
-  - Overflow horizontal de viewport (`> innerWidth`), clipping lateral ou texto vazando fora de botões/caixas;
-  - Tamanho de fonte abaixo do mínimo legível (`< 10.5px`) ou erros de console.
-- **CI/CD ([ci.yml](../.github/workflows/ci.yml) & [deploy.yml](../.github/workflows/deploy.yml)):** `build:shared`, `prisma generate`, `typecheck`, `lint:api`, `test` (Vitest + Jest), `test:e2e`, `build`, `audit:ui`, imagem Docker multi-stage não-root para Azure Container Apps e deploy no Cloudflare Pages (`apps/web/functions/` proxy same-origin + CSP estrita com `inlineCritical: false`).
-
----
-
-## Estrutura do Monorepo
+## Estrutura de Arquivos
 
 ```text
 pokedex-frontend/
-├── apps/
-│   ├── api/                       # NestJS 11 + Prisma 6 + Redis + Redpanda + Socket.IO
-│   └── web/                       # Angular 22 Standalone/Zoneless + Proxy Cloudflare Pages
-├── packages/
-│   └── shared/                    # Schemas Zod v4, busca fuzzy, 51 endpoints e Laboratório Genético
-├── infra/
-│   └── docker/                    # api.Dockerfile e docker-compose.yml (Postgres, Redis, Redpanda, S3/MinIO)
-├── scripts/
-│   └── ui-quality-gate.mjs        # Auditoria automatizada de contraste, overflow e tipografia no browser
-├── .github/workflows/             # CI e Deploy contínuo (Azure Container Apps + Cloudflare Pages)
-├── assets/                        # Cenários WebP (-desktop / -mobile), texturas WebP e favicon
-├── css/ & js/ & index.html        # Versão estática original da Fase 0 preservada intacta
-├── docs/                          # Documentação arquitetural (00 ao 15)
-└── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia do projeto
+├── assets/
+│   ├── backgrounds/               # 4 cenários otimizados (-desktop.webp / -mobile.webp)
+│   ├── textures/                  # Microtexturas granuladas pré-assadas (metal-floco / plastico-grao)
+│   └── favicon.svg
+├── css/
+│   └── style.css
+├── docs/                          # Documentação arquitetural Full-Stack + Performance Gates
+├── js/
+│   └── app.js
+├── GUIA-DE-ESTUDOS-POKEDEX.md
+├── index.html
+└── README.md
 ```
 
----
+### Decisão arquitetural: por que manter 3 arquivos principais?
 
-## Como Executar Localmente
+O projeto foi estruturado intencionalmente com apenas **`index.html`**, **`css/style.css`** e **`js/app.js`** (sem dividir o código em dezenas de módulos ou pastas de componentes) pelos seguintes motivos técnicos:
 
-### Pré-requisitos
-- **Node.js 22+** e **npm 11+**
-- **Docker** (opcional para rodar PostgreSQL, Redis, Redpanda e Object Storage S3 localmente)
+- **Compatibilidade universal (`file://` e servidor HTTP):** diferentemente de *ES Modules* nativos (`<script type="module">`), que são bloqueados por política de segurança **CORS** nos navegadores quando abertos diretamente via protocolo `file://`, o carregamento clássico (`<link>` + `<script defer>`) garante que o projeto funcione tanto por duplo clique no `index.html` quanto em servidores HTTP (*Live Server*, GitHub Pages, Vercel) sem etapa de *build* nem *bundler*.
+- **Encapsulamento sem vazar escopo global:** dividir JavaScript sem *ES Modules* e sem empacotador obrigaria usar múltiplos `<script>` compartilhando estado em escopo global (`globalThis`). Manter um único `js/app.js` com `"use strict"` preserva o isolamento interno com funções pequenas e coesas por domínio (cenários, giro 3D, catálogo/busca *fuzzy*, slots, PokéAPI, renderização do visor, controles RPG e iluminação dinâmica).
+- **CSS em cascata única previsível:** `css/style.css` centraliza design tokens (`:root`), texturas inline e componentes ordenados por `@layer reset, base, components, utilities;`, evitando carregamentos em cascata de `@import` e reduzindo o número de requisições de rede na carga inicial.
 
-### Passos
-1. **Instalar dependências e gerar artefatos base:**
-   ```bash
-   npm install
-   npm run build:shared
-   ```
-2. **Subir infraestrutura local e migrações (opcional para modo completo com API):**
-   ```bash
-   cp .env.example .env
-   npm run infra:up
-   npx --workspace=pokeverse-api prisma generate
-   npx --workspace=pokeverse-api prisma migrate deploy
-   ```
-3. **Iniciar desenvolvimento:**
-   ```bash
-   npm run dev:api
-   npm run dev:web
-   ```
-   A interface Angular inicia em `http://localhost:4200` com proxy automático para `/api`, `/health` e `/socket.io` (ou funciona em modo degradado/visitante direto contra a PokéAPI se a API não estiver ativa).
-4. **Rodar verificações completas e auditoria visual:**
-   ```bash
-   npm run typecheck
-   npm run lint:api
-   npm run test
-   npm run build
-   npm run audit:ui
-   ```
+## Como Executar
 
-> Para executar apenas a **versão estática clássica (Fase 0)** sem build nem dependências, abra [index.html](../index.html) via Live Server ou servidor HTTP estático.
+Não há dependências externas nem etapa de build:
 
----
+1. Abra o arquivo `index.html` diretamente no navegador (ou utilize a extensão **Live Server** no VS Code).
+2. Clique na **capa fechada da Pokédex** (ou pressione `Enter`) para abri-la no movimento 3D.
+3. Digite o nome ou número de um Pokémon, use o direcional para navegar pela lista e pressione o botão circular à direita ou **Buscar Pokémon**; salve seus favoritos nas teclas azuis e gerencie-os pelo botão amarelo.
+4. Para fechar e voltar a visualizar o cenário inteiro, clique em qualquer área da carcaça fora das telas e controles (ou fora da Pokédex) ou pressione `Escape`.
 
-## Documentação Arquitetural (`docs/`)
+## Arquitetura da Plataforma Full-Stack (`docs/`)
+
+Documentação técnica das decisões planejadas para expandir este projeto em uma plataforma Full-Stack (Angular + Phaser 3/PixiJS + Three.js + NestJS + PostgreSQL/Prisma + Redis + Apache Kafka/Redpanda + MinIO/S3), preservando a Pokédex 3D atual como primeiro módulo integrado:
 
 - [00 — Visão Geral, Regras de Acesso e Roadmap](../docs/00-visao-geral-e-roadmap.md)
 - [01 — Arquitetura do Monorepo e Padrões de Engenharia](../docs/01-arquitetura-monorepo-e-padroes.md)
@@ -229,11 +188,8 @@ pokedex-frontend/
 - [10 — Infraestrutura Docker, Observabilidade e CI/CD](../docs/10-infraestrutura-docker-ci-cd-e-deploy.md)
 - [11 — Desempenho Ponta a Ponta, Detecção de Hardware, Mobile e Release Gates](../docs/11-performance-hardware-gates-e-mobile.md)
 - [12 — Pokédex 2.0: Catálogo Completo da PokéAPI v2 e Controles sem Novos Botões](../docs/12-pokedex-2-0-pokeapi-e-controles.md)
-- [13 — Dossiê Completo de Segurança e Blindagem (AppSec, Auth & Infra)](../docs/13-dossie-de-seguranca-e-blindagem.md)
-- [14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog](../docs/14-status-e-changelog-implementacao.md)
-- [15 — Pokédex Suprema: Auditoria, 51 Endpoints e Laboratório Genético](../docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md)
 
-<!-- FIM DO README ANTERIOR -->
+<!-- FIM DO README ORIGINAL DA POKÉDEX -->
 
 ---
 
