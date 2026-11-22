@@ -9,6 +9,8 @@
   &nbsp;·&nbsp;
   <a href="docs/00-visao-geral-e-roadmap.md">Roadmap</a>
   &nbsp;·&nbsp;
+  <a href="docs/ARCHITECTURE.md">Contrato de Qualidade</a>
+  &nbsp;·&nbsp;
   <a href="#documentação">Documentação</a>
 </p>
 
@@ -762,6 +764,7 @@ pokedex-frontend/
 
 | Doc | Assunto |
 | :-: | :--- |
+| **Arch** | **[Contrato de Qualidade: Diretrizes de Arquitetura e Padrões de Código (Anti-AI Slop)](docs/ARCHITECTURE.md)** |
 | **Zero** | **[Capítulo Zero: como tudo começou](docs/capitulo-zero-como-tudo-comecou.md)**, com o README original e a história da atividade do Senac |
 | 00 | [Visão geral, regras de acesso e roadmap](docs/00-visao-geral-e-roadmap.md) |
 | 01 | [Arquitetura do monorepo e padrões de engenharia](docs/01-arquitetura-monorepo-e-padroes.md) |
@@ -790,15 +793,16 @@ pokedex-frontend/
 
 ## Princípios de engenharia
 
-As regras completas estão em [`AGENTS.md`](AGENTS.md) e valem para qualquer pessoa ou agente que contribua.
+As regras completas e o Contrato de Qualidade estão em [`AGENTS.md`](AGENTS.md) e [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), valendo para qualquer pessoa ou agente que contribua.
 
 1. **Regra Zero de UI.** Nenhum componente, animação 3D, textura ou fluxo visual é substituído ou simplificado sem validação explícita. A referência canônica é a Fase 0.
 2. **Conferência visual real.** Nenhuma mudança de interface é "pronta" antes de ser comparada no navegador, em Desktop `1440×900` e Mobile `375×812`, com zero erros no console, zero falhas de rede inesperadas e zero overflow horizontal.
 3. **Preservar o que já funciona.** Os arquivos estáticos da raiz não são alterados sem pedido explícito. Nada testado é degradado.
-4. **DRY real.** Contratos, schemas e regras de domínio ficam em `@pokeverse/shared`.
-5. **SOLID de verdade.** Services e stores têm até cerca de 300 linhas e componentes de UI até cerca de 150 a 200. Stores nunca tocam o DOM.
-6. **Travas anti-race.** Contadores atômicos em Lua, zero efeito externo antes da constraint, lease atômico no Outbox e rollback de idempotência.
-7. **Documentação e README sempre sincronizados.** Toda implementação, alteração estrutural ou remoção no projeto atualiza também [`README.md`](README.md) e os documentos em [`docs/`](docs/) na mesma entrega.
+4. **Shift-Left, SoC e Repositórios isolados.** A infraestrutura obedece ao domínio; contratos Zod vivem em `@pokeverse/shared` (DRY real); Controllers apenas recebem payloads validados e retornam HTTP status codes; consultas Prisma ficam isoladas em Repositórios sem poluir Services.
+5. **Estado Stateless, MinIO/S3 e Kafka idempotente.** Sessões e dados transitórios vivem no Redis (Lua atômico anti-TOCTOU, zero efeito externo antes da constraint); arquivos pesados vão para MinIO/S3 via URLs geradas (nunca no PostgreSQL); Outbox usa *atomic lease* e consumidores liberam idempotência no `catch`.
+6. **Zero N+1 e paginação desde a v1.** Buscas relacionais usam joins nativos do Prisma em uma única ida ao banco com projeção estrita (`select`), índices definidos e paginação obrigatória (`limit`/`offset` ou cursor) em todo endpoint de lista.
+7. **SOLID & Clean Code Anti-AI Slop.** Services/stores até ~300 linhas e UI até ~150–200 linhas; nomenclatura ubíqua (proibido `dataHandler`/`processor`), zero valores mágicos, **Early Returns** sem código em flecha e alterações atômicas sem boilerplate para ciclos curtos de até 5 prompts seguidos de `git commit`.
+8. **Documentação e README sempre sincronizados.** Toda implementação, alteração estrutural ou remoção no projeto atualiza também [`README.md`](README.md) e os documentos em [`docs/`](docs/) na mesma entrega.
 
 Os commits seguem [Conventional Commits](https://www.conventionalcommits.org/pt-br/) (`feat:`, `fix:`, `docs:`, `chore:`).
 

@@ -88,11 +88,17 @@ A fonte única da verdade (**Single Source of Truth**) mora em `packages/shared`
 
 ## 4. Padrões Inegociáveis de Código e Qualidade
 
-### 4.1. Engenharia & Arquitetura Limpa
-- **Clean Architecture & Inversão de Dependência:** regras de negócio (cálculo de dano Pokémon, validação de EVs, ranking Damerau-Levenshtein, máquina de estados de batalha) residem em classes/funções puras de **Domínio**, totalmente desacopladas de Angular, NestJS, Prisma, HTTP ou banco de dados.
+> **Contrato Oficial de Qualidade:** todas as diretrizes detalhadas de engenharia, combate a *AI slop* e exemplos comparativos estão consolidados em **[Contrato de Qualidade — ARCHITECTURE.md](ARCHITECTURE.md)**.
+
+### 4.1. Shift-Left, Engenharia & Arquitetura Limpa
+- **Clean Architecture & Inversão de Dependência:** a infraestrutura obedece ao domínio. Regras de negócio (cálculo de dano Pokémon, validação de EVs, ranking Damerau-Levenshtein, máquina de estados de batalha) residem em classes/funções puras de **Domínio**, totalmente desacopladas de Angular, NestJS, Prisma, HTTP ou banco de dados.
+- **Separação Rigorosa de Responsabilidades (SoC) & Repositórios Isolados:** Controllers apenas recebem requisições já validadas na borda (`ZodValidationPipe`), delegam ao Service e retornam HTTP status codes (zero regra de negócio no Controller). Consultas diretas via Prisma não devem poluir Services de negócio — ficam encapsuladas em Repositórios dedicados.
+- **Backend Stateless, Arquivos em MinIO/S3 & Idempotência:** sessões, tokens e dados transitórios vivem no **Redis**; imagens, ROMs e saves trafegam exclusivamente via **MinIO/S3** por URLs geradas (nunca no PostgreSQL); consumidores Kafka toleram reprocessamento com trava idempotente e rollback em falhas transientes.
+- **Performance SQL (Zero N+1 & Paginação desde a v1):** buscas relacionais usam inclusões/joins nativos do Prisma em única ida ao banco (`select` explícito), índices definidos e paginação obrigatória (`limit`/`offset` ou cursor) em todo endpoint REST que retorna listas.
 - **TypeScript Estrito (`strict: true`, zero `any`):**
   - Proibido o uso de `any` ou coerções inseguras (`as Tipo` sem *type guard*).
   - Todo payload vindo de rede (`fetch`/`HttpClient`), `localStorage`, URL query params, WebSocket ou mensagem Kafka deve ser validado com `schema.safeParse(input)` (Zod) antes de entrar no domínio.
+- **Clean Code Anti-AI Slop:** nomenclatura ubíqua de domínio (proibido `dataHandler`/`processor`), fim das strings e números mágicos (usar Enums/constantes tipadas), **Early Returns** com *Guard Clauses* no topo (zero `if/else` em formato de flecha), zero boilerplate desnecessário e alterações atômicas pensadas para ciclos curtos de até 5 prompts seguidos de `git commit`.
 - **Modelagem por Discriminated Unions:** estados assíncronos nunca usam múltiplos booleans soltos (`isLoading`, `hasError`, `isEmpty`). Sempre usam união discriminada explícita:
   ```typescript
   export type AsyncState<T, E = AppError> =

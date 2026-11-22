@@ -1,6 +1,6 @@
 # 14 — Status Real da Implementação, Mudanças vs. Plano Original e Backlog
 
-> **Última atualização:** Auditoria Técnica, Correções Críticas de Concorrência/OTP/Outbox, Blindagem SOLID/Clean Code ([doc 17](17-plano-solid-clean-code-e-engenharia-big-tech.md)), Cookies/LGPD ([doc 16](16-cookies-lgpd-e-requisitos.md)) e Preparação da **Pokédex Suprema + Laboratório Genético** ([doc 15](15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md)).
+> **Última atualização:** Criação do **[Contrato de Qualidade (`ARCHITECTURE.md`)](ARCHITECTURE.md)**, Auditoria Técnica, Correções Críticas de Concorrência/OTP/Outbox, Blindagem SOLID/Clean Code ([doc 17](17-plano-solid-clean-code-e-engenharia-big-tech.md)), Cookies/LGPD ([doc 16](16-cookies-lgpd-e-requisitos.md)) e Preparação da **Pokédex Suprema + Laboratório Genético** ([doc 15](15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md)).
 > Este documento preserva o histórico real entre sessões: **o que já foi entregue**, **onde mudamos a rota em relação aos documentos iniciais (`00` a `12`)**, e o **Plano de Ação atualizado**.
 
 ---

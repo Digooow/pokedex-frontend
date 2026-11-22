@@ -1,6 +1,6 @@
 # 17 — Plano SOLID, Clean Code, Post-Mortem de Bugs e Engenharia Nível Big Tech
 
-> **Objetivo deste documento:** registrar o *post-mortem* técnico dos bugs sutis de concorrência e dívidas arquiteturais identificados na auditoria do **PokéVerse OS**, documentar as correções críticas aplicadas e estabelecer o plano de ação concreto para atingir o ápice de **SOLID**, **Clean Code** e confiabilidade em padrão **Big Tech** (Google / Meta / Stripe).
+> **Objetivo deste documento:** registrar o *post-mortem* técnico dos bugs sutis de concorrência e dívidas arquiteturais identificados na auditoria do **PokéVerse OS**, documentar as correções críticas aplicadas e estabelecer o plano de ação concreto para atingir o ápice de **SOLID**, **Clean Code** e confiabilidade em padrão **Big Tech** (Google / Meta / Stripe), em conjunto com o contrato normativo oficial em **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ---
 

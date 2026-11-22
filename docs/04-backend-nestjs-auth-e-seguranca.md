@@ -6,7 +6,10 @@
 
 O back-end em **NestJS (TypeScript estrito)** concentra regras de negócio autoritativas, persistência relacional, integração com cache/storage/mensageria e comunicação em tempo real via WebSockets.
 
-Cada módulo segue separação em camadas para evitar acoplamento com HTTP ou ORM:
+Cada módulo segue separação estrita em camadas conforme o **[Contrato de Qualidade](ARCHITECTURE.md)** para evitar acoplamento com HTTP ou ORM:
+
+- **Controllers finos (SoC):** apenas recebem requisições já validadas na borda (`ZodValidationPipe`), delegam aos Services de negócio e devolvem HTTP status codes/cookies BFF — nenhuma regra de negócio pode residir em Controllers.
+- **Services desacoplados & Repositórios isolados:** consultas diretas via Prisma não poluem os Services de negócio, ficando isoladas em Repositórios/Portas dedicadas; o backend permanece estritamente **Stateless** (estado transitório no Redis; arquivos pesados via URLs MinIO/S3).
 
 ```mermaid
 flowchart LR

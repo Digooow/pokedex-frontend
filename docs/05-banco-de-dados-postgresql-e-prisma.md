@@ -300,13 +300,19 @@ model OutboxEvent {
 
 ## 4. Regras de Otimização e Concorrência
 
-1. **Zero `SELECT *` (Projeção Estrita):**
+> Consulte também o **[Contrato de Qualidade — ARCHITECTURE.md](ARCHITECTURE.md)** para os padrões completos de Repositórios isolados, Anti-AI Slop e Validação Fail-Fast.
+
+1. **Repositórios Isolados & Zero `SELECT *` (Projeção Estrita):**
+   - Consultas diretas via Prisma não devem poluir Services de negócio: encapsule queries, joins e transações em **Repositórios dedicados**.
    - Todas as chamadas Prisma usam `select: { ... }` explícito (jamais retornam `passwordHash` ou campos JSON pesados em listagens).
-2. **Zero N+1 Queries:**
-   - Times e seus 6 membros são carregados em uma única operação (`include: { members: { orderBy: { position: 'asc' }, select: { ... } } }`), nunca iterando `teams` para consultar membros dentro de loops.
-3. **Paginação Eficiente via *Keyset Pagination* (Cursor):**
-   - Rankings, histórico de batalhas e listas paginadas nunca usam `OFFSET` gigante (`skip: 50000`). Utilizam cursores determinísticos compostos `(createdAt, id)` ou `(score, id)` compatíveis com os índices definidos.
-4. **Índices Cirúrgicos e Índices Parciais:**
+2. **Tolerância Zero para N+1 Queries:**
+   - Buscas relacionais carregam associações em **uma única ida ao banco** com inclusões/joins nativos do Prisma (`include: { members: { orderBy: { position: 'asc' }, select: { ... } } }`), nunca iterando resultados para consultar filhos dentro de loops.
+3. **Paginação Obrigatória desde a v1 (`limit`/`offset` e *Keyset Pagination*):**
+   - Todo endpoint REST que retorna listas deve exigir paginação desde a primeira versão (`limit`/`offset` validados na borda com teto máximo e traduzidos em `take`/`skip`). Proibido `.findMany()` aberto sem `take`.
+   - Rankings, histórico de batalhas e feeds volumosos nunca usam `OFFSET` gigante (`skip: 50000`), utilizando cursores determinísticos compostos `(createdAt, id)` ou `(score, id)` compatíveis com os índices definidos.
+4. **Gestão de Arquivos Isolada (Proibido Blobs no PostgreSQL):**
+   - Imagens, ROMs e *cloud save states* são enviados e lidos via **MinIO/S3** por URLs geradas/pré-assinadas. O PostgreSQL armazena exclusivamente metadados (`storageKey`, `sha256`, `fileSizeBytes`), nunca `BYTEA` ou Base64 pesado.
+5. **Índices Cirúrgicos e Índices Parciais:**
    - Em índices compostos (`[trainerId, revokedAt, expiresAt]` ou `[gameKey, score, createdAt, id]`), igualdades precedem colunas de ordenação/faixa (Regra do Prefixo).
    - Uma migration SQL dedicada cria um **índice parcial** na tabela `OutboxEvent` exclusivamente para eventos pendentes, mantendo o índice minúsculo mesmo após milhões de eventos históricos:
      ```sql
@@ -314,7 +320,7 @@ model OutboxEvent {
        ON "OutboxEvent" ("createdAt" ASC)
        WHERE "status" = 'PENDING';
      ```
-5. **Transações Ultracurtas e Prevenção de Deadlocks:**
+6. **Transações Ultracurtas e Prevenção de Deadlocks:**
    - Chamadas à PokéAPI, uploads para o MinIO/S3 ou publicações no Kafka **nunca ocorrem dentro de `prisma.$transaction()`**. A transação abre apenas para gravar as entidades locais + o registro correspondente em `OutboxEvent` e faz commit imediato.
    - Em atualizações simultâneas de múltiplos registros (ex.: reordenação de membros do time ou slots), os IDs são sempre ordenados de forma determinística antes do `UPDATE` para eliminar ciclos de *lock* (deadlocks).
 

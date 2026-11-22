@@ -1,6 +1,6 @@
 # PokéVerse — Regras Inegociáveis do Repositório
 
-Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto).
+Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -44,6 +44,17 @@ Todo código novo ou refatorado neste repositório DEVE obedecer estritamente ao
    - **Zero TOCTOU em contadores de segurança:** contadores de tentativas/bloqueio (login, OTP, MFA, rate limit) DEVEM ser incrementados atomicamente no Redis via `INCR` + `EXPIRE` (Lua script), nunca por leitura seguida de escrita (`get` + `set`).
    - **Rollback de idempotência em consumidores Kafka:** nunca mantenha lock `SET NX` gravado quando o efeito colateral (envio de e-mail, persistência ou broadcast) lançar exceção transiente; libere o lock no `catch` antes de relançar para retry/DLQ.
    - **Atomic Lease no Transactional Outbox:** `FOR UPDATE SKIP LOCKED` só tem validade dentro da transação; reivindique lotes com `UPDATE ... RETURNING` (lease em `processedAt`) para evitar processamento duplicado entre réplicas concorrentes.
+7. **Shift-Left, SoC & Repositórios Isolados ([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)):**
+   - **Controllers puros & Infraestrutura subordinada ao Domínio:** Controllers apenas validam entrada na borda (`ZodValidationPipe`), chamam Services de negócio e retornam status codes HTTP; nenhuma regra de negócio existe em Controllers.
+   - **Repositórios Isolados:** consultas diretas via Prisma (`select`, joins `include`, transações) não devem poluir Services de negócio — isole o acesso a dados em Repositórios/Adaptadores dedicados.
+   - **Backend Stateless & Arquivos em MinIO/S3:** sessões/OTPs/contadores transitórios vivem no Redis; imagens, ROMs e saves pesados trafegam exclusivamente via URLs geradas no MinIO/S3, nunca armazenados como blobs no PostgreSQL.
+8. **Performance SQL & Paginação Obrigatória (Zero N+1):**
+   - **Tolerância zero para N+1:** buscas relacionais usam inclusões/joins nativos do Prisma em uma única ida ao banco, com projeção estrita (`select`) e índices planejados.
+   - **Paginação desde a v1:** todo endpoint REST de listagem exige paginação obrigatória (`limit`/`offset` com teto validado no DTO, ou cursor/keyset para rankings/feeds).
+9. **Clean Code Anti-AI Slop & Entregas Atômicas (Ciclos de 5 Prompts):**
+   - **Nomenclatura Ubíqua & Zero Valores Mágicos:** reflita o domínio com precisão (proibido `dataHandler`, `processor`, `temp`); use Enums ou constantes tipadas.
+   - **Early Returns:** proibido `if/else` em formato de flecha; valide erros no topo com *Guard Clauses* e mantenha o caminho feliz em linha reta vertical no final da função.
+   - **Atomicidade & Zero Boilerplate:** faça alterações enxutas, declarativas e focadas (suportando sessões curtas de até 5 prompts seguidos de `git commit`), sem código gerativo prolixo.
 
 ---
 
