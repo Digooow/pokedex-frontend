@@ -1,61 +1,25 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import {
   type TrainerDataExport,
   TrainerDataExportSchema,
 } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
-import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
 import { SessionService } from './session.service';
-import { TRAINER_SESSION_SELECT } from './trainer-session-issuer.service';
+import { TrainerAccountRepository } from './trainer-account.repository';
 
 @Injectable()
 export class TrainerGdprService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly trainerAccountRepository: TrainerAccountRepository,
     private readonly redis: RedisService,
     private readonly crypto: CryptoService,
     private readonly sessionService: SessionService,
   ) {}
 
   async exportTrainerData(trainerId: string): Promise<TrainerDataExport> {
-    const trainer = await this.prisma.trainer.findUnique({
-      where: { id: trainerId },
-      select: {
-        ...TRAINER_SESSION_SELECT,
-        oauthAccounts: {
-          orderBy: { createdAt: 'asc' },
-          select: {
-            provider: true,
-            email: true,
-            createdAt: true,
-          },
-        },
-        passkeys: {
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            label: true,
-            deviceType: true,
-            backedUp: true,
-            createdAt: true,
-            lastUsedAt: true,
-          },
-        },
-        pokedexSlots: {
-          orderBy: { slotIndex: 'asc' },
-          select: {
-            slotIndex: true,
-            pokemonId: true,
-            pokemonName: true,
-            nickname: true,
-            spriteUrl: true,
-            updatedAt: true,
-          },
-        },
-      },
-    });
+    const trainer =
+      await this.trainerAccountRepository.findExportSnapshotById(trainerId);
 
     if (!trainer) {
       throw new UnauthorizedException('Treinador não encontrado.');
@@ -93,16 +57,10 @@ export class TrainerGdprService {
     rawSid?: string,
     rawRefreshToken?: string,
   ): Promise<{ readonly message: string }> {
-    try {
-      await this.prisma.trainer.delete({ where: { id: trainerId } });
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new UnauthorizedException('Treinador não encontrado.');
-      }
-      throw error;
+    const deleted =
+      await this.trainerAccountRepository.deleteTrainerById(trainerId);
+    if (!deleted) {
+      throw new UnauthorizedException('Treinador não encontrado.');
     }
 
     if (rawRefreshToken) {

@@ -1,15 +1,9 @@
 import { createHash, randomBytes } from 'node:crypto';
-import {
-  Injectable,
-  Optional,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
-import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
 import {
   GoogleAccountLinker,
   type GoogleAccountResolutionResult,
@@ -21,8 +15,6 @@ import {
   type VerifiedGoogleClaims,
   verifyGoogleIdTokenSignature,
 } from './google-oidc.verifier';
-import { SessionService } from './session.service';
-import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 export {
   type GoogleJwkEntry,
@@ -42,30 +34,14 @@ interface StoredOAuthState {
 
 @Injectable()
 export class GoogleOAuthService {
-  private readonly httpClient: GoogleOAuthHttpClient;
-  private readonly oidcVerifier: GoogleOidcVerifier;
-  private readonly accountLinker: GoogleAccountLinker;
-
   constructor(
-    prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly crypto: CryptoService,
-    sessionService: SessionService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
-    @Optional() httpClient?: GoogleOAuthHttpClient,
-    @Optional() oidcVerifier?: GoogleOidcVerifier,
-    @Optional() accountLinker?: GoogleAccountLinker,
-  ) {
-    this.httpClient = httpClient ?? new GoogleOAuthHttpClient();
-    this.oidcVerifier = oidcVerifier ?? new GoogleOidcVerifier(redis);
-    this.accountLinker =
-      accountLinker ??
-      new GoogleAccountLinker(
-        prisma,
-        new TrainerSessionIssuer(prisma, crypto, sessionService, config),
-        new AuthOutboxPublisher(crypto),
-      );
-  }
+    private readonly httpClient: GoogleOAuthHttpClient,
+    private readonly oidcVerifier: GoogleOidcVerifier,
+    private readonly accountLinker: GoogleAccountLinker,
+  ) {}
 
   isConfigured(): boolean {
     const clientId = this.config

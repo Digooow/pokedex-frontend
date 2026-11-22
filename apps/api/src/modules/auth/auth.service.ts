@@ -1,5 +1,4 @@
-import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import type {
   ForgotPasswordInput,
   LoginTrainerInput,
@@ -8,88 +7,24 @@ import type {
   ResetPasswordOtpInput,
   VerifyEmailOtpInput,
 } from '@pokeverse/shared';
-import { CryptoService } from '../../common/security/crypto.service';
-import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
-import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
-import { RedisService } from '../../infra/redis.service';
 import { AccountRecoveryService } from './account-recovery.service';
-import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
 import { CredentialsAuthService } from './credentials-auth.service';
-import { OtpService } from './otp.service';
 import { SessionManagementService } from './session-management.service';
-import { SessionService } from './session.service';
 import { TokenRefreshService } from './token-refresh.service';
 import { TrainerGdprService } from './trainer-gdpr.service';
-import {
-  type AuthSessionWithCookies,
-  TrainerSessionIssuer,
-} from './trainer-session-issuer.service';
+import type { AuthSessionWithCookies } from './trainer-session-issuer.service';
 
 export type { AuthSessionWithCookies };
 
 @Injectable()
 export class AuthService implements OnModuleInit {
-  private readonly credentialsAuth: CredentialsAuthService;
-  private readonly tokenRefresh: TokenRefreshService;
-  private readonly accountRecovery: AccountRecoveryService;
-  private readonly sessionManagement: SessionManagementService;
-  private readonly trainerGdpr: TrainerGdprService;
-
   constructor(
-    prisma: PrismaService,
-    redis: RedisService,
-    crypto: CryptoService,
-    sessionService: SessionService,
-    otpService: OtpService,
-    config: ConfigService<ApiEnvConfig, true>,
-    logger: StructuredLoggerService,
-    @Optional() credentialsAuth?: CredentialsAuthService,
-    @Optional() tokenRefresh?: TokenRefreshService,
-    @Optional() accountRecovery?: AccountRecoveryService,
-    @Optional() sessionManagement?: SessionManagementService,
-    @Optional() trainerGdpr?: TrainerGdprService,
-  ) {
-    const outbox = new AuthOutboxPublisher(crypto);
-    const issuer = new TrainerSessionIssuer(
-      prisma,
-      crypto,
-      sessionService,
-      config,
-    );
-    this.credentialsAuth =
-      credentialsAuth ??
-      new CredentialsAuthService(
-        prisma,
-        redis,
-        crypto,
-        sessionService,
-        otpService,
-        issuer,
-        outbox,
-        config,
-        logger,
-      );
-    this.tokenRefresh =
-      tokenRefresh ??
-      new TokenRefreshService(
-        prisma,
-        redis,
-        crypto,
-        sessionService,
-        issuer,
-        logger,
-      );
-    this.accountRecovery =
-      accountRecovery ??
-      new AccountRecoveryService(prisma, sessionService, otpService, outbox);
-    this.sessionManagement =
-      sessionManagement ??
-      new SessionManagementService(prisma, sessionService, config);
-    this.trainerGdpr =
-      trainerGdpr ??
-      new TrainerGdprService(prisma, redis, crypto, sessionService);
-  }
+    private readonly credentialsAuth: CredentialsAuthService,
+    private readonly tokenRefresh: TokenRefreshService,
+    private readonly accountRecovery: AccountRecoveryService,
+    private readonly sessionManagement: SessionManagementService,
+    private readonly trainerGdpr: TrainerGdprService,
+  ) {}
 
   onModuleInit = () => this.credentialsAuth.onModuleInit();
 

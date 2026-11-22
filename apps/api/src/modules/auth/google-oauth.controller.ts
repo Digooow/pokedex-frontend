@@ -9,6 +9,10 @@ import {
   Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import {
+  type GoogleOAuthCallbackQuery,
+  GoogleOAuthCallbackQuerySchema,
+} from '@pokeverse/shared';
 import type { Request, Response } from 'express';
 import {
   type AuthenticatedTrainer,
@@ -17,6 +21,7 @@ import {
 import { Public } from '../../common/decorators/public.decorator';
 import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
+import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { GoogleOAuthService } from './google-oauth.service';
 import { REFRESH_COOKIE_PATH, writeAuthCookies } from './session-cookies.util';
 import { SessionService } from './session.service';
@@ -64,9 +69,8 @@ export class GoogleOAuthController {
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Get('callback')
   async handleGoogleCallback(
-    @Query('code') code: string | undefined,
-    @Query('state') state: string | undefined,
-    @Query('error') oauthError: string | undefined,
+    @Query(new ZodValidationPipe(GoogleOAuthCallbackQuerySchema))
+    query: GoogleOAuthCallbackQuery,
     @Req() req: RequestWithTrace,
     @Res() res: Response,
   ): Promise<void> {
@@ -84,15 +88,15 @@ export class GoogleOAuthController {
       ...(domain ? { domain } : {}),
     });
 
-    if (oauthError || !code || !state) {
+    if (query.error || !query.code || !query.state) {
       res.redirect(`${baseRedirect}/?authError=google_cancelled`);
       return;
     }
 
     try {
       const outcome = await this.googleOAuth.handleCallback({
-        code,
-        state,
+        code: query.code,
+        state: query.state,
         bindCookieValue: bindCookie,
         traceId: req.traceId ?? null,
       });

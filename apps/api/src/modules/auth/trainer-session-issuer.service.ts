@@ -1,42 +1,12 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Prisma } from '@prisma/client';
 import type { AuthSessionResponse, MfaMethod } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
+import { AuthTokenRepository } from './auth-token.repository';
 import { type SessionTrainerRecord, SessionService } from './session.service';
-
-export const TRAINER_PROFILE_SELECT = {
-  id: true,
-  username: true,
-  email: true,
-  emailVerifiedAt: true,
-  mfaEnabled: true,
-  badgesCount: true,
-  eloRating: true,
-  lastMapId: true,
-  lastX: true,
-  lastY: true,
-  createdAt: true,
-} as const;
-
-export const TRAINER_SESSION_SELECT = {
-  ...TRAINER_PROFILE_SELECT,
-  passwordHash: true,
-} as const;
-
-export const TRAINER_AUTH_SELECT = {
-  ...TRAINER_SESSION_SELECT,
-  totpSecretEncrypted: true,
-  passkeys: { select: { id: true }, take: 1 },
-} as const;
-
-export interface TrainerAuthRecord extends SessionTrainerRecord {
-  readonly totpSecretEncrypted: string | null;
-  readonly passkeys: readonly { readonly id: string }[];
-}
+import type { TrainerAuthRecord } from './trainer-account.repository';
 
 export interface AuthSessionWithCookies {
   readonly session: AuthSessionResponse;
@@ -67,7 +37,7 @@ export function resolveProvidersAvailability(
 @Injectable()
 export class TrainerSessionIssuer {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly authTokenRepository: AuthTokenRepository,
     private readonly crypto: CryptoService,
     private readonly sessionService: SessionService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
@@ -100,17 +70,13 @@ export class TrainerSessionIssuer {
   async createRefreshTokenRecord(
     trainerId: string,
     familyId: string,
-    tx?: Prisma.TransactionClient,
   ): Promise<string> {
     const rawRefresh = this.generateOpaqueRefreshToken();
-    const client = tx ?? this.prisma;
-    await client.refreshToken.create({
-      data: {
-        trainerId,
-        tokenHash: this.crypto.sha256Hex(rawRefresh),
-        familyId,
-        expiresAt: this.computeRefreshExpiry(),
-      },
+    await this.authTokenRepository.createRefreshToken({
+      trainerId,
+      tokenHash: this.crypto.sha256Hex(rawRefresh),
+      familyId,
+      expiresAt: this.computeRefreshExpiry(),
     });
     return rawRefresh;
   }

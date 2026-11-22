@@ -5,12 +5,12 @@ import {
 } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
-import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
+import { AuthTokenRepository } from './auth-token.repository';
 import { type SessionTrainerRecord, SessionService } from './session.service';
+import { TrainerAccountRepository } from './trainer-account.repository';
 import {
   type AuthSessionWithCookies,
-  TRAINER_SESSION_SELECT,
   TrainerSessionIssuer,
 } from './trainer-session-issuer.service';
 
@@ -26,7 +26,8 @@ interface RefreshGraceEnvelope {
 @Injectable()
 export class TokenRefreshService {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly trainerAccountRepository: TrainerAccountRepository,
+    private readonly authTokenRepository: AuthTokenRepository,
     private readonly redis: RedisService,
     private readonly crypto: CryptoService,
     private readonly sessionService: SessionService,
@@ -46,10 +47,9 @@ export class TokenRefreshService {
       });
     }
 
-    const trainer = await this.prisma.trainer.findUnique({
-      where: { id: activeSession.trainerId },
-      select: TRAINER_SESSION_SELECT,
-    });
+    const trainer = await this.trainerAccountRepository.findSessionRecordById(
+      activeSession.trainerId,
+    );
 
     if (!trainer) {
       await this.sessionService.revokeByRawSid(rawSid);
@@ -75,19 +75,8 @@ export class TokenRefreshService {
     }
 
     const tokenHash = this.crypto.sha256Hex(rawRefreshToken);
-    const existing = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-      select: {
-        id: true,
-        trainerId: true,
-        familyId: true,
-        expiresAt: true,
-        revokedAt: true,
-        trainer: {
-          select: TRAINER_SESSION_SELECT,
-        },
-      },
-    });
+    const existing =
+      await this.authTokenRepository.findByTokenHashWithTrainer(tokenHash);
 
     if (!existing) {
       throw new UnauthorizedException('Sessão inválida ou expirada.');
@@ -105,25 +94,12 @@ export class TokenRefreshService {
     const nextHash = this.crypto.sha256Hex(nextRawRefresh);
     const nextExpiry = this.sessionIssuer.computeRefreshExpiry();
 
-    const rotated = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.refreshToken.updateMany({
-        where: { id: existing.id, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
-
-      if (updated.count !== 1) {
-        return false;
-      }
-
-      await tx.refreshToken.create({
-        data: {
-          trainerId: existing.trainerId,
-          tokenHash: nextHash,
-          familyId: existing.familyId,
-          expiresAt: nextExpiry,
-        },
-      });
-      return true;
+    const rotated = await this.authTokenRepository.rotateRefreshToken({
+      existingId: existing.id,
+      trainerId: existing.trainerId,
+      familyId: existing.familyId,
+      nextTokenHash: nextHash,
+      nextExpiresAt: nextExpiry,
     });
 
     if (!rotated) {
@@ -175,16 +151,11 @@ export class TokenRefreshService {
 
     const tokenHash = this.crypto.sha256Hex(rawRefreshToken);
     await this.redis.delKeys(this.refreshGraceKey(tokenHash));
-    const existing = await this.prisma.refreshToken.findUnique({
-      where: { tokenHash },
-      select: { familyId: true },
-    });
+    const familyId =
+      await this.authTokenRepository.findFamilyIdByTokenHash(tokenHash);
 
-    if (existing) {
-      await this.prisma.refreshToken.updateMany({
-        where: { familyId: existing.familyId, revokedAt: null },
-        data: { revokedAt: new Date() },
-      });
+    if (familyId) {
+      await this.authTokenRepository.revokeFamily(familyId);
     }
   }
 
@@ -208,10 +179,7 @@ export class TokenRefreshService {
       }
     }
 
-    await this.prisma.refreshToken.updateMany({
-      where: { familyId: existing.familyId, revokedAt: null },
-      data: { revokedAt: new Date() },
-    });
+    await this.authTokenRepository.revokeFamily(existing.familyId);
     await this.sessionService.revokeAllForTrainer(existing.trainerId);
     this.logger.emitEvent(
       'warn',

@@ -8,7 +8,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
 import type {
   LoginTrainerInput,
   RegisterTrainerInput,
@@ -18,15 +17,13 @@ import * as argon2 from 'argon2';
 import { CryptoService } from '../../common/security/crypto.service';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
 import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
 import { OtpService } from './otp.service';
 import { SessionService } from './session.service';
+import { TrainerAccountRepository } from './trainer-account.repository';
 import {
   type AuthSessionWithCookies,
-  TRAINER_AUTH_SELECT,
-  TRAINER_SESSION_SELECT,
   TrainerSessionIssuer,
   resolveProvidersAvailability,
 } from './trainer-session-issuer.service';
@@ -39,7 +36,7 @@ export class CredentialsAuthService implements OnModuleInit {
   private dummyPasswordHash: string | null = null;
 
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly trainerAccountRepository: TrainerAccountRepository,
     private readonly redis: RedisService,
     private readonly crypto: CryptoService,
     private readonly sessionService: SessionService,
@@ -71,76 +68,56 @@ export class CredentialsAuthService implements OnModuleInit {
     const familyId = randomUUID();
     const expiresAt = this.sessionIssuer.computeRefreshExpiry();
     const otpDraft = this.otpService.createOtpDraft('verify', input.email);
+    const trainerId = randomUUID();
 
-    try {
-      const created = await this.prisma.$transaction(async (tx) => {
-        const trainer = await tx.trainer.create({
-          data: {
+    const result =
+      await this.trainerAccountRepository.registerTrainerWithSessionAndOutbox({
+        trainerId,
+        username: input.username,
+        email: input.email,
+        passwordHash,
+        refreshToken: { tokenHash, familyId, expiresAt },
+        worldOutboxEvent: this.outboxPublisher.buildTrainerRegisteredWorldEvent(
+          {
+            trainerId,
             username: input.username,
-            email: input.email,
-            passwordHash,
+            traceId,
           },
-          select: TRAINER_SESSION_SELECT,
-        });
-
-        await tx.refreshToken.create({
-          data: {
-            trainerId: trainer.id,
-            tokenHash,
-            familyId,
-            expiresAt,
-          },
-        });
-
-        await this.outboxPublisher.enqueueTrainerRegisteredWorldEvent(tx, {
-          trainerId: trainer.id,
-          username: trainer.username,
-          traceId,
-        });
-
-        await this.outboxPublisher.enqueueEncryptedEmail(tx, {
-          aggregateId: trainer.id,
+        ),
+        emailOutboxEvent: this.outboxPublisher.buildEncryptedEmailEvent({
+          aggregateId: trainerId,
           template: 'email_verification_otp',
-          toEmail: trainer.email,
-          username: trainer.username,
+          toEmail: input.email,
+          username: input.username,
           subject: 'PokéVerse OS — Código de verificação de conta',
           otpCode: otpDraft.code,
           traceId,
-        });
-
-        return trainer;
+        }),
       });
 
-      await this.otpService.persistOtpDraft(otpDraft);
-
-      const { rawSid, session } = await this.sessionService.createSession({
-        trainerId: created.id,
-        username: created.username,
-        familyId,
-        state: 'AUTHENTICATED',
-        mfaMethods: [],
-      });
-
-      return {
-        session: this.sessionService.buildAuthSessionResponse(
-          created,
-          session.state,
-          session.mfaMethods,
-        ),
-        sessionSid: rawSid,
-        refreshToken: rawRefresh,
-      };
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        throw new ConflictException(
-          'Nome de treinador ou e-mail já cadastrado.',
-        );
-      }
-      throw error;
+    if (result.status === 'conflict') {
+      throw new ConflictException('Nome de treinador ou e-mail já cadastrado.');
     }
+
+    await this.otpService.persistOtpDraft(otpDraft);
+
+    const { rawSid, session } = await this.sessionService.createSession({
+      trainerId: result.trainer.id,
+      username: result.trainer.username,
+      familyId,
+      state: 'AUTHENTICATED',
+      mfaMethods: [],
+    });
+
+    return {
+      session: this.sessionService.buildAuthSessionResponse(
+        result.trainer,
+        session.state,
+        session.mfaMethods,
+      ),
+      sessionSid: rawSid,
+      refreshToken: rawRefresh,
+    };
   }
 
   async login(
@@ -166,10 +143,9 @@ export class CredentialsAuthService implements OnModuleInit {
       );
     }
 
-    const trainer = await this.prisma.trainer.findUnique({
-      where: { email: input.email },
-      select: TRAINER_AUTH_SELECT,
-    });
+    const trainer = await this.trainerAccountRepository.findAuthRecordByEmail(
+      input.email,
+    );
 
     if (!trainer?.passwordHash) {
       const dummyHash = await this.getDummyHash();
@@ -198,10 +174,8 @@ export class CredentialsAuthService implements OnModuleInit {
   }
 
   async getMe(trainerId: string): Promise<TrainerProfile> {
-    const trainer = await this.prisma.trainer.findUnique({
-      where: { id: trainerId },
-      select: TRAINER_SESSION_SELECT,
-    });
+    const trainer =
+      await this.trainerAccountRepository.findSessionRecordById(trainerId);
 
     if (!trainer) {
       throw new UnauthorizedException('Treinador não encontrado.');

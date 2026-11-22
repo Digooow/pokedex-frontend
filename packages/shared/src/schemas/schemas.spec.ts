@@ -4,9 +4,11 @@ import {
   ActiveSessionsResponseSchema,
   AuthSessionResponseSchema,
   DisableTotpSchema,
+  GoogleOAuthCallbackQuerySchema,
   LoginTrainerSchema,
   MfaChallengeVerifySchema,
   PRIVACY_CONSENT_VERSION,
+  PasskeyIdParamSchema,
   PrivacyConsentSchema,
   RegisterTrainerSchema,
   ResetPasswordOtpSchema,
@@ -297,6 +299,46 @@ describe('shared schemas boundary validation', () => {
 
     for (const invalidIdentifier of ['../etc/passwd', '   ', '', 'a'.repeat(65), 'pikachu!']) {
       expect(PokemonIdentifierParamSchema.safeParse(invalidIdentifier).success).toBe(false);
+    }
+  });
+
+  it('validates GoogleOAuthCallbackQuerySchema and PasskeyIdParamSchema boundaries', () => {
+    const callbackParsed = GoogleOAuthCallbackQuerySchema.parse({
+      code: '4/0A-valid',
+      state: 'abc_123-XYZ',
+      scope: 'openid email',
+      authuser: '0',
+      prompt: 'consent',
+    });
+    expect(callbackParsed).toEqual({ code: '4/0A-valid', state: 'abc_123-XYZ' });
+    expect('scope' in callbackParsed).toBe(false);
+    expect('authuser' in callbackParsed).toBe(false);
+    expect('prompt' in callbackParsed).toBe(false);
+
+    expect(
+      GoogleOAuthCallbackQuerySchema.parse({
+        error: 'access_denied',
+        state: 'abc_123',
+      }),
+    ).toEqual({ error: 'access_denied', state: 'abc_123' });
+    expect(GoogleOAuthCallbackQuerySchema.parse({})).toEqual({});
+
+    for (const invalidQuery of [
+      { code: '' },
+      { code: 'a'.repeat(2049) },
+      { code: ['a', 'b'] },
+      { state: 'invalid!state' },
+      { state: '../etc' },
+      { error: '' },
+    ]) {
+      expect(GoogleOAuthCallbackQuerySchema.safeParse(invalidQuery).success).toBe(false);
+    }
+
+    expect(PasskeyIdParamSchema.parse('550e8400-e29b-41d4-a716-446655440055')).toBe(
+      '550e8400-e29b-41d4-a716-446655440055',
+    );
+    for (const invalidId of ['not-a-uuid', '', '123']) {
+      expect(PasskeyIdParamSchema.safeParse(invalidId).success).toBe(false);
     }
   });
 });

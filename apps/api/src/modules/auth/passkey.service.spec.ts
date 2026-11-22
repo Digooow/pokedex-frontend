@@ -4,8 +4,11 @@ import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import type { PrismaService } from '../../infra/prisma.service';
 import type { RedisService } from '../../infra/redis.service';
+import { AuthTokenRepository } from './auth-token.repository';
+import { PasskeyRepository } from './passkey.repository';
 import { PasskeyService } from './passkey.service';
 import { SessionService } from './session.service';
+import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 function createConfigMock(): ConfigService<ApiEnvConfig, true> {
   return {
@@ -59,11 +62,17 @@ describe('PasskeyService (WebAuthn FIDO2 registration & login assertions)', () =
     const configMock = createConfigMock();
     const crypto = new CryptoService(configMock);
     const redisMock = {} as unknown as RedisService;
+    const sessionService = new SessionService(redisMock, crypto, configMock);
     const service = new PasskeyService(
-      prismaMock,
+      new PasskeyRepository(prismaMock),
       redisMock,
-      crypto,
-      new SessionService(redisMock, crypto, configMock),
+      sessionService,
+      new TrainerSessionIssuer(
+        new AuthTokenRepository(prismaMock),
+        crypto,
+        sessionService,
+        configMock,
+      ),
       configMock,
     );
 
@@ -122,11 +131,17 @@ describe('PasskeyService (WebAuthn FIDO2 registration & login assertions)', () =
 
     const configMock = createConfigMock();
     const crypto = new CryptoService(configMock);
+    const sessionService = new SessionService(redisMock, crypto, configMock);
     const service = new PasskeyService(
-      prismaMock,
+      new PasskeyRepository(prismaMock),
       redisMock,
-      crypto,
-      new SessionService(redisMock, crypto, configMock),
+      sessionService,
+      new TrainerSessionIssuer(
+        new AuthTokenRepository(prismaMock),
+        crypto,
+        sessionService,
+        configMock,
+      ),
       configMock,
     );
 

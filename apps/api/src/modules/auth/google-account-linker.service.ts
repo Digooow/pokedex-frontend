@@ -1,21 +1,22 @@
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import type { AuthSessionResponse } from '@pokeverse/shared';
-import { PrismaService } from '../../infra/prisma.service';
 import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
 import type { VerifiedGoogleClaims } from './google-oidc.verifier';
 import {
-  TRAINER_AUTH_SELECT,
-  TRAINER_PROFILE_SELECT,
+  TrainerAccountRepository,
   type TrainerAuthRecord,
-  TrainerSessionIssuer,
-} from './trainer-session-issuer.service';
+} from './trainer-account.repository';
+import {
+  type CreatedGoogleTrainerRecord,
+  TrainerOAuthRepository,
+} from './trainer-oauth.repository';
+import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 export interface GoogleAccountResolutionResult {
   readonly redirectUrl: string;
@@ -27,7 +28,8 @@ export interface GoogleAccountResolutionResult {
 @Injectable()
 export class GoogleAccountLinker {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly trainerAccountRepository: TrainerAccountRepository,
+    private readonly trainerOAuthRepository: TrainerOAuthRepository,
     private readonly sessionIssuer: TrainerSessionIssuer,
     private readonly outboxPublisher: AuthOutboxPublisher,
   ) {}
@@ -46,28 +48,17 @@ export class GoogleAccountLinker {
       );
     }
 
-    const linkedOAuth = await this.prisma.trainerOAuthAccount.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: 'google',
-          providerAccountId: claims.sub,
-        },
-      },
-      select: {
-        trainer: {
-          select: TRAINER_AUTH_SELECT,
-        },
-      },
-    });
+    const linkedTrainer =
+      await this.trainerOAuthRepository.findTrainerByGoogleAccountId(
+        claims.sub,
+      );
 
-    if (linkedOAuth) {
-      return this.issueTrainerSession(linkedOAuth.trainer, baseRedirect);
+    if (linkedTrainer) {
+      return this.issueTrainerSession(linkedTrainer, baseRedirect);
     }
 
-    const trainerByEmail = await this.prisma.trainer.findUnique({
-      where: { email: claims.email },
-      select: TRAINER_AUTH_SELECT,
-    });
+    const trainerByEmail =
+      await this.trainerAccountRepository.findAuthRecordByEmail(claims.email);
 
     if (trainerByEmail) {
       if (trainerByEmail.emailVerifiedAt === null) {
@@ -76,13 +67,10 @@ export class GoogleAccountLinker {
         };
       }
 
-      await this.prisma.trainerOAuthAccount.create({
-        data: {
-          trainerId: trainerByEmail.id,
-          provider: 'google',
-          providerAccountId: claims.sub,
-          email: claims.email,
-        },
+      await this.trainerOAuthRepository.createGoogleLink({
+        trainerId: trainerByEmail.id,
+        providerAccountId: claims.sub,
+        email: claims.email,
       });
       return this.issueTrainerSession(trainerByEmail, baseRedirect);
     }
@@ -100,14 +88,8 @@ export class GoogleAccountLinker {
   }
 
   async unlinkGoogle(trainerId: string): Promise<void> {
-    const trainer = await this.prisma.trainer.findUnique({
-      where: { id: trainerId },
-      select: {
-        passwordHash: true,
-        passkeys: { select: { id: true } },
-        oauthAccounts: { select: { id: true, provider: true } },
-      },
-    });
+    const trainer =
+      await this.trainerOAuthRepository.findUnlinkCandidates(trainerId);
 
     if (!trainer) {
       throw new UnauthorizedException('Treinador não encontrado.');
@@ -124,9 +106,7 @@ export class GoogleAccountLinker {
       );
     }
 
-    await this.prisma.trainerOAuthAccount.deleteMany({
-      where: { trainerId, provider: 'google' },
-    });
+    await this.trainerOAuthRepository.deleteGoogleLinks(trainerId);
   }
 
   private async linkToExistingSessionTrainer(
@@ -134,15 +114,8 @@ export class GoogleAccountLinker {
     linkTrainerId: string,
     baseRedirect: string,
   ): Promise<GoogleAccountResolutionResult> {
-    const existingOAuth = await this.prisma.trainerOAuthAccount.findUnique({
-      where: {
-        provider_providerAccountId: {
-          provider: 'google',
-          providerAccountId: claims.sub,
-        },
-      },
-      select: { trainerId: true },
-    });
+    const existingOAuth =
+      await this.trainerOAuthRepository.findOwnerByGoogleAccountId(claims.sub);
 
     if (existingOAuth && existingOAuth.trainerId !== linkTrainerId) {
       return {
@@ -151,13 +124,10 @@ export class GoogleAccountLinker {
     }
 
     if (!existingOAuth) {
-      await this.prisma.trainerOAuthAccount.create({
-        data: {
-          trainerId: linkTrainerId,
-          provider: 'google',
-          providerAccountId: claims.sub,
-          email: claims.email,
-        },
+      await this.trainerOAuthRepository.createGoogleLink({
+        trainerId: linkTrainerId,
+        providerAccountId: claims.sub,
+        email: claims.email,
       });
     }
 
@@ -184,7 +154,7 @@ export class GoogleAccountLinker {
   private createNewGoogleTrainer(
     claims: VerifiedGoogleClaims,
     traceId: string | null,
-  ) {
+  ): Promise<CreatedGoogleTrainerRecord> {
     const baseName = (claims.name ?? claims.email.split('@')[0] ?? 'Trainer')
       .replace(/[^a-zA-Z0-9_-]/g, '_')
       .slice(0, 18);
@@ -197,72 +167,41 @@ export class GoogleAccountLinker {
     prefix: string,
     traceId: string | null,
     attempt: number,
-  ): Promise<
-    ReturnType<GoogleAccountLinker['tryCreateGoogleTrainerTransaction']>
-  > {
+  ): Promise<CreatedGoogleTrainerRecord> {
     if (attempt >= 4) {
       throw new ConflictException(
         'Não foi possível reservar nome de treinador único para conta Google.',
       );
     }
 
-    const candidateUsername =
-      attempt === 0 ? prefix : `${prefix}_${randomBytes(2).toString('hex')}`;
-
-    try {
-      return await this.tryCreateGoogleTrainerTransaction(
-        claims,
-        candidateUsername,
-        traceId,
-      );
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        return this.createTrainerWithUniqueUsername(
-          claims,
-          prefix,
-          traceId,
-          attempt + 1,
-        );
-      }
-      throw error;
-    }
-  }
-
-  private tryCreateGoogleTrainerTransaction(
-    claims: VerifiedGoogleClaims,
-    candidateUsername: string,
-    traceId: string | null,
-  ) {
-    return this.prisma.$transaction(async (tx) => {
-      const trainer = await tx.trainer.create({
-        data: {
-          username: candidateUsername.slice(0, 24),
-          email: claims.email,
-          passwordHash: null,
-          emailVerifiedAt: new Date(),
-        },
-        select: TRAINER_PROFILE_SELECT,
-      });
-
-      await tx.trainerOAuthAccount.create({
-        data: {
-          trainerId: trainer.id,
-          provider: 'google',
-          providerAccountId: claims.sub,
-          email: claims.email,
-        },
-      });
-
-      await this.outboxPublisher.enqueueTrainerRegisteredWorldEvent(tx, {
-        trainerId: trainer.id,
-        username: trainer.username,
-        traceId,
-      });
-
-      return trainer;
+    const candidateUsername = (
+      attempt === 0 ? prefix : `${prefix}_${randomBytes(2).toString('hex')}`
+    ).slice(0, 24);
+    const trainerId = randomUUID();
+    const outboxEvent = this.outboxPublisher.buildTrainerRegisteredWorldEvent({
+      trainerId,
+      username: candidateUsername,
+      traceId,
     });
+
+    const result =
+      await this.trainerOAuthRepository.createGoogleTrainerWithOutbox({
+        trainerId,
+        username: candidateUsername,
+        providerAccountId: claims.sub,
+        email: claims.email,
+        outboxEvent,
+      });
+
+    if (result.status === 'conflict') {
+      return this.createTrainerWithUniqueUsername(
+        claims,
+        prefix,
+        traceId,
+        attempt + 1,
+      );
+    }
+
+    return result.trainer;
   }
 }

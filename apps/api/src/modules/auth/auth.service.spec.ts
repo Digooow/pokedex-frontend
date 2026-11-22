@@ -5,11 +5,20 @@ import * as argon2 from 'argon2';
 import { CryptoService } from '../../common/security/crypto.service';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
-import { RedisService } from '../../infra/redis.service';
+import type { PrismaService } from '../../infra/prisma.service';
+import type { RedisService } from '../../infra/redis.service';
+import { AccountRecoveryService } from './account-recovery.service';
+import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
+import { AuthTokenRepository } from './auth-token.repository';
 import { AuthService } from './auth.service';
+import { CredentialsAuthService } from './credentials-auth.service';
 import { OtpService } from './otp.service';
+import { SessionManagementService } from './session-management.service';
 import { SessionService } from './session.service';
+import { TokenRefreshService } from './token-refresh.service';
+import { TrainerAccountRepository } from './trainer-account.repository';
+import { TrainerGdprService } from './trainer-gdpr.service';
+import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 interface RevokeCallArg {
   readonly where: { readonly familyId: string; readonly revokedAt: null };
@@ -37,6 +46,74 @@ function createConfigMock(): ConfigService<ApiEnvConfig, true> {
       }
     }),
   } as unknown as ConfigService<ApiEnvConfig, true>;
+}
+
+function createAuthService(params: {
+  readonly prismaMock: PrismaService;
+  readonly redisMock: RedisService;
+  readonly configMock: ConfigService<ApiEnvConfig, true>;
+  readonly crypto?: CryptoService;
+  readonly sessionService?: SessionService;
+  readonly otpService?: OtpService;
+}): AuthService {
+  const crypto = params.crypto ?? new CryptoService(params.configMock);
+  const sessionService =
+    params.sessionService ??
+    new SessionService(params.redisMock, crypto, params.configMock);
+  const otpService =
+    params.otpService ??
+    new OtpService(params.redisMock, crypto, params.configMock);
+  const logger = new StructuredLoggerService();
+  const trainerAccountRepo = new TrainerAccountRepository(params.prismaMock);
+  const authTokenRepo = new AuthTokenRepository(params.prismaMock);
+  const outboxPublisher = new AuthOutboxPublisher(crypto);
+  const sessionIssuer = new TrainerSessionIssuer(
+    authTokenRepo,
+    crypto,
+    sessionService,
+    params.configMock,
+  );
+
+  return new AuthService(
+    new CredentialsAuthService(
+      trainerAccountRepo,
+      params.redisMock,
+      crypto,
+      sessionService,
+      otpService,
+      sessionIssuer,
+      outboxPublisher,
+      params.configMock,
+      logger,
+    ),
+    new TokenRefreshService(
+      trainerAccountRepo,
+      authTokenRepo,
+      params.redisMock,
+      crypto,
+      sessionService,
+      sessionIssuer,
+      logger,
+    ),
+    new AccountRecoveryService(
+      trainerAccountRepo,
+      sessionService,
+      otpService,
+      outboxPublisher,
+    ),
+    new SessionManagementService(
+      trainerAccountRepo,
+      authTokenRepo,
+      sessionService,
+      params.configMock,
+    ),
+    new TrainerGdprService(
+      trainerAccountRepo,
+      params.redisMock,
+      crypto,
+      sessionService,
+    ),
+  );
 }
 
 describe('AuthService & OtpService enterprise IAM behaviors', () => {
@@ -83,19 +160,7 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
     } as unknown as RedisService;
 
     const configMock = createConfigMock();
-    const crypto = new CryptoService(configMock);
-    const sessionService = new SessionService(redisMock, crypto, configMock);
-    const otpService = new OtpService(redisMock, crypto, configMock);
-
-    const service = new AuthService(
-      prismaMock,
-      redisMock,
-      crypto,
-      sessionService,
-      otpService,
-      configMock,
-      new StructuredLoggerService(),
-    );
+    const service = createAuthService({ prismaMock, redisMock, configMock });
 
     await expect(service.refresh('stolen-token-value')).rejects.toThrow(
       UnauthorizedException,
@@ -151,20 +216,11 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       refreshToken: { create: refreshCreate },
     } as unknown as PrismaService;
 
-    const configMock = createConfigMock();
-    const crypto = new CryptoService(configMock);
-    const sessionService = new SessionService(redisMock, crypto, configMock);
-    const otpService = new OtpService(redisMock, crypto, configMock);
-
-    const service = new AuthService(
+    const service = createAuthService({
       prismaMock,
       redisMock,
-      crypto,
-      sessionService,
-      otpService,
-      configMock,
-      new StructuredLoggerService(),
-    );
+      configMock: createConfigMock(),
+    });
 
     await service.onModuleInit();
 
@@ -370,19 +426,11 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       ),
     } as unknown as PrismaService;
 
-    const configMock = createConfigMock();
-    const crypto = new CryptoService(configMock);
-    const sessionService = new SessionService(redisMock, crypto, configMock);
-    const otpService = new OtpService(redisMock, crypto, configMock);
-    const service = new AuthService(
+    const service = createAuthService({
       prismaMock,
       redisMock,
-      crypto,
-      sessionService,
-      otpService,
-      configMock,
-      new StructuredLoggerService(),
-    );
+      configMock: createConfigMock(),
+    });
 
     const first = await service.refresh('tab-1-refresh-token-value');
     expect(first.refreshToken).toBeTruthy();
@@ -521,15 +569,13 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       },
     } as unknown as PrismaService;
 
-    const service = new AuthService(
+    const service = createAuthService({
       prismaMock,
       redisMock,
+      configMock: prodConfig,
       crypto,
       sessionService,
-      new OtpService(redisMock, crypto, prodConfig),
-      prodConfig,
-      new StructuredLoggerService(),
-    );
+    });
 
     const active = await service.listActiveSessions(trainerId, currentFamilyId);
     expect(active.sessions).toHaveLength(2);
@@ -599,17 +645,14 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
 
     const configMock = createConfigMock();
     const crypto = new CryptoService(configMock);
-    const sessionService = new SessionService(redisMock, crypto, configMock);
     const otpService = new OtpService(redisMock, crypto, configMock);
-    const service = new AuthService(
+    const service = createAuthService({
       prismaMock,
       redisMock,
-      crypto,
-      sessionService,
-      otpService,
       configMock,
-      new StructuredLoggerService(),
-    );
+      crypto,
+      otpService,
+    });
 
     const existingOtp = await otpService.issueOtp(
       'verify',
@@ -720,19 +763,11 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       delKeys,
     } as unknown as RedisService;
 
-    const configMock = createConfigMock();
-    const crypto = new CryptoService(configMock);
-    const sessionService = new SessionService(redisMock, crypto, configMock);
-    const otpService = new OtpService(redisMock, crypto, configMock);
-    const service = new AuthService(
+    const service = createAuthService({
       prismaMock,
       redisMock,
-      crypto,
-      sessionService,
-      otpService,
-      configMock,
-      new StructuredLoggerService(),
-    );
+      configMock: createConfigMock(),
+    });
 
     const deleted = await service.deleteTrainerAccount(
       trainerId,

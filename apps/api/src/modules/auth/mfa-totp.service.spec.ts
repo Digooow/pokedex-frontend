@@ -2,14 +2,18 @@ import { BadRequestException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
-import { RedisService } from '../../infra/redis.service';
+import type { PrismaService } from '../../infra/prisma.service';
+import type { RedisService } from '../../infra/redis.service';
+import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
+import { AuthTokenRepository } from './auth-token.repository';
+import { MfaTotpRepository } from './mfa-totp.repository';
 import {
+  MfaTotpService,
   computeTotpAtCounter,
   decodeBase32,
-  MfaTotpService,
 } from './mfa-totp.service';
 import { SessionService } from './session.service';
+import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 function createConfigMock(): ConfigService<ApiEnvConfig, true> {
   return {
@@ -153,11 +157,16 @@ describe('MfaTotpService (RFC 6238, AES-256-GCM, 8 backup codes & anti-replay)',
     const crypto = new CryptoService(configMock);
     const sessionService = new SessionService(redisMock, crypto, configMock);
     const totpService = new MfaTotpService(
-      prismaMock,
+      new MfaTotpRepository(prismaMock),
       redisMock,
       crypto,
-      sessionService,
-      configMock,
+      new AuthOutboxPublisher(crypto),
+      new TrainerSessionIssuer(
+        new AuthTokenRepository(prismaMock),
+        crypto,
+        sessionService,
+        configMock,
+      ),
     );
 
     const setup = await totpService.initiateSetup(trainerId);

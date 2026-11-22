@@ -6,7 +6,6 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseUUIDPipe,
   Post,
   Req,
   Res,
@@ -20,6 +19,7 @@ import {
   GenericMessageResponseSchema,
   type MfaChallengeVerifyInput,
   MfaChallengeVerifySchema,
+  PasskeyIdParamSchema,
   type PasskeyLoginOptionsInput,
   PasskeyLoginOptionsSchema,
   type PasskeyLoginVerifyInput,
@@ -154,7 +154,8 @@ export class MfaController {
   @Delete('passkeys/:id')
   async deletePasskey(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
-    @Param('id', new ParseUUIDPipe()) passkeyId: string,
+    @Param('id', new ZodValidationPipe(PasskeyIdParamSchema))
+    passkeyId: string,
   ): Promise<void> {
     await this.passkeyService.deletePasskey(trainer.trainerId, passkeyId);
   }

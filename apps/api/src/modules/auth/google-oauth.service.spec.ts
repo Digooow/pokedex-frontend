@@ -3,14 +3,22 @@ import { UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
-import { RedisService } from '../../infra/redis.service';
+import type { PrismaService } from '../../infra/prisma.service';
+import type { RedisService } from '../../infra/redis.service';
+import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
+import { AuthTokenRepository } from './auth-token.repository';
+import { GoogleAccountLinker } from './google-account-linker.service';
+import { GoogleOAuthHttpClient } from './google-oauth-http.client';
 import {
   type GoogleJwkEntry,
   GoogleOAuthService,
   verifyGoogleIdTokenSignature,
 } from './google-oauth.service';
+import { GoogleOidcVerifier } from './google-oidc.verifier';
 import { SessionService } from './session.service';
+import { TrainerAccountRepository } from './trainer-account.repository';
+import { TrainerOAuthRepository } from './trainer-oauth.repository';
+import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 function signRs256Jwt(
   header: Record<string, unknown>,
@@ -143,12 +151,24 @@ describe('GoogleOAuthService (OIDC RS256 verification & safe account linking)', 
 
     const crypto = new CryptoService(configMock);
     const redisMock = {} as unknown as RedisService;
+    const sessionService = new SessionService(redisMock, crypto, configMock);
     const service = new GoogleOAuthService(
-      prismaMock,
       redisMock,
       crypto,
-      new SessionService(redisMock, crypto, configMock),
       configMock,
+      new GoogleOAuthHttpClient(),
+      new GoogleOidcVerifier(redisMock),
+      new GoogleAccountLinker(
+        new TrainerAccountRepository(prismaMock),
+        new TrainerOAuthRepository(prismaMock),
+        new TrainerSessionIssuer(
+          new AuthTokenRepository(prismaMock),
+          crypto,
+          sessionService,
+          configMock,
+        ),
+        new AuthOutboxPublisher(crypto),
+      ),
     );
 
     const outcome = await service.resolveTrainerAccount(

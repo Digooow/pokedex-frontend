@@ -3,7 +3,6 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
-  Optional,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -18,23 +17,17 @@ import {
 import {
   type AuthenticationResponseJSON,
   type RegistrationResponseJSON,
-  type WebAuthnCredential,
   generateAuthenticationOptions,
   generateRegistrationOptions,
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
 } from '@simplewebauthn/server';
-import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { PrismaService } from '../../infra/prisma.service';
 import { RedisService } from '../../infra/redis.service';
+import { PasskeyRepository } from './passkey.repository';
 import { SessionService } from './session.service';
-import {
-  TRAINER_SESSION_SELECT,
-  TrainerSessionIssuer,
-} from './trainer-session-issuer.service';
-
-type StoredTransports = NonNullable<WebAuthnCredential['transports']>;
+import type { PersistedPasskeySummary } from './trainer-account.repository';
+import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 
 const CHALLENGE_TTL_SEC = 120;
 
@@ -45,64 +38,33 @@ interface StoredAuthChallenge {
 
 @Injectable()
 export class PasskeyService {
-  private readonly sessionIssuer: TrainerSessionIssuer;
-
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly passkeyRepository: PasskeyRepository,
     private readonly redis: RedisService,
-    crypto: CryptoService,
     private readonly sessionService: SessionService,
+    private readonly sessionIssuer: TrainerSessionIssuer,
     private readonly config: ConfigService<ApiEnvConfig, true>,
-    @Optional() sessionIssuer?: TrainerSessionIssuer,
-  ) {
-    this.sessionIssuer =
-      sessionIssuer ??
-      new TrainerSessionIssuer(prisma, crypto, sessionService, config);
-  }
+  ) {}
 
   async listPasskeys(trainerId: string): Promise<PasskeySummary[]> {
-    const rows = await this.prisma.trainerPasskey.findMany({
-      where: { trainerId },
-      orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        label: true,
-        deviceType: true,
-        backedUp: true,
-        createdAt: true,
-        lastUsedAt: true,
-      },
-    });
-
-    return rows.map((row) =>
-      PasskeySummarySchema.parse({
-        ...row,
-        createdAt: row.createdAt.toISOString(),
-        lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
-      }),
-    );
+    const rows = await this.passkeyRepository.listPasskeysByTrainer(trainerId);
+    return rows.map((row) => this.toPasskeySummary(row));
   }
 
   async deletePasskey(trainerId: string, passkeyId: string): Promise<void> {
-    const deleted = await this.prisma.trainerPasskey.deleteMany({
-      where: { id: passkeyId, trainerId },
-    });
+    const deleted = await this.passkeyRepository.deletePasskeyForTrainer(
+      trainerId,
+      passkeyId,
+    );
 
-    if (deleted.count === 0) {
+    if (!deleted) {
       throw new NotFoundException('Passkey não encontrada para esta conta.');
     }
   }
 
   async generateRegisterOptions(trainerId: string) {
-    const trainer = await this.prisma.trainer.findUnique({
-      where: { id: trainerId },
-      select: {
-        id: true,
-        username: true,
-        email: true,
-        passkeys: { select: { credentialId: true, transports: true } },
-      },
-    });
+    const trainer =
+      await this.passkeyRepository.findTrainerForRegistration(trainerId);
 
     if (!trainer) {
       throw new UnauthorizedException('Treinador não encontrado.');
@@ -166,32 +128,18 @@ export class PasskeyService {
     const { credential, credentialDeviceType, credentialBackedUp } =
       verification.registrationInfo;
 
-    const saved = await this.prisma.trainerPasskey.create({
-      data: {
-        trainerId,
-        credentialId: credential.id,
-        publicKey: Buffer.from(credential.publicKey).toString('base64url'),
-        counter: credential.counter,
-        deviceType: credentialDeviceType,
-        backedUp: credentialBackedUp,
-        transports: credential.transports ?? [],
-        label: input.label ?? 'Passkey do Dispositivo',
-      },
-      select: {
-        id: true,
-        label: true,
-        deviceType: true,
-        backedUp: true,
-        createdAt: true,
-        lastUsedAt: true,
-      },
+    const saved = await this.passkeyRepository.createPasskey({
+      trainerId,
+      credentialId: credential.id,
+      publicKey: Buffer.from(credential.publicKey).toString('base64url'),
+      counter: credential.counter,
+      deviceType: credentialDeviceType,
+      backedUp: credentialBackedUp,
+      transports: credential.transports ?? [],
+      label: input.label ?? 'Passkey do Dispositivo',
     });
 
-    return PasskeySummarySchema.parse({
-      ...saved,
-      createdAt: saved.createdAt.toISOString(),
-      lastUsedAt: saved.lastUsedAt?.toISOString() ?? null,
-    });
+    return this.toPasskeySummary(saved);
   }
 
   async generateLoginOptions(params: {
@@ -199,25 +147,23 @@ export class PasskeyService {
     readonly pendingTrainerId?: string;
   }) {
     const targetTrainerId = params.pendingTrainerId ?? null;
-    let allowCredentials:
-      Array<{ id: string; transports?: StoredTransports }> | undefined;
+    const selector = targetTrainerId
+      ? { trainerId: targetTrainerId }
+      : params.email
+        ? { email: params.email }
+        : null;
 
-    if (targetTrainerId || params.email) {
-      const trainer = await this.prisma.trainer.findFirst({
-        where: targetTrainerId
-          ? { id: targetTrainerId }
-          : { email: params.email },
-        select: {
-          passkeys: { select: { credentialId: true, transports: true } },
-        },
-      });
-      if (trainer && trainer.passkeys.length > 0) {
-        allowCredentials = trainer.passkeys.map((pk) => ({
-          id: pk.credentialId,
-          transports: pk.transports,
-        }));
-      }
-    }
+    const descriptors = selector
+      ? await this.passkeyRepository.findPasskeyDescriptorsForLogin(selector)
+      : [];
+
+    const allowCredentials =
+      descriptors.length > 0
+        ? descriptors.map((pk) => ({
+            id: pk.credentialId,
+            transports: pk.transports,
+          }))
+        : undefined;
 
     const options = await generateAuthenticationOptions({
       rpID: this.config.get('WEBAUTHN_RP_ID', { infer: true }),
@@ -265,20 +211,9 @@ export class PasskeyService {
       throw new BadRequestException('Credencial WebAuthn ausente.');
     }
 
-    const passkey = await this.prisma.trainerPasskey.findUnique({
-      where: { credentialId: authResponse.id },
-      select: {
-        id: true,
-        trainerId: true,
-        credentialId: true,
-        publicKey: true,
-        counter: true,
-        transports: true,
-        trainer: {
-          select: TRAINER_SESSION_SELECT,
-        },
-      },
-    });
+    const passkey = await this.passkeyRepository.findByCredentialIdWithTrainer(
+      authResponse.id,
+    );
 
     if (
       !passkey ||
@@ -306,13 +241,11 @@ export class PasskeyService {
       throw new UnauthorizedException('Assinatura da Passkey inválida.');
     }
 
-    await this.prisma.trainerPasskey.update({
-      where: { id: passkey.id },
-      data: {
-        counter: verification.authenticationInfo.newCounter,
-        lastUsedAt: new Date(),
-      },
-    });
+    await this.passkeyRepository.updateUsage(
+      passkey.id,
+      verification.authenticationInfo.newCounter,
+      new Date(),
+    );
 
     let activeSid = currentRawSid;
     let familyId: string = randomUUID();
@@ -352,6 +285,14 @@ export class PasskeyService {
     );
 
     return { session, sessionSid: activeSid, refreshToken };
+  }
+
+  private toPasskeySummary(row: PersistedPasskeySummary): PasskeySummary {
+    return PasskeySummarySchema.parse({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+      lastUsedAt: row.lastUsedAt?.toISOString() ?? null,
+    });
   }
 
   private getAllowedOrigins(): string[] {

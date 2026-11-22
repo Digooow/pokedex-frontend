@@ -255,4 +255,38 @@ describe('PokéVerse API (e2e)', () => {
       .send({ slotIndex: 3, pokemonId: 25, pokemonName: 'pikachu' })
       .expect(400);
   });
+
+  it('validates Google OAuth callback query and Passkey UUID param at the HTTP edge via ZodValidationPipe', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/google/callback?code=abc&state=invalid!state')
+      .expect(400);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/google/callback?code=a&code=b&state=valid_state')
+      .expect(400);
+
+    const cancelled = await request(app.getHttpServer())
+      .get(
+        '/api/v1/auth/google/callback?error=access_denied&scope=openid&authuser=0',
+      )
+      .expect(302);
+    expect(cancelled.headers['location']).toContain(
+      'authError=google_cancelled',
+    );
+
+    const sessionService = app.get(SessionService);
+    const { rawSid } = await sessionService.createSession({
+      trainerId: '550e8400-e29b-41d4-a716-446655440000',
+      username: 'Red_Kanto',
+      familyId: '550e8400-e29b-41d4-a716-446655440097',
+      state: 'AUTHENTICATED',
+      mfaMethods: [],
+    });
+
+    await request(app.getHttpServer())
+      .delete('/api/v1/auth/passkeys/not-a-uuid')
+      .set('Origin', 'http://localhost:4200')
+      .set('Cookie', `pokeverse_session=${rawSid}`)
+      .expect(400);
+  });
 });

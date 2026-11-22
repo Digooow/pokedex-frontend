@@ -291,3 +291,21 @@ export const TrainerDataExportSchema = z.object({
 
 export type TrainerDataExport = z.infer<typeof TrainerDataExportSchema>;
 
+export const GoogleOAuthCallbackQuerySchema = z.object({
+  code: z.string().trim().min(1).max(2048).optional(),
+  state: z
+    .string()
+    .trim()
+    .min(1)
+    .max(256)
+    .regex(/^[A-Za-z0-9_-]+$/, 'Parâmetro state OAuth inválido.')
+    .optional(),
+  error: z.string().trim().min(1).max(128).optional(),
+  error_description: z.string().trim().max(512).optional(),
+});
+
+export type GoogleOAuthCallbackQuery = z.infer<typeof GoogleOAuthCallbackQuerySchema>;
+
+export const PasskeyIdParamSchema = z.uuid('Identificador de Passkey inválido.');
+
+

@@ -23,7 +23,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-72_unit_%2B_9_E2E-3ddc84">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-84_unit_%2B_10_E2E-3ddc84">
   <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
 </p>
 
@@ -65,11 +65,11 @@ A plataforma tem **cinco módulos**, acessíveis pelo dock inferior (atalhos `1`
 
 | # | Módulo | Rota | Acesso | Estado | Progresso |
 | :-: | :--- | :--- | :---: | :--- | :--- |
-| 1 | **Vila Central** (overworld 2D/HD-2D) | `/mundo` | Treinador | 🚧 Tela de status | `█░░░░░░░░░` 18% |
-| 2 | **Pokédex 3D** | `/` e `/pokedex` | Público | ✅ **Em produção** | `██████████` Fase 4A |
-| 3 | **Museu das Regiões** | `/museu` | Público | 🟡 Base com 6 gerações | `███░░░░░░░` 36% |
-| 4 | **Arcade Retrô** (WASM + cloud saves) | `/arcade` | Treinador | 🚧 Tela de status | `█░░░░░░░░░` 14% |
-| 5 | **Battle Frontier** (PvE/PvP e mini-games) | `/arena` | Treinador | 🚧 Tela de status | `██░░░░░░░░` 28% |
+| 1 | **Vila Central** (overworld 2D/HD-2D) | `/mundo` | Treinador | Em construção (tela de status) | `█░░░░░░░░░` 18% |
+| 2 | **Pokédex 3D** | `/` e `/pokedex` | Público | **Em produção** | `██████████` Fase 4A |
+| 3 | **Museu das Regiões** | `/museu` | Público | Base com 6 gerações | `███░░░░░░░` 36% |
+| 4 | **Arcade Retrô** (WASM + cloud saves) | `/arcade` | Treinador | Em construção (tela de status) | `█░░░░░░░░░` 14% |
+| 5 | **Battle Frontier** (PvE/PvP e mini-games) | `/arena` | Treinador | Em construção (tela de status) | `██░░░░░░░░` 28% |
 
 > Os percentuais são os exibidos nas telas de módulo em construção ([`under-construction.data.ts`](apps/web/src/app/features/under-construction/under-construction.data.ts)). Eles medem preparação (modelagem, contratos, schema), não entrega do módulo.
 
@@ -510,21 +510,21 @@ flowchart LR
 
 | Workspace | Runner | Testes |
 | :--- | :--- | :-: |
-| `@pokeverse/shared` | Vitest 5 | 16 (3 arquivos) |
-| `pokeverse-api` (unit) | Jest 30 | 38 (14 suítes) |
-| `pokeverse-api` (E2E) | Jest + Supertest | 9 (1 suíte) |
+| `@pokeverse/shared` | Vitest 5 | 17 (3 arquivos) |
+| `pokeverse-api` (unit) | Jest 30 | 49 (18 suítes) |
+| `pokeverse-api` (E2E) | Jest + Supertest | 10 (1 suíte) |
 | `pokeverse-web` | Vitest 5 + TestBed | 18 (1 arquivo) |
-| **Total** | | **72 unitários + 9 E2E (81 verificações)** |
+| **Total** | | **84 unitários + 10 E2E (94 verificações)** |
 
 ```mermaid
 xychart-beta
   title "Testes automatizados por workspace"
   x-axis ["shared (Vitest)", "api unit (Jest)", "api E2E", "web (Vitest)"]
-  y-axis "Testes" 0 --> 40
-  bar [16, 38, 9, 18]
+  y-axis "Testes" 0 --> 55
+  bar [17, 49, 10, 18]
 ```
 
-Os testes cobrem busca fuzzy, regras do Laboratório, schemas (incluindo parâmetros de rota da Pokédex), `PokeApiCacheService`, `PokedexSlotRepository`, `PokedexSlotsService`, TOTP, Passkeys WebAuthn, OAuth PKCE, `OutboxEventRepository`, `OutboxRelayService`, consumidores Kafka, deleção LGPD, expurgo temporal, health, bootstrap e a Pokédex (incluindo slots azuis e `PrivacyConsentStore`).
+Os testes cobrem busca fuzzy, regras do Laboratório, schemas (incluindo parâmetros de rota da Pokédex, callback Google OAuth e Passkey ID), `PokeApiCacheService`, `PokedexSlotRepository`, `PokedexSlotsService`, `totp-crypto.util`, `TrainerAccountRepository`, `AuthTokenRepository`, `PasskeyRepository`, TOTP, Passkeys WebAuthn, OAuth PKCE, `OutboxEventRepository`, `OutboxRelayService`, consumidores Kafka, deleção LGPD, expurgo temporal, health, bootstrap e a Pokédex (incluindo slots azuis e `PrivacyConsentStore`).
 
 ### Bundle do front-end
 
@@ -622,15 +622,15 @@ flowchart LR
 
 | Etapa | Nome | Estado | Entregas |
 | :--- | :--- | :---: | :--- |
-| Fase 0 | Pokédex 3D estática (vanilla) | ✅ | [`index.html`](index.html), [`css/`](css), [`js/`](js) preservados |
-| Fase 1 | Fundação do monorepo e shell Angular | ✅ | Workspaces, `docker-compose` saudável |
-| Fase 2 | API, Prisma, Redis, Outbox e WebSocket | ✅ | Cache PokéAPI, 10 slots em ACID, ticker ao vivo |
-| 2A e 2B | IAM Enterprise BFF e hardening | ✅ | MFA, Passkeys, OAuth PKCE, OTP, SonarCloud |
-| Fase 3 | Deploy em nuvem | ✅ | Cloudflare Pages, Azure, Neon, Upstash, Aiven, Resend, CI/CD |
-| Fase 4A | Restauração fiel 3D, CSP e bundle | ✅ | Giro reversível, unicidade de slots, `stale-fallback`, 51 endpoints e Lab modelados |
-| **Fase 4B** | **Pokédex Suprema** | 🔜 **Próxima** | Veja abaixo |
-| Fase 5 | Back-end do Laboratório e mecânicas | 📐 Modelada | Atributos por nível, evolução, clonagem, Bio-Essência, encontros e combate |
-| Fase 6 | Expansões do mundo | 🗺️ Futura | Overworld Phaser 3, Museu em globo 3D, Arcade WASM e Battle Frontier |
+| Fase 0 | Pokédex 3D estática (vanilla) | Concluída | [`index.html`](index.html), [`css/`](css), [`js/`](js) preservados |
+| Fase 1 | Fundação do monorepo e shell Angular | Concluída | Workspaces, `docker-compose` saudável |
+| Fase 2 | API, Prisma, Redis, Outbox e WebSocket | Concluída | Cache PokéAPI, 10 slots em ACID, ticker ao vivo |
+| 2A e 2B | IAM Enterprise BFF e hardening | Concluída | MFA, Passkeys, OAuth PKCE, OTP, SonarCloud |
+| Fase 3 | Deploy em nuvem | Concluída | Cloudflare Pages, Azure, Neon, Upstash, Aiven, Resend, CI/CD |
+| Fase 4A | Restauração fiel 3D, CSP e bundle | Concluída | Giro reversível, unicidade de slots, `stale-fallback`, 51 endpoints e Lab modelados |
+| **Fase 4B** | **Pokédex Suprema** | **Próxima** | Veja abaixo |
+| Fase 5 | Back-end do Laboratório e mecânicas | Modelada | Atributos por nível, evolução, clonagem, Bio-Essência, encontros e combate |
+| Fase 6 | Expansões do mundo | Futura | Overworld Phaser 3, Museu em globo 3D, Arcade WASM e Battle Frontier |
 
 ### Próxima entrega: Fase 4B, Pokédex Suprema
 
@@ -645,11 +645,11 @@ Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 
 
 | Item | Situação |
 | :--- | :--- |
-| Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | ⏳ **Em andamento no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota atual `9,3 / 10` — Onda 1 concluída):** `PokedexSlotRepository`, `OutboxEventRepository`, `take` nos slots e `ZodValidationPipe` na Pokédex entregues (`DT-01..DT-03` e `DT-05` resolvidos nesses módulos); restam isolar repositórios e `take` no `AuthModule` (Onda 2), enquadrar stores/componentes da Pokédex nos limites SRP e tokens HUD (Onda 3) e uniformizar guardrails ESLint/Prettier + fatiar `app.spec.ts` (Onda 4) |
-| Lint e formatação no CI | ✅ **`npm run lint` unificado** nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`) com `@typescript-eslint/no-explicit-any: error`; próximo passo: `prettier --check` e limites graduais de complexidade (`max-lines`) |
-| Decomposição SOLID do IAM e `AuthStore` | ✅ **Concluída:** `AuthService` fatiado em 5 serviços especializados + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; e `AuthStore` com `AuthRecoveryService` + `AuthCrossTabSyncService` |
-| `PokedexRpgNavService` e CSS 3D | ✅ **Refatorados:** extraídos `PokedexLidPhysicsService` + diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` (DIP) e `_pokedex-classic.scss` dividido em 5 parciais em `styles/pokedex/`; resta apenas consolidar o segundo vocabulário legado de tokens em `_tokens.scss` |
-| Cobertura e integração reais | ✅ **72 unitários + 9 E2E** (adicionados testes para `PokedexSlotRepository`, `OutboxEventRepository`, parâmetros Zod da Pokédex, `PokeApiCacheService`, `PokedexSlotsService`, `PasskeyService`, deleção LGPD e `PrivacyConsentStore`); pendente fatiar `app.spec.ts` por feature e rodar **Testcontainers** (Postgres + Redis + Redpanda reais) no CI |
+| Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | **Em andamento no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota atual `9,6 / 10` — Ondas 1 e 2 concluídas):** toda a API (`PokedexModule`, `EventsModule` e `AuthModule`) já opera com repositórios isolados, `take` explícito, `OutboxStatus.*`, validação de borda via `ZodValidationPipe` e todos os arquivos abaixo de `300` linhas (`DT-01..DT-03` e `DT-05` Outbox 100% resolvidos na API); restam enquadrar stores/componentes da Pokédex nos limites SRP e tokens HUD (Onda 3) e uniformizar guardrails ESLint/Prettier + fatiar `app.spec.ts` (Onda 4) |
+| Lint e formatação no CI | **`npm run lint` unificado** nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`) com `@typescript-eslint/no-explicit-any: error`; próximo passo: `prettier --check` e limites graduais de complexidade (`max-lines`) |
+| Decomposição SOLID do IAM e `AuthStore` | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; e `AuthStore` com `AuthRecoveryService` + `AuthCrossTabSyncService` |
+| `PokedexRpgNavService` e CSS 3D | **Refatorados:** extraídos `PokedexLidPhysicsService` + diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` (DIP) e `_pokedex-classic.scss` dividido em 5 parciais em `styles/pokedex/`; resta apenas consolidar o segundo vocabulário legado de tokens em `_tokens.scss` |
+| Cobertura e integração reais | **84 unitários + 10 E2E** (incluindo testes para `totp-crypto.util`, `TrainerAccountRepository`, `AuthTokenRepository`, `PasskeyRepository`, `PokedexSlotRepository`, `OutboxEventRepository`, parâmetros/query Zod na Pokédex e Auth, `PokeApiCacheService`, `PokedexSlotsService`, `PasskeyService`, deleção LGPD e `PrivacyConsentStore`); pendente fatiar `app.spec.ts` por feature e rodar **Testcontainers** (Postgres + Redis + Redpanda reais) no CI |
 | Observabilidade & Segurança (ondas 2 e 3) | OpenTelemetry SDK completo (OTel + métricas RED/USE), `gitleaks` / `npm audit --audit-level=high` bloqueantes e demais itens do [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) |
 | Domínio próprio | Opcional: conectar `pokedex.<domínio>` no Cloudflare e atualizar `CORS_ORIGINS`, `WEBAUTHN_*` e `GOOGLE_REDIRECT_URI` |
 | `WsAuthGuard` | O `/ws/world` aceita visitantes para o ticker. Ações do Overworld exigirão sessão autenticada |
@@ -740,7 +740,7 @@ pokedex-frontend/
 │   │       ├── common/            #   guards, filtros, pipes, middleware, telemetria, crypto
 │   │       ├── config/            #   env.schema.ts (validação fail-fast com Zod)
 │   │       ├── infra/             #   Prisma, Redis, Kafka e probes de saúde
-│   │       └── modules/           #   auth (SOLID IAM: AuthService fachada, CredentialsAuth, TokenRefresh, Recovery, SessionMgmt, TrainerGdpr, SessionIssuer, OutboxPublisher, GoogleOAuth*), pokedex (inclui PokedexSlotRepository) · events (inclui OutboxEventRepository) · notifications · world · health · system
+│   │       └── modules/           #   auth (SOLID IAM: AuthService fachada, 5 services, 5 repositórios [TrainerAccount, AuthToken, MfaTotp, Passkey, TrainerOAuth], totp-crypto.util, SessionIssuer, OutboxPublisher, GoogleOAuth*), pokedex (PokedexSlotRepository) · events (OutboxEventRepository) · notifications · world · health · system
 │   └── web/                       # Angular 22 Standalone + Zoneless
 │       ├── functions/             #   Cloudflare Pages Functions (proxy same-origin)
 │       └── src/

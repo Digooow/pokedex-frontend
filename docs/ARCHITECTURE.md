@@ -47,7 +47,7 @@ flowchart LR
 
 ### 1.3. Exemplo Comparativo: Controller Puro + Repository Isolado
 
-#### ❌ Proibido / AI Slop (Regra no Controller + Prisma vazando no Service)
+#### Proibido / AI Slop (Regra no Controller + Prisma vazando no Service)
 
 ```typescript
 @Controller('pokedex')
@@ -77,7 +77,7 @@ export class PokedexController {
 }
 ```
 
-#### ✅ Padrão PokéVerse (Borda Zod + Controller Fino + Service de Domínio + Repository Isolado)
+#### Padrão PokéVerse (Borda Zod + Controller Fino + Service de Domínio + Repository Isolado)
 
 ```typescript
 @Controller('pokedex/slots')
@@ -185,7 +185,7 @@ export class PokedexSlotsService {
 
 ### 4.4. Exemplo Comparativo: Zero N+1 + Paginação no Repositório
 
-#### ❌ Proibido / AI Slop (Sem paginação, `SELECT *` e Query N+1 em Loop)
+#### Proibido / AI Slop (Sem paginação, `SELECT *` e Query N+1 em Loop)
 
 ```typescript
 async listTrainerTeams(trainerId: string) {
@@ -201,7 +201,7 @@ async listTrainerTeams(trainerId: string) {
 }
 ```
 
-#### ✅ Padrão PokéVerse (Join Único no Repositório + Projeção Estrita + Paginação `limit`/`offset`)
+#### Padrão PokéVerse (Join Único no Repositório + Projeção Estrita + Paginação `limit`/`offset`)
 
 ```typescript
 const DEFAULT_TEAMS_LIMIT = 20;
@@ -273,7 +273,7 @@ Código gerado às pressas costuma introduzir abstrações genéricas, desvios c
 
 ### 5.4. Exemplo Comparativo: Anti-AI Slop vs. Early Returns
 
-#### ❌ Proibido / AI Slop (Arrow Code + Nomes Genéricos + Números/Strings Mágicos)
+#### Proibido / AI Slop (Arrow Code + Nomes Genéricos + Números/Strings Mágicos)
 
 ```typescript
 async processData(data: any, user: any) {
@@ -301,7 +301,7 @@ async processData(data: any, user: any) {
 }
 ```
 
-#### ✅ Padrão PokéVerse (Linguagem Ubíqua + Constantes Tipadas + Guard Clauses / Early Return)
+#### Padrão PokéVerse (Linguagem Ubíqua + Constantes Tipadas + Guard Clauses / Early Return)
 
 ```typescript
 const MAX_SLOT_BATCH_LIMIT = 10;

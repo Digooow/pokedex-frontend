@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
+import { OutboxStatus, type Prisma } from '@prisma/client';
 import {
   type EmailNotificationEvent,
   EmailNotificationEventSchema,
@@ -10,18 +10,24 @@ import {
 } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
 
+export interface AuthOutboxCreateInput {
+  readonly id: string;
+  readonly aggregateType: 'Trainer' | 'EmailNotification';
+  readonly aggregateId: string;
+  readonly eventType: string;
+  readonly payload: Prisma.InputJsonValue;
+  readonly status: OutboxStatus;
+}
+
 @Injectable()
 export class AuthOutboxPublisher {
   constructor(private readonly crypto: CryptoService) {}
 
-  async enqueueTrainerRegisteredWorldEvent(
-    tx: Prisma.TransactionClient,
-    params: {
-      readonly trainerId: string;
-      readonly username: string;
-      readonly traceId: string | null;
-    },
-  ): Promise<void> {
+  buildTrainerRegisteredWorldEvent(params: {
+    readonly trainerId: string;
+    readonly username: string;
+    readonly traceId: string | null;
+  }): AuthOutboxCreateInput {
     const worldEventId = randomUUID();
     const worldPayload = WorldTickerEventSchema.parse({
       eventId: worldEventId,
@@ -33,31 +39,26 @@ export class AuthOutboxPublisher {
       traceId: params.traceId,
     });
 
-    await tx.outboxEvent.create({
-      data: {
-        id: worldEventId,
-        aggregateType: 'Trainer',
-        aggregateId: params.trainerId,
-        eventType: KAFKA_TOPICS.WORLD_EVENTS,
-        payload: worldPayload,
-        status: 'PENDING',
-      },
-    });
+    return {
+      id: worldEventId,
+      aggregateType: 'Trainer',
+      aggregateId: params.trainerId,
+      eventType: KAFKA_TOPICS.WORLD_EVENTS,
+      payload: worldPayload,
+      status: OutboxStatus.PENDING,
+    };
   }
 
-  async enqueueEncryptedEmail(
-    tx: Prisma.TransactionClient,
-    params: {
-      readonly aggregateId: string;
-      readonly template: EmailNotificationEvent['template'];
-      readonly toEmail: string;
-      readonly username: string;
-      readonly subject: string;
-      readonly otpCode?: string;
-      readonly detail?: string;
-      readonly traceId: string | null;
-    },
-  ): Promise<void> {
+  buildEncryptedEmailEvent(params: {
+    readonly aggregateId: string;
+    readonly template: EmailNotificationEvent['template'];
+    readonly toEmail: string;
+    readonly username: string;
+    readonly subject: string;
+    readonly otpCode?: string;
+    readonly detail?: string;
+    readonly traceId: string | null;
+  }): AuthOutboxCreateInput {
     const eventId = randomUUID();
     const emailEvent = EmailNotificationEventSchema.parse({
       eventId,
@@ -76,15 +77,13 @@ export class AuthOutboxPublisher {
       ciphertext: this.crypto.encryptJson(emailEvent),
     });
 
-    await tx.outboxEvent.create({
-      data: {
-        id: eventId,
-        aggregateType: 'EmailNotification',
-        aggregateId: params.aggregateId,
-        eventType: KAFKA_TOPICS.NOTIFICATIONS_EMAIL,
-        payload: encryptedEnvelope,
-        status: 'PENDING',
-      },
-    });
+    return {
+      id: eventId,
+      aggregateType: 'EmailNotification',
+      aggregateId: params.aggregateId,
+      eventType: KAFKA_TOPICS.NOTIFICATIONS_EMAIL,
+      payload: encryptedEnvelope,
+      status: OutboxStatus.PENDING,
+    };
   }
 }
