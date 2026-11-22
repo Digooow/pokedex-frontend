@@ -26,416 +26,102 @@ export interface PokeApiEndpointSpec {
   readonly targetFeature: string;
 }
 
-export const POKEAPI_V2_ENDPOINTS: readonly PokeApiEndpointSpec[] = [
-  {
-    key: 'ability',
-    pathTemplate: '/api/v2/ability/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Pokedex Visor & Battle Engine',
-  },
-  {
-    key: 'berry',
-    pathTemplate: '/api/v2/berry/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Inventory & Held Consumables',
-  },
-  {
-    key: 'berry-firmness',
-    pathTemplate: '/api/v2/berry-firmness/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Berry Lab & Crafting',
-  },
-  {
-    key: 'berry-flavor',
-    pathTemplate: '/api/v2/berry-flavor/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Nature Affinity & Confusion',
-  },
-  {
-    key: 'characteristic',
-    pathTemplate: '/api/v2/characteristic/{id}',
-    category: 'evolution-genetics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Genetic Lab IV Inspector',
-  },
-  {
-    key: 'contest-effect',
-    pathTemplate: '/api/v2/contest-effect/{id}',
-    category: 'contests-meta',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Pokedex Contest Archive',
-  },
-  {
-    key: 'contest-type',
-    pathTemplate: '/api/v2/contest-type/{idOrName}',
-    category: 'contests-meta',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Move Appeal Metadata',
-  },
-  {
-    key: 'egg-group',
-    pathTemplate: '/api/v2/egg-group/{idOrName}',
-    category: 'evolution-genetics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Replication & Egg Compatibility',
-  },
-  {
-    key: 'encounter-condition',
-    pathTemplate: '/api/v2/encounter-condition/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Spawn Probability Engine',
-  },
-  {
-    key: 'encounter-condition-value',
-    pathTemplate: '/api/v2/encounter-condition-value/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Day/Night & Weather Encounters',
-  },
-  {
-    key: 'encounter-method',
-    pathTemplate: '/api/v2/encounter-method/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Habitat Map & Fishing',
-  },
-  {
-    key: 'evolution-chain',
-    pathTemplate: '/api/v2/evolution-chain/{id}',
-    category: 'evolution-genetics',
-    cachePolicy: 'hot-redis-24h',
-    implementedInBff: false,
-    targetFeature: 'Evolution Tree & Chance Calc',
-  },
-  {
-    key: 'evolution-trigger',
-    pathTemplate: '/api/v2/evolution-trigger/{idOrName}',
-    category: 'evolution-genetics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Catalyst & Evolution Conditions',
-  },
-  {
-    key: 'gender',
-    pathTemplate: '/api/v2/gender/{idOrName}',
-    category: 'evolution-genetics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Dimorphism & Cloning Fidelity',
-  },
-  {
-    key: 'generation',
-    pathTemplate: '/api/v2/generation/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Advanced Catalog Filter (I-IX)',
-  },
-  {
-    key: 'growth-rate',
-    pathTemplate: '/api/v2/growth-rate/{idOrName}',
-    category: 'evolution-genetics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'XP Curve & Level Stat Simulator',
-  },
-  {
-    key: 'item',
-    pathTemplate: '/api/v2/item/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Stones, Held Items & Lab Gear',
-  },
-  {
-    key: 'item-attribute',
-    pathTemplate: '/api/v2/item-attribute/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Item Filtering',
-  },
-  {
-    key: 'item-category',
-    pathTemplate: '/api/v2/item-category/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Catalog & Shop Grouping',
-  },
-  {
-    key: 'item-fling-effect',
-    pathTemplate: '/api/v2/item-fling-effect/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Move Fling Resolution',
-  },
-  {
-    key: 'item-pocket',
-    pathTemplate: '/api/v2/item-pocket/{idOrName}',
-    category: 'items-berries',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Trainer Bag UI',
-  },
-  {
-    key: 'language',
-    pathTemplate: '/api/v2/language/{idOrName}',
-    category: 'contests-meta',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Multilingual Localization',
-  },
-  {
-    key: 'location',
-    pathTemplate: '/api/v2/location/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Regions Museum & Radar',
-  },
-  {
-    key: 'location-area',
-    pathTemplate: '/api/v2/location-area/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Zone Encounter Tables',
-  },
-  {
-    key: 'machine',
-    pathTemplate: '/api/v2/machine/{id}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'TM/HM Move Acquisition',
-  },
-  {
-    key: 'move',
-    pathTemplate: '/api/v2/move/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Moveset Inspector & Damage Calc',
-  },
-  {
-    key: 'move-ailment',
-    pathTemplate: '/api/v2/move-ailment/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Status Effects Engine',
-  },
-  {
-    key: 'move-battle-style',
-    pathTemplate: '/api/v2/move-battle-style/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'AI Bot Tactical Behavior',
-  },
-  {
-    key: 'move-category',
-    pathTemplate: '/api/v2/move-category/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Skill Categorization',
-  },
-  {
-    key: 'move-damage-class',
-    pathTemplate: '/api/v2/move-damage-class/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Physical/Special/Status Split',
-  },
-  {
-    key: 'move-learn-method',
-    pathTemplate: '/api/v2/move-learn-method/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Learnset Filter Tabs',
-  },
-  {
-    key: 'move-target',
-    pathTemplate: '/api/v2/move-target/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Singles/Doubles Target Rules',
-  },
-  {
-    key: 'nature',
-    pathTemplate: '/api/v2/nature/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Stat Simulator & Team Builder',
-  },
-  {
-    key: 'pal-park-area',
-    pathTemplate: '/api/v2/pal-park-area/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Legacy Biome Metadata',
-  },
-  {
-    key: 'pokeathlon-stat',
-    pathTemplate: '/api/v2/pokeathlon-stat/{idOrName}',
-    category: 'contests-meta',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Mini-Game Performance Metrics',
-  },
-  {
-    key: 'pokedex',
-    pathTemplate: '/api/v2/pokedex/{idOrName}',
-    category: 'core-pokemon',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Regional Pokedex Switching',
-  },
-  {
-    key: 'pokemon',
-    pathTemplate: '/api/v2/pokemon/{idOrName}',
-    category: 'core-pokemon',
-    cachePolicy: 'stale-snapshot',
-    implementedInBff: true,
-    targetFeature: 'Core Pokedex Sheet & Catalog',
-  },
-  {
-    key: 'pokemon-color',
-    pathTemplate: '/api/v2/pokemon-color/{idOrName}',
-    category: 'core-pokemon',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Visual Color Search Filter',
-  },
-  {
-    key: 'pokemon-form',
-    pathTemplate: '/api/v2/pokemon-form/{idOrName}',
-    category: 'core-pokemon',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Forms & Regional Variants UI',
-  },
-  {
-    key: 'pokemon-habitat',
-    pathTemplate: '/api/v2/pokemon-habitat/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Biome Search Filter & Radar',
-  },
-  {
-    key: 'pokemon-shape',
-    pathTemplate: '/api/v2/pokemon-shape/{idOrName}',
-    category: 'core-pokemon',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Silhouette Filter & Minigame',
-  },
-  {
-    key: 'pokemon-species',
-    pathTemplate: '/api/v2/pokemon-species/{idOrName}',
-    category: 'core-pokemon',
-    cachePolicy: 'stale-snapshot',
-    implementedInBff: false,
-    targetFeature: 'Lore, Capture Rate & Breeding',
-  },
-  {
-    key: 'region',
-    pathTemplate: '/api/v2/region/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Regions Atlas & Kanto-Paldea',
-  },
-  {
-    key: 'stat',
-    pathTemplate: '/api/v2/stat/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Base Stats & Nature Matrix',
-  },
-  {
-    key: 'super-contest-effect',
-    pathTemplate: '/api/v2/super-contest-effect/{id}',
-    category: 'contests-meta',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Contest Archive',
-  },
-  {
-    key: 'type',
-    pathTemplate: '/api/v2/type/{idOrName}',
-    category: 'combat-mechanics',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: '0x-4x Weakness Matrix & STAB',
-  },
-  {
-    key: 'version',
-    pathTemplate: '/api/v2/version/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Game Version Tags & History',
-  },
-  {
-    key: 'version-group',
-    pathTemplate: '/api/v2/version-group/{idOrName}',
-    category: 'world-encounters',
-    cachePolicy: 'static-lookup-7d',
-    implementedInBff: false,
-    targetFeature: 'Generation Ruleset Context',
-  },
-  {
-    key: 'pokemon-encounters',
-    pathTemplate: '/api/v2/pokemon/{id}/encounters',
-    category: 'world-encounters',
-    cachePolicy: 'lazy-tab-24h',
-    implementedInBff: false,
-    targetFeature: 'Radar & Capture Chance Tab',
-  },
-  {
-    key: 'pokemon-cries',
-    pathTemplate: '/pokemon/cries/{id}',
-    category: 'core-pokemon',
-    cachePolicy: 'hot-redis-24h',
-    implementedInBff: true,
-    targetFeature: 'Web Audio Acoustic Waveform',
-  },
-  {
-    key: 'pokemon-sprites-matrix',
-    pathTemplate: '/pokemon/sprites/{id}',
-    category: 'core-pokemon',
-    cachePolicy: 'hot-redis-24h',
-    implementedInBff: true,
-    targetFeature: 'Normal, Shiny & Showdown Renders',
-  },
-];
+const POKEAPI_ENDPOINT_CATALOG_TABLE = `
+ability|/api/v2/ability/{idOrName}|combat-mechanics|lazy-tab-24h|false|Pokedex Visor & Battle Engine
+berry|/api/v2/berry/{idOrName}|items-berries|lazy-tab-24h|false|Inventory & Held Consumables
+berry-firmness|/api/v2/berry-firmness/{idOrName}|items-berries|static-lookup-7d|false|Berry Lab & Crafting
+berry-flavor|/api/v2/berry-flavor/{idOrName}|items-berries|static-lookup-7d|false|Nature Affinity & Confusion
+characteristic|/api/v2/characteristic/{id}|evolution-genetics|static-lookup-7d|false|Genetic Lab IV Inspector
+contest-effect|/api/v2/contest-effect/{id}|contests-meta|static-lookup-7d|false|Pokedex Contest Archive
+contest-type|/api/v2/contest-type/{idOrName}|contests-meta|static-lookup-7d|false|Move Appeal Metadata
+egg-group|/api/v2/egg-group/{idOrName}|evolution-genetics|static-lookup-7d|false|Replication & Egg Compatibility
+encounter-condition|/api/v2/encounter-condition/{idOrName}|world-encounters|static-lookup-7d|false|Spawn Probability Engine
+encounter-condition-value|/api/v2/encounter-condition-value/{idOrName}|world-encounters|static-lookup-7d|false|Day/Night & Weather Encounters
+encounter-method|/api/v2/encounter-method/{idOrName}|world-encounters|static-lookup-7d|false|Habitat Map & Fishing
+evolution-chain|/api/v2/evolution-chain/{id}|evolution-genetics|hot-redis-24h|false|Evolution Tree & Chance Calc
+evolution-trigger|/api/v2/evolution-trigger/{idOrName}|evolution-genetics|static-lookup-7d|false|Catalyst & Evolution Conditions
+gender|/api/v2/gender/{idOrName}|evolution-genetics|static-lookup-7d|false|Dimorphism & Cloning Fidelity
+generation|/api/v2/generation/{idOrName}|world-encounters|static-lookup-7d|false|Advanced Catalog Filter (I-IX)
+growth-rate|/api/v2/growth-rate/{idOrName}|evolution-genetics|static-lookup-7d|false|XP Curve & Level Stat Simulator
+item|/api/v2/item/{idOrName}|items-berries|lazy-tab-24h|false|Stones, Held Items & Lab Gear
+item-attribute|/api/v2/item-attribute/{idOrName}|items-berries|static-lookup-7d|false|Item Filtering
+item-category|/api/v2/item-category/{idOrName}|items-berries|static-lookup-7d|false|Catalog & Shop Grouping
+item-fling-effect|/api/v2/item-fling-effect/{idOrName}|items-berries|static-lookup-7d|false|Move Fling Resolution
+item-pocket|/api/v2/item-pocket/{idOrName}|items-berries|static-lookup-7d|false|Trainer Bag UI
+language|/api/v2/language/{idOrName}|contests-meta|static-lookup-7d|false|Multilingual Localization
+location|/api/v2/location/{idOrName}|world-encounters|lazy-tab-24h|false|Regions Museum & Radar
+location-area|/api/v2/location-area/{idOrName}|world-encounters|lazy-tab-24h|false|Zone Encounter Tables
+machine|/api/v2/machine/{id}|combat-mechanics|static-lookup-7d|false|TM/HM Move Acquisition
+move|/api/v2/move/{idOrName}|combat-mechanics|lazy-tab-24h|false|Moveset Inspector & Damage Calc
+move-ailment|/api/v2/move-ailment/{idOrName}|combat-mechanics|static-lookup-7d|false|Status Effects Engine
+move-battle-style|/api/v2/move-battle-style/{idOrName}|combat-mechanics|static-lookup-7d|false|AI Bot Tactical Behavior
+move-category|/api/v2/move-category/{idOrName}|combat-mechanics|static-lookup-7d|false|Skill Categorization
+move-damage-class|/api/v2/move-damage-class/{idOrName}|combat-mechanics|static-lookup-7d|false|Physical/Special/Status Split
+move-learn-method|/api/v2/move-learn-method/{idOrName}|combat-mechanics|static-lookup-7d|false|Learnset Filter Tabs
+move-target|/api/v2/move-target/{idOrName}|combat-mechanics|static-lookup-7d|false|Singles/Doubles Target Rules
+nature|/api/v2/nature/{idOrName}|combat-mechanics|static-lookup-7d|false|Stat Simulator & Team Builder
+pal-park-area|/api/v2/pal-park-area/{idOrName}|world-encounters|static-lookup-7d|false|Legacy Biome Metadata
+pokeathlon-stat|/api/v2/pokeathlon-stat/{idOrName}|contests-meta|static-lookup-7d|false|Mini-Game Performance Metrics
+pokedex|/api/v2/pokedex/{idOrName}|core-pokemon|static-lookup-7d|false|Regional Pokedex Switching
+pokemon|/api/v2/pokemon/{idOrName}|core-pokemon|stale-snapshot|true|Core Pokedex Sheet & Catalog
+pokemon-color|/api/v2/pokemon-color/{idOrName}|core-pokemon|static-lookup-7d|false|Visual Color Search Filter
+pokemon-form|/api/v2/pokemon-form/{idOrName}|core-pokemon|lazy-tab-24h|false|Forms & Regional Variants UI
+pokemon-habitat|/api/v2/pokemon-habitat/{idOrName}|world-encounters|static-lookup-7d|false|Biome Search Filter & Radar
+pokemon-shape|/api/v2/pokemon-shape/{idOrName}|core-pokemon|static-lookup-7d|false|Silhouette Filter & Minigame
+pokemon-species|/api/v2/pokemon-species/{idOrName}|core-pokemon|stale-snapshot|false|Lore, Capture Rate & Breeding
+region|/api/v2/region/{idOrName}|world-encounters|static-lookup-7d|false|Regions Atlas & Kanto-Paldea
+stat|/api/v2/stat/{idOrName}|combat-mechanics|static-lookup-7d|false|Base Stats & Nature Matrix
+super-contest-effect|/api/v2/super-contest-effect/{id}|contests-meta|static-lookup-7d|false|Contest Archive
+type|/api/v2/type/{idOrName}|combat-mechanics|static-lookup-7d|false|0x-4x Weakness Matrix & STAB
+version|/api/v2/version/{idOrName}|world-encounters|static-lookup-7d|false|Game Version Tags & History
+version-group|/api/v2/version-group/{idOrName}|world-encounters|static-lookup-7d|false|Generation Ruleset Context
+pokemon-encounters|/api/v2/pokemon/{id}/encounters|world-encounters|lazy-tab-24h|false|Radar & Capture Chance Tab
+pokemon-cries|/pokemon/cries/{id}|core-pokemon|hot-redis-24h|true|Web Audio Acoustic Waveform
+pokemon-sprites-matrix|/pokemon/sprites/{id}|core-pokemon|hot-redis-24h|true|Normal, Shiny & Showdown Renders
+`;
+
+function buildPokeApiEndpointCatalog(): readonly PokeApiEndpointSpec[] {
+  const categorySchema = z.enum([
+    'core-pokemon',
+    'evolution-genetics',
+    'combat-mechanics',
+    'world-encounters',
+    'items-berries',
+    'contests-meta',
+  ]);
+  const cachePolicySchema = z.enum([
+    'hot-redis-24h',
+    'lazy-tab-24h',
+    'static-lookup-7d',
+    'stale-snapshot',
+  ]);
+
+  return POKEAPI_ENDPOINT_CATALOG_TABLE.trim()
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .map((rawLine) => {
+      const parts = rawLine.split('|').map((part) => part.trim());
+      const [key, pathTemplate, categoryRaw, cachePolicyRaw, implementedRaw, targetFeature] = parts;
+      if (parts.length !== 6 || !key || !pathTemplate || !targetFeature) {
+        throw new Error(`Invalid PokeAPI endpoint spec row: "${rawLine}"`);
+      }
+      if (implementedRaw !== 'true' && implementedRaw !== 'false') {
+        throw new Error(`Invalid implementedInBff flag in endpoint row: "${rawLine}"`);
+      }
+      return {
+        key,
+        pathTemplate,
+        category: categorySchema.parse(categoryRaw),
+        cachePolicy: cachePolicySchema.parse(cachePolicyRaw),
+        implementedInBff: implementedRaw === 'true',
+        targetFeature,
+      };
+    });
+}
+
+export const POKEAPI_V2_ENDPOINTS: readonly PokeApiEndpointSpec[] =
+  /* @__PURE__ */ buildPokeApiEndpointCatalog();
 
 export const PokedexAdvancedQuerySchema = z.object({
   term: z.string().max(80).default(''),

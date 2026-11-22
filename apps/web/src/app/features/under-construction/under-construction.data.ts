@@ -21,14 +21,6 @@ export interface UnderConstructionModuleConfig {
   readonly specs: readonly { readonly title: string; readonly detail: string }[];
 }
 
-export interface RegionPreviewCard {
-  readonly id: string;
-  readonly name: string;
-  readonly generation: string;
-  readonly starterQuery: string;
-  readonly landmark: string;
-}
-
 export const UNDER_CONSTRUCTION_MODULES: Record<
   UnderConstructionModuleId,
   UnderConstructionModuleConfig
@@ -184,49 +176,4 @@ export const UNDER_CONSTRUCTION_TABS: readonly UnderConstructionModuleConfig[] =
   UNDER_CONSTRUCTION_MODULES.museum,
   UNDER_CONSTRUCTION_MODULES.arcade,
   UNDER_CONSTRUCTION_MODULES.arena,
-];
-
-export const REGIONS_ATLAS_PREVIEW: readonly RegionPreviewCard[] = [
-  {
-    id: 'kanto',
-    name: 'Kanto',
-    generation: 'Geração I (1996)',
-    starterQuery: 'bulbasaur',
-    landmark: 'Indigo Plateau & Pallet Town',
-  },
-  {
-    id: 'johto',
-    name: 'Johto',
-    generation: 'Geração II (1999)',
-    starterQuery: 'chikorita',
-    landmark: 'Bell Tower & Ecruteak',
-  },
-  {
-    id: 'hoenn',
-    name: 'Hoenn',
-    generation: 'Geração III (2002)',
-    starterQuery: 'mudkip',
-    landmark: 'Sootopolis & Sky Pillar',
-  },
-  {
-    id: 'sinnoh',
-    name: 'Sinnoh',
-    generation: 'Geração IV (2006)',
-    starterQuery: 'turtwig',
-    landmark: 'Mt. Coronet & Spear Pillar',
-  },
-  {
-    id: 'unova',
-    name: 'Unova',
-    generation: 'Geração V (2010)',
-    starterQuery: 'snivy',
-    landmark: 'Castelia City & N’s Castle',
-  },
-  {
-    id: 'paldea',
-    name: 'Paldea',
-    generation: 'Geração IX (2022)',
-    starterQuery: 'sprigatito',
-    landmark: 'Area Zero & Mesagoza',
-  },
 ];

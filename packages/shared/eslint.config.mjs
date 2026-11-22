@@ -32,12 +32,6 @@ export default defineConfig(
     },
   },
   {
-    files: ['src/domain/pokeapi-endpoints.ts'],
-    rules: {
-      'max-lines': ['error', { max: 560, skipBlankLines: true, skipComments: true }],
-    },
-  },
-  {
     files: ['src/domain/pokemon-lab.ts'],
     rules: {
       'max-lines': ['error', { max: 420, skipBlankLines: true, skipComments: true }],

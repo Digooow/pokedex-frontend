@@ -9,10 +9,10 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
+import { REGIONS_ATLAS_PREVIEW } from '../../shared/data/regions-atlas.data';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
 import { RequiresTrainerDirective } from '../../shared/directives/requires-trainer.directive';
 import {
-  REGIONS_ATLAS_PREVIEW,
   UNDER_CONSTRUCTION_MODULES,
   UNDER_CONSTRUCTION_TABS,
   type UnderConstructionModuleConfig,

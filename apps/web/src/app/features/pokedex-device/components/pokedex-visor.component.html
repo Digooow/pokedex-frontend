@@ -28,36 +28,6 @@
       />
     } @else {
       @switch (detailState().status) {
-        @case ('empty') {
-          <div class="estado-vazio">
-            <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
-              <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
-              <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
-            </svg>
-            <h3>Nenhum Pokémon no visor</h3>
-            <p>
-              Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir
-              os dados da PokéAPI aqui no visor.
-            </p>
-          </div>
-        }
-
-        @case ('idle') {
-          <div class="estado-vazio">
-            <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
-              <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
-              <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
-            </svg>
-            <h3>Nenhum Pokémon no visor</h3>
-            <p>
-              Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir
-              os dados da PokéAPI aqui no visor.
-            </p>
-          </div>
-        }
-
         @case ('loading') {
           <div class="skeleton-card" aria-label="Carregando dados do Pokémon na PokéAPI">
             <div class="skeleton-cabecalho">
@@ -200,6 +170,18 @@
               </ul>
             </article>
           }
+        }
+
+        @default {
+          <div class="estado-vazio">
+            <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+              <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
+              <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
+            </svg>
+            <h3>{{ emptyStateTitle }}</h3>
+            <p>{{ emptyStateDescription }}</p>
+          </div>
         }
       }
     }

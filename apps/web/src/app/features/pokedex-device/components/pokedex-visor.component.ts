@@ -43,6 +43,9 @@ export class PokedexVisorComponent {
 
   private readonly usedFallbackSprite = signal(false);
   readonly imageFailed = signal(false);
+  readonly emptyStateTitle = 'Nenhum Pokémon no visor';
+  readonly emptyStateDescription =
+    'Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir os dados da PokéAPI aqui no visor.';
 
   constructor() {
     effect(() => {

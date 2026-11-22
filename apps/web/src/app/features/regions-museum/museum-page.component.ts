@@ -1,59 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { REGIONS_ATLAS_PREVIEW } from '../../shared/data/regions-atlas.data';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
-
-interface RegionPreview {
-  readonly id: string;
-  readonly name: string;
-  readonly generation: string;
-  readonly starterQuery: string;
-  readonly landmark: string;
-}
-
-const REGIONS_ATLAS: readonly RegionPreview[] = [
-  {
-    id: 'kanto',
-    name: 'Kanto',
-    generation: 'Geração I (1996)',
-    starterQuery: 'bulbasaur',
-    landmark: 'Indigo Plateau & Pallet Town',
-  },
-  {
-    id: 'johto',
-    name: 'Johto',
-    generation: 'Geração II (1999)',
-    starterQuery: 'chikorita',
-    landmark: 'Bell Tower & Ecruteak',
-  },
-  {
-    id: 'hoenn',
-    name: 'Hoenn',
-    generation: 'Geração III (2002)',
-    starterQuery: 'mudkip',
-    landmark: 'Sootopolis & Sky Pillar',
-  },
-  {
-    id: 'sinnoh',
-    name: 'Sinnoh',
-    generation: 'Geração IV (2006)',
-    starterQuery: 'turtwig',
-    landmark: 'Mt. Coronet & Spear Pillar',
-  },
-  {
-    id: 'unova',
-    name: 'Unova',
-    generation: 'Geração V (2010)',
-    starterQuery: 'snivy',
-    landmark: 'Castelia City & N’s Castle',
-  },
-  {
-    id: 'paldea',
-    name: 'Paldea',
-    generation: 'Geração IX (2022)',
-    starterQuery: 'sprigatito',
-    landmark: 'Area Zero & Mesagoza',
-  },
-];
 
 @Component({
   selector: 'pv-museum-page',
@@ -193,5 +141,5 @@ const REGIONS_ATLAS: readonly RegionPreview[] = [
   ],
 })
 export class MuseumPageComponent {
-  readonly regions = REGIONS_ATLAS;
+  readonly regions = REGIONS_ATLAS_PREVIEW;
 }

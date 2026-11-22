@@ -18,6 +18,27 @@ describe('PokéAPI v2 51-endpoint catalog and Advanced Query Engine', () => {
     expect(POKEAPI_V2_ENDPOINTS).toHaveLength(51);
     const uniqueKeys = new Set(POKEAPI_V2_ENDPOINTS.map((entry) => entry.key));
     expect(uniqueKeys.size).toBe(51);
+
+    const bffKeys = POKEAPI_V2_ENDPOINTS.filter((entry) => entry.implementedInBff).map(
+      (entry) => entry.key,
+    );
+    expect(bffKeys).toEqual(['pokemon', 'pokemon-cries', 'pokemon-sprites-matrix']);
+    expect(POKEAPI_V2_ENDPOINTS[0]).toEqual({
+      key: 'ability',
+      pathTemplate: '/api/v2/ability/{idOrName}',
+      category: 'combat-mechanics',
+      cachePolicy: 'lazy-tab-24h',
+      implementedInBff: false,
+      targetFeature: 'Pokedex Visor & Battle Engine',
+    });
+    expect(POKEAPI_V2_ENDPOINTS[50]).toEqual({
+      key: 'pokemon-sprites-matrix',
+      pathTemplate: '/pokemon/sprites/{id}',
+      category: 'core-pokemon',
+      cachePolicy: 'hot-redis-24h',
+      implementedInBff: true,
+      targetFeature: 'Normal, Shiny & Showdown Renders',
+    });
   });
 
   it('filters by multiple criteria (types, generation, BST, rarity) and sorts accurately', () => {
