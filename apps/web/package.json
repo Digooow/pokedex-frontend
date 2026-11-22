@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "eslint --max-warnings=0 \"src/**/*.ts\" \"cloudflare/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\" \"cloudflare/**/*.ts\"",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },

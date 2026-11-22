@@ -14,12 +14,23 @@ function createSamplePokemonDto(overrides?: Partial<PokemonDetailDto>): PokemonD
     weight: 60,
     types: [{ slot: 1, type: { name: 'electric', url: 'https://pokeapi.co/api/v2/type/13/' } }],
     abilities: [
-      { is_hidden: false, slot: 1, ability: { name: 'static', url: 'https://pokeapi.co/api/v2/ability/9/' } },
-      { is_hidden: true, slot: 3, ability: { name: 'lightning-rod', url: 'https://pokeapi.co/api/v2/ability/31/' } },
+      {
+        is_hidden: false,
+        slot: 1,
+        ability: { name: 'static', url: 'https://pokeapi.co/api/v2/ability/9/' },
+      },
+      {
+        is_hidden: true,
+        slot: 3,
+        ability: { name: 'lightning-rod', url: 'https://pokeapi.co/api/v2/ability/31/' },
+      },
     ],
-    stats: [{ base_stat: 35, effort: 0, stat: { name: 'hp', url: 'https://pokeapi.co/api/v2/stat/1/' } }],
+    stats: [
+      { base_stat: 35, effort: 0, stat: { name: 'hp', url: 'https://pokeapi.co/api/v2/stat/1/' } },
+    ],
     sprites: {
-      front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
+      front_default:
+        'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
       other: {
         'official-artwork': {
           front_default:
@@ -61,7 +72,8 @@ describe('pokedex-view-mapper.util', () => {
   it('falls back to front_default when official artwork is absent and projects slot summary', () => {
     const dto = createSamplePokemonDto({
       sprites: {
-        front_default: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
+        front_default:
+          'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
         other: { 'official-artwork': { front_default: null } },
       },
     });

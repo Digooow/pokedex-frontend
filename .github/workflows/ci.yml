@@ -35,8 +35,11 @@ jobs:
       - name: Typecheck all workspaces
         run: npm run typecheck
 
-      - name: Lint all workspaces
+      - name: Lint & enforce complexity/size guardrails across all workspaces
         run: npm run lint
+
+      - name: Verify Prettier formatting across all workspaces
+        run: npm run format:check
 
       - name: Run unit tests across all workspaces
         run: npm run test

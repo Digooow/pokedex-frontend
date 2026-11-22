@@ -10,6 +10,65 @@ const BooleanTrueDefaultSchema = z
   .default('true')
   .transform((value) => value === 'true');
 
+function validateS3Env(
+  env: {
+    readonly S3_ENABLED: boolean;
+    readonly S3_ENDPOINT: string;
+    readonly MINIO_ROOT_USER: string;
+    readonly MINIO_ROOT_PASSWORD: string;
+  },
+  ctx: z.RefinementCtx,
+): void {
+  if (!env.S3_ENABLED) {
+    return;
+  }
+
+  if (!z.url().safeParse(env.S3_ENDPOINT).success) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['S3_ENDPOINT'],
+      message: 'S3_ENDPOINT válido é obrigatório quando S3_ENABLED=true.',
+    });
+  }
+  if (env.MINIO_ROOT_USER.trim().length < 3) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['MINIO_ROOT_USER'],
+      message: 'MINIO_ROOT_USER é obrigatório quando S3_ENABLED=true.',
+    });
+  }
+  if (env.MINIO_ROOT_PASSWORD.trim().length < 8) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['MINIO_ROOT_PASSWORD'],
+      message:
+        'MINIO_ROOT_PASSWORD (>= 8 caracteres) é obrigatória quando S3_ENABLED=true.',
+    });
+  }
+}
+
+function validateUnpooledDatabaseUrl(
+  rawUrl: string,
+  ctx: z.RefinementCtx,
+): void {
+  const unpooledUrl = rawUrl.trim();
+  if (unpooledUrl.length === 0) {
+    return;
+  }
+
+  const hasPostgresScheme =
+    unpooledUrl.startsWith('postgresql://') ||
+    unpooledUrl.startsWith('postgres://');
+  if (!z.url().safeParse(unpooledUrl).success || !hasPostgresScheme) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['DATABASE_URL_UNPOOLED'],
+      message:
+        'DATABASE_URL_UNPOOLED deve iniciar com postgresql:// ou postgres:// quando definida.',
+    });
+  }
+}
+
 const ApiEnvSchema = z
   .object({
     NODE_ENV: z
@@ -117,30 +176,7 @@ const ApiEnvSchema = z
       });
     }
 
-    if (env.S3_ENABLED) {
-      if (!z.url().safeParse(env.S3_ENDPOINT).success) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['S3_ENDPOINT'],
-          message: 'S3_ENDPOINT válido é obrigatório quando S3_ENABLED=true.',
-        });
-      }
-      if (env.MINIO_ROOT_USER.trim().length < 3) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['MINIO_ROOT_USER'],
-          message: 'MINIO_ROOT_USER é obrigatório quando S3_ENABLED=true.',
-        });
-      }
-      if (env.MINIO_ROOT_PASSWORD.trim().length < 8) {
-        ctx.addIssue({
-          code: 'custom',
-          path: ['MINIO_ROOT_PASSWORD'],
-          message:
-            'MINIO_ROOT_PASSWORD (>= 8 caracteres) é obrigatória quando S3_ENABLED=true.',
-        });
-      }
-    }
+    validateS3Env(env, ctx);
 
     if (
       env.KAFKA_SASL_MECHANISM.length > 0 &&
@@ -155,20 +191,7 @@ const ApiEnvSchema = z
       });
     }
 
-    const unpooledUrl = env.DATABASE_URL_UNPOOLED.trim();
-    if (
-      unpooledUrl.length > 0 &&
-      (!z.url().safeParse(unpooledUrl).success ||
-        (!unpooledUrl.startsWith('postgresql://') &&
-          !unpooledUrl.startsWith('postgres://')))
-    ) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['DATABASE_URL_UNPOOLED'],
-        message:
-          'DATABASE_URL_UNPOOLED deve iniciar com postgresql:// ou postgres:// quando definida.',
-      });
-    }
+    validateUnpooledDatabaseUrl(env.DATABASE_URL_UNPOOLED, ctx);
   });
 
 export type ApiEnvConfig = z.infer<typeof ApiEnvSchema>;

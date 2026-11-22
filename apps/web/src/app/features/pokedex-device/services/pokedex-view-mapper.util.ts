@@ -31,7 +31,11 @@ export interface ResolvedPokemonForSlot {
 }
 
 export type ResolvedPokemonResult =
-  | { readonly found: true; readonly dto: PokemonDetailDto; readonly source: 'hit' | 'miss' | 'direct' }
+  | {
+      readonly found: true;
+      readonly dto: PokemonDetailDto;
+      readonly source: 'hit' | 'miss' | 'direct';
+    }
   | { readonly found: false; readonly notFound: boolean; readonly statusCode: number | null };
 
 export function mapCatalogEntriesToSearchable(

@@ -50,7 +50,10 @@ export class SlotConfirmDialogComponent {
 
   onConfirmOverwriteClick(
     slotIndex: number,
-    candidate: Extract<NonNullable<ReturnType<PokedexSlotsStore['pendingConfirm']>>, { kind: 'overwrite-click' }>['candidate'],
+    candidate: Extract<
+      NonNullable<ReturnType<PokedexSlotsStore['pendingConfirm']>>,
+      { kind: 'overwrite-click' }
+    >['candidate'],
   ): void {
     const saved = this.slotsStore.saveSlot(slotIndex, candidate);
     this.slotsStore.closeConfirm();
@@ -58,7 +61,10 @@ export class SlotConfirmDialogComponent {
   }
 
   onConfirmOverwriteEdit(
-    prompt: Extract<NonNullable<ReturnType<PokedexSlotsStore['pendingConfirm']>>, { kind: 'overwrite-edit' }>,
+    prompt: Extract<
+      NonNullable<ReturnType<PokedexSlotsStore['pendingConfirm']>>,
+      { kind: 'overwrite-edit' }
+    >,
   ): void {
     this.slotsStore.saveSlot(prompt.slotIndex, prompt.nextPokemon, prompt.nickname);
     this.slotsStore.closeConfirm();

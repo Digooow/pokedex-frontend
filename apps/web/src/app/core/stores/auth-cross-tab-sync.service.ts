@@ -7,8 +7,7 @@ const AUTH_SYNC_CHANNEL_NAME = 'pokeverse_auth_sync';
 const AUTH_REFRESH_LOCK_NAME = 'pokeverse-auth-refresh';
 
 export type AuthSyncBroadcastMessage =
-  | { readonly type: 'session'; readonly session: AuthSessionResponse }
-  | { readonly type: 'logout' };
+  { readonly type: 'session'; readonly session: AuthSessionResponse } | { readonly type: 'logout' };
 
 export interface OAuthCallbackParams {
   readonly googleLinked: boolean;
@@ -128,7 +127,9 @@ export class AuthCrossTabSyncService implements OnDestroy {
     };
   }
 
-  resolveAuthenticatedOAuthFeedback(oauthReturn: OAuthCallbackParams): SecurityFeedbackBanner | null {
+  resolveAuthenticatedOAuthFeedback(
+    oauthReturn: OAuthCallbackParams,
+  ): SecurityFeedbackBanner | null {
     if (oauthReturn.googleLinked) {
       return { tone: 'ok', text: 'Conta Google vinculada com sucesso via OAuth 2.0 PKCE.' };
     }

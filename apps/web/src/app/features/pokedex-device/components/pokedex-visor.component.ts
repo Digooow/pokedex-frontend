@@ -1,4 +1,13 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
 import {
   PvRpgContainerDirective,
@@ -22,7 +31,10 @@ export class PokedexVisorComponent {
 
   readonly detailState = input.required<AsyncState<PokemonDetailView>>();
   readonly cacheSource = input<'hit' | 'miss' | 'direct' | null>(null);
-  readonly transientStatus = input<{ readonly label: string; readonly variant: 'sucesso' | 'aviso' } | null>(null);
+  readonly transientStatus = input<{
+    readonly label: string;
+    readonly variant: 'sucesso' | 'aviso';
+  } | null>(null);
   readonly suggestions = input<readonly SearchablePokemonItem[]>([]);
 
   readonly retry = output<void>();
@@ -102,7 +114,11 @@ export class PokedexVisorComponent {
   }
 
   onSpriteError(pokemon: PokemonDetailView): void {
-    if (!this.usedFallbackSprite() && pokemon.fallbackSpriteUrl && pokemon.fallbackSpriteUrl !== pokemon.spriteUrl) {
+    if (
+      !this.usedFallbackSprite() &&
+      pokemon.fallbackSpriteUrl &&
+      pokemon.fallbackSpriteUrl !== pokemon.spriteUrl
+    ) {
       this.usedFallbackSprite.set(true);
       return;
     }

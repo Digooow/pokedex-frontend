@@ -58,7 +58,9 @@ export class PrivacyConsentDialogComponent {
 
   onClearLocalStorage(): void {
     this.privacy.clearLocalNonEssentialStorage();
-    this.localClearedMsg.set('Preferências locais e slots de visitante foram removidos deste navegador.');
+    this.localClearedMsg.set(
+      'Preferências locais e slots de visitante foram removidos deste navegador.',
+    );
   }
 
   onSaveCustom(): void {

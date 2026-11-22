@@ -23,7 +23,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-94_unit_%2B_10_E2E-3ddc84">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-97_unit_%2B_10_E2E-3ddc84">
   <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
 </p>
 
@@ -475,8 +475,9 @@ flowchart LR
   subgraph v["CI Verification (GitHub Actions)"]
     direction LR
     s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>3 workspaces"]
-    s2 --> s3["Lint (3 workspaces)"]
-    s3 --> s4["Testes unitários<br/>Vitest + Jest"]
+    s2 --> s3["Lint + max-lines<br/>+ complexity"]
+    s3 --> s3b["Prettier check"]
+    s3b --> s4["Testes unitários<br/>Vitest + Jest"]
     s4 --> s5["Testes E2E<br/>da API"]
     s5 --> s6["Build<br/>+ legado da raiz"]
     s6 --> s7["UI Quality Gate"]
@@ -513,22 +514,22 @@ flowchart LR
 | `@pokeverse/shared` | Vitest 5 | 17 (3 arquivos) |
 | `pokeverse-api` (unit) | Jest 30 | 49 (18 suítes) |
 | `pokeverse-api` (E2E) | Jest + Supertest | 10 (1 suíte) |
-| `pokeverse-web` | Vitest 5 + TestBed | 28 (4 arquivos) |
-| **Total** | | **94 unitários + 10 E2E (104 verificações)** |
+| `pokeverse-web` | Vitest 5 + TestBed | 31 (7 arquivos) |
+| **Total** | | **97 unitários + 10 E2E (107 verificações)** |
 
 ```mermaid
 xychart-beta
   title "Testes automatizados por workspace"
   x-axis ["shared (Vitest)", "api unit (Jest)", "api E2E", "web (Vitest)"]
   y-axis "Testes" 0 --> 55
-  bar [17, 49, 10, 28]
+  bar [17, 49, 10, 31]
 ```
 
-Os testes cobrem busca fuzzy, regras do Laboratório, schemas (incluindo parâmetros de rota da Pokédex, callback Google OAuth e Passkey ID), `PokeApiCacheService`, `PokedexSlotRepository`, `PokedexSlotsService`, `totp-crypto.util`, `TrainerAccountRepository`, `AuthTokenRepository`, `PasskeyRepository`, TOTP, Passkeys WebAuthn, OAuth PKCE, `OutboxEventRepository`, `OutboxRelayService`, consumidores Kafka, deleção LGPD, expurgo temporal, health, bootstrap e o front-end Angular (Pokédex 3D, `pokedex-view-mapper.util`, `PokedexLocalSlotsStorage`, `auth-dialog-validator.util`, slots azuis e `PrivacyConsentStore`).
+Os testes cobrem busca fuzzy, regras do Laboratório, schemas (incluindo parâmetros de rota da Pokédex, callback Google OAuth e Passkey ID), `PokeApiCacheService`, `PokedexSlotRepository`, `PokedexSlotsService`, `totp-crypto.util`, `TrainerAccountRepository`, `AuthTokenRepository`, `PasskeyRepository`, TOTP, Passkeys WebAuthn, OAuth PKCE, `OutboxEventRepository`, `OutboxRelayService`, consumidores Kafka, deleção LGPD, expurgo temporal, health, bootstrap e o front-end Angular (`app-shell.spec.ts`, `pokedex-device.spec.ts`, `privacy-consent.store.spec.ts`, `auth-iam.spec.ts`, `pokedex-view-mapper.util`, `PokedexLocalSlotsStorage`, `auth-dialog-validator.util` e `test-fixtures.spec-helper.ts`).
 
 ### Bundle do front-end
 
-`498.00 kB` raw e `127.85 kB` de transferência estimada no bundle inicial (`0` warnings de budget). O CSS global tem `69.12 kB` (`11.90 kB` transferido) e o `main` tem `37.27 kB` (`9.89 kB` transferido). O resto é carregado sob demanda: Pokédex (`86.76 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`23.19 kB`), diálogo de visitante (`18.58 kB`), configurações de segurança (`18.18 kB`), diálogo de privacidade/LGPD (`10.70 kB`) e Museu (`4.54 kB`).
+`498.00 kB` raw e `127.85 kB` de transferência estimada no bundle inicial (`0` warnings de budget). O CSS global tem `69.12 kB` (`11.90 kB` transferido) e o `main` tem `37.27 kB` (`9.89 kB` transferido). O resto é carregado sob demanda: Pokédex (`87.41 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`23.19 kB`), diálogo de visitante (`18.27 kB`), configurações de segurança (`18.18 kB`), diálogo de privacidade/LGPD (`10.70 kB`) e Museu (`4.54 kB`).
 
 ---
 
@@ -645,11 +646,11 @@ Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 
 
 | Item | Situação |
 | :--- | :--- |
-| Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | **Em andamento no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota atual `9,8 / 10` — Ondas 1, 2 e 3 concluídas):** 100% da API (`PokedexModule`, `EventsModule`, `AuthModule`) e 100% dos stores/serviços (`< 300` linhas físicas) e componentes UI (`< 200` linhas físicas) de `apps/web` já atendem ao contrato (`DT-01..DT-05` resolvidos, zero DOM direto e tokens `--pv-hud-*`); resta apenas a Onda 4 (guardrails ESLint/Prettier/`max-lines` nos 3 workspaces e fatiamento de `app.spec.ts`) |
-| Lint e formatação no CI | **`npm run lint` unificado** nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`) com `@typescript-eslint/no-explicit-any: error`; próximo passo (Onda 4): `prettier --check` e limites graduais de `max-lines`/`complexity` |
-| Decomposição SOLID do IAM e `AuthStore` | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; `AuthStore` (`<= 291` linhas) com `AuthRecoveryService` + `AuthCrossTabSyncService` e validação do diálogo em `auth-dialog-validator.util.ts` |
-| Pokédex 3D, DIP e Tokens HUD (`apps/web`) | **Concluída (Onda 3):** stores e serviços (`PokedexStore` + `PokedexApiClient` + `pokedex-view-mapper.util`, `PokedexSlotsStore` + `PokedexLocalSlotsStorage`, `PokedexRpgNavService` + `pokedex-rpg-nav.util`, `PokedexInputShortcutsService`, `PokedexLidPhysicsService`) e componentes UI (`PokedexDevicePage`, `PokedexCover`, `PokedexSearchPanel`, `PokedexPhysicalControls`, `PokedexVisor`, `PokedexSlotsConfig`, `PokedexSlotsGrid`, `SlotConfirmDialog`, `HudTopbar`, `HudQuickDock`, `TitleScreen`) fatiados com `.html`/`.scss` dedicados, diretivas `[pvRpgFocusable]`, `[pvRpgEditForm]` e `[pvMainHeading]` (zero `getElementById`/`querySelector`), tokens `--pv-hud-*` em `_tokens.scss` e 5 parciais `styles/pokedex/` |
-| Cobertura e integração reais | **94 unitários + 10 E2E** (`17` shared, `49` api unit, `10` api E2E, `28` web Vitest incluindo `pokedex-view-mapper.util`, `PokedexLocalSlotsStorage` e `auth-dialog-validator.util`); pendente fatiar `app.spec.ts` por feature (Onda 4) e rodar **Testcontainers** (Postgres + Redis + Redpanda reais) no CI |
+| Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | **Concluída no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota `10,0 / 10` — Ondas 1, 2, 3 e 4 concluídas):** 100% de `@pokeverse/shared`, `apps/api` e `apps/web` atendem ao contrato (`DT-01..DT-06` resolvidos, guardrails automáticos de `max-lines`/`complexity`/Prettier e `app.spec.ts` fatiado por domínio) |
+| Lint e formatação no CI | **Concluída (Onda 4):** `npm run lint` (`--max-warnings=0`, `eslint-plugin-prettier/recommended`, `@typescript-eslint/no-explicit-any: error`, `complexity: ['error', 15]` e `max-lines` `300`/`200` no web) e `npm run format:check` ativos nos 3 workspaces e no `ci.yml` |
+| Decomposição SOLID do IAM e `AuthStore` | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; `AuthStore` (`<= 291` linhas) com `AuthRecoveryService` + `AuthCrossTabSyncService` e validação do diálogo em `auth-dialog-validator.util.ts` (`DIALOG_VALIDATORS`) |
+| Pokédex 3D, DIP e Tokens HUD (`apps/web`) | **Concluída (Ondas 3–4):** stores e serviços (`PokedexStore` + `PokedexApiClient` + `pokedex-view-mapper.util`, `PokedexSlotsStore` + `PokedexLocalSlotsStorage`, `PokedexRpgNavService` + `pokedex-rpg-nav.util`, `PokedexInputShortcutsService`, `PokedexLidPhysicsService`) e componentes UI (`PokedexDevicePage`, `PokedexCover`, `PokedexSearchPanel`, `PokedexPhysicalControls`, `PokedexVisor`, `PokedexSlotsConfig`, `PokedexSlotsGrid`, `SlotConfirmDialog`, `HudTopbar`, `HudQuickDock`, `TitleScreen`) fatiados com `.html`/`.scss` dedicados, diretivas `[pvRpgFocusable]`, `[pvRpgEditForm]` e `[pvMainHeading]` (zero `getElementById`/`querySelector`), tokens `--pv-hud-*` em `_tokens.scss` e 5 parciais `styles/pokedex/` |
+| Cobertura e integração reais | **97 unitários + 10 E2E (Onda 4 no Web):** `17` shared, `49` api unit, `10` api E2E e `31` web Vitest em `7` arquivos (`app-shell.spec.ts`, `pokedex-device.spec.ts`, `privacy-consent.store.spec.ts`, `auth-iam.spec.ts`, `pokedex-view-mapper.util.spec.ts`, `pokedex-local-slots.storage.spec.ts`, `auth-dialog-validator.util.spec.ts` + `test-fixtures.spec-helper.ts`); pendente apenas **Testcontainers** (Postgres + Redis + Redpanda reais) no CI |
 | Observabilidade & Segurança (ondas 2 e 3) | OpenTelemetry SDK completo (OTel + métricas RED/USE), `gitleaks` / `npm audit --audit-level=high` bloqueantes e demais itens do [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) |
 | Domínio próprio | Opcional: conectar `pokedex.<domínio>` no Cloudflare e atualizar `CORS_ORIGINS`, `WEBAUTHN_*` e `GOOGLE_REDIRECT_URI` |
 | `WsAuthGuard` | O `/ws/world` aceita visitantes para o ticker. Ações do Overworld exigirão sessão autenticada |
@@ -708,12 +709,13 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | :--- | :--- |
 | `npm run build` | Build de `shared`, `api` e `web` |
 | `npm run typecheck` | `tsc --noEmit` nos 3 workspaces |
-| `npm run lint` | ESLint nos 3 workspaces (`lint:shared`, `lint:api`, `lint:web`) |
+| `npm run lint` | ESLint (`--max-warnings=0`, `complexity`, `max-lines`) nos 3 workspaces |
+| `npm run format:check` | Valida formatação Prettier nos 3 workspaces (`shared`, `api`, `web`) |
 | `npm run test` | Vitest (`shared`, `web`) e Jest (`api`) |
 | `npm run audit:ui` | UI Quality Gate sobre o build do front-end |
 | `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker |
 
-> **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
+> **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint`, `format:check`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
 
 ### Variáveis de ambiente
 
@@ -744,9 +746,10 @@ pokedex-frontend/
 │   └── web/                       # Angular 22 Standalone + Zoneless
 │       ├── functions/             #   Cloudflare Pages Functions (proxy same-origin)
 │       └── src/
-│           ├── app/core/          #   guards · interceptors · http (api-error.util) · stores (Auth, AuthCrossTabSync, AuthRecovery, SecurityIam, PrivacyConsent, Quality, Scenario, SystemStatus, WorldTicker)
-│           ├── app/features/      #   pokedex-device (services/ [PokedexApiClient, PokedexLocalSlotsStorage, PokedexInputShortcuts, PokedexLidPhysics, PokedexRpgNav, mapper/nav utils], directives/ [pvRpgFocusable, pvRpgEditForm] e components/ [Cover, SearchPanel, PhysicalControls, Visor, SlotsConfig, SlotsGrid, SlotConfirmDialog]) · regions-museum · title-screen · under-construction
+│           ├── app/core/          #   guards · interceptors · http (api-error.util) · stores (Auth, AuthCrossTabSync, AuthRecovery, SecurityIam, PrivacyConsent, Quality, Scenario, SystemStatus, WorldTicker) · suítes auth-iam e privacy-consent.store
+│           ├── app/features/      #   pokedex-device (services/ [PokedexApiClient, PokedexLocalSlotsStorage, PokedexInputShortcuts, PokedexLidPhysics, PokedexRpgNav, mapper/nav utils], directives/ [pvRpgFocusable, pvRpgEditForm], components/ [Cover, SearchPanel, PhysicalControls, Visor, SlotsConfig, SlotsGrid, SlotConfirmDialog] e pokedex-device.spec.ts) · regions-museum · title-screen · under-construction
 │           ├── app/shared/        #   HUD (Topbar, QuickDock, Cenarios*), diálogos (VisitorLock + auth-dialog-validator.util, SecuritySettings, PrivacyConsent) e diretivas (RequiresTrainer, MainHeading)
+│           ├── app/testing/       #   test-fixtures.spec-helper.ts (fixtures e helpers compartilhados do Vitest) + app-shell.spec.ts na raiz de app/
 │           └── styles/            #   _tokens.scss (--pv-*, --pv-hud-*) · _pokedex-classic.scss + parciais styles/pokedex/ (_chassis-3d, _search-scanner, _controls-dpad, _slots-grid, _visor-lcd)
 ├── packages/
 │   └── shared/                    # @pokeverse/shared: schemas Zod, busca fuzzy, 51 endpoints, Laboratório

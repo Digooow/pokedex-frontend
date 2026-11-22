@@ -27,7 +27,9 @@ import { ScenarioStore } from '../../core/stores/scenario.store';
           type="button"
           class="btn-cenario is-active"
           (click)="scenarioStore.cycleScenario()"
-          [attr.aria-label]="'Alternar cenário de fundo. Atual: ' + scenarioStore.activeScenarioLabel()"
+          [attr.aria-label]="
+            'Alternar cenário de fundo. Atual: ' + scenarioStore.activeScenarioLabel()
+          "
           title="Clique para alternar o cenário de fundo"
         >
           Cenário: {{ scenarioStore.activeScenarioLabel() }}
@@ -38,7 +40,11 @@ import { ScenarioStore } from '../../core/stores/scenario.store';
           class="btn-cenario-auto"
           [attr.aria-pressed]="scenarioStore.autoEnabled()"
           aria-label="Alternar rotação automática de cenários"
-          [title]="scenarioStore.autoEnabled() ? 'Pausar troca automática de cenário' : 'Ativar troca automática de cenário'"
+          [title]="
+            scenarioStore.autoEnabled()
+              ? 'Pausar troca automática de cenário'
+              : 'Ativar troca automática de cenário'
+          "
           (click)="scenarioStore.toggleAuto()"
         >
           Auto: {{ scenarioStore.autoEnabled() ? 'ON' : 'OFF' }}
@@ -48,7 +54,9 @@ import { ScenarioStore } from '../../core/stores/scenario.store';
           type="button"
           class="btn-cenario-perf"
           [attr.data-perf-mode]="quality.tier()"
-          [title]="quality.badgeLabel() + ' — alternar qualidade gráfica (Auto / Ultra / Equil. / Lite)'"
+          [title]="
+            quality.badgeLabel() + ' — alternar qualidade gráfica (Auto / Ultra / Equil. / Lite)'
+          "
           (click)="quality.cyclePreference()"
         >
           {{ quality.badgeLabel() }}

@@ -62,9 +62,10 @@ export class SecurityIamStore {
   private readonly sessionsSignal = signal<ActiveSessionsState>({ status: 'idle' });
   private readonly totpStateSignal = signal<TotpSetupUiState>({ status: 'idle' });
   private readonly busyActionSignal = signal<string | null>(null);
-  private readonly feedbackSignal = signal<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(
-    null,
-  );
+  private readonly feedbackSignal = signal<{
+    readonly tone: 'ok' | 'error';
+    readonly text: string;
+  } | null>(null);
 
   readonly dialogOpen = this.dialogOpenSignal.asReadonly();
   readonly overviewState = this.overviewSignal.asReadonly();
@@ -102,7 +103,10 @@ export class SecurityIamStore {
           : { status: 'error', message: 'Resposta de segurança inválida.' },
       );
     } catch (err) {
-      this.overviewSignal.set({ status: 'error', message: extractApiErrorMessage(err, DEFAULT_SEC_ERROR) });
+      this.overviewSignal.set({
+        status: 'error',
+        message: extractApiErrorMessage(err, DEFAULT_SEC_ERROR),
+      });
     }
   }
 
@@ -120,7 +124,10 @@ export class SecurityIamStore {
           : { status: 'error', message: 'Não foi possível gerar QR Code TOTP.' },
       );
     } catch (err) {
-      this.totpStateSignal.set({ status: 'error', message: extractApiErrorMessage(err, DEFAULT_SEC_ERROR) });
+      this.totpStateSignal.set({
+        status: 'error',
+        message: extractApiErrorMessage(err, DEFAULT_SEC_ERROR),
+      });
     } finally {
       this.busyActionSignal.set(null);
     }
@@ -162,7 +169,9 @@ export class SecurityIamStore {
     this.busyActionSignal.set('passkey-add');
     this.feedbackSignal.set(null);
     try {
-      const rawOptions = await firstValueFrom(this.http.post<unknown>('/api/v1/auth/passkeys/register/options', {}));
+      const rawOptions = await firstValueFrom(
+        this.http.post<unknown>('/api/v1/auth/passkeys/register/options', {}),
+      );
       const parsedOptions = PasskeyChallengeObjectSchema.safeParse(rawOptions);
       if (!parsedOptions.success || !isPasskeyCreationOptions(parsedOptions.data)) {
         this.feedbackSignal.set({ tone: 'error', text: 'Opções WebAuthn inválidas.' });
@@ -226,7 +235,10 @@ export class SecurityIamStore {
           : { status: 'error', message: 'Resposta de sessões inválida.' },
       );
     } catch (err) {
-      this.sessionsSignal.set({ status: 'error', message: extractApiErrorMessage(err, DEFAULT_SEC_ERROR) });
+      this.sessionsSignal.set({
+        status: 'error',
+        message: extractApiErrorMessage(err, DEFAULT_SEC_ERROR),
+      });
     }
   }
 
@@ -249,11 +261,16 @@ export class SecurityIamStore {
         await firstValueFrom(this.http.get<unknown>('/api/v1/auth/me/export')),
       );
       if (!parsed.success) {
-        this.feedbackSignal.set({ tone: 'error', text: 'Não foi possível validar o arquivo de exportação.' });
+        this.feedbackSignal.set({
+          tone: 'error',
+          text: 'Não foi possível validar o arquivo de exportação.',
+        });
         return;
       }
       if (typeof document !== 'undefined' && typeof URL.createObjectURL === 'function') {
-        const blob = new Blob([JSON.stringify(parsed.data, null, 2)], { type: 'application/json;charset=utf-8' });
+        const blob = new Blob([JSON.stringify(parsed.data, null, 2)], {
+          type: 'application/json;charset=utf-8',
+        });
         const objectUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = objectUrl;
@@ -285,7 +302,10 @@ export class SecurityIamStore {
     try {
       await work();
     } catch (err) {
-      this.feedbackSignal.set({ tone: 'error', text: extractApiErrorMessage(err, DEFAULT_SEC_ERROR) });
+      this.feedbackSignal.set({
+        tone: 'error',
+        text: extractApiErrorMessage(err, DEFAULT_SEC_ERROR),
+      });
     } finally {
       this.busyActionSignal.set(null);
     }

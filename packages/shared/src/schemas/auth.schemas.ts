@@ -307,5 +307,3 @@ export const GoogleOAuthCallbackQuerySchema = z.object({
 export type GoogleOAuthCallbackQuery = z.infer<typeof GoogleOAuthCallbackQuerySchema>;
 
 export const PasskeyIdParamSchema = z.uuid('Identificador de Passkey inválido.');
-
-

@@ -55,9 +55,18 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
     pokemonFallbackUrl:
       'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/149.png',
     specs: [
-      { title: 'Motor Phaser 3 (60 FPS)', detail: 'Mapa 2D/HD-2D fluido com colisão e câmera tática.' },
-      { title: 'Portais & Ciclo Dia/Noite', detail: 'Acesso físico ao Laboratório, Museu, Arcade e Arena.' },
-      { title: 'Presença Multiplayer Live', detail: 'Movimentação sincronizada via WebSockets e Redis.' },
+      {
+        title: 'Motor Phaser 3 (60 FPS)',
+        detail: 'Mapa 2D/HD-2D fluido com colisão e câmera tática.',
+      },
+      {
+        title: 'Portais & Ciclo Dia/Noite',
+        detail: 'Acesso físico ao Laboratório, Museu, Arcade e Arena.',
+      },
+      {
+        title: 'Presença Multiplayer Live',
+        detail: 'Movimentação sincronizada via WebSockets e Redis.',
+      },
     ],
   },
   museum: {
@@ -82,9 +91,18 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
     pokemonFallbackUrl:
       'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/151.png',
     specs: [
-      { title: 'Atlas de Kanto a Paldea', detail: 'Mapa interativo conectando regiões, rotas e habitats.' },
-      { title: 'Líderes & Elite Four', detail: 'Equipes históricas, insígnias e lore de cada geração.' },
-      { title: 'Linha do Tempo Completa', detail: 'Jogos, gerações, cartas TCG e arcos marcantes.' },
+      {
+        title: 'Atlas de Kanto a Paldea',
+        detail: 'Mapa interativo conectando regiões, rotas e habitats.',
+      },
+      {
+        title: 'Líderes & Elite Four',
+        detail: 'Equipes históricas, insígnias e lore de cada geração.',
+      },
+      {
+        title: 'Linha do Tempo Completa',
+        detail: 'Jogos, gerações, cartas TCG e arcos marcantes.',
+      },
     ],
   },
   arcade: {
@@ -109,9 +127,18 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
     pokemonFallbackUrl:
       'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/137.png',
     specs: [
-      { title: 'Console Portátil 3D', detail: 'Chassis skeuomórfico animado com tela shader retrô.' },
-      { title: 'Core WebAssembly Nativo', detail: 'Execução estável sem travar a interface Angular.' },
-      { title: 'Cloud Save States S3', detail: 'Progresso salvo em Object Storage e retomado em 1 clique.' },
+      {
+        title: 'Console Portátil 3D',
+        detail: 'Chassis skeuomórfico animado com tela shader retrô.',
+      },
+      {
+        title: 'Core WebAssembly Nativo',
+        detail: 'Execução estável sem travar a interface Angular.',
+      },
+      {
+        title: 'Cloud Save States S3',
+        detail: 'Progresso salvo em Object Storage e retomado em 1 clique.',
+      },
     ],
   },
   arena: {
@@ -136,9 +163,18 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
     pokemonFallbackUrl:
       'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/448.png',
     specs: [
-      { title: 'Batalhas Autoritativas PvE/PvP', detail: 'Turnos validados no servidor com STAB e matriz 0x–4x.' },
-      { title: 'Team Builder Competitivo', detail: 'Simulador completo de IVs, EVs, Natures e Movesets.' },
-      { title: 'Laboratório de Ascensão', detail: 'Evolução, clonagem e reciclagem em Bio-Essência.' },
+      {
+        title: 'Batalhas Autoritativas PvE/PvP',
+        detail: 'Turnos validados no servidor com STAB e matriz 0x–4x.',
+      },
+      {
+        title: 'Team Builder Competitivo',
+        detail: 'Simulador completo de IVs, EVs, Natures e Movesets.',
+      },
+      {
+        title: 'Laboratório de Ascensão',
+        detail: 'Evolução, clonagem e reciclagem em Bio-Essência.',
+      },
     ],
   },
 };
@@ -151,10 +187,46 @@ export const UNDER_CONSTRUCTION_TABS: readonly UnderConstructionModuleConfig[] =
 ];
 
 export const REGIONS_ATLAS_PREVIEW: readonly RegionPreviewCard[] = [
-  { id: 'kanto', name: 'Kanto', generation: 'Geração I (1996)', starterQuery: 'bulbasaur', landmark: 'Indigo Plateau & Pallet Town' },
-  { id: 'johto', name: 'Johto', generation: 'Geração II (1999)', starterQuery: 'chikorita', landmark: 'Bell Tower & Ecruteak' },
-  { id: 'hoenn', name: 'Hoenn', generation: 'Geração III (2002)', starterQuery: 'mudkip', landmark: 'Sootopolis & Sky Pillar' },
-  { id: 'sinnoh', name: 'Sinnoh', generation: 'Geração IV (2006)', starterQuery: 'turtwig', landmark: 'Mt. Coronet & Spear Pillar' },
-  { id: 'unova', name: 'Unova', generation: 'Geração V (2010)', starterQuery: 'snivy', landmark: 'Castelia City & N’s Castle' },
-  { id: 'paldea', name: 'Paldea', generation: 'Geração IX (2022)', starterQuery: 'sprigatito', landmark: 'Area Zero & Mesagoza' },
+  {
+    id: 'kanto',
+    name: 'Kanto',
+    generation: 'Geração I (1996)',
+    starterQuery: 'bulbasaur',
+    landmark: 'Indigo Plateau & Pallet Town',
+  },
+  {
+    id: 'johto',
+    name: 'Johto',
+    generation: 'Geração II (1999)',
+    starterQuery: 'chikorita',
+    landmark: 'Bell Tower & Ecruteak',
+  },
+  {
+    id: 'hoenn',
+    name: 'Hoenn',
+    generation: 'Geração III (2002)',
+    starterQuery: 'mudkip',
+    landmark: 'Sootopolis & Sky Pillar',
+  },
+  {
+    id: 'sinnoh',
+    name: 'Sinnoh',
+    generation: 'Geração IV (2006)',
+    starterQuery: 'turtwig',
+    landmark: 'Mt. Coronet & Spear Pillar',
+  },
+  {
+    id: 'unova',
+    name: 'Unova',
+    generation: 'Geração V (2010)',
+    starterQuery: 'snivy',
+    landmark: 'Castelia City & N’s Castle',
+  },
+  {
+    id: 'paldea',
+    name: 'Paldea',
+    generation: 'Geração IX (2022)',
+    starterQuery: 'sprigatito',
+    landmark: 'Area Zero & Mesagoza',
+  },
 ];

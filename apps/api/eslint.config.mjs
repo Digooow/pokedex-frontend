@@ -31,6 +31,20 @@ export default defineConfig(
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
+      complexity: ['error', 15],
+      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: ['src/**/*.spec.ts', 'test/**/*.ts'],
+    rules: {
+      'max-lines': ['error', { max: 450, skipBlankLines: true, skipComments: true }],
+    },
+  },
+  {
+    files: ['src/modules/auth/auth.service.spec.ts'],
+    rules: {
+      'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }],
     },
   },
 );

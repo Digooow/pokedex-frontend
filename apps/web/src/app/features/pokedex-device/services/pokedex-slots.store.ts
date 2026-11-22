@@ -9,10 +9,7 @@ import {
 } from '@pokeverse/shared';
 import { catchError, map, of } from 'rxjs';
 import { AuthStore } from '../../../core/stores/auth.store';
-import {
-  PokedexLocalSlotsStorage,
-  buildLocalSlotRecord,
-} from './pokedex-local-slots.storage';
+import { PokedexLocalSlotsStorage, buildLocalSlotRecord } from './pokedex-local-slots.storage';
 import type { PokemonDetailView, ResolvedPokemonForSlot } from './pokedex.store';
 
 export type SlotConfirmPrompt =
@@ -198,7 +195,11 @@ export class PokedexSlotsStore {
           );
           return;
         }
-        this.mutateSlotMap(this.cloudSlotsSignal, (copy) => copy.set(slotIndex, parsed.data), false);
+        this.mutateSlotMap(
+          this.cloudSlotsSignal,
+          (copy) => copy.set(slotIndex, parsed.data),
+          false,
+        );
         this.editingSlotIndexSignal.set(null);
         this.feedbackSignal.set(
           `Salvo no slot ${formatSlotNumber(slotIndex)} (${pokemon.displayName})`,
@@ -232,9 +233,7 @@ export class PokedexSlotsStore {
       .subscribe((ok) => {
         this.busySlotSignal.set(null);
         if (!ok) {
-          this.feedbackSignal.set(
-            `Não foi possível limpar o Slot ${formatSlotNumber(slotIndex)}.`,
-          );
+          this.feedbackSignal.set(`Não foi possível limpar o Slot ${formatSlotNumber(slotIndex)}.`);
           return;
         }
         this.mutateSlotMap(this.cloudSlotsSignal, (copy) => copy.delete(slotIndex), false);

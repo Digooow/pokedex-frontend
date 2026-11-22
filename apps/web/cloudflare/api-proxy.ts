@@ -45,9 +45,7 @@ function readAllSetCookieHeaders(headers: Headers): string[] {
   return single ? [single] : [];
 }
 
-export async function proxyToApiOrigin(
-  context: PagesFunctionContext,
-): Promise<Response> {
+export async function proxyToApiOrigin(context: PagesFunctionContext): Promise<Response> {
   const { request, env } = context;
   const upstreamBase = resolveUpstreamOrigin(env.API_ORIGIN);
   if (!upstreamBase) {
@@ -64,18 +62,12 @@ export async function proxyToApiOrigin(
   }
 
   const incomingUrl = new URL(request.url);
-  const targetUrl = new URL(
-    `${incomingUrl.pathname}${incomingUrl.search}`,
-    upstreamBase,
-  );
+  const targetUrl = new URL(`${incomingUrl.pathname}${incomingUrl.search}`, upstreamBase);
 
   const upstreamHeaders = new Headers(request.headers);
   upstreamHeaders.delete('host');
   upstreamHeaders.set('x-forwarded-host', incomingUrl.host);
-  upstreamHeaders.set(
-    'x-forwarded-proto',
-    incomingUrl.protocol.replace(':', ''),
-  );
+  upstreamHeaders.set('x-forwarded-proto', incomingUrl.protocol.replace(':', ''));
 
   if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
     return fetch(
@@ -107,10 +99,7 @@ export async function proxyToApiOrigin(
   if (setCookies.length > 0 && upstreamBase.hostname !== incomingUrl.hostname) {
     responseHeaders.delete('set-cookie');
     for (const cookieHeader of setCookies) {
-      responseHeaders.append(
-        'set-cookie',
-        stripUpstreamDomainAttribute(cookieHeader),
-      );
+      responseHeaders.append('set-cookie', stripUpstreamDomainAttribute(cookieHeader));
     }
   }
 

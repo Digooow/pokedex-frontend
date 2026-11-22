@@ -47,7 +47,9 @@ describe('PokedexLocalSlotsStorage', () => {
     const storage = TestBed.inject(PokedexLocalSlotsStorage);
 
     privacy.acceptEssentialOnly();
-    const slots = new Map([[0, buildLocalSlotRecord({ slotIndex: 0, pokemonId: 25, pokemonName: 'pikachu' })]]);
+    const slots = new Map([
+      [0, buildLocalSlotRecord({ slotIndex: 0, pokemonId: 25, pokemonName: 'pikachu' })],
+    ]);
     storage.persist(slots);
 
     expect(window.localStorage.getItem('pokedex_slots_salvos')).toBeNull();

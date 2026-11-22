@@ -58,24 +58,26 @@ export class PokedexApiClient {
         if (err instanceof HttpErrorResponse && err.status === 404) {
           return of<ResolvedPokemonResult>({ found: false, notFound: true, statusCode: 404 });
         }
-        return this.http.get<unknown>(`${POKEAPI_DETAIL_BASE}${encodeURIComponent(normalized)}`).pipe(
-          timeout(REQUEST_TIMEOUT_MS),
-          map((raw): ResolvedPokemonResult => {
-            const parsed = PokemonDetailSchema.safeParse(raw);
-            return parsed.success
-              ? { found: true, dto: parsed.data, source: 'direct' }
-              : { found: false, notFound: false, statusCode: null };
-          }),
-          catchError((directErr: unknown) => {
-            const status =
-              directErr instanceof HttpErrorResponse ? directErr.status || null : null;
-            return of<ResolvedPokemonResult>({
-              found: false,
-              notFound: status === 404,
-              statusCode: status,
-            });
-          }),
-        );
+        return this.http
+          .get<unknown>(`${POKEAPI_DETAIL_BASE}${encodeURIComponent(normalized)}`)
+          .pipe(
+            timeout(REQUEST_TIMEOUT_MS),
+            map((raw): ResolvedPokemonResult => {
+              const parsed = PokemonDetailSchema.safeParse(raw);
+              return parsed.success
+                ? { found: true, dto: parsed.data, source: 'direct' }
+                : { found: false, notFound: false, statusCode: null };
+            }),
+            catchError((directErr: unknown) => {
+              const status =
+                directErr instanceof HttpErrorResponse ? directErr.status || null : null;
+              return of<ResolvedPokemonResult>({
+                found: false,
+                notFound: status === 404,
+                statusCode: status,
+              });
+            }),
+          );
       }),
     );
   }

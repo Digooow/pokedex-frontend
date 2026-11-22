@@ -21,6 +21,7 @@
     "lint:api": "npm run lint --workspace=pokeverse-api",
     "lint:web": "npm run lint --workspace=pokeverse-web",
     "lint": "npm run lint:shared && npm run lint:api && npm run lint:web",
+    "format:check": "prettier --check \"packages/shared/src/**/*.ts\" \"apps/api/{src,test}/**/*.ts\" \"apps/web/{src,cloudflare}/**/*.ts\"",
     "audit:ui": "node scripts/ui-quality-gate.mjs"
   },
   "devDependencies": {

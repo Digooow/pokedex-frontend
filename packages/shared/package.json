@@ -21,7 +21,8 @@
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint \"src/**/*.ts\"",
+    "lint": "eslint --max-warnings=0 \"src/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.ts\"",
     "test": "vitest run"
   },
   "dependencies": {

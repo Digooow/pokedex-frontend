@@ -63,10 +63,7 @@ function computeDamerauCell(
   let best = Math.min(up, left, diag);
 
   const canTranspose =
-    i > 1 &&
-    j > 1 &&
-    srcChar === target.charAt(j - 2) &&
-    source.charAt(i - 2) === tgtChar;
+    i > 1 && j > 1 && srcChar === target.charAt(j - 2) && source.charAt(i - 2) === tgtChar;
 
   if (canTranspose) {
     const transposition = (dp[(i - 2) * stride + (j - 2)] ?? maxDistance) + cost;

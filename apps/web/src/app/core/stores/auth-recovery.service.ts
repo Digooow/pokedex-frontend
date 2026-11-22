@@ -31,12 +31,10 @@ export type AuthMutationState =
   | { readonly status: 'error'; readonly message: string };
 
 export type GenericMessageOutcome =
-  | ReturnType<typeof GenericMessageResponseSchema.safeParse>
-  | { readonly httpError: unknown };
+  ReturnType<typeof GenericMessageResponseSchema.safeParse> | { readonly httpError: unknown };
 
 export type SessionResponseOutcome =
-  | ReturnType<typeof AuthSessionResponseSchema.safeParse>
-  | { readonly httpError: unknown };
+  ReturnType<typeof AuthSessionResponseSchema.safeParse> | { readonly httpError: unknown };
 
 const DEFAULT_AUTH_ERROR = 'Não foi possível autenticar. Confira os dados e tente novamente.';
 

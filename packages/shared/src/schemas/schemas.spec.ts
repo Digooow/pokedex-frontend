@@ -143,8 +143,7 @@ describe('shared schemas boundary validation', () => {
     expect(sessionRes.success).toBe(true);
 
     expect(
-      SessionBootstrapResponseSchema.safeParse({ authenticated: false, canRefresh: false })
-        .success,
+      SessionBootstrapResponseSchema.safeParse({ authenticated: false, canRefresh: false }).success,
     ).toBe(true);
 
     expect(
@@ -170,7 +169,16 @@ describe('shared schemas boundary validation', () => {
     expect(
       TotpEnableResponseSchema.safeParse({
         message: '2FA ativado',
-        backupCodes: ['A1B2-C3D4', 'E5F6-G7H8', 'J1K2-M3N4', 'P5Q6-R7S8', 'T1U2-V3W4', 'X5Y6-Z7A8', 'B1C2-D3E4', 'F5G6-H7J8'],
+        backupCodes: [
+          'A1B2-C3D4',
+          'E5F6-G7H8',
+          'J1K2-M3N4',
+          'P5Q6-R7S8',
+          'T1U2-V3W4',
+          'X5Y6-Z7A8',
+          'B1C2-D3E4',
+          'F5G6-H7J8',
+        ],
       }).success,
     ).toBe(true);
 

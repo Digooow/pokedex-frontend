@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
@@ -39,8 +46,8 @@ export class UnderConstructionComponent {
   readonly useFallbackArtwork = signal(false);
   readonly imageFailed = signal(false);
 
-  readonly module = computed<UnderConstructionModuleConfig>(() =>
-    UNDER_CONSTRUCTION_MODULES[resolveModuleId(this.routeData()['moduleId'])],
+  readonly module = computed<UnderConstructionModuleConfig>(
+    () => UNDER_CONSTRUCTION_MODULES[resolveModuleId(this.routeData()['moduleId'])],
   );
 
   readonly activePokemonSrc = computed(() =>

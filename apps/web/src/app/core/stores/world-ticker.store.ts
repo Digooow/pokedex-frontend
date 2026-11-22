@@ -1,6 +1,10 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, OnDestroy, PLATFORM_ID, computed, inject, signal } from '@angular/core';
-import { type WorldTickerEvent, WorldTickerEventListSchema, WorldTickerEventSchema } from '@pokeverse/shared';
+import {
+  type WorldTickerEvent,
+  WorldTickerEventListSchema,
+  WorldTickerEventSchema,
+} from '@pokeverse/shared';
 import type { Socket } from 'socket.io-client';
 
 const MAX_TICKER_HISTORY = 12;

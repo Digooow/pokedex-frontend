@@ -3,24 +3,17 @@ import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core
 import { QualityStore } from '../../../core/stores/quality.store';
 import { PokedexRpgFocusRegistry, type RpgFocusGroup } from '../directives/rpg-focusable.directive';
 import { PokedexLidPhysicsService } from './pokedex-lid-physics.service';
-import {
-  DESKTOP_MIN_WIDTH_PX,
+import * as rpgNav from './pokedex-rpg-nav.util';
+import type { RpgDirection, RpgLevel, RpgScreen } from './pokedex-rpg-nav.util';
+import { PokedexSlotsStore } from './pokedex-slots.store';
+import { PokedexStore } from './pokedex.store';
+
+export {
   KEY_TO_DIRECTION,
   type RpgDirection,
   type RpgLevel,
   type RpgScreen,
-  TOTAL_SLOTS_AZUIS,
-  clampIndexInRange,
-  resolveCatalogCursorTarget,
-  resolveControlGroupKey,
-  resolveRedButtonTooltip,
-  resolveRpgNavigationAction,
-  shouldBlueButtonEnterSubmenu,
 } from './pokedex-rpg-nav.util';
-import { PokedexSlotsStore } from './pokedex-slots.store';
-import { PokedexStore } from './pokedex.store';
-
-export { KEY_TO_DIRECTION, type RpgDirection, type RpgLevel, type RpgScreen };
 
 @Injectable()
 export class PokedexRpgNavService {
@@ -43,16 +36,22 @@ export class PokedexRpgNavService {
   readonly rpgScreen = signal<RpgScreen>('busca');
   readonly rpgCatalogIndex = signal(0);
   readonly rpgSlotFocusIndex = signal(0);
-  readonly rpgControlIndices = signal<Record<'busca' | 'visor' | 'edicao', number>>({ busca: 0, visor: 0, edicao: 0 });
+  readonly rpgControlIndices = signal<Record<'busca' | 'visor' | 'edicao', number>>({
+    ...rpgNav.INITIAL_RPG_CONTROL_INDICES,
+  });
 
-  readonly isVisorSelectingList = computed(
-    () => this.keyboardRpgActive() && this.pokedex.coverOpen() && this.rpgLevel() === 'itens' && this.rpgScreen() === 'lista',
+  readonly isVisorSelectingList = computed(() =>
+    rpgNav.isRpgVisorSelectingList(this.navSnapshot()),
   );
   readonly redButtonTooltip = computed(() =>
-    resolveRedButtonTooltip(this.slotsStore.editMode(), this.pokedex.previousQuery(), this.pokedex.query()),
+    rpgNav.resolveRedButtonTooltip(
+      this.slotsStore.editMode(),
+      this.pokedex.previousQuery(),
+      this.pokedex.query(),
+    ),
   );
   readonly blueButtonTooltip = computed(() =>
-    this.willBlueButtonEnterSubmenu() ? 'Botão azul: entrar no menu destacado' : 'Botão azul: limpar visor de resultados',
+    rpgNav.resolveBlueButtonTooltip(this.willBlueButtonEnterSubmenu()),
   );
 
   attachHost(element: HTMLElement): void {
@@ -60,7 +59,8 @@ export class PokedexRpgNavService {
     this.lidPhysics.attachHost(element);
   }
 
-  onPointerMove = (event: PointerEvent, deviceEl: HTMLElement) => this.lidPhysics.onPointerMove(event, deviceEl);
+  onPointerMove = (event: PointerEvent, deviceEl: HTMLElement) =>
+    this.lidPhysics.onPointerMove(event, deviceEl);
   resetGlint = () => this.lidPhysics.resetGlint();
   isDesiredOpen = () => this.lidPhysics.isDesiredOpen();
   activateKeyboardMode = () => this.keyboardRpgActive.set(true);
@@ -73,9 +73,8 @@ export class PokedexRpgNavService {
   }
 
   isScreenHighlighted(screen: RpgScreen): boolean {
-    if (!this.keyboardRpgActive() || !this.pokedex.coverOpen()) return false;
-    if (this.rpgLevel() === 'telas') return this.rpgScreen() === screen;
-    return this.collectScreenControls(screen).length === 0 && this.rpgScreen() === screen;
+    const controlsCount = this.collectScreenControls(screen).length;
+    return rpgNav.isRpgScreenHighlighted(this.navSnapshot(), screen, controlsCount);
   }
 
   setScreenFocus(screen: RpgScreen, level: RpgLevel = 'itens', controlIdx = 0): void {
@@ -92,23 +91,20 @@ export class PokedexRpgNavService {
   }
 
   applySlotsConfigTransition(opening: boolean, moveFocusToVisor: boolean): void {
+    const plan = rpgNav.resolveSlotsConfigTransitionPlan(opening);
     this.slotsStore.setEditMode(opening);
     this.rpgLevel.set('itens');
-    if (opening) {
-      this.rpgScreen.set('visor');
-      this.setControlIndex('visor', 0);
-    } else {
-      this.rpgScreen.set('slots');
-      this.rpgSlotFocusIndex.set(TOTAL_SLOTS_AZUIS);
-    }
+    this.rpgScreen.set(plan.screen);
+    if (plan.visorIndex !== null) this.setControlIndex('visor', plan.visorIndex);
+    if (plan.slotFocusIndex !== null) this.rpgSlotFocusIndex.set(plan.slotFocusIndex);
     if (moveFocusToVisor) this.focusRegistry.afterTick(() => this.syncFocusVisuals(true));
   }
 
   navigate(direction: RpgDirection): void {
     if (!this.pokedex.coverOpen()) return;
-    const isDesktop = !this.isBrowser || window.innerWidth >= DESKTOP_MIN_WIDTH_PX;
+    const isDesktop = !this.isBrowser || window.innerWidth >= rpgNav.DESKTOP_MIN_WIDTH_PX;
     const controlsCount = this.collectScreenControls(this.activeFocusGroup()).length;
-    const action = resolveRpgNavigationAction(
+    const action = rpgNav.resolveRpgNavigationAction(
       this.rpgLevel(),
       this.rpgScreen(),
       direction,
@@ -132,8 +128,8 @@ export class PokedexRpgNavService {
     if (action.kind === 'slot') {
       this.rpgSlotFocusIndex.set(action.nextSlotIndex);
     } else {
-      const next = clampIndexInRange(this.rpgControlIndices()[action.key] ?? 0, action.step, controlsCount);
-      this.setControlIndex(action.key, next);
+      const idx = this.rpgControlIndices()[action.key] ?? 0;
+      this.setControlIndex(action.key, rpgNav.clampIndexInRange(idx, action.step, controlsCount));
     }
     this.syncFocusVisuals(true);
   }
@@ -154,7 +150,7 @@ export class PokedexRpgNavService {
       this.applyNavState('telas', this.rpgScreen(), this.keyboardRpgActive());
       return;
     }
-    if (!forceStepBack && this.keyboardRpgActive() && this.rpgLevel() === 'itens' && !this.pokedex.query().trim() && this.rpgCatalogIndex() === 0) {
+    if (rpgNav.shouldStepBackToScreensLevel(forceStepBack, this.navSnapshot())) {
       this.focusRegistry.blurActiveInput();
       this.applyNavState('telas', this.rpgScreen());
       return;
@@ -163,7 +159,10 @@ export class PokedexRpgNavService {
     this.syncFocusVisuals(false);
   }
 
-  advanceOrClearVisor(onClearVisor: () => void, onToggleConfig: (moveFocus: boolean) => void): void {
+  advanceOrClearVisor(
+    onClearVisor: () => void,
+    onToggleConfig: (moveFocus: boolean) => void,
+  ): void {
     if (this.rpgLevel() === 'telas') {
       this.enterScreen(this.rpgScreen());
       return;
@@ -201,12 +200,14 @@ export class PokedexRpgNavService {
 
   syncFocusVisuals(moveDomFocus: boolean): void {
     this.focusRegistry.clearFocusVisuals();
-    if (!this.isBrowser || !this.hostEl || !this.keyboardRpgActive() || !this.pokedex.coverOpen() || this.rpgLevel() === 'telas') return;
-    this.focusRegistry.applyFocusVisuals(this.resolveFocusedElement(), moveDomFocus, this.quality.reducedMotion());
+    if (!this.isBrowser || !this.hostEl) return;
+    if (!rpgNav.canSyncRpgFocusVisuals(this.navSnapshot())) return;
+    const reduced = this.quality.reducedMotion();
+    this.focusRegistry.applyFocusVisuals(this.resolveFocusedElement(), moveDomFocus, reduced);
   }
 
   syncCatalogSelection(pokemonName: string): void {
-    const idx = this.pokedex.filteredCatalog().items.findIndex((entry) => entry.name === pokemonName.toLowerCase());
+    const idx = rpgNav.findCatalogIndexByName(this.pokedex.filteredCatalog().items, pokemonName);
     if (idx < 0) return;
     this.rpgCatalogIndex.set(idx);
     this.pokedex.ensureCatalogIndexVisible(idx);
@@ -220,7 +221,12 @@ export class PokedexRpgNavService {
   scrollCatalogIndexIntoView(index: number): void {
     const safeIndex = Math.max(0, index);
     this.setCatalogCursor(safeIndex);
-    this.focusRegistry.scrollItemIntoViewAfterTick(this.hostEl, 'lista', safeIndex, this.quality.reducedMotion());
+    this.focusRegistry.scrollItemIntoViewAfterTick(
+      this.hostEl,
+      'lista',
+      safeIndex,
+      this.quality.reducedMotion(),
+    );
   }
 
   scrollCatalogToTop(): void {
@@ -248,15 +254,36 @@ export class PokedexRpgNavService {
   }
 
   private resolveFocusedElement(): HTMLElement | null {
-    if (this.rpgScreen() === 'lista') return this.collectScreenControls('lista')[this.rpgCatalogIndex()] ?? null;
-    if (this.rpgScreen() === 'slots') return this.collectScreenControls('slots')[this.rpgSlotFocusIndex()] ?? null;
+    if (this.rpgScreen() === 'lista')
+      return this.collectScreenControls('lista')[this.rpgCatalogIndex()] ?? null;
+    if (this.rpgScreen() === 'slots')
+      return this.collectScreenControls('slots')[this.rpgSlotFocusIndex()] ?? null;
     return this.resolveCurrentControl(true).target;
+  }
+
+  private navSnapshot(): rpgNav.RpgNavSnapshot {
+    return {
+      keyboardActive: this.keyboardRpgActive(),
+      coverOpen: this.pokedex.coverOpen(),
+      level: this.rpgLevel(),
+      screen: this.rpgScreen(),
+      query: this.pokedex.query(),
+      catalogIndex: this.rpgCatalogIndex(),
+      slotFocusIndex: this.rpgSlotFocusIndex(),
+    };
   }
 
   private resolveCurrentControl(clamp: boolean) {
     const group = this.activeFocusGroup();
-    if (group === 'slots') return this.focusRegistry.resolveGroupTarget(this.hostEl, 'slots', this.rpgSlotFocusIndex(), false);
-    const key = resolveControlGroupKey(this.rpgLevel(), this.rpgScreen());
+    if (group === 'slots') {
+      return this.focusRegistry.resolveGroupTarget(
+        this.hostEl,
+        'slots',
+        this.rpgSlotFocusIndex(),
+        false,
+      );
+    }
+    const key = rpgNav.resolveControlGroupKey(this.rpgLevel(), this.rpgScreen());
     const rawIdx = this.rpgControlIndices()[key] ?? 0;
     const resolved = this.focusRegistry.resolveGroupTarget(this.hostEl, group, rawIdx, clamp);
     if (clamp && resolved.index !== rawIdx) this.setControlIndex(key, resolved.index);
@@ -265,10 +292,13 @@ export class PokedexRpgNavService {
 
   private moveCatalogCursor(offset: number): void {
     this.pokedex.ensureCatalogLoaded();
-    const nextIdx = resolveCatalogCursorTarget(
-      this.pokedex.catalogState().status,
-      this.pokedex.filteredCatalog().items.length,
-      this.pokedex.catalogTotalCount(),
+    const { status } = this.pokedex.catalogState();
+    const filteredLen = this.pokedex.filteredCatalog().items.length;
+    const total = this.pokedex.catalogTotalCount();
+    const nextIdx = rpgNav.resolveCatalogCursorTarget(
+      status,
+      filteredLen,
+      total,
       this.pokedex.query(),
       this.rpgCatalogIndex(),
       offset,
@@ -279,15 +309,16 @@ export class PokedexRpgNavService {
     this.focusRegistry.afterTick(() => this.syncFocusVisuals(true));
   }
 
-  private activeFocusGroup = (): RpgFocusGroup => (this.rpgLevel() === 'edicao' ? 'edicao' : this.rpgScreen());
-  private collectScreenControls = (group: RpgFocusGroup) => this.focusRegistry.collectGroupControls(this.hostEl, group);
+  private activeFocusGroup = (): RpgFocusGroup =>
+    rpgNav.resolveFocusGroup(this.rpgLevel(), this.rpgScreen());
+  private collectScreenControls = (group: RpgFocusGroup) =>
+    this.focusRegistry.collectGroupControls(this.hostEl, group);
   private setControlIndex = (key: 'busca' | 'visor' | 'edicao', value: number) =>
     this.rpgControlIndices.update((prev) => ({ ...prev, [key]: value }));
   private willBlueButtonEnterSubmenu = () =>
-    shouldBlueButtonEnterSubmenu(
-      this.rpgLevel(),
-      this.rpgScreen(),
-      this.rpgSlotFocusIndex(),
-      this.collectScreenControls('visor')[this.rpgControlIndices().visor]?.dataset['acaoSlot'],
+    rpgNav.shouldBlueButtonEnterFromVisor(
+      this.navSnapshot(),
+      this.collectScreenControls('visor'),
+      this.rpgControlIndices().visor,
     );
 }

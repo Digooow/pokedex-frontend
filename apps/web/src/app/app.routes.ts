@@ -25,9 +25,7 @@ export const routes: Routes = [
     path: 'museu',
     title: 'Museu das Regiões — PokéVerse OS',
     loadComponent: () =>
-      import('./features/regions-museum/museum-page.component').then(
-        (m) => m.MuseumPageComponent,
-      ),
+      import('./features/regions-museum/museum-page.component').then((m) => m.MuseumPageComponent),
   },
   {
     path: 'mundo',

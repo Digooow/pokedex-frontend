@@ -49,11 +49,17 @@ export class AuthStore implements OnDestroy {
   });
 
   readonly trainer = computed<TrainerProfile | null>(() => this.sessionSignal()?.trainer ?? null);
-  readonly sessionState = computed<SessionAuthState | null>(() => this.sessionSignal()?.sessionState ?? null);
-  readonly mfaMethods = computed<readonly MfaMethod[]>(() => this.sessionSignal()?.mfaMethods ?? []);
+  readonly sessionState = computed<SessionAuthState | null>(
+    () => this.sessionSignal()?.sessionState ?? null,
+  );
+  readonly mfaMethods = computed<readonly MfaMethod[]>(
+    () => this.sessionSignal()?.mfaMethods ?? [],
+  );
   readonly isMfaPending = computed(() => this.sessionState() === 'MFA_PENDING');
   readonly isAuthenticated = computed(() => this.sessionState() === 'AUTHENTICATED');
-  readonly accessMode = computed<AccessMode>(() => (this.isAuthenticated() ? 'trainer' : 'visitor'));
+  readonly accessMode = computed<AccessMode>(() =>
+    this.isAuthenticated() ? 'trainer' : 'visitor',
+  );
   readonly visitorPrompt = this.visitorPromptSignal.asReadonly();
   readonly securityModalOpen = this.securityModalOpenSignal.asReadonly();
   readonly mutationState = this.mutationSignal.asReadonly();
@@ -101,7 +107,8 @@ export class AuthStore implements OnDestroy {
     });
 
   login = (input: LoginTrainerInput) => this.submitSessionPost('/api/v1/auth/login', input);
-  register = (input: RegisterTrainerInput) => this.submitSessionPost('/api/v1/auth/register', input);
+  register = (input: RegisterTrainerInput) =>
+    this.submitSessionPost('/api/v1/auth/register', input);
   verifyMfaChallenge = (input: MfaChallengeVerifyInput) =>
     this.submitSessionPost('/api/v1/auth/mfa/verify', input);
 
@@ -244,7 +251,10 @@ export class AuthStore implements OnDestroy {
   }
 
   private handleSessionOutcome(outcome: SessionResponseOutcome): void {
-    const errorMsg = resolveAuthOutcomeError(outcome, 'Resposta de sessão inválida recebida do servidor.');
+    const errorMsg = resolveAuthOutcomeError(
+      outcome,
+      'Resposta de sessão inválida recebida do servidor.',
+    );
     if (errorMsg || 'httpError' in outcome || !outcome.success) {
       this.setMutationError(errorMsg ?? 'Resposta de sessão inválida recebida do servidor.');
       return;

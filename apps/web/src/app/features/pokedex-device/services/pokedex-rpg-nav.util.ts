@@ -42,6 +42,22 @@ export type RpgNavigationAction =
   | { readonly kind: 'visor-scroll'; readonly deltaY: number }
   | { readonly kind: 'control'; readonly key: 'busca' | 'visor' | 'edicao'; readonly step: number };
 
+export const INITIAL_RPG_CONTROL_INDICES: Readonly<Record<'busca' | 'visor' | 'edicao', number>> = {
+  busca: 0,
+  visor: 0,
+  edicao: 0,
+};
+
+export interface RpgNavSnapshot {
+  readonly keyboardActive: boolean;
+  readonly coverOpen: boolean;
+  readonly level: RpgLevel;
+  readonly screen: RpgScreen;
+  readonly query: string;
+  readonly catalogIndex: number;
+  readonly slotFocusIndex: number;
+}
+
 export function nextSlotIndexForDirection(current: number, direction: RpgDirection): number {
   if (direction === 'esquerda') return Math.max(0, current - 1);
   if (direction === 'direita') return Math.min(TOTAL_SLOTS_AZUIS, current + 1);
@@ -60,7 +76,9 @@ export function resolveNextScreen(
   }
   const step = direction === 'cima' || direction === 'esquerda' ? -1 : 1;
   const idx = MOBILE_SCREEN_ORDER.indexOf(current);
-  return MOBILE_SCREEN_ORDER[Math.max(0, Math.min(MOBILE_SCREEN_ORDER.length - 1, idx + step))] ?? null;
+  return (
+    MOBILE_SCREEN_ORDER[Math.max(0, Math.min(MOBILE_SCREEN_ORDER.length - 1, idx + step))] ?? null
+  );
 }
 
 export function resolveRpgNavigationAction(
@@ -146,4 +164,72 @@ export function resolveStepBackTargetIdentifier(
 
 export function belongsToSelector(target: EventTarget | null, selector: string): boolean {
   return target instanceof Element && Boolean(target.closest(selector));
+}
+
+export function shouldStepBackToScreensLevel(forceStepBack: boolean, nav: RpgNavSnapshot): boolean {
+  return (
+    !forceStepBack &&
+    nav.keyboardActive &&
+    nav.level === 'itens' &&
+    !nav.query.trim() &&
+    nav.catalogIndex === 0
+  );
+}
+
+export function canSyncRpgFocusVisuals(nav: RpgNavSnapshot): boolean {
+  return nav.keyboardActive && nav.coverOpen && nav.level !== 'telas';
+}
+
+export function resolveFocusGroup(
+  level: RpgLevel,
+  screen: RpgScreen,
+): 'busca' | 'lista' | 'visor' | 'slots' | 'edicao' {
+  return level === 'edicao' ? 'edicao' : screen;
+}
+
+export function isRpgVisorSelectingList(nav: RpgNavSnapshot): boolean {
+  return nav.keyboardActive && nav.coverOpen && nav.level === 'itens' && nav.screen === 'lista';
+}
+
+export function shouldBlueButtonEnterFromVisor(
+  nav: RpgNavSnapshot,
+  visorControls: readonly HTMLElement[],
+  visorControlIndex: number,
+): boolean {
+  const visorAction = visorControls[visorControlIndex]?.dataset['acaoSlot'];
+  return shouldBlueButtonEnterSubmenu(nav.level, nav.screen, nav.slotFocusIndex, visorAction);
+}
+
+export function isRpgScreenHighlighted(
+  nav: RpgNavSnapshot,
+  targetScreen: RpgScreen,
+  controlsCount: number,
+): boolean {
+  if (!nav.keyboardActive || !nav.coverOpen) return false;
+  if (nav.level === 'telas') return nav.screen === targetScreen;
+  return controlsCount === 0 && nav.screen === targetScreen;
+}
+
+export function findCatalogIndexByName(
+  items: ReadonlyArray<{ readonly name: string }>,
+  pokemonName: string,
+): number {
+  const normalized = pokemonName.toLowerCase();
+  return items.findIndex((entry) => entry.name === normalized);
+}
+
+export function resolveBlueButtonTooltip(willEnterSubmenu: boolean): string {
+  return willEnterSubmenu
+    ? 'Botão azul: entrar no menu destacado'
+    : 'Botão azul: limpar visor de resultados';
+}
+
+export function resolveSlotsConfigTransitionPlan(opening: boolean): {
+  readonly screen: RpgScreen;
+  readonly visorIndex: number | null;
+  readonly slotFocusIndex: number | null;
+} {
+  return opening
+    ? { screen: 'visor', visorIndex: 0, slotFocusIndex: null }
+    : { screen: 'slots', visorIndex: null, slotFocusIndex: TOTAL_SLOTS_AZUIS };
 }

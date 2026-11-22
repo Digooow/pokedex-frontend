@@ -74,9 +74,16 @@ export class PokedexRpgFocusRegistry {
     group: RpgFocusGroup,
     rawIndex: number,
     clamp: boolean,
-  ): { readonly controls: HTMLElement[]; readonly index: number; readonly target: HTMLElement | null } {
+  ): {
+    readonly controls: HTMLElement[];
+    readonly index: number;
+    readonly target: HTMLElement | null;
+  } {
     const controls = this.collectGroupControls(hostEl, group);
-    const index = clamp && controls.length > 0 ? Math.max(0, Math.min(controls.length - 1, rawIndex)) : rawIndex;
+    const index =
+      clamp && controls.length > 0
+        ? Math.max(0, Math.min(controls.length - 1, rawIndex))
+        : rawIndex;
     return { controls, index, target: controls[index] ?? null };
   }
 
@@ -86,7 +93,11 @@ export class PokedexRpgFocusRegistry {
     this.focusedElement = null;
   }
 
-  applyFocusVisuals(target: HTMLElement | null, moveDomFocus: boolean, reducedMotion: boolean): void {
+  applyFocusVisuals(
+    target: HTMLElement | null,
+    moveDomFocus: boolean,
+    reducedMotion: boolean,
+  ): void {
     this.clearFocusVisuals();
     if (!target) return;
     target.classList.add('is-rpg-foco');
@@ -137,7 +148,8 @@ export class PokedexRpgFocusRegistry {
   private isElementInteractable(el: HTMLElement, hostEl: HTMLElement | null): boolean {
     if (!el.isConnected) return false;
     if (hostEl && !hostEl.contains(el)) return false;
-    if ('disabled' in el && Boolean((el as HTMLButtonElement | HTMLInputElement).disabled)) return false;
+    if ('disabled' in el && Boolean((el as HTMLButtonElement | HTMLInputElement).disabled))
+      return false;
     return !el.hidden && !el.closest('[hidden]');
   }
 }
@@ -155,7 +167,11 @@ export class PvRpgFocusableDirective {
     let unregister: (() => void) | null = null;
     effect((onCleanup) => {
       unregister?.();
-      unregister = this.registry.register(this.group(), this.elementRef.nativeElement, this.order());
+      unregister = this.registry.register(
+        this.group(),
+        this.elementRef.nativeElement,
+        this.order(),
+      );
       onCleanup(() => {
         unregister?.();
         unregister = null;

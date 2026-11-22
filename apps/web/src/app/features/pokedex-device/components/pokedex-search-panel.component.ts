@@ -14,7 +14,10 @@ import {
   PvRpgFocusableDirective,
 } from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
-import { type RpgDirection, resolveStepBackTargetIdentifier } from '../services/pokedex-rpg-nav.util';
+import {
+  type RpgDirection,
+  resolveStepBackTargetIdentifier,
+} from '../services/pokedex-rpg-nav.util';
 import { PokedexStore } from '../services/pokedex.store';
 import { PokedexPhysicalControlsComponent } from './pokedex-physical-controls.component';
 
@@ -22,7 +25,13 @@ import { PokedexPhysicalControlsComponent } from './pokedex-physical-controls.co
   selector: 'pv-pokedex-search-panel',
   imports: [PvRpgFocusableDirective, PvRpgContainerDirective, PokedexPhysicalControlsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [`:host { display: contents; }`],
+  styles: [
+    `
+      :host {
+        display: contents;
+      }
+    `,
+  ],
   templateUrl: './pokedex-search-panel.component.html',
 })
 export class PokedexSearchPanelComponent {
@@ -72,8 +81,13 @@ export class PokedexSearchPanelComponent {
     }
 
     if (currentQuery) {
-      const highlighted = this.store.filteredCatalog().items[this.rpg.rpgCatalogIndex()]?.name ?? null;
-      const target = resolveStepBackTargetIdentifier(this.store.selectedPokemon()?.name, highlighted, currentQuery);
+      const highlighted =
+        this.store.filteredCatalog().items[this.rpg.rpgCatalogIndex()]?.name ?? null;
+      const target = resolveStepBackTargetIdentifier(
+        this.store.selectedPokemon()?.name,
+        highlighted,
+        currentQuery,
+      );
       this.resetFormValidation();
       const fullIdx = this.store.findCatalogIndex(target);
       if (fullIdx >= 0) {
@@ -107,7 +121,9 @@ export class PokedexSearchPanelComponent {
   }
 
   onInputFocus = () => this.store.ensureCatalogLoaded();
-  onInputBlur = () => { if (this.store.query().length > 0) this.inputTouched.set(true); };
+  onInputBlur = () => {
+    if (this.store.query().length > 0) this.inputTouched.set(true);
+  };
 
   onInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
@@ -152,7 +168,8 @@ export class PokedexSearchPanelComponent {
   onCatalogScroll(event: Event): void {
     if (!this.store.hasMoreCatalog()) return;
     const listEl = event.target as HTMLElement;
-    if (listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 120) this.store.loadMoreCatalog();
+    if (listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 120)
+      this.store.loadMoreCatalog();
   }
 
   onLoadMore(event: Event): void {

@@ -22,10 +22,33 @@ describe('PokéAPI v2 51-endpoint catalog and Advanced Query Engine', () => {
 
   it('filters by multiple criteria (types, generation, BST, rarity) and sorts accurately', () => {
     const sample: EnrichedCatalogItem[] = [
-      { ...buildSearchableCatalogItem(25, 'pikachu'), types: ['electric'], generation: 1, baseStatTotal: 320 },
-      { ...buildSearchableCatalogItem(145, 'zapdos'), types: ['electric', 'flying'], generation: 1, baseStatTotal: 580, isLegendary: true },
-      { ...buildSearchableCatalogItem(384, 'rayquaza'), types: ['dragon', 'flying'], generation: 3, baseStatTotal: 680, isLegendary: true },
-      { ...buildSearchableCatalogItem(643, 'reshiram'), types: ['dragon', 'fire'], generation: 5, baseStatTotal: 680, isLegendary: true },
+      {
+        ...buildSearchableCatalogItem(25, 'pikachu'),
+        types: ['electric'],
+        generation: 1,
+        baseStatTotal: 320,
+      },
+      {
+        ...buildSearchableCatalogItem(145, 'zapdos'),
+        types: ['electric', 'flying'],
+        generation: 1,
+        baseStatTotal: 580,
+        isLegendary: true,
+      },
+      {
+        ...buildSearchableCatalogItem(384, 'rayquaza'),
+        types: ['dragon', 'flying'],
+        generation: 3,
+        baseStatTotal: 680,
+        isLegendary: true,
+      },
+      {
+        ...buildSearchableCatalogItem(643, 'reshiram'),
+        types: ['dragon', 'fire'],
+        generation: 5,
+        baseStatTotal: 680,
+        isLegendary: true,
+      },
     ];
 
     const legendsGen1 = filterCatalogWithAdvancedQuery(sample, {
@@ -47,7 +70,14 @@ describe('Pokémon Stat Simulator & Genetic Evolution Lab', () => {
   it('calculates exact Gen III-IX stats across levels and XP growth curves', () => {
     const level100Garchomp = calculateStatsAtLevel({
       level: 100,
-      baseStats: { hp: 108, attack: 130, defense: 95, specialAttack: 80, specialDefense: 85, speed: 102 },
+      baseStats: {
+        hp: 108,
+        attack: 130,
+        defense: 95,
+        specialAttack: 80,
+        specialDefense: 85,
+        speed: 102,
+      },
       evs: { hp: 0, attack: 252, defense: 0, specialAttack: 0, specialDefense: 4, speed: 252 },
       natureModifiers: { attack: 1.1, defense: 1, specialAttack: 0.9, specialDefense: 1, speed: 1 },
     });

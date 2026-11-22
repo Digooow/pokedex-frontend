@@ -49,7 +49,8 @@ export class SystemStatusStore implements OnDestroy {
           status: 'error',
           error: {
             code: 'API_UNREACHABLE',
-            message: 'Back-end NestJS offline no momento; modos públicos seguem operando normalmente.',
+            message:
+              'Back-end NestJS offline no momento; modos públicos seguem operando normalmente.',
             retryable: true,
           },
         });

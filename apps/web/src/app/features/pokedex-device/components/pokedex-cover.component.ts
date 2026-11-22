@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChild } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  input,
+  output,
+  viewChild,
+} from '@angular/core';
 
 @Component({
   selector: 'pv-pokedex-cover',
@@ -11,7 +18,11 @@ import { ChangeDetectionStrategy, Component, ElementRef, input, output, viewChil
     `,
   ],
   template: `
-    <div id="tampa-frente" class="aba-face aba-face--frente" [inert]="coverOpen() && !isAnimating()">
+    <div
+      id="tampa-frente"
+      class="aba-face aba-face--frente"
+      [inert]="coverOpen() && !isAnimating()"
+    >
       <button
         #coverTriggerEl
         type="button"

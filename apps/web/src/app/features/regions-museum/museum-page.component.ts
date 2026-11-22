@@ -11,12 +11,48 @@ interface RegionPreview {
 }
 
 const REGIONS_ATLAS: readonly RegionPreview[] = [
-  { id: 'kanto', name: 'Kanto', generation: 'Geração I (1996)', starterQuery: 'bulbasaur', landmark: 'Indigo Plateau & Pallet Town' },
-  { id: 'johto', name: 'Johto', generation: 'Geração II (1999)', starterQuery: 'chikorita', landmark: 'Bell Tower & Ecruteak' },
-  { id: 'hoenn', name: 'Hoenn', generation: 'Geração III (2002)', starterQuery: 'mudkip', landmark: 'Sootopolis & Sky Pillar' },
-  { id: 'sinnoh', name: 'Sinnoh', generation: 'Geração IV (2006)', starterQuery: 'turtwig', landmark: 'Mt. Coronet & Spear Pillar' },
-  { id: 'unova', name: 'Unova', generation: 'Geração V (2010)', starterQuery: 'snivy', landmark: 'Castelia City & N’s Castle' },
-  { id: 'paldea', name: 'Paldea', generation: 'Geração IX (2022)', starterQuery: 'sprigatito', landmark: 'Area Zero & Mesagoza' },
+  {
+    id: 'kanto',
+    name: 'Kanto',
+    generation: 'Geração I (1996)',
+    starterQuery: 'bulbasaur',
+    landmark: 'Indigo Plateau & Pallet Town',
+  },
+  {
+    id: 'johto',
+    name: 'Johto',
+    generation: 'Geração II (1999)',
+    starterQuery: 'chikorita',
+    landmark: 'Bell Tower & Ecruteak',
+  },
+  {
+    id: 'hoenn',
+    name: 'Hoenn',
+    generation: 'Geração III (2002)',
+    starterQuery: 'mudkip',
+    landmark: 'Sootopolis & Sky Pillar',
+  },
+  {
+    id: 'sinnoh',
+    name: 'Sinnoh',
+    generation: 'Geração IV (2006)',
+    starterQuery: 'turtwig',
+    landmark: 'Mt. Coronet & Spear Pillar',
+  },
+  {
+    id: 'unova',
+    name: 'Unova',
+    generation: 'Geração V (2010)',
+    starterQuery: 'snivy',
+    landmark: 'Castelia City & N’s Castle',
+  },
+  {
+    id: 'paldea',
+    name: 'Paldea',
+    generation: 'Geração IX (2022)',
+    starterQuery: 'sprigatito',
+    landmark: 'Area Zero & Mesagoza',
+  },
 ];
 
 @Component({
@@ -32,8 +68,8 @@ const REGIONS_ATLAS: readonly RegionPreview[] = [
             Museu das Regiões & História
           </h1>
           <p class="museum-page__subtitle">
-            Base de entrada para o Atlas de Kanto a Paldea (o globo interativo 3D em Three.js
-            entra na Fase 4).
+            Base de entrada para o Atlas de Kanto a Paldea (o globo interativo 3D em Three.js entra
+            na Fase 4).
           </p>
         </div>
       </header>

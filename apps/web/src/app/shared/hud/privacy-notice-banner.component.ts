@@ -8,21 +8,14 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
     <aside class="privacy-banner" aria-label="Aviso de Cookies e Privacidade">
       <p class="privacy-banner__text">
         <strong>Cookies &amp; LGPD:</strong>
-        usamos cookies estritamente necessários de sessão segura (HttpOnly) e armazenamento local para suas preferências. Nenhum rastreador de terceiros está ativo.
+        usamos cookies estritamente necessários de sessão segura (HttpOnly) e armazenamento local
+        para suas preferências. Nenhum rastreador de terceiros está ativo.
       </p>
       <div class="privacy-banner__actions">
-        <button
-          type="button"
-          class="privacy-banner__btn"
-          (click)="privacy.acceptEssentialOnly()"
-        >
+        <button type="button" class="privacy-banner__btn" (click)="privacy.acceptEssentialOnly()">
           Apenas essenciais
         </button>
-        <button
-          type="button"
-          class="privacy-banner__btn"
-          (click)="privacy.openDialog()"
-        >
+        <button type="button" class="privacy-banner__btn" (click)="privacy.openDialog()">
           Configurar
         </button>
         <button
@@ -83,7 +76,9 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
         font-size: 0.78rem;
         font-weight: 700;
         cursor: pointer;
-        transition: border-color 150ms ease, background-color 150ms ease;
+        transition:
+          border-color 150ms ease,
+          background-color 150ms ease;
       }
 
       .privacy-banner__btn:hover {

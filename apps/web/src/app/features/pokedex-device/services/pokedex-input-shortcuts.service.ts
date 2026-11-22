@@ -113,7 +113,9 @@ export class PokedexInputShortcutsService {
 
   private isEditableControl(target: HTMLElement | null): target is HTMLElement {
     if (!target) return false;
-    return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+    return (
+      target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT'
+    );
   }
 
   private handleInputKeyDown(
@@ -160,7 +162,9 @@ export class PokedexInputShortcutsService {
       return;
     }
     const isNativeFocusable =
-      target?.tagName === 'BUTTON' || target?.tagName === 'A' || Boolean(target?.closest('a[href]'));
+      target?.tagName === 'BUTTON' ||
+      target?.tagName === 'A' ||
+      Boolean(target?.closest('a[href]'));
     if (event.key === 'Enter' && !isNativeFocusable) {
       event.preventDefault();
       this.callbacks?.onConfirmA();

@@ -42,7 +42,9 @@ export const StatEvSpreadSchema = z
     speed: z.number().int().min(0).max(MAX_EV_PER_STAT).default(0),
   })
   .refine(
-    (ev) => ev.hp + ev.attack + ev.defense + ev.specialAttack + ev.specialDefense + ev.speed <= MAX_EV_TOTAL,
+    (ev) =>
+      ev.hp + ev.attack + ev.defense + ev.specialAttack + ev.specialDefense + ev.speed <=
+      MAX_EV_TOTAL,
     { message: 'Total EVs cannot exceed 510.' },
   );
 
@@ -59,9 +61,29 @@ export const NatureModifiersSchema = z.object({
 export const StatCalculationInputSchema = z.object({
   level: z.number().int().min(1).max(100),
   baseStats: BaseStatsSpreadSchema,
-  ivs: StatIvSpreadSchema.default({ hp: 31, attack: 31, defense: 31, specialAttack: 31, specialDefense: 31, speed: 31 }),
-  evs: StatEvSpreadSchema.default({ hp: 0, attack: 0, defense: 0, specialAttack: 0, specialDefense: 0, speed: 0 }),
-  natureModifiers: NatureModifiersSchema.default({ attack: 1, defense: 1, specialAttack: 1, specialDefense: 1, speed: 1 }),
+  ivs: StatIvSpreadSchema.default({
+    hp: 31,
+    attack: 31,
+    defense: 31,
+    specialAttack: 31,
+    specialDefense: 31,
+    speed: 31,
+  }),
+  evs: StatEvSpreadSchema.default({
+    hp: 0,
+    attack: 0,
+    defense: 0,
+    specialAttack: 0,
+    specialDefense: 0,
+    speed: 0,
+  }),
+  natureModifiers: NatureModifiersSchema.default({
+    attack: 1,
+    defense: 1,
+    specialAttack: 1,
+    specialDefense: 1,
+    speed: 1,
+  }),
   ascensionBonusPercent: z.number().min(0).max(12).default(0),
 });
 
@@ -120,11 +142,27 @@ export function calculateStatsAtLevel(rawInput: StatCalculationInput): Calculate
   const baseHp =
     baseStats.hp === 1
       ? 1
-      : Math.floor(((2 * baseStats.hp + ivs.hp + Math.floor(evs.hp / 4)) * level) / 100) + level + 10;
+      : Math.floor(((2 * baseStats.hp + ivs.hp + Math.floor(evs.hp / 4)) * level) / 100) +
+        level +
+        10;
   const hp = baseStats.hp === 1 ? 1 : Math.floor(baseHp * ascensionScale);
 
-  const attack = computeNonHpStat(baseStats.attack, ivs.attack, evs.attack, level, natureModifiers.attack, ascensionScale);
-  const defense = computeNonHpStat(baseStats.defense, ivs.defense, evs.defense, level, natureModifiers.defense, ascensionScale);
+  const attack = computeNonHpStat(
+    baseStats.attack,
+    ivs.attack,
+    evs.attack,
+    level,
+    natureModifiers.attack,
+    ascensionScale,
+  );
+  const defense = computeNonHpStat(
+    baseStats.defense,
+    ivs.defense,
+    evs.defense,
+    level,
+    natureModifiers.defense,
+    ascensionScale,
+  );
   const specialAttack = computeNonHpStat(
     baseStats.specialAttack,
     ivs.specialAttack,
@@ -141,7 +179,14 @@ export function calculateStatsAtLevel(rawInput: StatCalculationInput): Calculate
     natureModifiers.specialDefense,
     ascensionScale,
   );
-  const speed = computeNonHpStat(baseStats.speed, ivs.speed, evs.speed, level, natureModifiers.speed, ascensionScale);
+  const speed = computeNonHpStat(
+    baseStats.speed,
+    ivs.speed,
+    evs.speed,
+    level,
+    natureModifiers.speed,
+    ascensionScale,
+  );
 
   return {
     hp,
@@ -180,8 +225,9 @@ export interface EvolutionEvaluationResult {
   readonly recommendedCatalyst: string;
 }
 
-export function evaluateEvolutionChance(rawInput: EvolutionReadinessInput): EvolutionEvaluationResult {
-  const input = EvolutionReadinessInputSchema.parse(rawInput);
+type ParsedEvolutionReadiness = z.infer<typeof EvolutionReadinessInputSchema>;
+
+function collectMissingEvolutionRequirements(input: ParsedEvolutionReadiness): string[] {
   const missing: string[] = [];
 
   if (input.requiredLevel !== null && input.currentLevel < input.requiredLevel) {
@@ -191,7 +237,9 @@ export function evaluateEvolutionChance(rawInput: EvolutionReadinessInput): Evol
     missing.push(`Felicidade mínima ${input.requiredHappiness} (atual ${input.happiness})`);
   }
   if (!input.hasRequiredItem) {
-    missing.push(`Item catalisador ausente (${input.requiredItemName ?? 'Pedra / Item evolutivo'})`);
+    missing.push(
+      `Item catalisador ausente (${input.requiredItemName ?? 'Pedra / Item evolutivo'})`,
+    );
   }
   if (input.requiredTimeOfDay !== null && input.timeOfDay !== input.requiredTimeOfDay) {
     missing.push(`Janela temporal exigida: ${input.requiredTimeOfDay}`);
@@ -203,25 +251,40 @@ export function evaluateEvolutionChance(rawInput: EvolutionReadinessInput): Evol
     missing.push('Golpe pré-requisito ainda não aprendido');
   }
 
-  const readinessPenalty = missing.length * 25;
-  const baseChance = 55 + input.biomeStability * 0.25 + input.geneticResonance * 0.2 + input.catalystBoostPercent;
-  const rawProbability = Math.round(Math.max(0, Math.min(100, baseChance - readinessPenalty)) * 100) / 100;
-  const canEvolve = missing.length === 0;
+  return missing;
+}
 
-  let recommendedCatalyst = 'Estabilizador Genético Padrão';
+function resolveRecommendedCatalyst(input: ParsedEvolutionReadiness): string {
   if (!input.hasRequiredItem && input.requiredItemName) {
-    recommendedCatalyst = input.requiredItemName;
-  } else if (input.requiredHappiness !== null && input.happiness < input.requiredHappiness) {
-    recommendedCatalyst = 'Soothe Bell + Berries de Afeto';
-  } else if (input.geneticResonance < 60) {
-    recommendedCatalyst = 'Bio-Essência da Espécie';
+    return input.requiredItemName;
   }
+  if (input.requiredHappiness !== null && input.happiness < input.requiredHappiness) {
+    return 'Soothe Bell + Berries de Afeto';
+  }
+  if (input.geneticResonance < 60) {
+    return 'Bio-Essência da Espécie';
+  }
+  return 'Estabilizador Genético Padrão';
+}
+
+export function evaluateEvolutionChance(
+  rawInput: EvolutionReadinessInput,
+): EvolutionEvaluationResult {
+  const input = EvolutionReadinessInputSchema.parse(rawInput);
+  const missing = collectMissingEvolutionRequirements(input);
+
+  const readinessPenalty = missing.length * 25;
+  const baseChance =
+    55 + input.biomeStability * 0.25 + input.geneticResonance * 0.2 + input.catalystBoostPercent;
+  const rawProbability =
+    Math.round(Math.max(0, Math.min(100, baseChance - readinessPenalty)) * 100) / 100;
+  const canEvolve = missing.length === 0;
 
   return {
     canEvolve,
     probabilityPercent: canEvolve ? rawProbability : Math.min(49, rawProbability),
     missingRequirements: missing,
-    recommendedCatalyst,
+    recommendedCatalyst: resolveRecommendedCatalyst(input),
   };
 }
 
@@ -251,14 +314,19 @@ const RARITY_PENALTY: Record<'standard' | 'pseudo-legendary' | 'legendary' | 'my
   mythical: 42,
 };
 
-const RARITY_COST_MULTIPLIER: Record<'standard' | 'pseudo-legendary' | 'legendary' | 'mythical', number> = {
+const RARITY_COST_MULTIPLIER: Record<
+  'standard' | 'pseudo-legendary' | 'legendary' | 'mythical',
+  number
+> = {
   standard: 1,
   'pseudo-legendary': 1.8,
   legendary: 3.2,
   mythical: 4,
 };
 
-export function calculateReplicationAndCloning(rawInput: ReplicationCloningInput): ReplicationCloningResult {
+export function calculateReplicationAndCloning(
+  rawInput: ReplicationCloningInput,
+): ReplicationCloningResult {
   const input = ReplicationCloningInputSchema.parse(rawInput);
   const bstPenalty = Math.max(0, Math.floor((input.baseStatTotal - 300) / 25));
   const labBonus = (input.labTier - 1) * 9;
@@ -271,7 +339,10 @@ export function calculateReplicationAndCloning(rawInput: ReplicationCloningInput
   );
   const cloningFidelityPercent = Math.max(
     25,
-    Math.min(100, 62 + input.labTier * 6 + input.stabilizerCount * 5 - Math.floor(rarityPenalty / 2)),
+    Math.min(
+      100,
+      62 + input.labTier * 6 + input.stabilizerCount * 5 - Math.floor(rarityPenalty / 2),
+    ),
   );
   const guaranteedPerfectIvs = Math.min(
     input.sourceIvPerfectCount,
@@ -279,10 +350,19 @@ export function calculateReplicationAndCloning(rawInput: ReplicationCloningInput
   );
   const mutationRiskPercent = Math.max(
     1,
-    Math.min(65, 18 + Math.floor(rarityPenalty / 2) - input.stabilizerCount * 5 - (input.labTier - 1) * 2),
+    Math.min(
+      65,
+      18 + Math.floor(rarityPenalty / 2) - input.stabilizerCount * 5 - (input.labTier - 1) * 2,
+    ),
   );
   const shinyMutationChancePercent = Number(
-    Math.min(15, 0.25 + input.labTier * 0.35 + input.stabilizerCount * 0.2 + (input.rarityTier === 'mythical' ? 1 : 0)).toFixed(2),
+    Math.min(
+      15,
+      0.25 +
+        input.labTier * 0.35 +
+        input.stabilizerCount * 0.2 +
+        (input.rarityTier === 'mythical' ? 1 : 0),
+    ).toFixed(2),
   );
   const bioEnergyCost = Math.round(input.baseStatTotal * RARITY_COST_MULTIPLIER[input.rarityTier]);
 

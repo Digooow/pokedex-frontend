@@ -37,9 +37,7 @@ export class CenariosBackdropComponent implements OnDestroy {
   private readonly quality = inject(QualityStore);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
-  private readonly viewportWidth = signal(
-    this.isBrowser ? window.innerWidth : 1280,
-  );
+  private readonly viewportWidth = signal(this.isBrowser ? window.innerWidth : 1280);
 
   private readonly useMobileVariant = computed(
     () => this.viewportWidth() <= MOBILE_MAX_PX || this.quality.tier() === 'lite',

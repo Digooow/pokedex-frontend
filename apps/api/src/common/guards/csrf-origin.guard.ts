@@ -15,6 +15,15 @@ const UNSAFE_FORM_CONTENT_TYPES = new Set([
   'application/x-www-form-urlencoded',
   'multipart/form-data',
 ]);
+const SESSION_COOKIE_NAMES = [
+  'pokeverse_session',
+  '__Host-pokeverse_session',
+  'pokeverse_refresh',
+  '__Secure-pokeverse_refresh',
+  '__Host-pokeverse_refresh',
+  'pokeverse_oauth_bind',
+  '__Secure-pokeverse_oauth_bind',
+] as const;
 
 function readCookieRecord(req: Request): Record<string, unknown> {
   const cookies: unknown = req.cookies;
@@ -66,13 +75,9 @@ export class CsrfOriginGuard implements CanActivate {
       return null;
     }
 
-    const rawContentType = req.header('content-type')?.trim();
-    if (rawContentType) {
-      const mediaType =
-        rawContentType.split(';')[0]?.trim().toLowerCase() ?? '';
-      if (UNSAFE_FORM_CONTENT_TYPES.has(mediaType)) {
-        return `Blocked unsafe Content-Type=${mediaType}`;
-      }
+    const unsafeContentType = this.findUnsafeContentTypeReason(req);
+    if (unsafeContentType !== null) {
+      return unsafeContentType;
     }
 
     const secFetchSite = req.header('sec-fetch-site')?.trim().toLowerCase();
@@ -84,38 +89,63 @@ export class CsrfOriginGuard implements CanActivate {
       return `Blocked Sec-Fetch-Site=${secFetchSite}`;
     }
 
-    const originHeader = req.header('origin')?.trim();
-    if (originHeader) {
-      if (!this.allowedOrigins.has(originHeader)) {
-        return `Blocked cross-origin header Origin=${originHeader}`;
-      }
-      return null;
+    const originOrReferer = this.findOriginOrRefererDenialReason(req);
+    if (originOrReferer.matched) {
+      return originOrReferer.denialReason;
     }
 
-    const refererHeader = req.header('referer')?.trim();
-    if (refererHeader) {
-      const refererOrigin = this.extractOrigin(refererHeader);
-      if (!refererOrigin || !this.allowedOrigins.has(refererOrigin)) {
-        return 'Blocked untrusted Referer origin';
-      }
-      return null;
-    }
-
-    const cookies = readCookieRecord(req);
-    const hasSessionCookies = Boolean(
-      cookies['pokeverse_session'] ??
-      cookies['__Host-pokeverse_session'] ??
-      cookies['pokeverse_refresh'] ??
-      cookies['__Secure-pokeverse_refresh'] ??
-      cookies['__Host-pokeverse_refresh'] ??
-      cookies['pokeverse_oauth_bind'] ??
-      cookies['__Secure-pokeverse_oauth_bind'],
-    );
-    if (hasSessionCookies && secFetchSite !== 'same-origin') {
+    if (this.hasSessionCookies(req) && secFetchSite !== 'same-origin') {
       return 'Blocked cookie-authenticated mutation missing Origin and Same-Origin Fetch Metadata';
     }
 
     return null;
+  }
+
+  private findUnsafeContentTypeReason(req: Request): string | null {
+    const rawContentType = req.header('content-type')?.trim();
+    if (!rawContentType) {
+      return null;
+    }
+
+    const mediaType = rawContentType.split(';')[0]?.trim().toLowerCase() ?? '';
+    return UNSAFE_FORM_CONTENT_TYPES.has(mediaType)
+      ? `Blocked unsafe Content-Type=${mediaType}`
+      : null;
+  }
+
+  private findOriginOrRefererDenialReason(
+    req: Request,
+  ):
+    | { readonly matched: true; readonly denialReason: string | null }
+    | { readonly matched: false } {
+    const originHeader = req.header('origin')?.trim();
+    if (originHeader) {
+      return {
+        matched: true,
+        denialReason: this.allowedOrigins.has(originHeader)
+          ? null
+          : `Blocked cross-origin header Origin=${originHeader}`,
+      };
+    }
+
+    const refererHeader = req.header('referer')?.trim();
+    if (!refererHeader) {
+      return { matched: false };
+    }
+
+    const refererOrigin = this.extractOrigin(refererHeader);
+    return {
+      matched: true,
+      denialReason:
+        !refererOrigin || !this.allowedOrigins.has(refererOrigin)
+          ? 'Blocked untrusted Referer origin'
+          : null,
+    };
+  }
+
+  private hasSessionCookies(req: Request): boolean {
+    const cookies = readCookieRecord(req);
+    return SESSION_COOKIE_NAMES.some((name) => Boolean(cookies[name]));
   }
 
   private extractOrigin(rawUrl: string): string | null {
