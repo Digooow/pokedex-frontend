@@ -766,7 +766,7 @@ pokedex-frontend/
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
 ├── .github/workflows/             # ci.yml e deploy.yml
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
-├── docs/                          # Documentação (00 a 18), Capítulo 00 e Enciclopédia Capítulo 01 (`capitulo-01-guia-de-estudos/`)
+├── docs/                          # Documentação (00 a 18), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
 ├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
@@ -799,7 +799,7 @@ pokedex-frontend/
 | 17 | [Plano SOLID, Clean Code e engenharia Big Tech](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) |
 | 18 | [Auditoria técnica e plano de dívida técnica (`ARCHITECTURE.md`)](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) |
 | Guia 00 | **[Capítulo 00 — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-00-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
-| Guia 01 | **[Capítulo 01 — Enciclopédia e Guia de estudos full-stack](docs/capitulo-01-guia-de-estudos-pokedex.md)** (`docs/capitulo-01-guia-de-estudos/`: Vols. 01–03 concluídos — Anatomia de Pastas/Arquivos, `@pokeverse/shared` + Estruturas de Dados e Dicionário de Jargões; Vols. 04–10 planejados em etapas) |
+| Guia 01 | **[Capítulo 01 — Manual Técnico e Guia de Estudos Full-Stack](docs/capitulo-01-guia-de-estudos-pokedex.md)** (`docs/capitulo-01-guia-de-estudos/`: Vols. 01–03 concluídos — Anatomia de Pastas/Arquivos, Linguagens/Frameworks/Estruturas de Dados com exemplos reais + `@pokeverse/shared` e Glossário Técnico; Vols. 04–10 planejados) |
 
 > **Por onde começar?** Para entender o que existe hoje, leia o [doc 14](docs/14-status-e-changelog-implementacao.md). Para entender o rumo, leia o [doc 00](docs/00-visao-geral-e-roadmap.md) e o [doc 15](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md).
 
