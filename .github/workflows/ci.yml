@@ -128,7 +128,7 @@ jobs:
           --health-retries 10
 
       kafka:
-        image: apache/kafka:3.9.0
+        image: apache/kafka:3.9.2
         env:
           CLUSTER_ID: Mk3OEYBSD3TuVPWCGVJR9g
           KAFKA_NODE_ID: 1
