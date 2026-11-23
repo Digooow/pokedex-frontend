@@ -5,7 +5,7 @@
 <p align="center">
   <a href="https://pokeverse.pages.dev/"><strong>Abrir a plataforma ao vivo</strong></a>
   &nbsp;·&nbsp;
-  <a href="docs/capitulo-zero-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
+  <a href="docs/capitulo-00-como-tudo-comecou.md">Capítulo 00: como tudo começou</a>
   &nbsp;·&nbsp;
   <a href="docs/00-visao-geral-e-roadmap.md">Roadmap</a>
   &nbsp;·&nbsp;
@@ -31,7 +31,7 @@
 
 **Uma Pokédex 3D skeuomórfica, com tampa que gira, LEDs, metal e vidro, construída sobre uma plataforma full-stack real.** Ela tem autenticação segura, cache distribuído, mensageria, deploy em nuvem e uma auditoria visual automatizada que reprova regressões de contraste e layout.
 
-O projeto começou como a **atividade final de Front-end no Senac**: uma Pokédex em HTML, CSS e JavaScript puro. Eu gostei do tema e decidi continuar por conta própria. O resultado é este monorepo. A história completa está no **[Capítulo Zero](docs/capitulo-zero-como-tudo-comecou.md)**, junto com o README original, preservado como recordação.
+O projeto começou como a **atividade final de Front-end no Senac**: uma Pokédex em HTML, CSS e JavaScript puro. Eu gostei do tema e decidi continuar por conta própria. O resultado é este monorepo. A história completa está no **[Capítulo 00](docs/capitulo-00-como-tudo-comecou.md)**, junto com o README original, preservado como recordação.
 
 <p align="center">
   <img src="docs/assets/screenshots/03-pokedex-pikachu-desktop.webp" alt="Pokédex 3D aberta exibindo o Pikachu, com o slot 01 salvo e o HUD autenticado" width="100%">
@@ -765,7 +765,7 @@ pokedex-frontend/
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
 ├── .github/workflows/             # ci.yml e deploy.yml
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
-├── docs/                          # Documentação (00 a 18), Capítulo Zero e Guias de Estudos
+├── docs/                          # Documentação (00 a 18), Capítulo 00 e Enciclopédia Capítulo 01 (`capitulo-01-guia-de-estudos/`)
 ├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
@@ -777,7 +777,7 @@ pokedex-frontend/
 | Doc | Assunto |
 | :-: | :--- |
 | **Arch** | **[Contrato de Qualidade: Diretrizes de Arquitetura e Padrões de Código (Anti-AI Slop)](docs/ARCHITECTURE.md)** |
-| **Zero** | **[Capítulo Zero: como tudo começou](docs/capitulo-zero-como-tudo-comecou.md)**, com o README original e a história da atividade do Senac |
+| **Cap. 00** | **[Capítulo 00: como tudo começou](docs/capitulo-00-como-tudo-comecou.md)**, com o README original e a história da atividade do Senac |
 | 00 | [Visão geral, regras de acesso e roadmap](docs/00-visao-geral-e-roadmap.md) |
 | 01 | [Arquitetura do monorepo e padrões de engenharia](docs/01-arquitetura-monorepo-e-padroes.md) |
 | 02 | [Front-end Angular, HUD de jogo e gerenciamento de estado](docs/02-frontend-angular-hud-e-estado.md) |
@@ -797,8 +797,8 @@ pokedex-frontend/
 | 16 | [Cookies, LGPD e levantamento de requisitos](docs/16-cookies-lgpd-e-requisitos.md) |
 | 17 | [Plano SOLID, Clean Code e engenharia Big Tech](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) |
 | 18 | [Auditoria técnica e plano de dívida técnica (`ARCHITECTURE.md`)](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) |
-| Guia 0 | **[Capítulo Zero — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-zero-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
-| Guia 1 | **[Capítulo 1 — Guia de estudos full-stack do PokéVerse OS](docs/capitulo-um-guia-de-estudos-pokedex.md)**, escopo completo de tecnologias, arquitetura e boas práticas do projeto atual |
+| Guia 00 | **[Capítulo 00 — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-00-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
+| Guia 01 | **[Capítulo 01 — Enciclopédia e Guia de estudos full-stack](docs/capitulo-01-guia-de-estudos-pokedex.md)** (`docs/capitulo-01-guia-de-estudos/`: Vols. 01–03 concluídos — Anatomia de Pastas/Arquivos, `@pokeverse/shared` + Estruturas de Dados e Dicionário de Jargões; Vols. 04–10 planejados em etapas) |
 
 > **Por onde começar?** Para entender o que existe hoje, leia o [doc 14](docs/14-status-e-changelog-implementacao.md). Para entender o rumo, leia o [doc 00](docs/00-visao-geral-e-roadmap.md) e o [doc 15](docs/15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md).
 
@@ -824,7 +824,7 @@ Os commits seguem [Conventional Commits](https://www.conventionalcommits.org/pt-
 ## Créditos e avisos
 
 - **Dados:** [PokéAPI](https://pokeapi.co/). Sprites e artworks vêm de [PokeAPI/sprites](https://github.com/PokeAPI/sprites).
-- **Origem:** atividade final da matéria de Front-end no **Senac**, expandida por iniciativa própria. Veja o [Capítulo Zero](docs/capitulo-zero-como-tudo-comecou.md).
+- **Origem:** atividade final da matéria de Front-end no **Senac**, expandida por iniciativa própria. Veja o [Capítulo 00](docs/capitulo-00-como-tudo-comecou.md).
 - **Aviso legal:** este é um **projeto de fã, educacional e sem fins lucrativos**. Pokémon e todos os nomes, personagens e marcas relacionados pertencem a **Nintendo, Game Freak e The Pokémon Company**. Este projeto não é afiliado, patrocinado nem endossado por eles. Se você é titular de algum direito e quer a remoção de algum asset, abra uma issue.
 - **Licença:** não há licença de código aberto declarada. Por padrão, todos os direitos sobre o código original são reservados ao autor.
 

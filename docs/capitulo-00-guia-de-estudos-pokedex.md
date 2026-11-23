@@ -1,14 +1,14 @@
 <p align="center">
   <a href="../README.md">README atual</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-zero-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
+  <a href="capitulo-00-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-um-guia-de-estudos-pokedex.md">Capítulo 1: guia de estudos full-stack</a>
+  <a href="capitulo-01-guia-de-estudos-pokedex.md">Capítulo 1: guia de estudos full-stack</a>
 </p>
 
 # Capítulo Zero — Guia de Estudos da Pokédex (Fase 0)
 
-> **Nota de arquivo.** Este documento preserva na íntegra o antigo `GUIA-DE-ESTUDOS-POKEDEX.md` que ficava na raiz do repositório. Ele documenta a **Fase 0** (HTML5, CSS3 e JavaScript puro) e foi mantido aqui como registro histórico e material de referência. O guia equivalente para o estado atual da plataforma está sendo estruturado no **[Capítulo 1 — Guia de Estudos Full-Stack](capitulo-um-guia-de-estudos-pokedex.md)**, e a história da origem do projeto está em **[Capítulo Zero — Como Tudo Começou](capitulo-zero-como-tudo-comecou.md)**.
+> **Nota de arquivo.** Este documento preserva na íntegra o antigo `GUIA-DE-ESTUDOS-POKEDEX.md` que ficava na raiz do repositório. Ele documenta a **Fase 0** (HTML5, CSS3 e JavaScript puro) e foi mantido aqui como registro histórico e material de referência. O guia equivalente para o estado atual da plataforma está estruturado no **[Capítulo 1 — Guia de Estudos Full-Stack](capitulo-01-guia-de-estudos-pokedex.md)** (com volumes detalhados em `docs/capitulo-01-guia-de-estudos/`), e a história da origem do projeto está em **[Capítulo Zero — Como Tudo Começou](capitulo-00-como-tudo-comecou.md)**.
 
 ---
 
@@ -42,7 +42,7 @@ flowchart LR
   classDef next fill:#1b2a4a,stroke:#6aa7ff,color:#fff
 ```
 
-| O que você estudava aqui na Fase 0 | Como isso evoluiu no [Capítulo 1](capitulo-um-guia-de-estudos-pokedex.md) |
+| O que você estudava aqui na Fase 0 | Como isso evoluiu no [Capítulo 1](capitulo-01-guia-de-estudos-pokedex.md) |
 | :--- | :--- |
 | HTML5 semântico + CSS3 (`@layer`, `@container`, `preserve-3d`) | **Angular 22** (Standalone, Signals, Zoneless) + tokens `oklch` + porte fiel 3D + perfis `ULTRA / BALANCED / LITE` |
 | JavaScript puro em arquivo único (`"use strict"`, `fetch`, `AbortController`) | **TypeScript 6** estrito em monorepo, contratos **Zod v4** em `@pokeverse/shared` e **SOLID / Clean Code** |
@@ -608,7 +608,7 @@ Esta seção define todos os termos técnicos, siglas, propriedades, APIs nativa
 <p align="center">
   <a href="../README.md">Ir para o README atual</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-zero-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
+  <a href="capitulo-00-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-um-guia-de-estudos-pokedex.md">Capítulo 1: guia de estudos full-stack</a>
+  <a href="capitulo-01-guia-de-estudos-pokedex.md">Capítulo 1: guia de estudos full-stack</a>
 </p>

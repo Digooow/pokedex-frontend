@@ -1,265 +1,226 @@
 <p align="center">
   <a href="../README.md">README atual</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-zero-guia-de-estudos-pokedex.md">Capítulo Zero: guia de estudos (Fase 0)</a>
+  <a href="capitulo-00-como-tudo-comecou.md">Capítulo 00: como tudo começou</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-zero-como-tudo-comecou.md">Capítulo Zero: como tudo começou</a>
+  <a href="capitulo-00-guia-de-estudos-pokedex.md">Capítulo 00: guia de estudos (Fase 0)</a>
+  &nbsp;·&nbsp;
+  <a href="capitulo-01-guia-de-estudos/01-anatomia-do-repositorio-pastas-e-arquivos.md">Vol. 01: Pastas &amp; Arquivos</a>
+  &nbsp;·&nbsp;
+  <a href="capitulo-01-guia-de-estudos/02-linguagens-estruturas-de-dados-e-pacote-shared.md">Vol. 02: Shared &amp; Estruturas</a>
+  &nbsp;·&nbsp;
+  <a href="capitulo-01-guia-de-estudos/03-dicionario-completo-de-jargoes-e-glossario.md">Vol. 03: Dicionário de Jargões</a>
 </p>
 
-# Capítulo 1 — Guia de Estudos Full-Stack (PokéVerse OS)
+# Capítulo 01 — Enciclopédia e Guia de Estudos Full-Stack (PokéVerse OS)
 
-> **Status do documento:** **Escopo e idealização concluídos — conteúdo em aberto para preenchimento progressivo.**
-> Este documento continua a jornada iniciada no **[Capítulo Zero — Guia de Estudos da Pokédex (Fase 0)](capitulo-zero-guia-de-estudos-pokedex.md)**. Enquanto o Capítulo Zero foi a "colinha" técnica da versão estática apresentada no Senac, este **Capítulo 1** mapeia **100% das tecnologias, linguagens, padrões arquiteturais, travas de segurança, testes e infraestrutura** presentes no estado atual do **PokéVerse OS** (pós-Fase 4A).
-
----
-
-## 1. Propósito e Evolução da Ideia
-
-O Capítulo Zero cumpriu o papel de explicar linha por linha uma aplicação em 3 arquivos (`index.html`, `css/style.css`, `js/app.js`). Ao continuar o projeto por conta própria, o escopo cresceu para um monorepo full-stack em produção na nuvem.
-
-Este **Capítulo 1** foi idealizado para ter a mesma utilidade prática de consulta rápida e aprofundamento técnico — agora voltado para:
-
-1. **Dominar o porquê de cada escolha tecnológica** (por que Angular Zoneless + Signals, por que BFF com Redis em vez de JWT no `localStorage`, por que Transactional Outbox com *Atomic Lease*, por que Zod v4 compartilhado).
-2. **Preparar defesas técnicas e entrevistas** (nível Pleno/Sênior/Staff) usando um sistema real que você mesmo construiu como estudo de caso.
-3. **Permitir preenchimento modular sem sobrecarga de contexto:** os 13 módulos abaixo são autônomos e podem ser desenvolvidos individualmente ou em pares nas próximas sessões.
+> **Propósito deste guia:** ser para o **PokéVerse OS** inteiro (Fases 1 a 4A, Hardening SOLID/AppSec/CI e modelagem futura das Fases 4B a 6) exatamente o que o **[Capítulo 00](capitulo-00-guia-de-estudos-pokedex.md)** foi para a versão estática do Senac — um manual completo, didático e sem atalhos, escrito para que **tanto quem nunca programou na vida** consiga se localizar e entender como tudo funciona, quanto quem vai defender decisões em nível **Pleno / Sênior / Staff** domine cada linha, estrutura de dados, padrão arquitetural e trava de segurança do repositório.
 
 ---
 
-## 2. Mapa de Conhecimento do Projeto Atual
+## 1. Começando do Absoluto Zero: o que é este projeto?
+
+Imagine uma **Pokédex física de plástico e metal** que abre com tampa articulada, tem botões de acrílico que acendem quando salvam um Pokémon, uma tela LCD de resultados e quatro papéis de parede animados ao fundo.
+
+Na **Fase 0** (documentada no [Capítulo 00](capitulo-00-como-tudo-comecou.md)), essa Pokédex cabia inteira em **3 arquivos** (`index.html`, `css/style.css` e `js/app.js`). Ela funcionava muito bem sozinha no navegador, mas tinha limites naturais:
+
+- Se você salvasse seus 10 Pokémon favoritos, eles ficavam presos só no navegador daquele aparelho (`localStorage`). Se abrisse no celular, sumiam.
+- Não havia login, conta de treinador, segurança contra invasões, nem jeito de saber o que outros treinadores estavam salvando ao vivo.
+- Toda vez que alguém pesquisava um Pokémon, o navegador batia direto no site externo da **PokéAPI** (e se a PokéAPI ficasse lenta ou caísse, todo mundo ficava esperando).
+- Não existia verificação automática (testes, auditoria de contraste, escaneamento de segredos) garantindo que uma alteração de código hoje não quebraria o projeto amanhã.
+
+Ao decidir continuar o projeto fora da faculdade por puro interesse técnico, essa ideia simples cresceu e virou o **PokéVerse OS**: uma plataforma **Full-Stack** completa (ou seja, feita tanto da parte visual que aparece na sua tela quanto dos servidores, bancos de dados e filas invisíveis que rodam na nuvem).
+
+### A analogia da Central Pokémon para entender todas as peças
+
+Se você nunca trabalhou com desenvolvimento de software, pense no **PokéVerse OS** como uma **Central Pokémon moderna**:
+
+| Peça do Projeto | O que ela é na analogia | Nome Técnico & Pasta no Repositório | Por que existe? |
+| :--- | :--- | :--- | :--- |
+| **O aparelho na sua mão** | A própria Pokédex 3D com tampa que gira, botões, cores, sons e menus. É tudo o que você vê e clica. | **Front-end (Angular 22)** — `apps/web/` | Desenhar a interface fiel, responder rápido no mouse/toque/teclado e adaptar efeitos gráficos para PCs fortes ou celulares modestos. |
+| **O balcão único de entrada** | Uma recepção no mesmo prédio da Pokédex que recebe seus pedidos e os repassa para a sala certa nos fundos, sem você precisar atravessar a rua. | **Proxy Same-Origin (Cloudflare Pages Functions)** — `apps/web/functions/` e `apps/web/cloudflare/` | Fazer o navegador achar que front-end e servidor moram no mesmo endereço (`pokeverse.pages.dev`), permitindo cookies de login blindados (`HttpOnly`). |
+| **O gerente e as regras da Central** | Quem confere sua identidade, aplica as regras ("não pode repetir o mesmo Pokémon em dois slots"), busca informações e organiza tudo. | **Back-end / API (NestJS 11)** — `apps/api/` | Nunca confiar no que vem da tela do usuário: validar permissões, senhas, limites de cliques e proteger os dados. |
+| **O livro de regras compartilhado** | Um manual oficial impresso em duas cópias idênticas: uma fica no aparelho, a outra com o gerente. Ambos falam exatamente a mesma língua. | **Pacote Compartilhado (`@pokeverse/shared`)** — `packages/shared/` | Evitar ter que escrever as mesmas validações e cálculos matemáticos (como a busca *fuzzy* ou status de erro) duas vezes. |
+| **O cofre permanente** | O arquivo oficial de aço onde ficam gravadas as contas dos treinadores, seus 10 slots salvos, passkeys e histórico. Se faltar luz, nada se perde. | **Banco Relacional (PostgreSQL + Prisma ORM)** — `apps/api/prisma/` (nuvem: **Neon**) | Garantir consistência matemática (**ACID**): ou salva tudo certinho, ou não salva nada pela metade. |
+| **O bloco de notas ultrarrápido** | Um quadro branco na mesa do atendente com os Pokémon que todo mundo pediu hoje e os crachás de quem está logado agora. | **Cache & Sessão em Memória (Redis 7)** — nuvem: **Upstash** | Responder em poucos milissegundos sem precisar perguntar à PokéAPI ou ao cofre toda hora, além de contar tentativas de senha com segurança. |
+| **O malote com protocolo de entrega** | Um serviço de correios interno: quando você salva um Pokémon, o gerente anota no cofre *e* no protocolo de envio. Mesmo se o caminhão quebrar, a carta é reenviada depois. | **Transactional Outbox + Kafka / Redpanda** — `apps/api/src/modules/events/` (nuvem: **Aiven**) | Mandar e-mails de verificação e avisar todo mundo ao vivo no placar sem travar o seu clique nem perder mensagens em falhas de rede. |
+| **O telão ao vivo** | O painel luminoso no topo da tela mostrando em tempo real quando outro treinador entrou ou capturou/salvou algo. | **WebSockets (Socket.IO)** — `apps/api/src/modules/world/` | Enviar atualizações instantâneas do servidor para o navegador sem você precisar apertar F5. |
+| **O almoxarifado de cartuchos** | Um galpão preparado para guardar arquivos pesados (ROMs de console retrô e saves na nuvem) sem entupir o cofre principal. | **Object Storage S3 (MinIO / `pgsty/silo`)** — `infra/docker/` | Guardar arquivos binários grandes de forma barata e segura via links temporários. |
+| **A caixa de ferramentas e o inspetor** | Scripts e robôs que montam a fábrica no seu computador, testam tudo e usam um Chrome invisível para conferir se nenhum texto ficou ilegível. | **Docker, GitHub Actions & UI Quality Gate** — `infra/docker/`, `.github/workflows/`, `scripts/` | Impedir que código quebrado, senhas vazadas ou telas com erro visual cheguem ao site no ar. |
+
+---
+
+## 2. A Viagem Completa de um Clique (Do Seu Dedo ao Banco e de Volta)
+
+Para sentir como todas essas pastas conversam juntas na vida real, acompanhe o que acontece em menos de meio segundo quando um treinador abre a Pokédex, digita **`pikaxu`** (escrito errado de propósito!) e salva o Pikachu no **Slot 01**:
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as "Treinador (Navegador)"
+  participant W as "Angular SPA (apps/web)"
+  participant CF as "Proxy Same-Origin (Cloudflare)"
+  participant API as "NestJS API (apps/api)"
+  participant RD as "Redis (Cache + Sessão)"
+  participant PA as "PokéAPI Externa"
+  participant PG as "PostgreSQL (Neon)"
+  participant KF as "Outbox + Kafka + WebSocket"
+
+  U->>W: Digita "pikaxu" na busca
+  W->>W: "@pokeverse/shared" aplica NFD + chave fonética ("picaxu") + Damerau-Levenshtein
+  W-->>U: Destaca "Pikachu (#0025)" na lista sem ir à rede
+  U->>W: Clica 2 vezes (ou aperta A/Enter) em Pikachu
+  W->>CF: GET /api/v1/pokedex/pokemon/pikachu
+  CF->>API: Repassa com mesmo domínio e cabeçalhos seguros
+  API->>RD: Busca chave de cache (TTL 24h / stale 7d)
+  alt Cache HIT
+    RD-->>API: Devolve JSON salvo em milissegundos
+  else Cache MISS
+    API->>PA: Busca na PokéAPI com timeout controlado
+    PA-->>API: Devolve JSON do Pikachu
+    API->>RD: Grava cópia 24h + cópia reserva de 7 dias
+  end
+  API-->>W: Retorna payload validado (X-Cache: hit/miss)
+  U->>W: Clica no botão azul do Slot 01 para salvar
+  W->>CF: PUT /api/v1/pokedex/slots/0 (cookie HttpOnly vai junto)
+  CF->>API: Guards (CsrfOrigin + RateLimit Lua + SessionAuth) + ZodValidationPipe
+  API->>PG: Transação ACID única: grava PokedexSlot + insere OutboxEvent
+  PG-->>API: Commit confirmado
+  API-->>W: HTTP 200 OK (botão fica verde aceso)
+  KF->>PG: OutboxRelay reivindica lote via Atomic Lease (UPDATE ... RETURNING)
+  KF->>KF: Publica no Kafka -> WorldEventsConsumer checa idempotência Redis -> Broadcast WS
+  KF-->>W: Topbar acende ao vivo: "Treinador salvou Pikachu no Slot 01!"
+```
+
+Perceba a elegância disso:
+1. **Para digitar errado e achar o Pikachu**, o navegador nem precisou gastar internet na busca — a matemática pura em `@pokeverse/shared` resolveu na hora.
+2. **Para abrir a ficha do Pikachu**, se outra pessoa já buscou hoje, o **Redis** responde antes mesmo da PokéAPI ser incomodada; se a PokéAPI estiver fora do ar, uma cópia reserva de até **7 dias (`stale-fallback`)** salva o dia; e se até a nossa API estiver offline, o front-end entra em **modo degradado** e consulta a PokéAPI direto!
+3. **Para gravar no Slot 01**, um trio de porteiros (`CsrfOriginGuard`, `ThrottlerGuard` com script Lua no Redis e `SessionAuthGuard`) checa se você realmente está logado e se o pedido veio do próprio site; o `ZodValidationPipe` confere cada campo; e o **PostgreSQL** grava o slot e o aviso de evento **na mesma transação** para nunca haver slot salvo sem aviso ou aviso fantasma sem slot salvo.
+
+---
+
+## 3. Como o Capítulo 01 Está Organizado (`docs/capitulo-01-guia-de-estudos/`)
+
+O projeto cresceu para mais de 130 arquivos de código e 19 documentos técnicos (`docs/00` a `docs/18` + `docs/ARCHITECTURE.md`). Colocar uma explicação linha por linha de tudo isso em um único arquivo gigante tornaria a leitura cansativa e difícil de manter.
+
+Por isso, o **Capítulo 01** adota uma estrutura modular de **Enciclopédia em 10 Volumes** dentro da pasta [`capitulo-01-guia-de-estudos/`](capitulo-01-guia-de-estudos/), onde **este arquivo** funciona como o índice mestre e porta de entrada:
 
 ```mermaid
 flowchart TD
-  f0["Capítulo Zero (Fase 0)<br/>HTML5, CSS3 e JS Vanilla"] --> m01["M01 · Linguagens & Web Standards<br/>TS 6, ES2022, HTML5, SCSS/CSS, SQL, Lua"]
+  hub["capitulo-01-guia-de-estudos-pokedex.md<br/>Arquivo-Mestre & Mapa Geral (Você está aqui)"]
 
-  m01 --> m02["M02 · Monorepo, Zod v4 & SOLID<br/>npm workspaces, tsup, @pokeverse/shared"]
-  m02 --> m03["M03 · Front-end Angular 22<br/>Standalone, Signals, Zoneless, Stores, Guards"]
-  m03 --> m04["M04 · Visual 3D, Performance & A11y<br/>_pokedex-classic, RPG Nav, ULTRA/BALANCED/LITE"]
+  v01["Vol. 01 · Anatomia do Repositório<br/>Todas as pastas, todos os arquivos + Docs 00, 01, ARCHITECTURE"]:::done
+  v02["Vol. 02 · Linguagens, Estruturas & Shared<br/>TS 6, Zod v4, Int32Array, Map, Lab + Docs 12, 15, 17"]:::done
+  v03["Vol. 03 · Dicionário Completo de Jargões<br/>90+ termos explicados do Zero ao Staff"]:::done
 
-  m02 --> m05["M05 · Back-end NestJS 11<br/>Pipes, Filters, Middleware, OTel/Logs, Probes"]
-  m05 --> m06["M06 · PostgreSQL & Prisma 6<br/>13 modelos, Neon pooled/direct, ACID"]
-  m05 --> m07["M07 · Redis 7 & Lua Atômico<br/>Cache 24h/7d, Throttler, Zero TOCTOU"]
-  m06 --> m08["M08 · Kafka/Redpanda & WebSockets<br/>Transactional Outbox, Lease, Idempotência, DLQ"]
-  m07 --> m08
+  v04["Vol. 04 · Front-end Angular 22 & Stores<br/>Signals, Zoneless, Guards, Interceptores + Doc 02"]:::plan
+  v05["Vol. 05 · Visual 3D, Hardware & A11y<br/>SCSS Tokens oklch, Giro 3D, RPG Nav + Docs 03, 11"]:::plan
+  v06["Vol. 06 · Back-end NestJS & Pipeline HTTP<br/>DI, Pipes, Filters, Telemetria + Doc 04"]:::plan
+  v07["Vol. 07 · Banco PostgreSQL, Prisma & Redis<br/>13 modelos, Neon, Cache 7d, Lua Atômico + Docs 05, 06"]:::plan
+  v08["Vol. 08 · Kafka Outbox, WebSockets & S3<br/>Atomic Lease, Idempotência, DLQ, Futuros + Docs 06, 07, 08, 09"]:::plan
+  v09["Vol. 09 · Segurança Enterprise (AppSec) & LGPD<br/>BFF, Argon2id, TOTP, Passkeys, PKCE, AES + Docs 13, 16"]:::plan
+  v10["Vol. 10 · Testes, CDP Gate, Docker, Cloud & Banca<br/>Vitest, Jest, CDP, CI/CD, Nuvem, Defesa + Docs 10, 11, 14, 18"]:::plan
 
-  m05 --> m09["M09 · AppSec, IAM BFF & LGPD<br/>Cookies HttpOnly, Argon2id, TOTP, Passkeys, OAuth PKCE"]
-  m02 --> m10["M10 · Domínio Pokémon & Lab<br/>Busca Fuzzy, 51 Endpoints, Bio-Essência"]
+  hub --> v01
+  hub --> v02
+  hub --> v03
+  hub -.-> v04
+  hub -.-> v05
+  hub -.-> v06
+  hub -.-> v07
+  hub -.-> v08
+  hub -.-> v09
+  hub -.-> v10
 
-  m04 --> m11["M11 · Testes & UI Quality Gate<br/>Vitest, Jest, E2E, Chrome Headless + CDP"]
-  m08 --> m11
-  m09 --> m12["M12 · Docker, CI/CD & Cloud<br/>Compose, Dockerfile, Actions, Cloudflare, Azure, Neon"]
-  m11 --> m12
-
-  m10 --> m13["M13 · Perguntas de Defesa & Glossário Full-Stack"]
-  m12 --> m13
-
-  classDef done fill:#2a0f1a,stroke:#ff3b4e,color:#fff
-  classDef core fill:#141b34,stroke:#6aa7ff,color:#fff
-  classDef sec fill:#10301f,stroke:#3ddc84,color:#fff
-  classDef ops fill:#3a2a10,stroke:#ffd23f,color:#fff
-
-  class f0 done
-  class m01,m02,m03,m04,m05,m06,m07,m08,m10 core
-  class m09,m11 sec
-  class m12,m13 ops
+  classDef done fill:#10301f,stroke:#3ddc84,color:#fff
+  classDef plan fill:#141b34,stroke:#6aa7ff,color:#fff
 ```
 
----
+### Painel de Progresso dos 10 Volumes
 
-## 3. Formato Padrão dos Módulos (Template de Preenchimento)
-
-Quando cada módulo for preenchido nas próximas sessões, ele seguirá sempre esta estrutura didática em 5 blocos:
-
-1. **O que é e por que existe:** explicação direta do conceito/ferramenta e do problema real que ela resolve.
-2. **Onde e como aparece no PokéVerse OS:** mapeamento exato dos arquivos, classes, funções e configurações no repositório.
-3. **Anatomia do código e trade-offs:** leitura comentada das decisões técnicas e o que foi descartado (ex.: por que npm workspaces em vez de Turborepo; por que Prisma 6 em vez de 7/8).
-4. **Pegadinhas, casos de borda e antipadrões evitados:** o que quebraria em produção sem os cuidados aplicados (race conditions, TOCTOU, vazamento de PII, falhas de CSP, layout overflow).
-5. **Colinha de apresentação e entrevista:** perguntas diretas que um avaliador ou Tech Lead faria sobre aquele módulo, com respostas objetivas.
-
----
-
-## 4. Painel de Progresso dos Módulos
-
-| Módulo | Trilha Temática | Tecnologias / Conceitos-Chave | Status |
-| :---: | :--- | :--- | :---: |
-| **01** | Linguagens & Web Standards | TypeScript 6 strict, ES2022+, HTML5, SCSS (`oklch`, `@layer`, `@container`, `preserve-3d`), SQL, Lua | Escopo mapeado |
-| **02** | Monorepo, Contratos & SOLID | npm workspaces, `tsup`, Zod v4 (tree-shaking), DRY, SRP/OCP/LSP/ISP/DIP | Escopo mapeado |
-| **03** | Front-end Angular 22 | Standalone, Signals, Zoneless, `@defer`, Stores, Interceptors, Guards, Diretivas | Escopo mapeado |
-| **04** | Visual 3D, Hardware & A11y | Chassi 3D skeuomórfico, giro reversível, `ULTRA/BALANCED/LITE`, `FpsWatchdog`, WCAG 2.2 AA | Escopo mapeado |
-| **05** | Back-end NestJS 11 & Telemetria | Módulos, DI, `env.schema.ts`, `ZodValidationPipe`, `GlobalExceptionFilter`, `traceparent`, Probes | Escopo mapeado |
-| **06** | PostgreSQL & Prisma ORM 6 | 13 modelos, 4 enums, migrações, índice parcial, `409 Conflict`, Neon (pooled vs. direct) | Escopo mapeado |
-| **07** | Redis 7 & Concorrência Atômica | Cache 24h + `stale-fallback` 7d, `RedisThrottlerStorage`, Lua atômico (zero TOCTOU), `P2002` | Escopo mapeado |
-| **08** | Kafka / Redpanda, Outbox & WS | Transactional Outbox, *Atomic Lease*, idempotência com rollback no `catch`, DLQ, Socket.IO | Escopo mapeado |
-| **09** | Segurança Enterprise, IAM BFF & LGPD | Sessão opaca `HttpOnly`, `MFA_PENDING`, Argon2id, TOTP, Passkeys, Google PKCE, AES-256-GCM, CSRF, CSP, LGPD | Escopo mapeado |
-| **10** | Domínio Pokémon & Laboratório | Busca fonética + Damerau-Levenshtein, 51 endpoints da PokéAPI, IV/EV/XP e Bio-Essência (`APEX`) | Escopo mapeado |
-| **11** | Testes & UI Quality Gate (CDP) | Vitest 5, Jest 30 + Supertest, Chrome headless via CDP, luminância/contraste, viewport `375px`/`1440px` | Escopo mapeado |
-| **12** | Docker, CI/CD & Cloud em Produção | Compose local, Dockerfile multi-stage não-root, GitHub Actions, Cloudflare Pages Functions, Azure/Neon/Upstash/Aiven | Escopo mapeado |
-| **13** | Perguntas de Banca & Glossário Full-Stack | Simulado de perguntas estilo Staff Engineer + glossário unificado de termos e siglas | Escopo mapeado |
+| Volume | Título & Arquivo | Docs Destrinchados | Conteúdo Principal | Status |
+| :---: | :--- | :---: | :--- | :---: |
+| **01** | **[Anatomia do Repositório: Todas as Pastas e Arquivos](capitulo-01-guia-de-estudos/01-anatomia-do-repositorio-pastas-e-arquivos.md)** | `00`, `01`, `ARCHITECTURE` | Inventário completo de **cada pasta e cada arquivo** da raiz, `shared`, `api`, `web`, `infra`, `scripts`, `.github`, `assets` e `docs`, mais clusters `1 ↔ 2 ↔ 3`. | **Concluído** |
+| **02** | **[Linguagens, Estruturas de Dados e Pacote `@pokeverse/shared`](capitulo-01-guia-de-estudos/02-linguagens-estruturas-de-dados-e-pacote-shared.md)** | `01`, `12`, `15`, `17` | Análise linha por linha de `tsconfig.base.json`, `tsup`, `AsyncState<T>`, `Int32Array` com `stride` (Damerau-Levenshtein), `Map` $O(1)$, tabela tabular com `/* @__PURE__ */`, Laboratório Genético e Schemas Zod v4. | **Concluído** |
+| **03** | **[Dicionário Completo de Jargões, Siglas e Conceitos](capitulo-01-guia-de-estudos/03-dicionario-completo-de-jargoes-e-glossario.md)** | `00` a `18` + `ARCH` | Mais de 90 termos técnicos (de *API REST* e *Monorepo* até *TOCTOU*, *Atomic Lease*, *PKCE* e *mTLS*), sempre explicados com analogia para leigos + visão técnica + por que foi escolhido. | **Concluído** |
+| **04** | **Front-end Angular 22: Standalone, Signals, Zoneless e Stores** *(a criar)* | `02`, `16`, `17`, `18` | Linha por linha de `app.config.ts`, `app.routes.ts`, `auth.guard.ts`, `auth.interceptor.ts`, `AuthStore`, `SecurityIamStore`, `PrivacyConsentStore`, `PokedexStore` e diretivas. | Pendente (Etapa 2) |
+| **05** | **Engenharia Visual 3D, Perfis de Hardware e Acessibilidade (WCAG 2.2 AA)** *(a criar)* | `03`, `08`, `11`, `12` | Linha por linha de `_tokens.scss`, `_pokedex-classic.scss`, parciais `styles/pokedex/`, `PokedexLidPhysicsService`, `PokedexRpgNavService`, `[pvRpgFocusable]`, `QualityStore` e `ScenarioStore`. | Pendente (Etapa 2) |
+| **06** | **Back-end NestJS 11, Pipeline de Requisição e Observabilidade** *(a criar)* | `04`, `10`, `17`, `18` | Ciclo completo da requisição (`main.ts` -> `CorrelationMiddleware` -> Guards -> `ZodValidationPipe` -> Controller -> Service -> Repository -> `GlobalExceptionFilter`), `env.schema.ts` e probes. | Pendente (Etapa 3) |
+| **07** | **Banco Relacional (PostgreSQL + Prisma 6) e Cache Atômico (Redis 7)** *(a criar)* | `05`, `06`, `11`, `17` | Os 13 modelos e 4 enums do `schema.prisma`, migrations, índice parcial, Neon pooled vs. unpooled, cache `HIT`/`MISS`/`STALE` 7d e scripts Lua anti-TOCTOU no `RedisService`. | Pendente (Etapa 3) |
+| **08** | **Mensageria Kafka/Outbox, WebSockets e Módulos Futuros (4B–6)** *(a criar)* | `06`, `07`, `08`, `09`, `15` | Transactional Outbox com `UPDATE ... RETURNING` (*Atomic Lease*), idempotência com rollback no `catch`, DLQ, `WorldGateway`, além do desenho de Arcade WASM, Museu e Battle Frontier. | Pendente (Etapa 4) |
+| **09** | **Dossiê AppSec, IAM Enterprise BFF, Criptografia e LGPD** *(a criar)* | `04`, `13`, `16`, `17` | Análise linha por linha do `AuthModule` (5 services + 5 repositórios), sessão opaca `HttpOnly`, Argon2id + dummy hash, TOTP + backup codes, WebAuthn Passkeys, Google PKCE, AES-256-GCM e LGPD. | Pendente (Etapa 4) |
+| **10** | **Pirâmide de Testes, CDP Quality Gate, Docker, CI/CD Cloud e Banca Técnica** *(a criar)* | `10`, `11`, `14`, `18` | Anatomia dos 118 testes automatizados, `ui-quality-gate.mjs` via Chrome CDP, `docker-compose.yml`, `api.Dockerfile`, `ci.yml`, `deploy.yml`, Cloudflare/Azure/Neon/Upstash/Aiven e perguntas de defesa. | Pendente (Etapa 5) |
 
 ---
 
-## 5. Escopo Detalhado por Módulo (Em Aberto)
+## 4. Mapa de Correspondência: O que Cada Documento em `docs/` Explica
 
-### Módulo 01 — Linguagens, Tipagem Estrita e Web Standards Modernos
-- **Objetivo de estudo:** consolidar os recursos avançados das linguagens usadas em todas as camadas do projeto.
-- **Tópicos a cobrir:**
-  - **TypeScript 6 (`strict`):** inferência via `z.infer` e `z.input`, proibição de `any`, *type narrowing* com `unknown`, e modelagem de estados finitos via **Discriminated Unions** (`AsyncState<T>`).
-  - **HTML5 & DOM moderno:** `<dialog>`, atributo `inert`, landmarks semânticos e prevenção de XSS sem `[innerHTML]`/`dangerouslySetInnerHTML`.
-  - **SCSS & CSS moderno:** espaço de cor `oklch`, custom properties tipadas `@property --luz-x` / `--luz-y`, `@layer`, `@container`, `preserve-3d` e animações em GPU.
-  - **SQL (PostgreSQL) & Lua (Redis):** CTEs atômicas (`WITH ... FOR UPDATE SKIP LOCKED ... RETURNING`) e scripts Lua executados atomicamente no servidor Redis.
-- **Arquivos-chave no repositório:** [`tsconfig.base.json`](../tsconfig.base.json), [`packages/shared/src/types/async-state.ts`](../packages/shared/src/types/async-state.ts), [`apps/web/src/styles/_tokens.scss`](../apps/web/src/styles/_tokens.scss), [`apps/web/src/styles/_pokedex-classic.scss`](../apps/web/src/styles/_pokedex-classic.scss).
-- **Status:** `Aguardando preenchimento`
+Antes de abrir qualquer documento técnico da pasta `docs/`, use esta tabela para saber **o que tem dentro de cada um**, em português claro, e qual Volume do Capítulo 01 o destrincha:
 
----
-
-### Módulo 02 — Arquitetura de Monorepo, Contratos Compartilhados (`@pokeverse/shared`) e Princípios SOLID
-- **Objetivo de estudo:** entender como o código compartilha verdade única entre front-end e back-end e como o SOLID evita degradação conforme o sistema cresce.
-- **Tópicos a cobrir:**
-  - **Monorepo com npm workspaces:** organização `apps/*` + `packages/*` e por que o projeto optou por workspaces nativos em vez de Turborepo.
-  - **Build dual com `tsup` + Zod v4:** exportação simultânea ESM (`.mjs`), CJS (`.js`) e tipagens (`.d.ts`/`.d.mts`), além de `"sideEffects": false` para habilitar *tree-shaking* no Angular.
-  - **Princípios SOLID na prática:** SRP (limite ~300 linhas em services/stores e ~150–200 em UI), OCP, LSP, ISP e DIP (domínio sem acoplamento ao DOM ou framework), aplicados integralmente na refatoração do [doc 17](17-plano-solid-clean-code-e-engenharia-big-tech.md).
-- **Arquivos-chave no repositório:** [`package.json`](../package.json), [`packages/shared/tsup.config.ts`](../packages/shared/tsup.config.ts), [`AGENTS.md`](../AGENTS.md), [`17 — Plano SOLID e Engenharia Big Tech`](17-plano-solid-clean-code-e-engenharia-big-tech.md).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 03 — Front-end Angular 22 (Standalone, Signals, Zoneless e Arquitetura de Componentes)
-- **Objetivo de estudo:** dominar a arquitetura reativa moderna do Angular 22 sem `Zone.js`.
-- **Tópicos a cobrir:**
-  - **Zoneless & Signals:** `provideZonelessChangeDetection()`, `signal()`, `computed()`, `input()`/`output()` e `ChangeDetectionStrategy.OnPush`.
-  - **Stores de domínio:** separação entre estado de autenticação, segurança/IAM, privacidade, hardware, cenários, status do sistema, ticker em tempo real, catálogo Pokédex e slots.
-  - **Roteamento, Lazy Loading e Segurança de Front:** `loadComponent`, imports dinâmicos (`socket.io-client`, `@simplewebauthn/browser`), `authGuard`, `authInterceptor` e diretiva declarativa `[pvRequiresTrainer]`.
-- **Arquivos-chave no repositório:** [`apps/web/src/app/app.config.ts`](../apps/web/src/app/app.config.ts), [`apps/web/src/app/app.routes.ts`](../apps/web/src/app/app.routes.ts), [`apps/web/src/app/core/stores/auth.store.ts`](../apps/web/src/app/core/stores/auth.store.ts), [`apps/web/src/app/core/stores/auth-cross-tab-sync.service.ts`](../apps/web/src/app/core/stores/auth-cross-tab-sync.service.ts), [`apps/web/src/app/core/stores/auth-recovery.service.ts`](../apps/web/src/app/core/stores/auth-recovery.service.ts), [`apps/web/src/app/core/http/api-error.util.ts`](../apps/web/src/app/core/http/api-error.util.ts), [`apps/web/src/app/core/guards/auth.guard.ts`](../apps/web/src/app/core/guards/auth.guard.ts), [`apps/web/src/app/core/interceptors/auth.interceptor.ts`](../apps/web/src/app/core/interceptors/auth.interceptor.ts), [`apps/web/src/app/shared/directives/requires-trainer.directive.ts`](../apps/web/src/app/shared/directives/requires-trainer.directive.ts), [`apps/web/src/app/features/pokedex-device/services/pokedex.store.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex.store.ts), [`apps/web/src/app/features/pokedex-device/services/pokedex-slots.store.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-slots.store.ts).
-- **Status:** `Aguardando preenchimento`
+| Documento | Título Original | O que ele explica em termos simples | Volume do Cap. 01 |
+| :--- | :--- | :--- | :---: |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Contrato de Qualidade | As "leis da casa" para escrever código limpo: validar na entrada, não misturar banco com regra de negócio, evitar consultas lentas e manter arquivos pequenos. | **Vol. 01** & **Vol. 02** |
+| [`00`](00-visao-geral-e-roadmap.md) | Visão Geral e Roadmap | O mapa completo do PokéVerse OS: quem entra sem login vs. quem precisa de conta, os 5 módulos e a ordem das fases (0 a 6). | **Vol. 01** |
+| [`01`](01-arquitetura-monorepo-e-padroes.md) | Arquitetura do Monorepo | Por que juntamos front-end, back-end e pacote compartilhado num único repositório e quais regras garantem que não virem uma bagunça. | **Vol. 01** & **Vol. 02** |
+| [`02`](02-frontend-angular-hud-e-estado.md) | Front-end Angular e HUD | Como funciona a interface moderna em Angular 22, a barra superior, o dock inferior e as caixas de memória reativas (*Stores*). | **Vol. 04** |
+| [`03`](03-motores-graficos-phaser-e-threejs.md) | Motores Gráficos (Phaser / Three.js) | O planejamento de como os mundos 2D (Vila Central) e 3D (Holocron e Console Arcade) funcionarão sem disputar o mesmo espaço na tela. | **Vol. 05** & **Vol. 08** |
+| [`04`](04-backend-nestjs-auth-e-seguranca.md) | Back-end NestJS e Auth | Como o servidor central recebe requisições HTTP, protege rotas e valida a identidade dos treinadores. | **Vol. 06** & **Vol. 09** |
+| [`05`](05-banco-de-dados-postgresql-e-prisma.md) | PostgreSQL e Prisma ORM | O desenho das tabelas do banco de dados (treinadores, slots, equipes, partidas, eventos) e como falar com ele sem perder performance. | **Vol. 07** |
+| [`06`](06-cache-redis-e-eventos-kafka.md) | Redis e Mensageria Kafka | Como o sistema usa memória ultrarrápida para cache/limites e filas de mensagens garantidas para nunca perder notificações. | **Vol. 07** & **Vol. 08** |
+| [`07`](07-arcade-retro-wasm-e-cloud-saves.md) | Arcade Retrô WASM | O projeto futuro de rodar jogos clássicos direto no navegador via WebAssembly com saves salvos na nuvem. | **Vol. 08** |
+| [`08`](08-museu-lore-e-holocron-pokedex.md) | Museu das Regiões & Holocron | A vitrine pública de Kanto a Paldea (já com base entregue) e a futura projeção holográfica 3D dos Pokémon. | **Vol. 05** & **Vol. 08** |
+| [`09`](09-arena-batalha-teambuilder-e-minigames.md) | Arena de Batalha & Mini-Games | O projeto futuro do montador de times competitivos (IVs/EVs), placares ao vivo e batalhas PvE/PvP em tempo real. | **Vol. 08** |
+| [`10`](10-infraestrutura-docker-ci-cd-e-deploy.md) | Infraestrutura, Docker e CI/CD | Como subir toda a fábrica no seu computador com um comando e como os robôs do GitHub testam e publicam na nuvem automaticamente. | **Vol. 10** |
+| [`11`](11-performance-hardware-gates-e-mobile.md) | Desempenho e Hardware Gates | Como o app descobre se o seu celular é fraco ou seu PC é forte para adaptar os efeitos (`ULTRA`/`BALANCED`/`LITE`) e não travar. | **Vol. 05** & **Vol. 10** |
+| [`12`](12-pokedex-2-0-pokeapi-e-controles.md) | Pokédex 2.0 e Controles | O plano de como acessar todos os dados da PokéAPI sem inventar botões extras na carcaça física da Pokédex. | **Vol. 02** & **Vol. 05** |
+| [`13`](13-dossie-de-seguranca-e-blindagem.md) | Dossiê de Segurança (AppSec) | O relatório detalhado das proteções contra ataques reais (roubo de sessão, CSRF, XSS, força bruta, vazamento de dados pessoais). | **Vol. 09** |
+| [`14`](14-status-e-changelog-implementacao.md) | Status Real & Changelog | O diário oficial de bordo: exatamente o que já funciona hoje, o que mudou em relação aos planos antigos e as métricas medidas. | **Vol. 10** |
+| [`15`](15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md) | Pokédex Suprema & Lab Genético | Os 51 endpoints da PokéAPI mapeados e as fórmulas matemáticas de XP, atributos, evolução, clonagem e Bio-Essência. | **Vol. 02** & **Vol. 08** |
+| [`16`](16-cookies-lgpd-e-requisitos.md) | Cookies, LGPD e Requisitos | A lista de requisitos funcionais/não-funcionais e como cumprimos a lei brasileira de privacidade (consentimento, exportação e exclusão de conta). | **Vol. 04** & **Vol. 09** |
+| [`17`](17-plano-solid-clean-code-e-engenharia-big-tech.md) | Plano SOLID & Post-Mortem | A história de bugs difíceis de concorrência que encontramos na auditoria e como aplicamos princípios SOLID para resolvê-los na raiz. | **Vol. 02**, **Vol. 06**, **Vol. 09** |
+| [`18`](18-auditoria-e-plano-divida-tecnica-arquitetura.md) | Auditoria de Dívida Técnica | O boletim de notas do repositório em 4 ondas de refatoração, mostrando como cada workspace chegou à nota 10/10 no Contrato de Qualidade. | **Vol. 01**, **Vol. 04**, **Vol. 10** |
 
 ---
 
-### Módulo 04 — Engenharia Visual 3D, Performance Adaptativa e Acessibilidade (WCAG 2.2 AA)
-- **Objetivo de estudo:** explicar como preservar fidelidade visual skeuomórfica da Fase 0 com alto FPS em desktop e mobile, sem quebrar acessibilidade.
-- **Tópicos a cobrir:**
-  - **Porte fiel do chassi 3D:** giro bidirecional reversível em pleno voo (`rotateY(-180deg)` no desktop / `rotateX(180deg)` no mobile), microtexturas WebP e iluminação reativa ao ponteiro.
-  - **Navegação estilo RPG e botão vermelho:** histórico progressivo em 3 passos, seleção em 2 cliques, física de tampa em `PokedexLidPhysicsService` e registro declarativo de foco por `[pvRpgFocusable]` (DIP sem `document.querySelector`).
-  - **Perfis de hardware e Web Vitals:** detecção de RAM/CPU/WebGL2/`saveData`/`prefers-reduced-motion` para escolher `ULTRA`, `BALANCED` ou `LITE`, `FpsWatchdog`, animações apenas em `opacity`/`transform` e `aspect-ratio`/skeletons contra CLS.
-  - **WCAG 2.2 AA:** contraste mínimo, foco visível, navegação por teclado, `aria-live`, `<dialog>` e alvos de toque em mobile.
-- **Arquivos-chave no repositório:** [`apps/web/src/styles/_pokedex-classic.scss`](../apps/web/src/styles/_pokedex-classic.scss), [`apps/web/src/styles/pokedex/`](../apps/web/src/styles/pokedex), [`apps/web/src/app/features/pokedex-device/services/pokedex-rpg-nav.service.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-rpg-nav.service.ts), [`apps/web/src/app/features/pokedex-device/services/pokedex-lid-physics.service.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-lid-physics.service.ts), [`apps/web/src/app/features/pokedex-device/directives/rpg-focusable.directive.ts`](../apps/web/src/app/features/pokedex-device/directives/rpg-focusable.directive.ts), [`apps/web/src/app/core/stores/quality.store.ts`](../apps/web/src/app/core/stores/quality.store.ts), [`apps/web/src/app/core/stores/scenario.store.ts`](../apps/web/src/app/core/stores/scenario.store.ts).
-- **Status:** `Aguardando preenchimento`
+## 5. Plano Passo a Passo para Concluir Todos os Volumes (Sem Economizar Detalhes)
 
----
+Para manter cada volume com o nível de profundidade de um livro técnico (lendo o código-fonte real e explicando linha por linha, sem resumir ou pular arquivos), a escrita completa da enciclopédia foi dividida em **5 etapas curtas** (1 etapa por conversa, seguida de `git commit` conforme a regra de economia de contexto do repositório):
 
-### Módulo 05 — Back-end NestJS 11, Pipeline de Requisição e Observabilidade
-- **Objetivo de estudo:** mapear o ciclo completo de uma requisição HTTP na API NestJS, do bootstrap à resposta ou exceção.
-- **Tópicos a cobrir:**
-  - **Arquitetura modular e DI:** `AppModule`, `app.setup.ts`, `helmet()`, `cookieParser()`, CORS por allowlist e prefixo global `/api/v1`.
-  - **Validação fail-fast e tratamento de erros:** `env.schema.ts` com Zod sem vazar valores no boot, `ZodValidationPipe` e `GlobalExceptionFilter` (sem vazamento de stack traces).
-  - **Observabilidade (3 pilares):** `CorrelationMiddleware` (`x-correlation-id` e header W3C `traceparent`), `StructuredLoggerService` (JSON estruturado) e probes separados `/health/live` vs. `/health/ready` (`InfraProbesService`).
-- **Arquivos-chave no repositório:** [`apps/api/src/app.module.ts`](../apps/api/src/app.module.ts), [`apps/api/src/app.setup.ts`](../apps/api/src/app.setup.ts), [`apps/api/src/config/env.schema.ts`](../apps/api/src/config/env.schema.ts), [`apps/api/src/common/pipes/zod-validation.pipe.ts`](../apps/api/src/common/pipes/zod-validation.pipe.ts), [`apps/api/src/common/filters/global-exception.filter.ts`](../apps/api/src/common/filters/global-exception.filter.ts), [`apps/api/src/common/middleware/correlation.middleware.ts`](../apps/api/src/common/middleware/correlation.middleware.ts), [`apps/api/src/common/telemetry/structured-logger.service.ts`](../apps/api/src/common/telemetry/structured-logger.service.ts), [`apps/api/src/infra/infra-probes.service.ts`](../apps/api/src/infra/infra-probes.service.ts).
-- **Status:** `Aguardando preenchimento`
+### Etapa 1 — Concluída Nesta Sessão
+- Padronização dos nomes (`capitulo-00-*` sempre antes de `capitulo-01-*`).
+- Criação deste Arquivo-Mestre (`docs/capitulo-01-guia-de-estudos-pokedex.md`).
+- **Volume 01:** Anatomia completa de todas as pastas e todos os arquivos + `docs/00`, `01`, `ARCHITECTURE`.
+- **Volume 02:** Linguagens, estruturas de dados, algoritmos e análise linha por linha de `packages/shared` + `docs/12`, `15`, `17`.
+- **Volume 03:** Dicionário completo com 90+ jargões explicados para iniciantes e especialistas.
 
----
+### Etapa 2 — Front-end Angular, Física 3D, Hardware & Acessibilidade (Volumes 04 e 05)
+- **O que será lido e destrinchado:** todos os arquivos em `apps/web/src/app/`, `apps/web/src/styles/` e `docs/02`, `03`, `08`, `11`, `12`, `16`.
+- **Prompt pronto para usar no próximo chat:**
+  > *"Continue o Capítulo 01 preenchendo os Volumes 04 e 05 dentro de `docs/capitulo-01-guia-de-estudos/` (`04-frontend-angular-22-e-stores.md` e `05-visual-3d-hardware-e-acessibilidade.md`), lendo os arquivos reais de `apps/web/src/` e os docs `02`, `03`, `08`, `11`, `12` e `16`. Mantenha o padrão didático (leigo + técnico + linha por linha + por que foi escolhido) e atualize a tabela de progresso em `docs/capitulo-01-guia-de-estudos-pokedex.md` e `README.md`."*
 
-### Módulo 06 — Persistência Relacional com PostgreSQL e Prisma ORM 6
-- **Objetivo de estudo:** compreender a modelagem de dados atual e futura, integridade ACID, índices e operação no Neon Postgres.
-- **Tópicos a cobrir:**
-  - **Schema Prisma:** os 13 modelos (`Trainer`, `RefreshToken`, `MfaBackupCode`, `TrainerOAuthAccount`, `TrainerPasskey`, `PokedexSlot`, `PokemonTeam`, `PokemonTeamMember`, `ArcadeRom`, `ArcadeSaveState`, `MinigameScore`, `BattleMatch`, `OutboxEvent`) e 4 enums.
-  - **Constraints e integridade:** unicidade `[trainerId, slotIndex]`, regra de 1 Pokémon por botão (`409 Conflict`), exclusão atômica dos slots e migrações versionadas.
-  - **Performance e Neon Serverless:** índice parcial `idx_outbox_pending`, transações curtas sem chamadas externas no meio e separação `DATABASE_URL` (pooled) vs. `DATABASE_URL_UNPOOLED` (migrações).
-- **Arquivos-chave no repositório:** [`apps/api/prisma/schema.prisma`](../apps/api/prisma/schema.prisma), [`apps/api/src/modules/pokedex/pokedex-slots.service.ts`](../apps/api/src/modules/pokedex/pokedex-slots.service.ts).
-- **Status:** `Aguardando preenchimento`
+### Etapa 3 — Back-end NestJS, PostgreSQL/Prisma e Redis Atômico (Volumes 06 e 07)
+- **O que será lido e destrinchado:** `apps/api/src/main.ts`, `app.setup.ts`, `app.module.ts`, `config/`, `common/`, `infra/`, `prisma/schema.prisma`, `migrations/`, `modules/pokedex/`, `modules/health/`, `modules/system/` e `docs/04`, `05`, `06`.
+- **Prompt pronto para usar em um novo chat:**
+  > *"Continue o Capítulo 01 preenchendo os Volumes 06 e 07 dentro de `docs/capitulo-01-guia-de-estudos/` (`06-backend-nestjs-pipeline-e-observabilidade.md` e `07-postgresql-prisma-e-redis-atomico.md`), lendo os arquivos reais em `apps/api/` e os docs `04`, `05` e `06`. Atualize o painel de progresso no Capítulo 01 e no `README.md`."*
 
----
+### Etapa 4 — Mensageria Kafka/Outbox, Segurança AppSec/IAM BFF e Módulos Futuros (Volumes 08 e 09)
+- **O que será lido e destrinchado:** `apps/api/src/modules/events/`, `notifications/`, `world/`, todos os 25 arquivos de `modules/auth/`, `apps/web/functions/`, `apps/web/cloudflare/`, `apps/web/public/_headers` e `docs/06`, `07`, `08`, `09`, `13`, `16`, `17`.
+- **Prompt pronto para usar em um novo chat:**
+  > *"Continue o Capítulo 01 preenchendo os Volumes 08 e 09 dentro de `docs/capitulo-01-guia-de-estudos/` (`08-kafka-outbox-websockets-e-modulos-futuros.md` e `09-seguranca-appsec-iam-bff-e-lgpd.md`), lendo os arquivos reais de `events`, `world`, `notifications`, `auth` e `cloudflare` mais os docs `06`, `07`, `08`, `09`, `13`, `16` e `17`. Atualize o painel de progresso no Capítulo 01 e no `README.md`."*
 
-### Módulo 07 — Cache Distribuído, Sessões e Concorrência Atômica com Redis 7 (Upstash)
-- **Objetivo de estudo:** entender como o Redis sustenta performance, tolerância a falhas e segurança contra condições de corrida.
-- **Tópicos a cobrir:**
-  - **Cache PokéAPI e resiliência:** TTL de 24 h + cópia `:stale` de 7 dias (`stale-fallback`), cabeçalho `X-Cache` (`HIT`/`MISS`/`STALE`) e fallback direto no front-end se a API cair.
-  - **Rate Limiting distribuído:** `RedisThrottlerStorage` compartilhado entre instâncias.
-  - **Zero TOCTOU (Time-of-Check to Time-of-Use):** por que `GET` + `SET` quebra sob requisições paralelas e como `incrementCounterWithTtl` usa script Lua atômico (`INCR` + `EXPIRE`).
-  - **Zero efeito externo pré-constraint:** criação de rascunho de OTP em memória antes da transação SQL para evitar que erro `P2002` apague OTPs de contas existentes.
-- **Arquivos-chave no repositório:** [`apps/api/src/infra/redis.service.ts`](../apps/api/src/infra/redis.service.ts), [`apps/api/src/modules/pokedex/pokeapi-cache.service.ts`](../apps/api/src/modules/pokedex/pokeapi-cache.service.ts), [`apps/api/src/common/guards/redis-throttler.storage.ts`](../apps/api/src/common/guards/redis-throttler.storage.ts), [`apps/api/src/modules/auth/otp.service.ts`](../apps/api/src/modules/auth/otp.service.ts).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 08 — Mensageria Event-Driven com Apache Kafka / Redpanda, Transactional Outbox e WebSockets
-- **Objetivo de estudo:** explicar comunicação assíncrona confiável, garantias de entrega *at-least-once* e tempo real.
-- **Tópicos a cobrir:**
-  - **Transactional Outbox Pattern:** por que nunca publicar no Kafka dentro da transação HTTP antes do commit no Postgres.
-  - **Atomic Lease:** por que `SELECT ... FOR UPDATE SKIP LOCKED` em transação curta falha com múltiplas réplicas e como a CTE `UPDATE "OutboxEvent" SET "processedAt" = NOW() ... RETURNING` garante exclusividade de 60 s.
-  - **Consumidores Idempotentes e DLQ:** deduplicação com `SET NX` no Redis, rollback da trava no `catch` em falhas transitórias para permitir retry legítimo e roteamento para `pokeverse.dlq.v1`.
-  - **WebSockets (`/ws/world`):** `WorldGateway` com Socket.IO para ticker ao vivo e evolução futura com `WsAuthGuard`.
-- **Arquivos-chave no repositório:** [`apps/api/src/modules/events/outbox-relay.service.ts`](../apps/api/src/modules/events/outbox-relay.service.ts), [`apps/api/src/modules/events/world-events.consumer.ts`](../apps/api/src/modules/events/world-events.consumer.ts), [`apps/api/src/modules/events/email-notifications.consumer.ts`](../apps/api/src/modules/events/email-notifications.consumer.ts), [`apps/api/src/modules/world/world.gateway.ts`](../apps/api/src/modules/world/world.gateway.ts), [`packages/shared/src/schemas/events.schemas.ts`](../packages/shared/src/schemas/events.schemas.ts).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 09 — Segurança Enterprise (AppSec), IAM BFF, MFA, Criptografia e LGPD
-- **Objetivo de estudo:** detalhar cada camada de defesa aplicada contra OWASP Top 10, roubo de sessão e vazamento de dados pessoais.
-- **Tópicos a cobrir:**
-  - **Arquitetura IAM BFF:** sessões opacas no Redis com cookies `HttpOnly` + `SameSite` + `Secure` (zero JWT no JS do navegador), máquina `MFA_PENDING -> AUTHENTICATED`, rotação de `RefreshToken` por família e detecção de reuso.
-  - **Autenticação multifator e sem senha:** **Argon2id** (com dummy hash contra enumeração por tempo), **TOTP 2FA** (QR Code + 8 backup codes), **Passkeys WebAuthn** (`@simplewebauthn`) e **Google OAuth 2.0 com PKCE** + proteção contra *Account Takeover*.
-  - **Criptografia e borda:** **AES-256-GCM** para PII de e-mail em trânsito no Outbox (`CryptoService`), `CsrfOriginGuard` (`Origin` + `Sec-Fetch-Site`) e **CSP** estrita (`apps/web/public/_headers` + `inlineCritical: false`).
-  - **Privacidade & LGPD:** cookie versionado `pokeverse_consent`, sincronização entre abas via `BroadcastChannel`, limpeza de chaves não essenciais, portabilidade em `/auth/me/export` e eliminação definitiva em cascata em `DELETE /api/v1/auth/me` (`TrainerGdprService`).
-- **Arquivos-chave no repositório:** [`apps/api/src/modules/auth/auth.service.ts`](../apps/api/src/modules/auth/auth.service.ts), [`apps/api/src/modules/auth/credentials-auth.service.ts`](../apps/api/src/modules/auth/credentials-auth.service.ts), [`apps/api/src/modules/auth/token-refresh.service.ts`](../apps/api/src/modules/auth/token-refresh.service.ts), [`apps/api/src/modules/auth/trainer-gdpr.service.ts`](../apps/api/src/modules/auth/trainer-gdpr.service.ts), [`apps/api/src/modules/auth/trainer-session-issuer.service.ts`](../apps/api/src/modules/auth/trainer-session-issuer.service.ts), [`apps/api/src/modules/auth/session.service.ts`](../apps/api/src/modules/auth/session.service.ts), [`apps/api/src/modules/auth/session-cookies.util.ts`](../apps/api/src/modules/auth/session-cookies.util.ts), [`apps/api/src/modules/auth/mfa-totp.service.ts`](../apps/api/src/modules/auth/mfa-totp.service.ts), [`apps/api/src/modules/auth/passkey.service.ts`](../apps/api/src/modules/auth/passkey.service.ts), [`apps/api/src/modules/auth/google-oauth.service.ts`](../apps/api/src/modules/auth/google-oauth.service.ts), [`apps/api/src/common/security/crypto.service.ts`](../apps/api/src/common/security/crypto.service.ts), [`apps/api/src/common/guards/csrf-origin.guard.ts`](../apps/api/src/common/guards/csrf-origin.guard.ts), [`apps/web/public/_headers`](../apps/web/public/_headers), [`apps/web/src/app/core/stores/privacy-consent.store.ts`](../apps/web/src/app/core/stores/privacy-consent.store.ts).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 10 — Engenharia de Domínio Pokémon: Busca Fuzzy, 51 Endpoints da PokéAPI e Laboratório Genético
-- **Objetivo de estudo:** entender as regras de negócio puras e determinísticas que alimentam a Pokédex atual e a futura Fase 4B/5.
-- **Tópicos a cobrir:**
-  - **Busca fuzzy:** evolução do algoritmo da Fase 0 para TypeScript tipado com normalização Unicode `NFD`, chave fonética bilíngue e distância Damerau-Levenshtein.
-  - **Catálogo dos 51 endpoints:** mapeamento completo da PokéAPI v2 e contratos de filtragem avançada.
-  - **Laboratório Genético:** fórmulas puras de XP por curva de crescimento, atributos por nível (`IV`, `EV`, `Nature`), avaliação de prontidão de evolução, clonagem/replicação e reciclagem em Bio-Essência (`Rank E` até `APEX`).
-- **Arquivos-chave no repositório:** [`packages/shared/src/domain/pokedex-search.ts`](../packages/shared/src/domain/pokedex-search.ts), [`packages/shared/src/domain/pokeapi-endpoints.ts`](../packages/shared/src/domain/pokeapi-endpoints.ts), [`packages/shared/src/domain/pokemon-lab.ts`](../packages/shared/src/domain/pokemon-lab.ts).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 11 — Qualidade Automatizada: Testes Unitários, E2E e UI Quality Gate via Chrome DevTools Protocol (CDP)
-- **Objetivo de estudo:** explicar como garantir qualidade de código e qualidade visual de forma automatizada antes de cada merge/deploy.
-- **Tópicos a cobrir:**
-  - **Pirâmide de testes atual:** `65` testes unitários (`@pokeverse/shared`: `15` Vitest; `pokeverse-api`: `32` Jest; `pokeverse-web`: `18` Vitest + TestBed) + `8` testes E2E (`pokeverse-api` Supertest) e limitações conhecidas de mocks sequenciais em memória (que não expõem corridas de I/O).
-  - **Anatomia do UI Quality Gate:** servidor HTTP local sobre `dist/`, protocolo **CDP** via WebSocket direto com Chrome headless, cálculo de composição alfa (`effectiveSurfaceAlpha >= 0.55`) e luminância relativa **WCAG AA**, checagem de `scrollWidth > innerWidth`, clipping e tipografia em `1440×900` e `375×812`.
-  - **Análise estática:** `npm run lint` com ESLint 9 unificado nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`), `tsc --noEmit` e SonarCloud (`.sonarcloud.properties`).
-- **Arquivos-chave no repositório:** [`scripts/ui-quality-gate.mjs`](../scripts/ui-quality-gate.mjs), [`apps/web/src/app/app.spec.ts`](../apps/web/src/app/app.spec.ts), [`.sonarcloud.properties`](../.sonarcloud.properties).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 12 — Infraestrutura Local, Containers Docker, CI/CD e Arquitetura Cloud em Produção
-- **Objetivo de estudo:** documentar toda a esteira de execução local até o deploy real em nuvem.
-- **Tópicos a cobrir:**
-  - **Ambiente Docker local:** PostgreSQL 16, Redis 7 AOF, Redpanda + Console, `pgsty/silo` (compatível S3/MinIO) e Mailpit para capturar OTPs sem SMTP real.
-  - **Container de produção (`api.Dockerfile`):** multi-stage build, geração de Prisma Client, imagem enxuta sem devDependencies e execução com usuário sem privilégios (não-root).
-  - **CI/CD no GitHub Actions:** estágios de verificação (`ci.yml`) e deploy (`deploy.yml`: Azure Container Registry → Azure Container Apps → probe `/health/live` → build web → UI Quality Gate → Cloudflare Pages).
-  - **Proxy Same-Origin na borda:** como as Cloudflare Pages Functions encaminham `/api`, `/health` e `/socket.io` mantendo cookies `HttpOnly` no mesmo domínio do front-end, e a integração com Neon, Upstash, Aiven Kafka (`mTLS`) e Resend.
-- **Arquivos-chave no repositório:** [`infra/docker/docker-compose.yml`](../infra/docker/docker-compose.yml), [`infra/docker/api.Dockerfile`](../infra/docker/api.Dockerfile), [`.github/workflows/ci.yml`](../.github/workflows/ci.yml), [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), [`apps/web/functions/api/[[path]].ts`](../apps/web/functions/api/%5B%5Bpath%5D%5D.ts).
-- **Status:** `Aguardando preenchimento`
-
----
-
-### Módulo 13 — Perguntas de Apresentação / Entrevista Técnica & Glossário Full-Stack
-- **Objetivo de estudo:** ser a "colinha definitiva" do PokéVerse OS para apresentações técnicas, code reviews e entrevistas — repetindo a fórmula da Seção 10 e Seção 11 do Capítulo Zero, agora em escala Full-Stack.
-- **Tópicos a cobrir:**
-  - **25+ Perguntas de Defesa Arquitetural:** desde *"Por que trocar JWT no navegador por sessão opaca BFF no Redis?"* até *"Como você evitou TOCTOU e perda de eventos entre Outbox e Kafka?"*.
-  - **Glossário Unificado:** BFF, PKCE, WebAuthn, Argon2id, AES-256-GCM, CSP, CSRF, CORS, TOCTOU, ACID, `SKIP LOCKED`, Atomic Lease, DLQ, CDP, WCAG, Zoneless, Tree-Shaking, Same-Origin Proxy e mTLS.
-- **Status:** `Aguardando preenchimento`
-
----
-
-## 6. Como Preencher Este Guia nas Próximas Sessões
-
-Para construir o conteúdo completo sem estourar o limite de contexto em uma única conversa, preencha **1 ou 2 módulos por sessão** usando este roteiro:
-
-1. **Inicie um novo chat** apontando para este arquivo e indique quais módulos quer detalhar (por exemplo: *"Preencha os Módulos 01 e 02 de `docs/capitulo-um-guia-de-estudos-pokedex.md` lendo os arquivos reais citados neles"*).
-2. Ao concluir um módulo, atualize o status dele no **Painel de Progresso (Seção 4)** e na respectiva seção para `Preenchido`.
-3. Se quiser ampliar algum módulo com trechos extras de código ou novos diagramas depois da **Fase 4B** (Pokédex Suprema) ou **Fase 5**, basta abrir uma nova subseção mantendo o padrão dos 5 blocos.
+### Etapa 5 — Testes, UI Quality Gate (CDP), Docker, Cloud e Banca Técnica (Volume 10)
+- **O que será lido e destrinchado:** `scripts/ui-quality-gate.mjs`, `infra/docker/*`, `.github/workflows/*`, todos os `*.spec.ts`, `*.e2e-spec.ts`, `*.integration-spec.ts` e `docs/10`, `11`, `14`, `18`.
+- **Prompt pronto para usar em um novo chat:**
+  > *"Finalize o Capítulo 01 criando o Volume 10 (`docs/capitulo-01-guia-de-estudos/10-testes-cdp-docker-cloud-e-banca-tecnica.md`), lendo os testes reais, `scripts/ui-quality-gate.mjs`, `infra/docker/`, `.github/workflows/` e os docs `10`, `11`, `14` e `18`, incluindo 30+ perguntas e respostas de defesa técnica estilo Staff Engineer. Marque todos os 10 volumes como concluídos no Capítulo 01 e no `README.md`."*
 
 ---
 
 <p align="center">
   <a href="../README.md">Ir para o README atual</a>
   &nbsp;·&nbsp;
-  <a href="capitulo-zero-guia-de-estudos-pokedex.md">Voltar ao Capítulo Zero (Guia da Fase 0)</a>
+  <a href="capitulo-00-como-tudo-comecou.md">Capítulo 00: como tudo começou</a>
   &nbsp;·&nbsp;
-  <a href="14-status-e-changelog-implementacao.md">Status real da implementação</a>
+  <a href="capitulo-00-guia-de-estudos-pokedex.md">Capítulo 00: guia de estudos (Fase 0)</a>
+  &nbsp;·&nbsp;
+  <a href="capitulo-01-guia-de-estudos/01-anatomia-do-repositorio-pastas-e-arquivos.md">Começar pelo Vol. 01</a>
 </p>

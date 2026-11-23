@@ -1,6 +1,6 @@
 # Assets da documentação
 
-Esta pasta guarda as imagens usadas pelo [README principal](../../README.md) e pelo [Capítulo Zero](../capitulo-zero-como-tudo-comecou.md).
+Esta pasta guarda as imagens usadas pelo [README principal](../../README.md) e pelo [Capítulo Zero](../capitulo-00-como-tudo-comecou.md).
 
 | Arquivo | Descrição |
 | :--- | :--- |
