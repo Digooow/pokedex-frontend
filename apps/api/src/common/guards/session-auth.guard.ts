@@ -66,6 +66,7 @@ export class SessionAuthGuard implements CanActivate {
     req.trainer = {
       trainerId: session.trainerId,
       username: session.username,
+      role: session.role ?? 'TRAINER',
       sessionState: session.state,
       familyId: session.familyId,
       sidHash: session.sidHash,

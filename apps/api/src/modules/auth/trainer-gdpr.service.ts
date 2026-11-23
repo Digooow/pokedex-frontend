@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Optional, Injectable, UnauthorizedException } from '@nestjs/common';
 import {
   type TrainerDataExport,
   TrainerDataExportSchema,
 } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
+import { AuditTrailService } from '../../common/telemetry/audit-trail.service';
 import { RedisService } from '../../infra/redis.service';
 import { SessionService } from './session.service';
 import { TrainerAccountRepository } from './trainer-account.repository';
@@ -15,6 +16,7 @@ export class TrainerGdprService {
     private readonly redis: RedisService,
     private readonly crypto: CryptoService,
     private readonly sessionService: SessionService,
+    @Optional() private readonly auditTrail?: AuditTrailService,
   ) {}
 
   async exportTrainerData(trainerId: string): Promise<TrainerDataExport> {
@@ -69,6 +71,13 @@ export class TrainerGdprService {
     }
     await this.sessionService.revokeByRawSid(rawSid);
     await this.sessionService.revokeAllForTrainer(trainerId);
+    await this.auditTrail?.record({
+      actorTrainerId: null,
+      actorRole: 'TRAINER',
+      action: 'lgpd.account.delete',
+      resource: `trainer:${trainerId}`,
+      outcome: 'SUCCESS',
+    });
 
     return {
       message:

@@ -23,7 +23,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-104_unit_%2B_11_E2E_%2B_3_integra%C3%A7%C3%A3o-3ddc84">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-110_unit_%2B_11_E2E_%2B_3_integra%C3%A7%C3%A3o-3ddc84">
   <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
 </p>
 

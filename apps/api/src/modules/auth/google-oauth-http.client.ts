@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { z } from 'zod';
+import { assertSafeOutboundUrl } from '../../common/http/safe-outbound-http';
 import {
   type GoogleJwkEntry,
   GoogleJwksResponseSchema,
@@ -11,6 +12,7 @@ import {
 
 const GOOGLE_TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
 const GOOGLE_JWKS_ENDPOINT = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_ALLOWED_HOSTS = ['oauth2.googleapis.com', 'www.googleapis.com'];
 const GOOGLE_HTTP_TIMEOUT_MS = 8000;
 
 const GoogleTokenResponseSchema = z.object({
@@ -39,7 +41,11 @@ export class GoogleOAuthHttpClient {
         code_verifier: params.codeVerifier,
       });
 
-      const res = await fetch(GOOGLE_TOKEN_ENDPOINT, {
+      const safeUrl = await assertSafeOutboundUrl(
+        GOOGLE_TOKEN_ENDPOINT,
+        GOOGLE_ALLOWED_HOSTS,
+      );
+      const res = await fetch(safeUrl.toString(), {
         method: 'POST',
         signal: controller.signal,
         redirect: 'error',
@@ -68,7 +74,11 @@ export class GoogleOAuthHttpClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), GOOGLE_HTTP_TIMEOUT_MS);
     try {
-      const res = await fetch(GOOGLE_JWKS_ENDPOINT, {
+      const safeUrl = await assertSafeOutboundUrl(
+        GOOGLE_JWKS_ENDPOINT,
+        GOOGLE_ALLOWED_HOSTS,
+      );
+      const res = await fetch(safeUrl.toString(), {
         signal: controller.signal,
         redirect: 'error',
         headers: { accept: 'application/json' },

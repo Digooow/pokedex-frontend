@@ -24,6 +24,7 @@ export function createTrainerFixture(overrides?: Partial<TrainerProfile>): Train
     emailVerifiedAt: null,
     mfaEnabled: false,
     hasPassword: true,
+    role: 'TRAINER',
     badgesCount: 0,
     eloRating: 1000,
     lastMapId: 'pokeverse-town',

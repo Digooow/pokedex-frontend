@@ -94,6 +94,7 @@ export class TrainerSessionIssuer {
     const { rawSid, session } = await this.sessionService.createSession({
       trainerId: trainer.id,
       username: trainer.username,
+      role: trainer.role ?? 'TRAINER',
       familyId,
       state: requiresMfa ? 'MFA_PENDING' : 'AUTHENTICATED',
       mfaMethods,

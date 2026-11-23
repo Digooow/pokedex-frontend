@@ -33,15 +33,22 @@ enum BattleStatus {
   CANCELLED
 }
 
+enum TrainerRole {
+  TRAINER
+  MODERATOR
+  ADMIN
+}
+
 model Trainer {
-  id                  String    @id @default(uuid()) @db.Uuid
-  username            String    @unique @db.VarChar(32)
-  email               String    @unique @db.VarChar(255)
-  passwordHash        String?   @db.Text
-  emailVerifiedAt     DateTime? @db.Timestamptz(6)
-  mfaEnabled          Boolean   @default(false)
-  totpSecretEncrypted String?   @db.Text
-  avatarConfig        Json      @default("{}")
+  id                  String      @id @default(uuid()) @db.Uuid
+  username            String      @unique @db.VarChar(32)
+  email               String      @unique @db.VarChar(255)
+  passwordHash        String?     @db.Text
+  emailVerifiedAt     DateTime?   @db.Timestamptz(6)
+  mfaEnabled          Boolean     @default(false)
+  totpSecretEncrypted String?     @db.Text
+  role                TrainerRole @default(TRAINER)
+  avatarConfig        Json        @default("{}")
   lastMapId           String    @default("pokeverse-town") @db.VarChar(64)
   lastX               Int       @default(400)
   lastY               Int       @default(320)
@@ -257,4 +264,20 @@ model OutboxEvent {
   lastError     String?      @db.Text
   createdAt     DateTime     @default(now()) @db.Timestamptz(6)
   processedAt   DateTime?    @db.Timestamptz(6)
+}
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorTrainerId String?  @db.Uuid
+  actorRole      String   @db.VarChar(24)
+  action         String   @db.VarChar(80)
+  resource       String   @db.VarChar(120)
+  outcome        String   @db.VarChar(24)
+  ipHash         String?  @db.VarChar(64)
+  traceId        String?  @db.VarChar(64)
+  metadata       Json     @default("{}")
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([actorTrainerId, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
 }

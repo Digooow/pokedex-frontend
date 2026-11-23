@@ -8,6 +8,7 @@ import {
   type SessionAuthState,
   type TrainerProfile,
   TrainerProfileSchema,
+  type TrainerRole,
 } from '@pokeverse/shared';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { CryptoService } from '../../common/security/crypto.service';
@@ -19,6 +20,7 @@ export interface SessionTrainerRecord {
   readonly email: string;
   readonly emailVerifiedAt: Date | null;
   readonly mfaEnabled: boolean;
+  readonly role?: TrainerRole;
   readonly passwordHash: string | null;
   readonly badgesCount: number;
   readonly eloRating: number;
@@ -32,6 +34,7 @@ export interface ActiveRedisSession {
   readonly sidHash: string;
   readonly trainerId: string;
   readonly username: string;
+  readonly role?: TrainerRole;
   readonly familyId: string;
   readonly state: SessionAuthState;
   readonly mfaMethods: readonly MfaMethod[];
@@ -93,6 +96,7 @@ export class SessionService {
   async createSession(input: {
     readonly trainerId: string;
     readonly username: string;
+    readonly role?: TrainerRole;
     readonly familyId: string;
     readonly state: SessionAuthState;
     readonly mfaMethods: readonly MfaMethod[];
@@ -108,6 +112,7 @@ export class SessionService {
       sidHash,
       trainerId: input.trainerId,
       username: input.username,
+      role: input.role ?? 'TRAINER',
       familyId: input.familyId,
       state: input.state,
       mfaMethods: input.mfaMethods,
@@ -143,6 +148,7 @@ export class SessionService {
       emailVerifiedAt: row.emailVerifiedAt?.toISOString() ?? null,
       mfaEnabled: row.mfaEnabled,
       hasPassword: row.passwordHash !== null,
+      role: row.role ?? 'TRAINER',
       badgesCount: row.badgesCount,
       eloRating: row.eloRating,
       lastMapId: row.lastMapId,

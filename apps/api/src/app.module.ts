@@ -2,10 +2,12 @@ import * as path from 'node:path';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { CsrfOriginGuard } from './common/guards/csrf-origin.guard';
+import { RbacGuard } from './common/guards/rbac.guard';
 import { RedisThrottlerStorage } from './common/guards/redis-throttler.storage';
 import { SessionAuthGuard } from './common/guards/session-auth.guard';
+import { TrainerThrottlerGuard } from './common/guards/trainer-throttler.guard';
 import { CorrelationMiddleware } from './common/middleware/correlation.middleware';
 import { StructuredLoggerService } from './common/telemetry/structured-logger.service';
 import { validateApiEnv } from './config/env.schema';
@@ -56,8 +58,9 @@ import { WorldModule } from './modules/world/world.module';
   ],
   providers: [
     { provide: APP_GUARD, useClass: CsrfOriginGuard },
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: SessionAuthGuard },
+    { provide: APP_GUARD, useClass: RbacGuard },
+    { provide: APP_GUARD, useClass: TrainerThrottlerGuard },
   ],
 })
 export class AppModule implements NestModule {

@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { PokedexSlotRecordSchema } from './pokedex.schemas';
+import { TrainerRoleSchema } from './rbac.schemas';
 
 const NormalizedEmailSchema = z.string().trim().toLowerCase().pipe(z.email('E-mail inválido.'));
 const SixDigitOtpSchema = z
@@ -83,6 +84,7 @@ export const TrainerProfileSchema = z.object({
   emailVerifiedAt: z.iso.datetime().nullable(),
   mfaEnabled: z.boolean(),
   hasPassword: z.boolean(),
+  role: TrainerRoleSchema.default('TRAINER'),
   badgesCount: z.number().int().nonnegative(),
   eloRating: z.number().int().nonnegative(),
   lastMapId: z.string().min(1),

@@ -16,6 +16,11 @@ interface StructuredLogPayload {
 const SENSITIVE_KEY_PATTERN =
   /(password|passwd|secret|token|cookie|authorization|apikey|api_key|otp|codeverifier|privatekey)/i;
 const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+const JWT_PATTERN =
+  /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g;
+const PEM_KEY_PATTERN =
+  /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z0-9 ]*PRIVATE KEY-----/g;
+const EMAIL_PATTERN = /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g;
 const AUTH_HEADER_PAIR_PATTERN =
   /\b(authorization|cookie|set-cookie)\s*[:=]\s*([^\s;,]+)/gi;
 const SENSITIVE_QUERY_PATTERN =
@@ -24,9 +29,12 @@ const MAX_LOG_DEPTH = 4;
 
 export function redactSensitiveText(raw: string): string {
   return raw
+    .replaceAll(PEM_KEY_PATTERN, '[REDACTED_PEM_KEY]')
     .replaceAll(BEARER_PATTERN, 'Bearer [REDACTED]')
+    .replaceAll(JWT_PATTERN, '[REDACTED_JWT]')
     .replaceAll(AUTH_HEADER_PAIR_PATTERN, '$1=[REDACTED]')
-    .replaceAll(SENSITIVE_QUERY_PATTERN, '$1[REDACTED]');
+    .replaceAll(SENSITIVE_QUERY_PATTERN, '$1[REDACTED]')
+    .replaceAll(EMAIL_PATTERN, '[REDACTED_EMAIL]');
 }
 
 export function sanitizeLogValue(value: unknown, depth = 0): unknown {

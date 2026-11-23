@@ -15,6 +15,7 @@ import {
   PokemonIdentifierParamSchema,
   formatPokeApiText,
 } from '@pokeverse/shared';
+import { assertSafeOutboundUrl } from '../../common/http/safe-outbound-http';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { RedisService } from '../../infra/redis.service';
@@ -172,7 +173,8 @@ export class PokeApiCacheService {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      const response = await fetch(url, {
+      const safeUrl = await assertSafeOutboundUrl(url, ['pokeapi.co']);
+      const response = await fetch(safeUrl.toString(), {
         signal: controller.signal,
         redirect: 'error',
         headers: { accept: 'application/json' },

@@ -14,6 +14,7 @@ export const TRAINER_PROFILE_SELECT = {
   email: true,
   emailVerifiedAt: true,
   mfaEnabled: true,
+  role: true,
   badgesCount: true,
   eloRating: true,
   lastMapId: true,

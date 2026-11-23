@@ -3,12 +3,13 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import type { SessionAuthState } from '@pokeverse/shared';
+import type { SessionAuthState, TrainerRole } from '@pokeverse/shared';
 import type { Request } from 'express';
 
 export interface AuthenticatedTrainer {
   readonly trainerId: string;
   readonly username: string;
+  readonly role: TrainerRole;
   readonly sessionState: SessionAuthState;
   readonly familyId: string;
   readonly sidHash: string;

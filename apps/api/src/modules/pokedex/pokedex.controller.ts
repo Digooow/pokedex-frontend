@@ -27,6 +27,7 @@ import {
   CurrentTrainer,
 } from '../../common/decorators/current-trainer.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles, Scopes } from '../../common/decorators/rbac.decorator';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PokeApiCacheService } from './pokeapi-cache.service';
@@ -69,6 +70,8 @@ export class PokedexController {
     return PokedexSlotsListResponseSchema.parse({ slots });
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('pokedex:write')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Put('slots/:index')
   saveSlot(
@@ -88,6 +91,8 @@ export class PokedexController {
     );
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('pokedex:write')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Delete('slots/:index')
   @HttpCode(HttpStatus.NO_CONTENT)
