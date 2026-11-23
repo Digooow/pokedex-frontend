@@ -110,8 +110,9 @@ export class OtpService {
     );
 
     if (this.crypto.safeEqualHex(record.codeHash, expectedHash)) {
-      await this.redis.delKeys(key, attemptsKey);
-      return true;
+      const deleted = await this.redis.delKeys(key);
+      await this.redis.delKeys(attemptsKey);
+      return typeof deleted === 'number' ? deleted > 0 : true;
     }
 
     const remainingSec = Math.max(

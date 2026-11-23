@@ -43,10 +43,10 @@ sequenceDiagram
   API->>PG: "INSERT INTO OutboxEvent (status='PENDING')"
   API->>PG: "COMMIT"
 
-  loop "Polling curto com índice parcial WHERE status='PENDING'"
-    Relay->>PG: "SELECT FOR UPDATE SKIP LOCKED (lote até 50)"
+  loop "Polling com índice parcial WHERE status='PENDING'"
+    Relay->>PG: "WITH claimed AS (... FOR UPDATE SKIP LOCKED)<br/>UPDATE processedAt = NOW() RETURNING (lote 25, lease 60s)"
     Relay->>Kafka: "Publica evento com eventId e traceparent"
-    Relay->>PG: "UPDATE OutboxEvent SET status='PUBLISHED'"
+    Relay->>PG: "UPDATE OutboxEvent SET status='PUBLISHED' (ou libera lease)"
   end
 
   Kafka-->>Consumer: "Entrega at-least-once"
@@ -86,14 +86,13 @@ Para operar tanto em **Redpanda local** quanto em **planos gratuitos gerenciados
 
 ---
 
-## 5. Estado Real da Implementação & Evolução Planejada (Pós-2B -> Pokédex 2.0)
+## 5. Estado Real da Implementação & Evolução Planejada (Pós-4A -> Pokédex Suprema)
 
-- **Ativos hoje em produção local (`Etapas 1–2B`):**
-  - **Cache-Aside + Circuit Breaker (`PokeApiCacheService`):** ativos em `/api/v1/pokedex/catalog` e `/api/v1/pokedex/pokemon/:idOrName` com singleflight in-memory, validação Zod na entrada/saída do Redis, `AbortController` (`POKEAPI_TIMEOUT_MS`) e header `X-Cache` (`MISS` / `HIT`).
-  - **Sessão Opaca BFF, Throttling & OTPs no Redis (`SessionService`, `OtpService`, `RedisThrottlerStorage`):** chaves `sess:*`, `trainer_sessions:*`, `otp:*`, `rl:*` e anti-replay TOTP/Passkeys ativos no Redis.
-  - **Outbox + Redpanda + Consumidores Idempotentes (`OutboxRelayService`, `WorldEventsConsumerService`, `EmailNotificationsConsumerService`):** ativos em lote com `FOR UPDATE SKIP LOCKED`, publicação paralela (`Promise.all`), retentativa (`MAX_OUTBOX_RETRIES = 5`), tópico `pokeverse.dlq.v1`, e-mails assíncronos criptografados em AES-256-GCM (`pokeverse.notifications.email.v1`) e ticker `/ws/world`.
-- **Próxima Evolução para a Pokédex Enciclopédica (Arquitetura Híbrida em 3 Camadas):**
+- **Ativos hoje no código (`Etapas 1–4A` + Hardening):**
+  - **Cache-Aside + Stale-If-Error (`PokeApiCacheService`):** ativos em `/api/v1/pokedex/catalog` e `/api/v1/pokedex/pokemon/:idOrName` com TTL fresco de `24h`, cópia `stale-fallback` de `7 dias`, singleflight in-memory, validação Zod na entrada/saída do Redis, `AbortController` (`POKEAPI_TIMEOUT_MS`), `redirect: 'error'` e header `X-Cache` (`MISS` / `HIT` / `STALE-FALLBACK`).
+  - **Sessão Opaca BFF, Throttling Lua & Consumo Atômico `GETDEL` (`SessionService`, `OtpService`, `RedisThrottlerStorage`):** chaves `sess:*`, `trainer_sessions:*`, `otp:*`, `rl:hits:*` / `rl:block:*` (Lua atômico), `login_fail:*` / `otp_attempts:*` (`INCR` + `EXPIRE` Lua), `GETDEL` (`consumeString` / `consumeJson`) para OAuth PKCE e desafios WebAuthn, e `DEL` atômico no consumo de OTP.
+  - **Outbox CTE Atomic Lease + Kafka + Consumidores Idempotentes (`OutboxEventRepository`, `OutboxRelayService`, `WorldEventsConsumerService`, `EmailNotificationsConsumerService`):** reivindicação concorrente segura por `UPDATE ... RETURNING` (lote `25`, lease `60s`), publicação paralela (`Promise.all`), retentativa (`MAX_OUTBOX_RETRIES = 5`), tópico `pokeverse.dlq.v1`, e-mails cifrados em AES-256-GCM (`pokeverse.notifications.email.v1`), rollback do lock de idempotência no `catch` em falhas transitórias, expurgo periódico a cada `6h` e suíte real de integração `app.integration-spec.ts` no CI com PostgreSQL, Redis e Kafka reais.
+- **Próxima Evolução para a Pokédex Suprema (Fase 4B):**
   1. **Expansão Multi-Upstream:** chaves adicionais para `pokeapi:v2:species:{id}`, `pokeapi:v2:evolution:{id}`, `pokeapi:v2:move:{id}`, `pokeapi:v2:ability:{id}`, `pokeapi:v2:encounters:{id}`, `pokemontcg:v2:cards:{query}` e `media:lore:{pokemonId}` (anime/filmes/jogos).
-  2. **Padrão *Read-Through + Stale-If-Error*:** além do TTL fresco (`24h`), manter chave secundária *stale* de retenção estendida (ex.: `7–30 dias` ou LRU controlado) para que, caso uma API externa saia do ar temporariamente, o Redis sirva o último dado íntegro com header informativo de *stale fallback* sem derrubar a busca do usuário.
-  3. **Integração com Snapshots PostgreSQL do Usuário:** para Pokémon salvos na lista/slots do usuário, o PostgreSQL passa a guardar snapshot estruturado independente da expiração do Redis.
-- **Pendente para as Fases de Jogo & Hardening 2–3:** presença Overworld (`world:presence:*`), Rankings Sorted Sets, sessões anti-cheat de Mini-Games e segregação de eviction/sessão no Redis (detalhada no [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md#72-redis-7-segregação-de-domínios-e-política-de-eviction)).
+  2. **Integração com `TrainerPokemonSnapshot` no PostgreSQL:** para Pokémon favoritos salvos pelo treinador, o PostgreSQL passa a guardar snapshot estruturado independente da expiração do Redis.
+- **Pendente para as Fases de Jogo & Ondas 2–3:** presença Overworld (`world:presence:*`), Rankings Sorted Sets, sessões anti-cheat de Mini-Games e segregação estrita de eviction/sessão no Redis (detalhada no [Dossiê 13](13-dossie-de-seguranca-e-blindagem.md#72-redis-7-segregação-de-domínios-e-política-de-eviction)).

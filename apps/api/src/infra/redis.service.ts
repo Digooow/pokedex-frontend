@@ -100,12 +100,25 @@ export class RedisService implements OnModuleDestroy {
     return res === 'OK';
   }
 
-  async delKeys(...keys: string[]): Promise<void> {
+  async delKeys(...keys: string[]): Promise<number> {
     if (keys.length === 0) {
-      return;
+      return 0;
     }
     await this.ensureConnected();
-    await this.client.del(...keys);
+    return this.client.del(...keys);
+  }
+
+  async consumeString(key: string): Promise<string | null> {
+    await this.ensureConnected();
+    return this.client.getdel(key);
+  }
+
+  async consumeJson<T>(key: string): Promise<T | null> {
+    const raw = await this.consumeString(key);
+    if (!raw) {
+      return null;
+    }
+    return JSON.parse(raw) as T;
   }
 
   async addToSetWithTtl(

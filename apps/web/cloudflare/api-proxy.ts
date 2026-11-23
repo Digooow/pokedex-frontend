@@ -45,6 +45,21 @@ function readAllSetCookieHeaders(headers: Headers): string[] {
   return single ? [single] : [];
 }
 
+const UPSTREAM_TIMEOUT_MS = 15_000;
+
+function buildUpstreamUnavailableResponse(): Response {
+  return new Response(
+    JSON.stringify({
+      error: 'API_UPSTREAM_UNREACHABLE',
+      message: 'API temporariamente indisponível.',
+    }),
+    {
+      status: 502,
+      headers: { 'content-type': 'application/json; charset=utf-8' },
+    },
+  );
+}
+
 export async function proxyToApiOrigin(context: PagesFunctionContext): Promise<Response> {
   const { request, env } = context;
   const upstreamBase = resolveUpstreamOrigin(env.API_ORIGIN);
@@ -70,21 +85,31 @@ export async function proxyToApiOrigin(context: PagesFunctionContext): Promise<R
   upstreamHeaders.set('x-forwarded-proto', incomingUrl.protocol.replace(':', ''));
 
   if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
-    return fetch(
-      new Request(targetUrl.toString(), {
-        method: request.method,
-        headers: upstreamHeaders,
-      }),
-    );
+    try {
+      return await fetch(
+        new Request(targetUrl.toString(), {
+          method: request.method,
+          headers: upstreamHeaders,
+        }),
+      );
+    } catch {
+      return buildUpstreamUnavailableResponse();
+    }
   }
 
   const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
-  const upstreamResponse = await fetch(targetUrl.toString(), {
-    method: request.method,
-    headers: upstreamHeaders,
-    body: hasBody ? request.body : undefined,
-    redirect: 'manual',
-  });
+  let upstreamResponse: Response;
+  try {
+    upstreamResponse = await fetch(targetUrl.toString(), {
+      method: request.method,
+      headers: upstreamHeaders,
+      body: hasBody ? request.body : undefined,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
+  } catch {
+    return buildUpstreamUnavailableResponse();
+  }
 
   const responseHeaders = new Headers(upstreamResponse.headers);
   const location = responseHeaders.get('location');

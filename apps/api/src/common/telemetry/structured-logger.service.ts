@@ -13,6 +13,48 @@ interface StructuredLogPayload {
   readonly context?: string;
 }
 
+const SENSITIVE_KEY_PATTERN =
+  /(password|passwd|secret|token|cookie|authorization|apikey|api_key|otp|codeverifier|privatekey)/i;
+const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+const AUTH_HEADER_PAIR_PATTERN =
+  /\b(authorization|cookie|set-cookie)\s*[:=]\s*([^\s;,]+)/gi;
+const SENSITIVE_QUERY_PATTERN =
+  /([?&](?:code|state|token|access_token|id_token|refresh_token|password|secret|otp|otpCode|api_key|apikey)=)([^&#\s]+)/gi;
+const MAX_LOG_DEPTH = 4;
+
+export function redactSensitiveText(raw: string): string {
+  return raw
+    .replaceAll(BEARER_PATTERN, 'Bearer [REDACTED]')
+    .replaceAll(AUTH_HEADER_PAIR_PATTERN, '$1=[REDACTED]')
+    .replaceAll(SENSITIVE_QUERY_PATTERN, '$1[REDACTED]');
+}
+
+export function sanitizeLogValue(value: unknown, depth = 0): unknown {
+  if (depth > MAX_LOG_DEPTH) {
+    return '[TRUNCATED]';
+  }
+  if (typeof value === 'string') {
+    return redactSensitiveText(value);
+  }
+  if (value instanceof Error) {
+    return redactSensitiveText(value.message);
+  }
+  if (value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeLogValue(item, depth + 1));
+  }
+
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, entryValue] of Object.entries(value)) {
+    sanitized[key] = SENSITIVE_KEY_PATTERN.test(key)
+      ? '[REDACTED]'
+      : sanitizeLogValue(entryValue, depth + 1);
+  }
+  return sanitized;
+}
+
 @Injectable()
 export class StructuredLoggerService implements LoggerService {
   private readonly serviceName = 'pokeverse-api';
@@ -60,6 +102,12 @@ export class StructuredLoggerService implements LoggerService {
       readonly spanId?: string | null;
     },
   ): void {
+    const sanitized = sanitizeLogValue(message);
+    const serializedMessage =
+      typeof sanitized === 'string'
+        ? sanitized
+        : (JSON.stringify(sanitized) ?? '');
+
     const payload: StructuredLogPayload = {
       timestamp: new Date().toISOString(),
       level,
@@ -67,7 +115,7 @@ export class StructuredLoggerService implements LoggerService {
       trace_id: meta?.traceId ?? null,
       span_id: meta?.spanId ?? null,
       error_code: meta?.errorCode ?? null,
-      message: typeof message === 'string' ? message : JSON.stringify(message),
+      message: serializedMessage,
       ...(meta?.context ? { context: meta.context } : {}),
     };
 

@@ -55,12 +55,10 @@ RUN chown node:node /app
 
 COPY --chown=node:node --from=prod-deps /app/package.json ./package.json
 COPY --chown=node:node --from=prod-deps /app/node_modules ./node_modules
-COPY --chown=node:node --from=prod-deps /opt/prisma /opt/prisma
 COPY --chown=node:node --from=builder /app/packages/shared/package.json ./packages/shared/package.json
 COPY --chown=node:node --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --chown=node:node --from=builder /app/apps/api/package.json ./apps/api/package.json
 COPY --chown=node:node --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --chown=node:node --from=builder /app/apps/api/prisma ./apps/api/prisma
 
 USER node
 
@@ -69,4 +67,4 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=25s --retries=3 \
   CMD ["node", "-e", "fetch('http://127.0.0.1:' + (process.env.API_PORT || process.env.PORT || 3000) + '/health/live').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
 
-CMD ["sh", "-c", "export DATABASE_URL_UNPOOLED=\"${DATABASE_URL_UNPOOLED:-$DATABASE_URL}\" && node /opt/prisma/node_modules/prisma/build/index.js migrate deploy --schema=apps/api/prisma/schema.prisma && exec node apps/api/dist/main.js"]
+CMD ["node", "apps/api/dist/main.js"]

@@ -131,6 +131,24 @@ services:
         mc anonymous set none "local/$${S3_BUCKET_SAVES}"
         mc ls local
 
+  mailpit:
+    image: axllent/mailpit:v1.22
+    container_name: pokeverse-mailpit
+    restart: unless-stopped
+    environment:
+      MP_MAX_MESSAGES: 500
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    ports:
+      - "${MAILPIT_SMTP_PORT:-1025}:1025"
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
 volumes:
   pg_data:
   redis_data:
@@ -217,10 +235,12 @@ flowchart LR
     1. **Domínio compartilhado (Recomendado):** apontar `app.<dominio>` (Cloudflare Pages / Vercel) e `api.<dominio>` (Host API) ou fazer proxy reverso **`/api/*` e `/ws/*` no mesmo host do front-end** (Cloudflare Pages Functions / Worker ou Vercel Rewrites) — preservando `__Host-*` e `SameSite=Lax` intactos.
     2. **Subdomínios gratuitos sem domínio próprio:** configurar explicitamente `SameSite=None; Secure` (sem prefixo `__Host-` quando cross-site) combinado com allowlist estrita em `CORS_ORIGINS` e validação de `Origin` no `CsrfOriginGuard`.
 - **Artefatos de Deploy Já Implementados no Repositório (Item 1 / Fase 3 Base):**
-  1. **Container de Produção da API ([api.Dockerfile](../infra/docker/api.Dockerfile) + [.dockerignore](../.dockerignore)):** build multi-stage (`node:22-slim`), usuário sem privilégios `USER node`, Prisma CLI isolado em `/opt/prisma` (`6.19.3`), `HEALTHCHECK` nativo e boot automático rodando `prisma migrate deploy` antes de `node apps/api/dist/main.js`.
+  1. **Container de Produção da API ([api.Dockerfile](../infra/docker/api.Dockerfile) + [.dockerignore](../.dockerignore)):** build multi-stage (`node:22-slim`), usuário sem privilégios `USER node`, `.prisma/client` gerado no stage `prod-deps` e copiado para o runtime **sem CLI `/opt/prisma` nem migrations embutidas**, `HEALTHCHECK` nativo e boot stateless (`CMD ["node", "apps/api/dist/main.js"]`) sem risco de corrida DDL entre réplicas.
   2. **Suporte Cloud Gerenciado no Back-end:** `env.schema.ts`, `RedisService`, `KafkaService`, `InfraProbesService`, `app.setup.ts`, `schema.prisma` (`directUrl = env("DATABASE_URL_UNPOOLED")`), [`neon.ts`](../neon.ts) e `SessionService` preparados para **Neon** (`DATABASE_URL` `-pooler` + `DATABASE_URL_UNPOOLED` direta + timeout `4000ms` para *scale-to-zero*), **Upstash** (`rediss://` TLS + guard contra quedas transitórias), **Aiven Kafka** (`KAFKA_SSL`, `KAFKA_SSL_CA_PEM`, `KAFKA_SSL_CERT_PEM`, `KAFKA_SSL_KEY_PEM`, `KAFKA_SASL_*`), **`S3_ENABLED=false`** antes do R2, **`TRUST_PROXY=1`** atrás do proxy Azure/Cloudflare e cookies flexíveis (`COOKIE_SAMESITE`, `COOKIE_DOMAIN`).
-  3. **Proxy Same-Origin & Headers no Cloudflare Pages:** [api-proxy.ts](../apps/web/cloudflare/api-proxy.ts), rotas em `apps/web/functions/{api,health,socket.io}/[[path]].ts`, [apps/web/public/_routes.json](../apps/web/public/_routes.json) e [apps/web/public/_headers](../apps/web/public/_headers) — garantindo cookies `__Host-*` e WebSocket no mesmo host (`*.pages.dev` hoje ou `pokedex.digooow.<ext>` amanhã).
-  4. **Pipelines GitHub Actions:** [ci.yml](../.github/workflows/ci.yml) (validação completa + `docker build`) e [deploy.yml](../.github/workflows/deploy.yml) (ACR + Azure Container Apps + Cloudflare Pages, ativado via `ENABLE_CLOUD_DEPLOY=true` ou *dispatch* manual).
+  3. **Proxy Same-Origin & Headers no Cloudflare Pages:** [api-proxy.ts](../apps/web/cloudflare/api-proxy.ts) (com timeout `15s` e `502` JSON seguro), rotas em `apps/web/functions/{api,health,socket.io}/[[path]].ts`, [apps/web/public/_routes.json](../apps/web/public/_routes.json) e [apps/web/public/_headers](../apps/web/public/_headers) (`Strict-Transport-Security` + `connect-src 'self' https://pokeapi.co` sem `ws: wss:` wildcard) — garantindo cookies `__Host-*` e WebSocket no mesmo host (`*.pages.dev` hoje ou `pokedex.digooow.<ext>` amanhã).
+  4. **Pipelines GitHub Actions:**
+     - [ci.yml](../.github/workflows/ci.yml): job `verify` (`npm audit --omit=dev --audit-level=critical`, **Gitleaks**, `typecheck`, `lint`, `format:check`, unitários, E2E HTTP edge [app.e2e-spec.ts](../apps/api/test/app.e2e-spec.ts), `build`, `audit:ui`, `docker build` + **Trivy**) e job `integration-e2e` com `services:` reais (`postgres:16-alpine`, `redis:7-alpine`, `apache/kafka:3.9.0`), aplicando `prisma migrate deploy` e executando [app.integration-spec.ts](../apps/api/test/app.integration-spec.ts).
+     - [deploy.yml](../.github/workflows/deploy.yml): build/push ACR, **step pré-deploy único de `prisma migrate deploy`** usando o secret `DATABASE_URL_UNPOOLED` (com aviso de pipeline caso não configurado), atualização do Azure Container App e deploy no Cloudflare Pages (`ENABLE_CLOUD_DEPLOY=true` ou *dispatch* manual).
 - **Provisionamento Externo (Checklist Executado em Produção):**
   - [x] **Neon (Lakebase Postgres 18 — `aws-sa-east-1`):** projeto `pokeverse` (`weathered-tooth-28070740`), branch `production`, `neon.ts` na raiz, migrations aplicadas e smoke E2E aprovado.
   - [x] **Upstash (Redis `rediss://` — `sa-east-1`):** banco gratuito `pokeverse-redis` (`saved-ewe-133250.upstash.io:6379`) validado em TLS com `PING`, `SET NX EX`, script Lua de throttling e `X-Cache=HIT` em produção.

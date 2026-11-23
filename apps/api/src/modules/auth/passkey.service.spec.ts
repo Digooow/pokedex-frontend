@@ -112,9 +112,12 @@ describe('PasskeyService (WebAuthn FIDO2 registration & login assertions)', () =
       return Promise.resolve();
     });
 
+    const consumeJson = jest.fn().mockResolvedValue(null);
+    const consumeString = jest.fn().mockResolvedValue(null);
     const redisMock = {
       setStringEx,
-      getJson: jest.fn().mockResolvedValue(null),
+      consumeJson,
+      consumeString,
       delKeys,
     } as unknown as RedisService;
 
@@ -160,7 +163,7 @@ describe('PasskeyService (WebAuthn FIDO2 registration & login assertions)', () =
         response: { id: 'cred-1' },
       }),
     ).rejects.toThrow(UnauthorizedException);
-    expect(delKeys).toHaveBeenCalledWith(
+    expect(consumeJson).toHaveBeenCalledWith(
       'webauthn_auth:expired-or-missing-token-1234',
     );
   });

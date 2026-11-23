@@ -41,72 +41,68 @@ flowchart LR
 
 ## 2. Fluxo de Autenticação, Sessão e RBAC
 
-### Política de Tokens
-- **Hashing de Senha:** **Argon2id** com *salt* criptográfico por usuário e parâmetros resistentes a força bruta.
-- **`Access Token` (JWT curto — 15 minutos):** assinado assimetricamente ou com segredo rotacionável via `.env`, mantido **em memória RAM** no front-end Angular (nunca salvo em `localStorage` ou `sessionStorage`).
-- **`Refresh Token` (opaco — 7 dias):** armazenado no cliente exclusivamente em cookie **`HttpOnly`**, **`Secure`**, **`SameSite=Lax`** (restrito ao path `/api/v1/auth`), com hash SHA-256 persistido na tabela `RefreshToken` no PostgreSQL.
-- **Rotação com Detecção de Reuso (*Refresh Token Rotation*):** ao renovar o token em `/auth/refresh`, o registro anterior é marcado como revogado e um novo par é emitido. Se um token já revogado for reutilizado (sinal de roubo de cookie), toda a família de sessões daquele treinador é imediatamente invalidada.
+### Política de Sessão BFF (Estado Real em Produção)
+- **Hashing de Senha:** **Argon2id** com *salt* criptográfico por usuário e **verificação dummy (`DUMMY_ARGON2_HASH`)** no `login()` para impedir *timing enumeration* de e-mails.
+- **Sessão Opaca no Redis (`900s`) + Cookie `HttpOnly` (`__Host-pokeverse_session` em HTTPS):** zero token JWT ou bearer exposto ao JavaScript do navegador; revogação imediata no `/logout`, na troca/redefinição de senha e no `DELETE /auth/me`.
+- **Máquina de Estados `MFA_PENDING -> AUTHENTICATED`:** contas com 2FA ativo recebem sessão restrita `MFA_PENDING` (bloqueada por padrão no `SessionAuthGuard` até conclusão em `/auth/mfa/verify` ou Passkey, liberando apenas rotas com `@AllowMfaPending()`).
+- **Refresh Token Opaco (`7 dias`):** armazenado exclusivamente em cookie `HttpOnly` (`__Secure-pokeverse_refresh` restrito ao path `/api/v1/auth`), com hash SHA-256 e `familyId` no PostgreSQL, grace window de `10s` no Redis e revogação integral da família + sessões ativas em caso de reuso.
 
 ```mermaid
 sequenceDiagram
   actor Trainer as "Treinador (Angular)"
   participant API as "NestJS AuthController"
+  participant Redis as "Redis 7 (Sessões BFF)"
   participant DB as "PostgreSQL (Prisma)"
 
   Trainer->>API: "POST /api/v1/auth/login (email, senha)"
-  API->>DB: "Busca Trainer por email (projeção mínima)"
-  DB-->>API: "id, username, passwordHash"
-  API->>API: "Verifica senha com Argon2id"
-  API->>DB: "Salva hash do RefreshToken + expira antigos"
-  API-->>Trainer: "200 OK (Access Token JWT em JSON + Set-Cookie Refresh HttpOnly)"
+  API->>DB: "Busca Trainer por email (ou executa Argon2id dummy)"
+  API->>Redis: "SET sess:{sidHash} (AUTHENTICATED ou MFA_PENDING, EX 900)"
+  API->>DB: "Salva RefreshToken SHA-256 + familyId (quando AUTHENTICATED)"
+  API-->>Trainer: "200 OK JSON {trainer, sessionState} + Set-Cookie HttpOnly"
 
-  Note over Trainer,API: "Visitante sem JWT recebe 401 nas rotas privadas"
-
-  Trainer->>API: "POST /api/v1/auth/refresh (Cookie HttpOnly)"
-  API->>DB: "Valida hash do RefreshToken e checa revogação"
-  API->>DB: "Revoga token atual e cria novo RefreshToken"
-  API-->>Trainer: "200 OK (Novo Access Token + Novo Cookie)"
+  Trainer->>API: "POST /api/v1/auth/refresh (Cookie HttpOnly + Origin válido)"
+  API->>DB: "Valida hash, checa revogação e rotaciona RefreshToken"
+  API->>Redis: "Cria nova sessão opaca e grava grace window 10s"
+  API-->>Trainer: "200 OK JSON + Novos Cookies HttpOnly"
 ```
 
-### Matriz RBAC (`@Public()` vs. `JwtAuthGuard`)
-- O `JwtAuthGuard` é registrado como **Guard Global (`APP_GUARD`)** no NestJS para adotar o princípio *Secure by Default*: toda rota é protegida por padrão.
-- Endpoints estritamente abertos a **Visitantes** recebem explicitamente o decorator `@Public()` (ex.: consulta à PokéAPI via proxy cacheado, catálogo de nomes para busca *fuzzy*, dados do Museu das Regiões e `/health/*`).
-- Qualquer endpoint que grava dados, transmite ROMs do catálogo, sincroniza Overworld, cria equipes ou inicia batalha/mini-game exige token JWT válido e verifica posse do recurso (`resource.trainerId === currentTrainer.id` — prevenção de **IDOR / Broken Object Level Authorization**).
+### Matriz RBAC (`@Public()` vs. `SessionAuthGuard`)
+- O `SessionAuthGuard` é registrado como **Guard Global (`APP_GUARD`)** no NestJS (*Secure by Default*): toda rota exige cookie de sessão válido no Redis em estado `AUTHENTICATED`.
+- Endpoints abertos a **Visitantes** recebem explicitamente `@Public()` (ex.: catálogo e detalhe cacheados da PokéAPI, bootstrap de sessão e health checks).
+- Endpoints de conclusão de 2FA ou logout recebem `@AllowMfaPending()`.
+- Toda mutação autenticada (`PokedexSlot`, futuro `PokemonTeam`, `ArcadeSaveState`, `BattleMatch`) deriva `trainerId` exclusivamente da sessão validada no servidor e aplica-o na cláusula `where` da consulta (**IDOR / BOLA zero**).
 
 ---
 
 ## 3. Segurança de Aplicação (AppSec & OWASP Top 10)
 
-1. **Validação Estrita na Fronteira (`ZodValidationPipe`):**
-   - Nenhuma entrada vinda de `body`, `query`, `params` ou payload WebSocket chega aos serviços sem passar por schemas **Zod** de `packages/shared`. Campos desconhecidos são rejeitados (`strict()`).
+1. **Validação Estrita na Fronteira (`ZodValidationPipe` + `bodyParser: false`):**
+   - Nenhuma entrada de `body`, `query` ou `params` chega aos serviços sem passar por schemas **Zod** de `@pokeverse/shared` (com `.strict()`).
+   - `main.ts` desabilita o body-parser implícito (`bodyParser: false`) para que `app.setup.ts` aplique exclusivamente `express.json({ limit: '64kb' })` e `express.urlencoded({ limit: '16kb', extended: false })`, com respostas padronizadas `413` / `400` no `GlobalExceptionFilter`.
 2. **Prevenção contra Injeção:**
-   - Queries relacionais executadas via Prisma parametrizado; qualquer SQL bruto excepcional usa exclusivamente `$queryRaw` com *tagged template literals* parametrizadas (jamais `$queryRawUnsafe` com concatenação de strings).
-   - Zero concatenação de argumentos de sistema ou caminhos de bucket (chaves de objeto S3/MinIO sempre vêm do banco ou padrão UUID controlado).
-3. **Rate Limiting Distribuído (`@nestjs/throttler` + Redis):**
-   - Limites mais rígidos em endpoints sensíveis:
-     - `/auth/login` e `/auth/register`: máximo de `10 req/min` por IP/usuário;
-     - `/arcade/roms/:slug/session`: limite anti-abuso de geração de URLs assinadas;
-     - Eventos WebSocket de movimento no Overworld: limite de frequência por conexão para impedir *flooding*.
-4. **Hardening HTTP e Sanitização de Erros:**
-   - **Helmet:** CSP (*Content Security Policy*), `X-Frame-Options`, `X-Content-Type-Options: nosniff` e ocultação de `X-Powered-By`.
-   - **CORS Estrito:** lista explícita de origens permitidas (`FRONTEND_URL`) com `credentials: true` para suportar cookies `HttpOnly`.
-   - **`GlobalExceptionFilter`:** converte exceções internas em JSON padronizado (`{ code, message, correlationId }`), registrando detalhes completos somente em logs estruturados internos e **nunca expondo stack traces, queries SQL ou segredos ao cliente**.
+   - Queries relacionais via Prisma parametrizado; SQL bruto excepcional usa exclusivamente `$queryRaw` com *tagged template literals* parametrizadas (jamais `$queryRawUnsafe`).
+3. **Rate Limiting Distribuído (`RedisThrottlerStorage`) & Consumo Atômico (`GETDEL`):**
+   - `@nestjs/throttler` usa `RedisThrottlerStorage` via script Lua atômico (`INCR` + `PEXPIRE`), com limites específicos em `/register`, `/login` (`10/min` + trava `(IP, email)`), `/refresh` (`20/min`), OTP (`5–10/min`), `/mfa/totp/{enable,disable}` (`5/min`), `/passkeys/*` (`10–20/min`), `DELETE /auth/me` (`5/min`), `GET /auth/me/export` (`10/min`) e escrita de slots Pokédex (`30/min`).
+   - Desafios single-use de Google OAuth PKCE e Passkeys WebAuthn são consumidos atomicamente com `GETDEL` (`consumeString` / `consumeJson`), eliminando janelas TOCTOU.
+4. **Hardening HTTP, CSRF & Redação de Logs:**
+   - **Helmet:** `defaultSrc: 'none'`, `frameAncestors: 'none'`, `baseUri: 'none'`, `CORP: same-site`, `Permissions-Policy` e ocultação de `X-Powered-By`.
+   - **CsrfOriginGuard:** valida `Sec-Fetch-Site`, `Origin`/`Referer` contra `CORS_ORIGINS` e bloqueia `Content-Type` de formulário HTML simples em mutações.
+   - **GlobalExceptionFilter & StructuredLoggerService:** retorna apenas `{ code, message, correlationId }`, loga somente `req.path` (sem query string OAuth/token) e aplica redação automática de campos e headers sensíveis (`password`, `token`, `cookie`, `authorization`, `otp`).
 
 ---
 
 ## 4. Arquitetura dos Gateways WebSocket
 
-O NestJS mantém dois *namespaces* WebSocket dedicados sobre conexão autenticada via `WsJwtGuard` no *handshake*:
-
-- **`/ws/world` (`WorldGateway`):**
-  - Mantém presença na sala da Vila Central (`world:join`, `world:move`, `world:leave`);
-  - Faz *broadcast* do feed global vindo do consumidor Kafka (`world:global-event`), exibindo conquistas, recordes e vitórias no Ticker do HUD Angular.
-- **`/ws/battle` (`BattleGateway` — Fase 6):**
-  - Gerencia salas autoritativas de batalha PvE e PvP (`match:ready`, `turn:submit-action`, `turn:resolved`, `match:finished`);
-  - O cliente envia apenas a **intenção** (*usar golpe #2* ou *trocar para Pokémon #4*), e nunca envia cálculo de dano ou alteração de HP — toda resolução matemática roda no servidor para impedir qualquer trapaça.
+- **`/ws/world` (`WorldGateway` — Ativo):**
+  - Entrega eventos globais públicos consumidos do Kafka (`world:recent-events` e `world:global-event`) para o Ticker da topbar.
+  - Em `NODE_ENV=production`, `isAllowedWebSocketOrigin` **rejeita conexões sem cabeçalho `Origin`** e valida pertencimento exato a `CORS_ORIGINS` (com normalização de barra final).
+  - Aplica cota simultânea por IP (`10` conexões/IP) e global (`1000` conexões), desconectando excedentes com `WS_CONNECTION_LIMIT_HIT`.
+  - **Evolução para Fase 6 (Overworld):** antes de aceitar eventos `@SubscribeMessage` (`world:join`, `world:move`, `world:leave`), adicionar `WsAuthGuard` lendo o cookie `HttpOnly` de sessão no handshake, validação Zod por mensagem e rate limit por pacote.
+- **`/ws/battle` (`BattleGateway` — Planejado para Fase 6):**
+  - Gerencia salas autoritativas de batalha PvE e PvP (`match:ready`, `turn:submit-action`, `turn:resolved`, `match:finished`) com `WsAuthGuard` obrigatório e resolução matemática integral no servidor.
 
 ---
 
-## 5. Evolução Planejada (Onda 1 de Blindagem)
+## 5. Referência Completa de Segurança e Higiene Temporal
 
-A entrega inicial da Fase 2 utiliza **JWT Access Token (`900s`) em RAM** combinado a **Refresh Token opaco em cookie `HttpOnly` (`pokeverse_refresh`)**. Para elevar o nível de segurança ao padrão ouro Web/SaaS (sem token exposto ao JS do navegador, revogação imediata no `/logout`, proteção CSRF `Origin`/`Sec-Fetch-Site`, throttling distribuído no Redis, login constant-time e CSP estrita), consulte o plano completo no **[13 — Dossiê Completo de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md)**.
+Para o mapa completo de ameaças STRIDE, status atualizado controle a controle, política Redis/Kafka, containers não-root e portões DevSecOps no CI/CD, consulte o **[13 — Dossiê Completo de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md)**. O expurgo de `RefreshToken` expirados/revogados e `OutboxEvent` publicados roda periodicamente em runtime a cada `6h` via `SessionManagementService`.

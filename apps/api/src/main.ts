@@ -4,7 +4,10 @@ import { configureApiApp } from './app.setup';
 import { StructuredLoggerService } from './common/telemetry/structured-logger.service';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    bodyParser: false,
+  });
   const logger = app.get(StructuredLoggerService);
   app.useLogger(logger);
 

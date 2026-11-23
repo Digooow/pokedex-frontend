@@ -106,6 +106,7 @@ function createAuthService(params: {
       authTokenRepo,
       sessionService,
       params.configMock,
+      logger,
     ),
     new TrainerGdprService(
       trainerAccountRepo,
@@ -281,10 +282,13 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
         return Promise.resolve(raw ? (JSON.parse(raw) as unknown) : null);
       }),
       delKeys: jest.fn((...keys: string[]) => {
+        let count = 0;
         for (const key of keys) {
-          redisStore.delete(key);
+          if (redisStore.delete(key)) {
+            count += 1;
+          }
         }
-        return Promise.resolve();
+        return Promise.resolve(count);
       }),
     } as unknown as RedisService;
 
@@ -605,10 +609,13 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       return Promise.resolve();
     });
     const delKeys = jest.fn((...keys: string[]) => {
+      let count = 0;
       for (const k of keys) {
-        redisStore.delete(k);
+        if (redisStore.delete(k)) {
+          count += 1;
+        }
       }
-      return Promise.resolve();
+      return Promise.resolve(count);
     });
 
     const redisMock = {
@@ -691,10 +698,13 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
       return Promise.resolve(next);
     });
     const delKeys = jest.fn((...keys: string[]) => {
+      let count = 0;
       for (const k of keys) {
-        redisStore.delete(k);
+        if (redisStore.delete(k)) {
+          count += 1;
+        }
       }
-      return Promise.resolve();
+      return Promise.resolve(count);
     });
     const redisMock = {
       getString: jest.fn((key: string) =>
@@ -735,6 +745,53 @@ describe('AuthService & OtpService enterprise IAM behaviors', () => {
         issued.code,
       ),
     ).toBe(false);
+  });
+
+  it('allows only one winner when concurrent OTP verifications race on the same valid code', async () => {
+    const redisStore = new Map<string, string>();
+    const redisMock = {
+      getString: jest.fn((key: string) =>
+        Promise.resolve(redisStore.get(key) ?? null),
+      ),
+      setJsonEx: jest.fn((key: string, _ttl: number, value: unknown) => {
+        redisStore.set(key, JSON.stringify(value));
+        return Promise.resolve();
+      }),
+      getJson: jest.fn((key: string) => {
+        const raw = redisStore.get(key);
+        return Promise.resolve(raw ? (JSON.parse(raw) as unknown) : null);
+      }),
+      delKeys: jest.fn((...keys: string[]) => {
+        let count = 0;
+        for (const k of keys) {
+          if (redisStore.delete(k)) {
+            count += 1;
+          }
+        }
+        return Promise.resolve(count);
+      }),
+    } as unknown as RedisService;
+
+    const configMock = createConfigMock();
+    const crypto = new CryptoService(configMock);
+    const otpService = new OtpService(redisMock, crypto, configMock);
+    const issued = await otpService.issueOtp('verify', 'single@example.com');
+
+    const outcomes = await Promise.all([
+      otpService.verifyAndConsumeOtp(
+        'verify',
+        'single@example.com',
+        issued.code,
+      ),
+      otpService.verifyAndConsumeOtp(
+        'verify',
+        'single@example.com',
+        issued.code,
+      ),
+    ]);
+
+    expect(outcomes.filter(Boolean)).toHaveLength(1);
+    expect(outcomes.filter((v) => !v)).toHaveLength(1);
   });
 
   it('deletes trainer account permanently (LGPD) and purges expired tokens/outbox rows', async () => {

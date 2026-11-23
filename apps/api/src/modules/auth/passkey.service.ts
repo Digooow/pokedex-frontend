@@ -101,8 +101,7 @@ export class PasskeyService {
     input: PasskeyRegisterVerifyInput,
   ): Promise<PasskeySummary> {
     const regKey = this.regChallengeKey(trainerId);
-    const expectedChallenge = await this.redis.getString(regKey);
-    await this.redis.delKeys(regKey);
+    const expectedChallenge = await this.redis.consumeString(regKey);
 
     if (!expectedChallenge) {
       throw new BadRequestException(
@@ -195,8 +194,7 @@ export class PasskeyService {
   }> {
     const challengeKey = this.authChallengeKey(input.challengeToken);
     const challengeRecord =
-      await this.redis.getJson<StoredAuthChallenge>(challengeKey);
-    await this.redis.delKeys(challengeKey);
+      await this.redis.consumeJson<StoredAuthChallenge>(challengeKey);
 
     if (!challengeRecord) {
       throw new UnauthorizedException(

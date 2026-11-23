@@ -72,6 +72,7 @@ export class MfaController {
     return this.totpService.initiateSetup(trainer.trainerId);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('mfa/totp/enable')
   enableTotp(
@@ -86,6 +87,7 @@ export class MfaController {
     );
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('mfa/totp/disable')
   async disableTotp(
@@ -138,6 +140,7 @@ export class MfaController {
     return this.passkeyService.generateRegisterOptions(trainer.trainerId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('passkeys/register/verify')
   passkeyRegisterVerify(
     @CurrentTrainer() trainer: AuthenticatedTrainer,

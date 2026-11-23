@@ -222,6 +222,7 @@ export class AuthController {
     return this.authService.getMe(trainer.trainerId);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('me/export')
   exportMyData(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
@@ -229,6 +230,7 @@ export class AuthController {
     return this.authService.exportTrainerData(trainer.trainerId);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Delete('me')
   async deleteMyAccount(

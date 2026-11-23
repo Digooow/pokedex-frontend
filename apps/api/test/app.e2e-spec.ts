@@ -1,6 +1,5 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -52,10 +51,23 @@ describe('PokéVerse API (e2e)', () => {
           return Promise.resolve(true);
         }),
         delKeys: jest.fn((...keys: string[]) => {
+          let count = 0;
           for (const key of keys) {
-            sessionStore.delete(key);
+            if (sessionStore.delete(key)) {
+              count += 1;
+            }
           }
-          return Promise.resolve();
+          return Promise.resolve(count);
+        }),
+        consumeString: jest.fn((key: string) => {
+          const val = sessionStore.get(key) ?? null;
+          sessionStore.delete(key);
+          return Promise.resolve(val);
+        }),
+        consumeJson: jest.fn((key: string) => {
+          const raw = sessionStore.get(key);
+          sessionStore.delete(key);
+          return Promise.resolve(raw ? (JSON.parse(raw) as unknown) : null);
         }),
         addToSetWithTtl: jest.fn().mockResolvedValue(undefined),
         getSetMembers: jest.fn().mockResolvedValue([]),
@@ -91,8 +103,7 @@ describe('PokéVerse API (e2e)', () => {
       })
       .compile();
 
-    app = moduleRef.createNestApplication();
-    app.use(cookieParser());
+    app = moduleRef.createNestApplication({ bodyParser: false });
     configureApiApp(app);
     await app.init();
   });
@@ -109,7 +120,29 @@ describe('PokéVerse API (e2e)', () => {
     expect(res.headers['x-correlation-id']).toBeTruthy();
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['permissions-policy']).toContain('camera=()');
+    expect(res.headers['content-security-policy']).toContain(
+      "default-src 'none'",
+    );
+    expect(res.headers['content-security-policy']).toContain(
+      "frame-ancestors 'none'",
+    );
     expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+
+  it('rejects oversized JSON payloads above 64kb with 413 and malformed JSON with 400', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('Origin', 'http://localhost:4200')
+      .send({ email: 'a@b.com', password: 'x'.repeat(70_000) })
+      .expect(413);
+
+    const malformed = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('Origin', 'http://localhost:4200')
+      .set('Content-Type', 'application/json')
+      .send('{invalid')
+      .expect(400);
+    expect(malformed.body).toMatchObject({ code: 'HTTP_400' });
   });
 
   it('GET /health/ready validates all 4 dependencies', async () => {

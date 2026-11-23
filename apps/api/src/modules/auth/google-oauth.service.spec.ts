@@ -191,4 +191,102 @@ describe('GoogleOAuthService (OIDC RS256 verification & safe account linking)', 
     expect(outcome.sessionSid).toBeUndefined();
     expect(oauthCreate).not.toHaveBeenCalled();
   });
+
+  it('consumes OAuth state atomically via consumeJson so concurrent callbacks allow only one exchange', async () => {
+    const configMock = {
+      get: jest.fn((key: keyof ApiEnvConfig) => {
+        switch (key) {
+          case 'APP_ENCRYPTION_KEY':
+            return '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef';
+          case 'WEBAUTHN_ORIGIN':
+            return 'http://127.0.0.1:4200';
+          case 'GOOGLE_CLIENT_ID':
+            return 'google-client-123';
+          case 'GOOGLE_CLIENT_SECRET':
+            return 'google-secret-xyz';
+          case 'GOOGLE_REDIRECT_URI':
+            return 'http://127.0.0.1:4200/api/v1/auth/google/callback';
+          default:
+            return '';
+        }
+      }),
+    } as unknown as ConfigService<ApiEnvConfig, true>;
+
+    const redisStore = new Map<string, string>();
+    const consumeJson = jest.fn((key: string) => {
+      const raw = redisStore.get(key);
+      redisStore.delete(key);
+      return Promise.resolve(raw ? (JSON.parse(raw) as unknown) : null);
+    });
+    const redisMock = {
+      setJsonEx: jest.fn((key: string, _ttl: number, value: unknown) => {
+        redisStore.set(key, JSON.stringify(value));
+        return Promise.resolve();
+      }),
+      consumeJson,
+    } as unknown as RedisService;
+
+    const exchangeAuthorizationCode = jest
+      .fn()
+      .mockResolvedValue({ id_token: 'id-token-placeholder' });
+    const httpClientMock = {
+      exchangeAuthorizationCode,
+      fetchJwks: jest.fn().mockResolvedValue([]),
+    } as unknown as GoogleOAuthHttpClient;
+
+    const verifyTokenWithJwksCache = jest.fn().mockResolvedValue({
+      iss: 'https://accounts.google.com',
+      aud: 'google-client-123',
+      sub: 'google-sub-1',
+      email: 'ash@example.com',
+      email_verified: true,
+      nonce: 'n',
+      exp: Math.floor(Date.now() / 1000) + 300,
+    });
+    const oidcVerifierMock = {
+      verifyTokenWithJwksCache,
+    } as unknown as GoogleOidcVerifier;
+
+    const resolveTrainerAccount = jest.fn().mockResolvedValue({
+      redirectUrl: 'http://127.0.0.1:4200/?auth=google_ok',
+      sessionSid: 'sid-1',
+      refreshToken: 'ref-1',
+    });
+    const accountLinkerMock = {
+      resolveTrainerAccount,
+    } as unknown as GoogleAccountLinker;
+
+    const crypto = new CryptoService(configMock);
+    const service = new GoogleOAuthService(
+      redisMock,
+      crypto,
+      configMock,
+      httpClientMock,
+      oidcVerifierMock,
+      accountLinkerMock,
+    );
+
+    const authReq = await service.createAuthorizationRequest(null);
+    const state = new URL(authReq.authorizeUrl).searchParams.get('state') ?? '';
+
+    const [first, second] = await Promise.all([
+      service.handleCallback({
+        code: 'auth-code-1',
+        state,
+        bindCookieValue: authReq.bindCookieValue,
+        traceId: null,
+      }),
+      service.handleCallback({
+        code: 'auth-code-1',
+        state,
+        bindCookieValue: authReq.bindCookieValue,
+        traceId: null,
+      }),
+    ]);
+
+    expect(consumeJson).toHaveBeenCalledTimes(2);
+    expect(exchangeAuthorizationCode).toHaveBeenCalledTimes(1);
+    expect(first.sessionSid).toBe('sid-1');
+    expect(second.redirectUrl).toContain('authError=oauth_state_invalid');
+  });
 });

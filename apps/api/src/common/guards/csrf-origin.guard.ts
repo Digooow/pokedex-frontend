@@ -54,9 +54,10 @@ export class CsrfOriginGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request>();
     const denialReason = this.findDenialReason(req);
     if (denialReason !== null) {
+      const safePath = req.path || req.url.split('?')[0] || '/';
       this.logger.emitEvent(
         'warn',
-        `${denialReason} on ${req.method} ${req.url}`,
+        `${denialReason} on ${req.method} ${safePath}`,
         {
           context: CsrfOriginGuard.name,
           errorCode: 'CSRF_ORIGIN_BLOCKED',

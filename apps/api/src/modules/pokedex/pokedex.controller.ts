@@ -10,6 +10,7 @@ import {
   Req,
   Res,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   type CachedCatalogResponse,
   type CachedPokemonResponse,
@@ -68,6 +69,7 @@ export class PokedexController {
     return PokedexSlotsListResponseSchema.parse({ slots });
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Put('slots/:index')
   saveSlot(
     @Param('index', new ZodValidationPipe(PokedexSlotIndexParamSchema))
@@ -86,6 +88,7 @@ export class PokedexController {
     );
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Delete('slots/:index')
   @HttpCode(HttpStatus.NO_CONTENT)
   async deleteSlot(
@@ -102,6 +105,7 @@ export class PokedexController {
     );
   }
 
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Delete('slots')
   @HttpCode(HttpStatus.NO_CONTENT)
   async clearAllSlots(

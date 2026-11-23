@@ -35,24 +35,24 @@ flowchart TB
 
 ---
 
-## 2. Radiografia Atual: O que Já Está Implementado vs. Lacunas Abertas
+## 2. Radiografia Atual: Controles Implementados vs. Lacunas Abertas
 
-Baseado na auditoria direta do código atual pós-**Fase 2**:
+Baseado na auditoria direta do código atual pós-**Hardening de Segurança, Concorrência & CI/CD** (após Fases 2A/2B/3/4A e Ondas 1–4 de [`ARCHITECTURE.md`](ARCHITECTURE.md)):
 
-| Controle | Estado Atual no Código | Lacuna Identificada | Severidade da Lacuna |
+| Controle | Estado Atual no Código | Lacuna Aberta / Trade-off Documentado | Severidade Atual |
 | :--- | :--- | :--- | :---: |
-| **Hashing de senha** | `argon2` (`argon2id`) em [auth.service.ts](../apps/api/src/modules/auth/auth.service.ts) | `login()` retorna cedo quando o e-mail não existe sem executar verificação dummy em tempo equivalente | **Média** |
-| **Armazenamento de Token no Front** | Access token JWT (`900s`) apenas em Signal/RAM em [auth.store.ts](../apps/web/src/app/core/stores/auth.store.ts) (nunca em `localStorage`) | Token ainda trafega em JSON e fica legível por JS/extensões no runtime do browser | **Alta** |
-| **Refresh Token & Rotação** | Token opaco (`randomBytes(48)`), hash SHA-256 no Postgres, cookie `HttpOnly` + `SameSite=Lax` + revogação por `familyId` em reuso | Cookie ainda sem prefixo `__Host-` em produção; sem job periódico de expurgo de tokens antigos | **Média** |
-| **Revogação Imediata / Logout** | `/auth/logout` revoga a família de refresh tokens no PostgreSQL | **Access JWT já emitido continua aceito pelo `JwtAuthGuard` até expirar (`900s`)** por falta de check `jti`/versão no Redis (ou troca para sessão opaca) | **Alta** |
-| **Criptografia & Claims JWT** | `JwtService.signAsync` / `verifyAsync` com segredo simétrico `HS256` em `.env` | Sem pinagem explícita de `algorithms`, `issuer`, `audience` nem migração para assimétrico (`EdDSA`/`ES256`) ou Sessão Opaca | **Média** |
-| **Proteção CSRF** | Cookie usa `SameSite=Lax` | Sem validação explícita de `Origin` / `Referer` / `Sec-Fetch-Site` nas rotas mutáveis com cookie | **Alta** |
-| **Rate Limiting** | `@nestjs/throttler` global (`120/min`) e estrito em `/register`, `/login` (`10/min`) e `/refresh` (`20/min`) | Armazenamento atual está em **memória** do processo (não distribuído no Redis) e não limita por e-mail/conta no login | **Alta** |
-| **Cabeçalhos HTTP (CSP/Helmet)** | `helmet()` e `app.enableCors({ origin: allowedOrigins, credentials: true })` em [app.setup.ts](../apps/api/src/app.setup.ts) | CSP padrão do Helmet não foi calibrada para Three.js/Phaser/WASM/`raw.githubusercontent.com` nem bloqueia `frame-ancestors` / `object-src` de forma explícita e documentada; falta `express.json({ limit })` restrito e política de `trust proxy` | **Alta** |
-| **Validação de Entrada & Erros** | `ZodValidationPipe` com `.strict()`, `$transaction`, projeções `select` explícitas (sem `passwordHash`) e `GlobalExceptionFilter` | `PokeApiCacheService` aceita `:idOrName` com regex `/^[a-z0-9-]+$/` **sem limite máximo de comprimento** e `fetch` sem `redirect: 'error'` | **Média** |
-| **WebSockets (`/ws/world`)** | Check de `Origin` no `WorldGateway` | Handshake aberto para anônimos (aceitável só para ticker público somente leitura); se `!origin` chega vazio, callback permite `true`; ainda falta `WsAuthGuard` obrigatório e rate limit antes da **Fase 3** | **Alta (Pré-Fase 3)** |
-| **Open Redirect no Front** | `authGuard` repassa `state.url` no prompt de login | Ao implementar redirecionamento automático pós-login (`returnUrl`), validar que o destino é rota interna relativa (`^\/[^/\\]`) | **Média** |
-| **Segredos & Logs** | `.env` fora do Git, `validateApiEnv` não ecoa segredos, `StructuredLoggerService` não loga payloads de senha | Faltam redatores explícitos (*scrubbers*) caso futuros middlewares/interceptors passem objetos `headers`/`body` ao logger; falta `gitleaks` / `npm audit` bloqueantes no CI | **Média** |
+| **Hashing de senha & timing shield** | `argon2` (`argon2id`) + `DUMMY_ARGON2_HASH` em [credentials-auth.service.ts](../apps/api/src/modules/auth/credentials-auth.service.ts) igualando latência quando o e-mail não existe | Resolvido. | **Resolvido** |
+| **Armazenamento de sessão no navegador** | **Sessão Opaca BFF no Redis + cookies `HttpOnly`** em [session.service.ts](../apps/api/src/modules/auth/session.service.ts) e [session-cookies.util.ts](../apps/api/src/modules/auth/session-cookies.util.ts); **zero JWT no JS** e proxy same-origin Cloudflare Pages | Resolvido (`__Host-` ativo quando HTTPS sem `COOKIE_DOMAIN` e `SameSite != none`). | **Resolvido** |
+| **Refresh Token, Rotação & Revogação Imediata** | Token opaco (`randomBytes`), hash SHA-256 no Postgres, `familyId`, detecção de reuso, grace window de `10s`, revogação imediata no Redis via `/auth/logout` e expurgo periódico ativo a cada 6h em [session-management.service.ts](../apps/api/src/modules/auth/session-management.service.ts) | Resolvido. | **Resolvido** |
+| **Consumo one-time sem TOCTOU (OAuth / Passkey / OTP)** | `GETDEL` atômico (`consumeString` / `consumeJson`) em [redis.service.ts](../apps/api/src/infra/redis.service.ts) usado por [google-oauth.service.ts](../apps/api/src/modules/auth/google-oauth.service.ts) e [passkey.service.ts](../apps/api/src/modules/auth/passkey.service.ts); `DEL` atômico no [otp.service.ts](../apps/api/src/modules/auth/otp.service.ts) + contadores Lua (`INCR` + `EXPIRE`) | Resolvido. | **Resolvido** |
+| **OIDC RS256 & WebAuthn FIDO2** | Verificação RS256 estrita por JWKS cacheado (`iss`, `aud`, `nonce`, `exp`, `email_verified`) em [google-oidc.verifier.ts](../apps/api/src/modules/auth/google-oidc.verifier.ts) sem auto-link em conta não verificada; Passkeys + TOTP criptografado | Resolvido. | **Resolvido** |
+| **Proteção CSRF** | [CsrfOriginGuard](../apps/api/src/common/guards/csrf-origin.guard.ts) global validando `Sec-Fetch-Site`, `Origin`/`Referer` contra `CORS_ORIGINS`, bloqueio de `Content-Type` de formulário e rejeição de mutação com cookie sem `Origin`/`same-origin` | Resolvido. | **Resolvido** |
+| **Rate Limiting Distribuído** | `@nestjs/throttler` conectado ao [RedisThrottlerStorage](../apps/api/src/common/guards/redis-throttler.storage.ts) (script Lua atômico no Redis), limites estritos por rota (`/login`, `/register`, `/refresh`, `/verify-email`, `/resend-verification`, `/forgot-password`, `/reset-password`, `/mfa/totp/*`, `/mfa/verify`, `/passkeys/*`, `DELETE /auth/me`, `GET /auth/me/export`, `/pokedex/slots*`) e trava `(IP, email)` no login | **Trade-off conhecido:** `RedisThrottlerStorage` opera em modo *fail-open* se o Redis ficar inacessível para preservar disponibilidade. | **Baixa** |
+| **Cabeçalhos HTTP, CSP & Body Limits** | API com `helmet()` (`defaultSrc: 'none'`, `frameAncestors: 'none'`, `baseUri: 'none'`, `CORP: same-site`), `Permissions-Policy`, `TRUST_PROXY`, `bodyParser: false` + `express.json({ limit: '64kb' })` + `urlencoded({ limit: '16kb' })` e tratamento `413`/`400` em [global-exception.filter.ts](../apps/api/src/common/filters/global-exception.filter.ts); Front com CSP + HSTS em [apps/web/public/_headers](../apps/web/public/_headers) (`connect-src 'self' https://pokeapi.co` sem `ws: wss:` wildcard) e timeout `15s` / `502` seguro em [api-proxy.ts](../apps/web/cloudflare/api-proxy.ts) | `style-src` no front ainda usa `'unsafe-inline'` até adoção futura de `ngCspNonce`; ajustar `wasm-unsafe-eval` e `COOP`/`COEP` apenas na Fase 6 (Arcade WASM). | **Média** |
+| **Validação de Entrada & SSRF** | `ZodValidationPipe` `.strict()` em corpo/query/params, `PokemonIdentifierParamSchema` (`{1,64}`), `redirect: 'error'` em `PokeApiCacheService`, `GoogleOAuthHttpClient` e `MailService`, e validação Zod na ida/volta do Redis | Resolvido. | **Resolvido** |
+| **WebSockets (`/ws/world`)** | [WorldGateway](../apps/api/src/modules/world/world.gateway.ts) rejeita `!origin` em `NODE_ENV=production`, valida `CORS_ORIGINS` com normalização e aplica cota simultânea (`10` conexões/IP, `1000` globais) com log `WS_CONNECTION_LIMIT_HIT` | Conexão permanece read-only para ticker público na topbar; **`WsAuthGuard` obrigatório**, validação Zod por `@SubscribeMessage` e rate limit por pacote ficam pendentes antes de abrir ações do Overworld/Arena na **Fase 6**. | **Média (Pré-Fase 6)** |
+| **Open Redirect no Front** | [auth.guard.ts](../apps/web/src/app/core/guards/auth.guard.ts) restringe `targetRoute` por regex `^\/[a-zA-Z0-9/_-]*$` e o callback Google redireciona apenas para `WEBAUTHN_ORIGIN` | Resolvido. | **Resolvido** |
+| **Segredos, Logs & Supply Chain** | [StructuredLoggerService](../apps/api/src/common/telemetry/structured-logger.service.ts) aplica redação recursiva (`authorization`, `cookie`, `password`, `token`, `otp`, `Bearer`, query OAuth) + logs HTTP usam `req.path` sem query string; Docker Compose usa `${VAR:?}`; `ci.yml` executa **Gitleaks**, **Trivy** (`CRITICAL`), **`npm audit --omit=dev --audit-level=critical`** e job **`integration-e2e`** com Postgres/Redis/Kafka reais | Triagem aberta: `npm audit --omit=dev` reporta `4` avisos `high` transitivos em `@prisma/config` (CLI do `prisma@6.19.3` listado sob `@prisma/client`, dependente de `prisma@7` ESM). Em runtime de produção o impacto é mitigado porque o CLI `/opt/prisma` foi removido do [api.Dockerfile](../infra/docker/api.Dockerfile). | **Baixa** |
 
 ---
 
@@ -190,23 +190,23 @@ O `helmet()` atual precisa de configuração explícita por ambiente para proteg
 
 ## 6. Camada 4 — WebSockets Seguros (`/ws/world` e futuro `/ws/battle`)
 
-| Controle WebSocket | Como Está na Fase 2 | Como Deve Ficar Antes da Fase 3 e Fase 6 |
+| Controle WebSocket | Estado Atual (Implementado) | Como Deve Evoluir Antes da Fase 6 (Overworld / Arena) |
 | :--- | :--- | :--- |
-| **Autenticação no Handshake** | `WorldGateway` aceita conexões sem credencial apenas para entregar o ticker global | Criar **`WsAuthGuard`** lendo o cookie `HttpOnly` de sessão no handshake (`client.handshake.headers.cookie` validado no Redis). Separar namespace/sala pública somente leitura para visitantes **ou** permitir conexão anônima sem vínculo `client.data.trainerId` bloqueando qualquer evento `world:join` / `world:move` / `match:*` sem sessão autenticada |
-| **Validação de Origem (`CORS` WS)** | Quando `origin` é `undefined`, callback retorna `true` | Em produção, se o cliente esperado for exclusivamente browser, exigir `origin` presente dentro da `CORS_ORIGINS` allowlist |
-| **Validação Zod por Evento** | Sem eventos de entrada na Fase 2 | **Todo** `@SubscribeMessage(...)` (`world:move`, `turn:submit-action`) validado por `ZodValidationPipe` / `schema.safeParse(payload)` antes de qualquer lógica |
-| **Rate Limit por Socket (Anti-Flood)** | Ainda não aplicado | Token bucket ou sliding window em memória/Redis por `socket.id` + `trainerId` (ex.: máx. `20` pacotes de movimento por segundo no Overworld; excedeu -> warning -> `disconnect(true)`) |
-| **Autoridade 100% no Servidor** | Ainda não aplicável (Fase 3/6) | Cliente envia apenas **direção/intenção** (`{ dx, dy }` ou `{ moveIndex }`); o servidor valida velocidade máxima de caminhada, colisão, HP, turnos e RNG |
+| **Autenticação no Handshake** | `WorldGateway` entrega apenas ticker público read-only sem mutações do cliente | Criar **`WsAuthGuard`** lendo o cookie `HttpOnly` de sessão no handshake (`client.handshake.headers.cookie` validado no Redis), exigindo sessão autenticada para `world:join` / `world:move` / `match:*` |
+| **Validação de Origem (`CORS` WS)** | `isAllowedWebSocketOrigin` **rejeita `Origin` ausente quando `NODE_ENV=production`** e valida `CORS_ORIGINS` normalizada | Mantido estrito por allowlist em todos os namespaces |
+| **Cota de Conexões por IP** | Limite ativo em `WorldGateway`: máx. `10` sockets simultâneos por IP e `1000` globais (`WS_CONNECTION_LIMIT_HIT` + `disconnect(true)`) | Migrar contador de presença/conexão para Redis se escalar para múltiplas réplicas com sticky sessions ou Redis adapter |
+| **Validação Zod & Flood por Evento** | Sem `@SubscribeMessage` de entrada nesta fase | **Todo** `@SubscribeMessage(...)` validado com `ZodValidationPipe` / `.safeParse` + sliding window por pacote (`<= 20` movimentos/s) |
+| **Autoridade 100% no Servidor** | Ainda não aplicável (Fase 6) | Cliente envia apenas **direção/intenção** (`{ dx, dy }` ou `{ moveIndex }`); servidor calcula colisão, HP, turnos e RNG |
 
 ---
 
 ## 7. Camada 5 — Infraestrutura de Dados: PostgreSQL, Redis, Kafka/Redpanda e S3/MinIO
 
 ### 7.1. PostgreSQL + Prisma ORM
-- **Menores privilégios em produção:** criar uma role exclusiva da aplicação (`pokeverse_app`) com `SELECT, INSERT, UPDATE, DELETE` apenas nas tabelas de aplicação, sem permissões `DDL` (`CREATE`/`DROP`) ou superuser; rodar `prisma migrate deploy` com role separada apenas na etapa de CI/CD de deploy.
+- **Separação de migrations vs. runtime stateless:** [api.Dockerfile](../infra/docker/api.Dockerfile) **não executa** `prisma migrate deploy` no startup nem carrega o CLI `/opt/prisma` em runtime; as migrations rodam em **etapa única pré-deploy** no [.github/workflows/deploy.yml](../.github/workflows/deploy.yml) via `DATABASE_URL_UNPOOLED`, eliminando competição entre réplicas simultâneas e permitindo uso de role restrita (`DML` sem `DDL`) para a aplicação em nuvem.
 - **SSL obrigatório em nuvem:** `DATABASE_URL` no Neon/Supabase sempre com `?sslmode=verify-full` (ou padrão TLS estrito gerenciado).
-- **SQL bruto seguro:** única query raw atual está em [outbox-relay.service.ts](../apps/api/src/modules/events/outbox-relay.service.ts#L44-L51) usando tagged template parametrizado (`tx.$queryRaw\`...\``). Fica **proibido** `$queryRawUnsafe` ou `$executeRawUnsafe`.
-- **Higiene periódica (`OutboxEvent` & `RefreshToken`):** worker semanal removendo linhas `PUBLISHED` com mais de 14 dias e `RefreshToken` expirados/revogados para manter o índice parcial `idx_outbox_pending` compacto em memória.
+- **SQL bruto seguro:** única query raw atual está em [outbox-event.repository.ts](../apps/api/src/modules/events/outbox-event.repository.ts) usando tagged template parametrizado (`tx.$queryRaw\`...\``). Fica **proibido** `$queryRawUnsafe` ou `$executeRawUnsafe`.
+- **Higiene periódica (`OutboxEvent` & `RefreshToken`):** [SessionManagementService](../apps/api/src/modules/auth/session-management.service.ts) executa expurgo periódico a cada `6h` (janela de retenção de `7` dias) removendo `RefreshToken` expirados/revogados e `OutboxEvent` já publicados.
 
 ### 7.2. Redis 7 (Segregação de Domínios e Política de Eviction)
 - **Alerta crítico de arquitetura Redis:**
@@ -230,22 +230,24 @@ O `helmet()` atual precisa de configuração explícita por ambiente para proteg
 
 ## 8. Camada 6 — Containers Docker, Supply Chain & CI/CD DevSecOps
 
-1. **Hardening de Dockerfiles (quando empacotar `api` e `web`):**
-   - Multi-stage (`node:22-alpine` ou `distroless`), copiando apenas `dist/`, `node_modules` de produção e `prisma` client gerado;
-   - Rodar sempre como usuário sem privilégios (`USER node`);
-   - Em `docker-compose` / orquestrador de produção: `read_only: true` no sistema de arquivos raiz, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]`, limites de memória/CPU (`mem_limit`), e nunca montar `/var/run/docker.sock`.
-2. **Pipeline de Segurança Automatizada (CI/CD):**
-   - **Secret Scanning:** `gitleaks` em cada PR/push bloqueando commits com credenciais ou tokens.
-   - **Dependências (SCA):** `npm ci` estrito com `package-lock.json` + `npm audit --omit=dev --audit-level=high` + bloqueio de scripts de lifecycle arbitrários em ambientes de build quando viável.
-   - **SAST & Linting de Segurança:** ESLint + SonarLint/SonarQube (`0` vulnerabilidades e `0` hotspots pendentes) + varredura de imagens Docker (Trivy) antes de publicar release.
+1. **Hardening do Container da API ([api.Dockerfile](../infra/docker/api.Dockerfile)):**
+   - Multi-stage (`node:22-slim`), copiando apenas `dist/`, `node_modules` de produção com `.prisma/client` gerado (sem CLI `/opt/prisma` e sem pasta `prisma/` de migrations);
+   - Execução sem privilégios (`USER node`), `HEALTHCHECK` apontando para `/health/live` e `CMD ["node", "apps/api/dist/main.js"]`;
+   - Para ambientes orquestrados adicionais: aplicar `read_only: true`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]` e tetos de memória/CPU.
+2. **Pipeline de Segurança & Integração Real ([ci.yml](../.github/workflows/ci.yml)):**
+   - **Secret Scanning:** `gitleaks` em container (`--no-git --redact`) em todo push/PR;
+   - **Dependências (SCA):** `npm ci` + `npm audit --omit=dev --audit-level=critical` bloqueante (com triagem documentada dos `4` avisos `high` CLI-only em `@prisma/config` da linha `prisma@6.19.3`, ausentes da imagem final de runtime);
+   - **Varredura de Imagem (Trivy):** `aquasecurity/trivy-action` falhando o pipeline em vulnerabilidades `CRITICAL` na imagem `pokeverse-api:ci`;
+   - **Backing Services Reais no CI:** job dedicado `integration-e2e` provisionando `postgres:16-alpine`, `redis:7-alpine` e `apache/kafka:3.9.0` reais, aplicando `prisma migrate deploy` e executando [app.integration-spec.ts](../apps/api/test/app.integration-spec.ts), separado da suíte HTTP edge ([app.e2e-spec.ts](../apps/api/test/app.e2e-spec.ts)).
 3. **Observabilidade de Segurança (Alertas Acionáveis):**
-   - Emitir eventos estruturados com `errorCode` explícito para:
-     - `REFRESH_REUSE_DETECTED` (já ativo!)
+   - Eventos estruturados com `errorCode` explícito em [StructuredLoggerService](../apps/api/src/common/telemetry/structured-logger.service.ts) (com redação automática de segredos/tokens/PII):
+     - `REFRESH_REUSE_DETECTED`
      - `LOGIN_RATE_LIMIT_HIT`
      - `CSRF_ORIGIN_BLOCKED`
-     - `WS_FLOOD_DISCONNECTED`
-     - `POKEAPI_CIRCUIT_OPEN` (já ativo!)
-     - `OUTBOX_DLQ_ESCALATED`
+     - `WS_CONNECTION_LIMIT_HIT`
+     - `POKEAPI_CIRCUIT_OPEN`
+     - `REDIS_THROTTLE_DEGRADED`
+     - `PURGE_EXPIRED_WARN`
 
 ---
 
@@ -253,15 +255,15 @@ O `helmet()` atual precisa de configuração explícita por ambiente para proteg
 
 ```mermaid
 flowchart LR
-  O1["Onda 1: Pós-Fase 2 (Agora)"] --> O2["Onda 2: Fases 3 e 4 (Overworld/Holocron)"]
-  O2 --> O3["Onda 3: Fases 5 e 6 (Arcade WASM/PvP/CI)"]
+  O1["Onda 1 + Hardening CI/WS: Concluída"] --> O2["Onda 2: Fase 6 Overworld/Museu"]
+  O2 --> O3["Onda 3: Fase 6 Arcade WASM/PvP"]
 ```
 
-| Onda | Momento de Execução | Entregas Concretas de Segurança |
-| :--- | :--- | :--- |
-| **Onda 1 — Blindagem Imediata de Auth & HTTP** | **Próxima tarefa (antes da Fase 3)** | 1) Decidir entre **Sessão Opaca no Redis + Cookie `HttpOnly` (BFF)** ou **JWT EdDSA + Revogação `jti` no Redis**;<br>2) `CsrfOriginGuard` (`Origin` + `Sec-Fetch-Site`) nas rotas mutáveis;<br>3) Dummy `argon2.verify` no `login()` + Throttling multidimensional no Redis (`@nestjs/throttler` + Redis + lock IP/email);<br>4) Limite de tamanho `express.json({ limit: '64kb' })`, `trust proxy` configurável, CSP explícita e `Permissions-Policy` no `helmet()`;<br>5) `SAFE_POKEMON_PARAM` com limite `{1,64}` + `redirect: 'error'` em `PokeApiCacheService`;<br>6) Redação de headers/tokens no logger, sanitização de `returnUrl` no Angular (`authGuard`), remoção dos textos legados `"Fase 2"` em `auth.guard.ts`/`requires-trainer.directive.ts` e atualização de `SystemController` para `'phase-2'`. |
-| **Onda 2 — Segurança WebSocket & Gráficos** | **Junto às Fases 3 e 4** | 1) `WsAuthGuard` obrigatório para `world:join`/`world:move` + checagem estrita de `Origin`;<br>2) Rate limiting por pacote WebSocket e validação Zod em todos os eventos de entrada;<br>3) Ajuste fino de CSP para WebGL2/Three.js/Phaser sem `'unsafe-eval'`;<br>4) Segregação de TTL/`noeviction` no Redis para sessões e presença vs. cache PokéAPI. |
-| **Onda 3 — Arcade WASM, Arena PvP & DevSecOps** | **Junto às Fases 5 e 6** | 1) Validação SHA-256, magic bytes e teto de bytes para *Cloud Save States* no MinIO/R2 + Presigned URLs `60s`;<br>2) Engine PvE/PvP 100% autoritativa no servidor + anti-cheat temporizado para Mini-Games;<br>3) Passkeys (WebAuthn) e/ou OAuth2 PKCE (se escolhidos);<br>4) `Dockerfiles` non-root + `gitleaks`, `npm audit` e Trivy bloqueantes no GitHub Actions. |
+| Onda | Momento de Execução | Entregas Concretas de Segurança | Status |
+| :--- | :--- | :--- | :---: |
+| **Onda 1 — Blindagem Imediata de Auth, HTTP, WS & CI/CD** | **Entregue (Fases 2A–4A + Hardening Atual)** | Sessão opaca no Redis + `__Host-`/`__Secure-`, `CsrfOriginGuard`, dummy Argon2id, `RedisThrottlerStorage` + throttling por rota, `GETDEL` atômico (OAuth/Passkeys) + `DEL` atômico (OTP), `bodyParser: false` + `64kb` + `413`/`400` no `GlobalExceptionFilter`, CSP + HSTS sem `ws: wss:` no `_headers`, `WorldGateway` com `!origin` bloqueado em prod e cota/IP, redator de logs + `req.path`, expurgo agendado 6h, `api.Dockerfile` sem migrations/CLI no runtime, `deploy.yml` com step pré-deploy único e `ci.yml` com `integration-e2e` (Postgres/Redis/Kafka) + Gitleaks/Trivy/`npm audit` | **Concluída** |
+| **Onda 2 — Segurança WebSocket Mutável & Gráficos** | **Pré-Fase 6 (Overworld / Museu)** | 1) `WsAuthGuard` obrigatório para `world:join`/`world:move` + Zod por evento + rate limit por pacote;<br>2) Migrar `style-src` para `ngCspNonce` removendo `'unsafe-inline'`;<br>3) Segregação estrita de TTL/`noeviction` no Redis para sessões/presença vs. cache PokéAPI. | **Pendente (Fase 6)** |
+| **Onda 3 — Arcade WASM & Arena PvP** | **Junto à Fase 6 (Arcade / Arena)** | 1) Validação SHA-256, magic bytes e teto de bytes para *Cloud Save States* no R2 + Presigned URLs `60s` + headers `COOP`/`COEP` e `'wasm-unsafe-eval'` restritos à rota `/arcade`;<br>2) Engine PvE/PvP 100% autoritativa no servidor + anti-cheat temporizado para Mini-Games;<br>3) OpenTelemetry OTLP exporter + role Postgres sem DDL em produção. | **Pendente (Fase 6)** |
 
 ---
 

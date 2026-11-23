@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   type ActiveSessionsResponse,
@@ -8,6 +13,7 @@ import {
   type SecurityOverviewResponse,
   SecurityOverviewResponseSchema,
 } from '@pokeverse/shared';
+import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { AuthTokenRepository } from './auth-token.repository';
 import { SessionService } from './session.service';
@@ -15,15 +21,36 @@ import { TrainerAccountRepository } from './trainer-account.repository';
 import { resolveProvidersAvailability } from './trainer-session-issuer.service';
 
 const RETENTION_WINDOW_MS = 7 * 86_400_000;
+const PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 @Injectable()
-export class SessionManagementService {
+export class SessionManagementService implements OnModuleInit, OnModuleDestroy {
+  private purgeTimer: ReturnType<typeof setInterval> | null = null;
+
   constructor(
     private readonly trainerAccountRepository: TrainerAccountRepository,
     private readonly authTokenRepository: AuthTokenRepository,
     private readonly sessionService: SessionService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
+    private readonly logger: StructuredLoggerService,
   ) {}
+
+  onModuleInit(): void {
+    if (this.config.get('NODE_ENV', { infer: true }) === 'test') {
+      return;
+    }
+    this.purgeTimer = setInterval(() => {
+      void this.runScheduledPurge();
+    }, PURGE_INTERVAL_MS);
+    this.purgeTimer.unref?.();
+  }
+
+  onModuleDestroy(): void {
+    if (this.purgeTimer) {
+      clearInterval(this.purgeTimer);
+      this.purgeTimer = null;
+    }
+  }
 
   async getSecurityOverview(
     trainerId: string,
@@ -107,5 +134,27 @@ export class SessionManagementService {
     return this.authTokenRepository.purgeExpiredTokensAndPublishedOutbox(
       cutoff,
     );
+  }
+
+  async runScheduledPurge(): Promise<void> {
+    try {
+      const result = await this.purgeExpiredTokensAndEvents();
+      if (result.deletedRefreshTokens > 0 || result.deletedOutboxEvents > 0) {
+        this.logger.emitEvent(
+          'info',
+          `Purged ${result.deletedRefreshTokens} expired refresh tokens and ${result.deletedOutboxEvents} outbox events`,
+          { context: SessionManagementService.name },
+        );
+      }
+    } catch (error) {
+      this.logger.emitEvent(
+        'warn',
+        `Scheduled purge cycle failed: ${String(error)}`,
+        {
+          context: SessionManagementService.name,
+          errorCode: 'PURGE_EXPIRED_WARN',
+        },
+      );
+    }
   }
 }

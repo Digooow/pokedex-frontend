@@ -39,6 +39,25 @@ jobs:
           docker push "$IMAGE"
           docker push "$LATEST"
 
+      - name: Setup Node.js 22 for pre-deploy migrations
+        if: secrets.DATABASE_URL_UNPOOLED != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Run Prisma migrations (single pre-deploy release step)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_UNPOOLED }}
+          DATABASE_URL_UNPOOLED: ${{ secrets.DATABASE_URL_UNPOOLED }}
+        run: |
+          if [ -z "${DATABASE_URL_UNPOOLED}" ]; then
+            echo "::warning::Secret DATABASE_URL_UNPOOLED não configurado no GitHub Actions. Adicione-o em Settings > Secrets para executar migrations pré-deploy automaticamente fora dos containers."
+            exit 0
+          fi
+          npm ci --workspace=pokeverse-api --include-workspace-root
+          npx --workspace=pokeverse-api prisma migrate deploy
+
       - name: Update Azure Container App
         run: |
           az config set extension.use_dynamic_install=yes_without_prompt

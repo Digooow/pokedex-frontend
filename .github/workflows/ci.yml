@@ -11,8 +11,147 @@ permissions:
 
 jobs:
   verify:
-    name: Build, Lint, Typecheck & Tests
+    name: Build, Lint, Typecheck, Security & Unit/Edge Tests
     runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Audit production dependencies (critical gate)
+        run: npm audit --omit=dev --audit-level=critical
+
+      - name: Secret scanning with Gitleaks
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo:ro" \
+            ghcr.io/gitleaks/gitleaks:v8.21.2 detect \
+            --source=/repo --no-git --redact --verbose
+
+      - name: Generate Prisma Client & build shared package
+        run: |
+          npm run build:shared
+          npx --workspace=pokeverse-api prisma generate
+
+      - name: Typecheck all workspaces
+        run: npm run typecheck
+
+      - name: Lint & enforce complexity/size guardrails across all workspaces
+        run: npm run lint
+
+      - name: Verify Prettier formatting across all workspaces
+        run: npm run format:check
+
+      - name: Run unit tests across all workspaces
+        run: npm run test
+
+      - name: Run API HTTP edge E2E tests (mocked infra)
+        env:
+          NODE_ENV: test
+          API_PORT: 3000
+          CORS_ORIGINS: http://localhost:4200,http://127.0.0.1:4200
+          APP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          SESSION_TTL_SEC: 900
+          REFRESH_TTL_DAYS: 7
+          OTP_TTL_SEC: 600
+          OTP_MAX_ATTEMPTS: 3
+          COOKIE_SECURE: 'false'
+          COOKIE_SAMESITE: lax
+          POKEAPI_TIMEOUT_MS: 8000
+          MAIL_TRANSPORT: smtp
+          SMTP_HOST: 127.0.0.1
+          SMTP_PORT: 1025
+          SMTP_SECURE: 'false'
+          DATABASE_URL: postgresql://mock:mock@127.0.0.1:5432/mock
+          DATABASE_URL_UNPOOLED: postgresql://mock:mock@127.0.0.1:5432/mock
+          REDIS_URL: redis://127.0.0.1:6379
+          KAFKA_BROKERS: 127.0.0.1:19092
+          S3_ENABLED: 'false'
+        run: npm run test:e2e --workspace=pokeverse-api
+
+      - name: Build all workspaces & verify legacy root script
+        run: |
+          npm run build
+          node --check js/app.js
+
+      - name: Run UI Quality Gate (Contrast, Text Fit & Typography)
+        run: npm run audit:ui
+
+      - name: Validate production API Docker image build
+        run: docker build -f infra/docker/api.Dockerfile -t pokeverse-api:ci .
+
+      - name: Scan production API Docker image (Trivy)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: pokeverse-api:ci
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL
+
+  integration-e2e:
+    name: Real Backing Services Integration E2E (Postgres + Redis + Kafka)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci_ephemeral_password
+          POSTGRES_DB: pokeverse_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d pokeverse_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+      kafka:
+        image: apache/kafka:3.9.0
+        env:
+          CLUSTER_ID: Mk3OEYBSD3TuVPWCGVJR9g
+          KAFKA_NODE_ID: 1
+          KAFKA_PROCESS_ROLES: broker,controller
+          KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+          KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,CONTROLLER://0.0.0.0:9093
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:19092
+          KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+          KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+          KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+        ports:
+          - 19092:19092
+        options: >-
+          --health-cmd "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server 127.0.0.1:19092 || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 15s
 
     steps:
       - name: Checkout repository
@@ -32,19 +171,13 @@ jobs:
           npm run build:shared
           npx --workspace=pokeverse-api prisma generate
 
-      - name: Typecheck all workspaces
-        run: npm run typecheck
+      - name: Apply Prisma migrations to real PostgreSQL
+        env:
+          DATABASE_URL: postgresql://ci:ci_ephemeral_password@127.0.0.1:5432/pokeverse_ci?schema=public
+          DATABASE_URL_UNPOOLED: postgresql://ci:ci_ephemeral_password@127.0.0.1:5432/pokeverse_ci?schema=public
+        run: npx --workspace=pokeverse-api prisma migrate deploy
 
-      - name: Lint & enforce complexity/size guardrails across all workspaces
-        run: npm run lint
-
-      - name: Verify Prettier formatting across all workspaces
-        run: npm run format:check
-
-      - name: Run unit tests across all workspaces
-        run: npm run test
-
-      - name: Run API E2E tests
+      - name: Run real backing services integration E2E tests
         env:
           NODE_ENV: test
           API_PORT: 3000
@@ -61,20 +194,9 @@ jobs:
           SMTP_HOST: 127.0.0.1
           SMTP_PORT: 1025
           SMTP_SECURE: 'false'
-          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/ci
-          DATABASE_URL_UNPOOLED: postgresql://ci:ci@127.0.0.1:5432/ci
+          DATABASE_URL: postgresql://ci:ci_ephemeral_password@127.0.0.1:5432/pokeverse_ci?schema=public
+          DATABASE_URL_UNPOOLED: postgresql://ci:ci_ephemeral_password@127.0.0.1:5432/pokeverse_ci?schema=public
           REDIS_URL: redis://127.0.0.1:6379
           KAFKA_BROKERS: 127.0.0.1:19092
           S3_ENABLED: 'false'
-        run: npm run test:e2e --workspace=pokeverse-api
-
-      - name: Build all workspaces & verify legacy root script
-        run: |
-          npm run build
-          node --check js/app.js
-
-      - name: Run UI Quality Gate (Contrast, Text Fit & Typography)
-        run: npm run audit:ui
-
-      - name: Validate production API Docker image build
-        run: docker build -f infra/docker/api.Dockerfile -t pokeverse-api:ci .
+        run: npm run test:integration --workspace=pokeverse-api

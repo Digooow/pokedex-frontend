@@ -115,8 +115,8 @@ export class GoogleOAuthService {
   }): Promise<GoogleAccountResolutionResult> {
     const baseRedirect = this.getFrontendRedirectBase();
     const stateRedisKey = this.stateKey(params.state);
-    const stored = await this.redis.getJson<StoredOAuthState>(stateRedisKey);
-    await this.redis.delKeys(stateRedisKey);
+    const stored =
+      await this.redis.consumeJson<StoredOAuthState>(stateRedisKey);
 
     if (
       !stored ||
