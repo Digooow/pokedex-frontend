@@ -66,11 +66,12 @@ sequenceDiagram
   API-->>Trainer: "200 OK JSON + Novos Cookies HttpOnly"
 ```
 
-### Matriz RBAC (`@Public()` vs. `SessionAuthGuard`)
+### Matriz RBAC (`@Public()` vs. `SessionAuthGuard`) e Evolução por Escopos
 - O `SessionAuthGuard` é registrado como **Guard Global (`APP_GUARD`)** no NestJS (*Secure by Default*): toda rota exige cookie de sessão válido no Redis em estado `AUTHENTICATED`.
 - Endpoints abertos a **Visitantes** recebem explicitamente `@Public()` (ex.: catálogo e detalhe cacheados da PokéAPI, bootstrap de sessão e health checks).
 - Endpoints de conclusão de 2FA ou logout recebem `@AllowMfaPending()`.
 - Toda mutação autenticada (`PokedexSlot`, futuro `PokemonTeam`, `ArcadeSaveState`, `BattleMatch`) deriva `trainerId` exclusivamente da sessão validada no servidor e aplica-o na cláusula `where` da consulta (**IDOR / BOLA zero**).
+- **Ampliação normativa (`REQ-SEC-01`, `02`, `16`, `20`, `23`, `28`, `33`, `34`):** os requisitos de segurança evoluem o controle binário atual para **RBAC granular por papéis (`VISITOR`, `TRAINER`, `MODERATOR`, `ADMIN`) e `@Scopes(...)`**, autenticação M2M assinada/mTLS para eventual gateway de IA, WAF/DDoS na borda, anti-SSRF pós-DNS, CORS/CSP estritos, bloqueio estrito de geração/execução automática de comandos de sistema, rotina trimestral de revisão de permissões de terceiros e controle estrito de acesso aos consoles de logs e métricas ([doc 13 §9](13-dossie-de-seguranca-e-blindagem.md#9-governança-ampliada-de-segurança-privacidade-operações-e-ia-35-controles) e [doc 16 §4.3](16-cookies-lgpd-e-requisitos.md#43-catálogo-normativo-de-requisitos-de-segurança-req-sec-01-a-req-sec-35)).
 
 ---
 
@@ -82,12 +83,13 @@ sequenceDiagram
 2. **Prevenção contra Injeção:**
    - Queries relacionais via Prisma parametrizado; SQL bruto excepcional usa exclusivamente `$queryRaw` com *tagged template literals* parametrizadas (jamais `$queryRawUnsafe`).
 3. **Rate Limiting Distribuído (`RedisThrottlerStorage`) & Consumo Atômico (`GETDEL`):**
-   - `@nestjs/throttler` usa `RedisThrottlerStorage` via script Lua atômico (`INCR` + `PEXPIRE`), com limites específicos em `/register`, `/login` (`10/min` + trava `(IP, email)`), `/refresh` (`20/min`), OTP (`5–10/min`), `/mfa/totp/{enable,disable}` (`5/min`), `/passkeys/*` (`10–20/min`), `DELETE /auth/me` (`5/min`), `GET /auth/me/export` (`10/min`) e escrita de slots Pokédex (`30/min`).
+   - `@nestjs/throttler` usa `RedisThrottlerStorage` via script Lua atômico (`INCR` + `PEXPIRE`), com limites específicos em `/register`, `/login` (`10/min` + trava `(IP, email)`), `/refresh` (`20/min`), OTP (`5–10/min`), `/mfa/totp/{enable,disable}` (`5/min`), `/passkeys/*` (`10–20/min`), `DELETE /auth/me` (`5/min`), `GET /auth/me/export` (`10/min`) e escrita de slots Pokédex (`30/min`), evoluindo na Onda 4/5 para cotas por `trainerId`/API Key e orçamento de tokens (`REQ-SEC-03`).
    - Desafios single-use de Google OAuth PKCE e Passkeys WebAuthn são consumidos atomicamente com `GETDEL` (`consumeString` / `consumeJson`), eliminando janelas TOCTOU.
-4. **Hardening HTTP, CSRF & Redação de Logs:**
+4. **Hardening HTTP, CSRF, DLP & Redação de Logs:**
    - **Helmet:** `defaultSrc: 'none'`, `frameAncestors: 'none'`, `baseUri: 'none'`, `CORP: same-site`, `Permissions-Policy` e ocultação de `X-Powered-By`.
    - **CsrfOriginGuard:** valida `Sec-Fetch-Site`, `Origin`/`Referer` contra `CORS_ORIGINS` e bloqueia `Content-Type` de formulário HTML simples em mutações.
    - **GlobalExceptionFilter & StructuredLoggerService:** retorna apenas `{ code, message, correlationId }`, loga somente `req.path` (sem query string OAuth/token) e aplica redação automática de campos e headers sensíveis (`password`, `token`, `cookie`, `authorization`, `otp`).
+   - **DLP Runtime, Alertas, Auditoria Imutável & Gate Pré-IA (`REQ-SEC-06..17, 21, 22, 24, 29, 30, 33, 35`):** detecção runtime de exfiltração/anomalia (`Onda 4`), cofre centralizado de segredos, trilha de auditoria WORM/append-only, alertas automatizados + playbooks IRP e, caso módulos de IA/modelos sejam adotados (`Onda 5`), *hard limits* EDoS, proteção SSRF pós-DNS, tokenização pré-modelo, filtragem de *prompt injection*, sanitização DLP e moderação de saída, sandboxing sem rede e assinatura de respostas críticas.
 
 ---
 
