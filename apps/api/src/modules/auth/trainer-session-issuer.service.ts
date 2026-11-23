@@ -118,6 +118,7 @@ export class TrainerSessionIssuer {
   ): Promise<{
     readonly session: AuthSessionResponse;
     readonly refreshToken: string;
+    readonly sessionSid: string;
   }> {
     const promoted = await this.sessionService.promoteToAuthenticated(rawSid);
     if (!promoted) {
@@ -135,6 +136,10 @@ export class TrainerSessionIssuer {
       promoted.mfaMethods,
     );
 
-    return { session, refreshToken };
+    return {
+      session,
+      refreshToken,
+      sessionSid: promoted.rawSid ?? rawSid,
+    };
   }
 }

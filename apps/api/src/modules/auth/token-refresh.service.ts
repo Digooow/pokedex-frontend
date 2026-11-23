@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import {
   type SessionBootstrapResponse,
   SessionBootstrapResponseSchema,
 } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
+import { AuditTrailService } from '../../common/telemetry/audit-trail.service';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import { RedisService } from '../../infra/redis.service';
 import { AuthTokenRepository } from './auth-token.repository';
@@ -33,6 +34,7 @@ export class TokenRefreshService {
     private readonly sessionService: SessionService,
     private readonly sessionIssuer: TrainerSessionIssuer,
     private readonly logger: StructuredLoggerService,
+    @Optional() private readonly auditTrail?: AuditTrailService,
   ) {}
 
   async getSessionBootstrap(
@@ -111,6 +113,7 @@ export class TokenRefreshService {
     const { rawSid, session } = await this.sessionService.createSession({
       trainerId: existing.trainer.id,
       username: existing.trainer.username,
+      role: existing.trainer.role ?? 'TRAINER',
       familyId: existing.familyId,
       state: 'AUTHENTICATED',
       mfaMethods: [],
@@ -181,6 +184,13 @@ export class TokenRefreshService {
 
     await this.authTokenRepository.revokeFamily(existing.familyId);
     await this.sessionService.revokeAllForTrainer(existing.trainerId);
+    await this.auditTrail?.record({
+      actorTrainerId: existing.trainerId,
+      actorRole: existing.trainer.role ?? 'TRAINER',
+      action: 'auth.refresh.reuse_detected',
+      resource: `family:${existing.familyId}`,
+      outcome: 'DENIED',
+    });
     this.logger.emitEvent(
       'warn',
       `Refresh token reuse detected for trainer ${existing.trainerId}`,

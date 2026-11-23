@@ -147,7 +147,7 @@ Após a publicação oficial da infraestrutura (saindo do GitHub Pages), a **pri
 ### 6.1. Foco da Interface & Upgrade Visual/Motor Gráfico
 - **Restauração Fiel no Angular:** aplicar a Regra Zero do [AGENTS.md](../AGENTS.md) portando integralmente a anatomia 3D skeuomórfica, iluminação `--luz-x/--luz-y`, materiais OKLCH, dobradiça e os 10 botões iluminados do [index.html](../index.html) + [css/style.css](../css/style.css) para dentro de `apps/web/src/app/features/pokedex-device/`.
 - **Evolução Gráfica & Animações:** integrar **Three.js + WebGL2/Shaders + GSAP + Web Audio API** para adicionar animações fluidas, efeitos de câmera/visor holográfico elemental, partículas temáticas e espectro sonoro dos *cries*, respeitando sempre a detecção de hardware e o fallback `LITE`.
-- **Shell Focada no Produto:** enquanto o foco for a Enciclopédia/Pokédex, esconder/adiar da doca principal os botões das futuras telas de jogo (Vila Central, Arcade, Battle Frontier), mantendo a navegação limpa em **Login/Segurança + Pokédex & Enciclopédia**.
+- **Shell Focada no Produto:** enquanto o foco principal estiver na Enciclopédia/Pokédex, as rotas futuras de jogo (Vila Central, Arcade, Battle Frontier) permanecem visíveis no Dock com cadeado `[pvRequiresTrainer]` e tela *Em Construção* (`UnderConstructionComponent`) até sua entrega dedicada na Fase 6.
 
 ### 6.2. Novas Fontes de Dados Multimídia (Além dos 51 Endpoints da PokéAPI)
 Como a **PokéAPI v2** entrega dados profundos dos **jogos** (stats, golpes, habilidades, evoluções, capturas por versão, *flavor text*, sprites e áudios), mas **não possui cartas TCG, anime nem filmes**, a camada de consulta da API integrará:

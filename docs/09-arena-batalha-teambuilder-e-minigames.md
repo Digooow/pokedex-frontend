@@ -25,7 +25,7 @@ A **Battle Frontier (Arena de Batalha)** concentra a camada competitiva e intera
   `Stat = Math.floor((Math.floor(((2 * Base + IV + Math.floor(EV / 4)) * Level) / 100) + 5) * NatureMultiplier)`
 
 ### 2.3. Analisador Assíncrono de Sinergia (Kafka Worker)
-Ao salvar uma equipe, `TeamsModule` grava no PostgreSQL e publica em `pokeverse.team.analysis.v1`. O `TeamAnalyzerWorker` calcula o mapa completo de cobertura defensiva (quais tipos causam `2x`/`4x` sem resposta segura no time), distribuição física vs. especial, faixas de velocidade e grava `synergyScore` notificando o HUD em tempo real.
+Ao salvar uma equipe, `TeamsModule` grava no PostgreSQL e publica em `pokeverse.world.events.v1` (`eventType: 'team.saved'`). O `TeamAnalyzerWorker` calcula o mapa completo de cobertura defensiva (quais tipos causam `2x`/`4x` sem resposta segura no time), distribuição física vs. especial, faixas de velocidade e grava `synergyScore` notificando o HUD em tempo real.
 
 ---
 

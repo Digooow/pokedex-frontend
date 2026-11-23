@@ -62,6 +62,8 @@ export class PokedexController {
     return result;
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('pokedex:read')
   @Get('slots')
   async listSlots(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
@@ -110,6 +112,8 @@ export class PokedexController {
     );
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('pokedex:write')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Delete('slots')
   @HttpCode(HttpStatus.NO_CONTENT)

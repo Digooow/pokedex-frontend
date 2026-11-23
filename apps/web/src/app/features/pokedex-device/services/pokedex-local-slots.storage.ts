@@ -1,6 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
-import { type PokedexSlotRecord, TOTAL_POKEDEX_SLOTS } from '@pokeverse/shared';
+import { type PokedexSlotRecord, TOTAL_POKEDEX_SLOTS, isHttpsUrl } from '@pokeverse/shared';
 import { PrivacyConsentStore } from '../../../core/stores/privacy-consent.store';
 
 const LOCAL_SLOTS_KEY = 'pokedex_slots_salvos';
@@ -101,7 +101,8 @@ export class PokedexLocalSlotsStorage {
     const nickname =
       this.extractTrimmedString(candidate['apelido']) ??
       this.extractTrimmedString(candidate['nickname']);
-    const spriteUrl = this.extractTrimmedString(candidate['spriteUrl']);
+    const rawSpriteUrl = this.extractTrimmedString(candidate['spriteUrl']);
+    const spriteUrl = rawSpriteUrl && isHttpsUrl(rawSpriteUrl) ? rawSpriteUrl : null;
     const updatedAt =
       typeof candidate['updatedAt'] === 'string'
         ? candidate['updatedAt']

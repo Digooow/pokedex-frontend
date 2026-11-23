@@ -116,6 +116,10 @@ export class PasskeyService {
       expectedOrigin: this.getAllowedOrigins(),
       expectedRPID: this.config.get('WEBAUTHN_RP_ID', { infer: true }),
       requireUserVerification: false,
+    }).catch(() => {
+      throw new BadRequestException(
+        'Falha na verificação criptográfica da Passkey.',
+      );
     });
 
     if (!verification.verified || !verification.registrationInfo) {
@@ -232,6 +236,8 @@ export class PasskeyService {
         counter: passkey.counter,
         transports: passkey.transports,
       },
+    }).catch(() => {
+      throw new UnauthorizedException('Assinatura da Passkey inválida.');
     });
 
     if (!verification.verified) {
@@ -252,6 +258,7 @@ export class PasskeyService {
       const promoted =
         await this.sessionService.promoteToAuthenticated(currentRawSid);
       if (promoted) {
+        activeSid = promoted.rawSid ?? currentRawSid;
         familyId = promoted.familyId;
         mfaMethods = promoted.mfaMethods;
       } else {
@@ -263,6 +270,7 @@ export class PasskeyService {
       const created = await this.sessionService.createSession({
         trainerId: passkey.trainer.id,
         username: passkey.trainer.username,
+        role: passkey.trainer.role ?? 'TRAINER',
         familyId,
         state: 'AUTHENTICATED',
         mfaMethods: ['passkey'],

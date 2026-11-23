@@ -373,7 +373,7 @@ O pacote `@pokeverse/shared` precisa ser importado simultaneamente por dois ambi
 
 O arquivo [`packages/shared/tsup.config.ts`](../../packages/shared/tsup.config.ts) compila os dois formatos em uma única etapa (`format: ['esm', 'cjs']`, `dts: true`, `sourcemap: true`, `target: 'es2022'`).
 
-Além disso, conforme documentado em [doc 15](../15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md#L15-L17), duas configurações reduziram o bundle inicial do Angular de `814.44 kB` para `490.00 kB` (`-324.44 kB` raw):
+Além disso, conforme documentado em [doc 15](../15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md#L15-L17), duas configurações reduziram o bundle inicial do Angular de `814.44 kB` para `490.00 kB` na Fase 4A (`498.50 kB` raw / `128.16 kB` transfer pós-Onda 4):
 
 1. `"sideEffects": false` em [`packages/shared/package.json`](../../packages/shared/package.json#L5) informa ao empacotador que importar `@pokeverse/shared` não produz efeitos colaterais globais ocultos, liberando o descarte completo de símbolos não utilizados (*tree-shaking*).
 2. Os arquivos de schema importam o Zod v4 por namespace (`import * as z from 'zod'`) em vez de `import { z } from 'zod'`, permitindo que o `esbuild` elimine validadores e utilitários internos do Zod não referenciados pelo cliente web.

@@ -57,10 +57,8 @@ export class EmailNotificationsConsumerService
     let candidateEvent: unknown;
     try {
       const outer: unknown = JSON.parse(rawValue);
-      const encrypted = EncryptedOutboxPayloadSchema.safeParse(outer);
-      candidateEvent = encrypted.success
-        ? this.crypto.decryptJson<unknown>(encrypted.data.ciphertext)
-        : outer;
+      const encrypted = EncryptedOutboxPayloadSchema.parse(outer);
+      candidateEvent = this.crypto.decryptJson<unknown>(encrypted.ciphertext);
     } catch {
       await this.kafka.publishDlq(
         topic,

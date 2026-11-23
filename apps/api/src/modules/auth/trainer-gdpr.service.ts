@@ -2,6 +2,7 @@ import { Optional, Injectable, UnauthorizedException } from '@nestjs/common';
 import {
   type TrainerDataExport,
   TrainerDataExportSchema,
+  type TrainerRole,
 } from '@pokeverse/shared';
 import { CryptoService } from '../../common/security/crypto.service';
 import { AuditTrailService } from '../../common/telemetry/audit-trail.service';
@@ -19,7 +20,11 @@ export class TrainerGdprService {
     @Optional() private readonly auditTrail?: AuditTrailService,
   ) {}
 
-  async exportTrainerData(trainerId: string): Promise<TrainerDataExport> {
+  async exportTrainerData(
+    trainerId: string,
+    actorRole: TrainerRole = 'TRAINER',
+    traceId: string | null = null,
+  ): Promise<TrainerDataExport> {
     const trainer =
       await this.trainerAccountRepository.findExportSnapshotById(trainerId);
 
@@ -27,7 +32,7 @@ export class TrainerGdprService {
       throw new UnauthorizedException('Treinador não encontrado.');
     }
 
-    return TrainerDataExportSchema.parse({
+    const exported = TrainerDataExportSchema.parse({
       exportedAt: new Date().toISOString(),
       trainer: this.sessionService.toTrainerProfile(trainer),
       oauthProviders: trainer.oauthAccounts.map((acc) => ({
@@ -52,12 +57,25 @@ export class TrainerGdprService {
         updatedAt: slot.updatedAt.toISOString(),
       })),
     });
+
+    await this.auditTrail?.record({
+      actorTrainerId: trainer.id,
+      actorRole: trainer.role ?? actorRole,
+      action: 'lgpd.account.export',
+      resource: `trainer_sha256:${this.crypto.sha256Hex(trainerId)}`,
+      outcome: 'SUCCESS',
+      traceId,
+    });
+
+    return exported;
   }
 
   async deleteTrainerAccount(
     trainerId: string,
     rawSid?: string,
     rawRefreshToken?: string,
+    actorRole: TrainerRole = 'TRAINER',
+    traceId: string | null = null,
   ): Promise<{ readonly message: string }> {
     const deleted =
       await this.trainerAccountRepository.deleteTrainerById(trainerId);
@@ -73,10 +91,11 @@ export class TrainerGdprService {
     await this.sessionService.revokeAllForTrainer(trainerId);
     await this.auditTrail?.record({
       actorTrainerId: null,
-      actorRole: 'TRAINER',
+      actorRole,
       action: 'lgpd.account.delete',
-      resource: `trainer:${trainerId}`,
+      resource: `trainer_sha256:${this.crypto.sha256Hex(trainerId)}`,
       outcome: 'SUCCESS',
+      traceId,
     });
 
     return {

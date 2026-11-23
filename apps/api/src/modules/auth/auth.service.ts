@@ -5,6 +5,7 @@ import type {
   RegisterTrainerInput,
   ResendEmailOtpInput,
   ResetPasswordOtpInput,
+  TrainerRole,
   VerifyEmailOtpInput,
 } from '@pokeverse/shared';
 import { AccountRecoveryService } from './account-recovery.service';
@@ -75,13 +76,24 @@ export class AuthService implements OnModuleInit {
   purgeExpiredTokensAndEvents = (now?: Date) =>
     this.sessionManagement.purgeExpiredTokensAndEvents(now);
 
-  exportTrainerData = (trainerId: string) =>
-    this.trainerGdpr.exportTrainerData(trainerId);
+  exportTrainerData = (
+    trainerId: string,
+    actorRole?: TrainerRole,
+    traceId?: string | null,
+  ) => this.trainerGdpr.exportTrainerData(trainerId, actorRole, traceId);
 
   deleteTrainerAccount = (
     trainerId: string,
     rawSid?: string,
     rawRefreshToken?: string,
+    actorRole?: TrainerRole,
+    traceId?: string | null,
   ) =>
-    this.trainerGdpr.deleteTrainerAccount(trainerId, rawSid, rawRefreshToken);
+    this.trainerGdpr.deleteTrainerAccount(
+      trainerId,
+      rawSid,
+      rawRefreshToken,
+      actorRole,
+      traceId,
+    );
 }

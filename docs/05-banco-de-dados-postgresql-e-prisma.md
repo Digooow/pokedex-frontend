@@ -326,13 +326,15 @@ model OutboxEvent {
 
 ---
 
-## 5. Status Atual de Aplicação (Fase 2)
+## 5. Status Atual de Aplicação (Pós-Onda 4)
 
-- **Versão instalada:** Prisma **`6.19.3`** (`prisma` e `@prisma/client`) escolhido para compatibilidade direta CJS com NestJS 11 e Jest.
-- **Migrations aplicadas:**
+- **Versão instalada e estrutura:** Prisma **`6.19.3`** (`prisma` e `@prisma/client` para compatibilidade direta CJS com NestJS 11 e Jest), definindo **`14` modelos** e **`5` enums** (`ArcadeConsole`, `OutboxStatus`, `BattleMode`, `BattleStatus`, `TrainerRole`) em [`schema.prisma`](../apps/api/prisma/schema.prisma).
+- **Migrations aplicadas (`3` migrations):**
   1. `apps/api/prisma/migrations/20261118073124_init_pokeverse_schema/migration.sql` (10 tabelas base de domínio + índice parcial `"idx_outbox_pending"` em `"OutboxEvent" ("createdAt" ASC) WHERE "status" = 'PENDING'`).
   2. `apps/api/prisma/migrations/20261118082535_iam_enterprise_foundation/migration.sql` (evolução do `Trainer` com `passwordHash` opcional, `emailVerifiedAt`, `mfaEnabled`, `totpSecretEncrypted`, mais os modelos `MfaBackupCode`, `TrainerOAuthAccount` e `TrainerPasskey`).
+  3. `apps/api/prisma/migrations/20261123080000_onda4_rbac_and_audit_log/migration.sql` (enum `TrainerRole`, coluna `Trainer.role`, tabela `AuditLog` e trigger SQL `prevent_audit_log_mutation()` tornando `AuditLog` *append-only* imutável contra `UPDATE` e `DELETE`).
+- **Expurgo temporal ativo:** limpeza periódica de `RefreshToken` expirados/revogados e `OutboxEvent` publicados roda a cada `6h` via `SessionManagementService` (`AuditLog` é preservado fora desse expurgo).
 - **Expansão Planejada para a Pokédex Definitiva (`TrainerPokemonSnapshot` — Próximo Marco de Dados):**
   - Para permitir que o treinador continue consultando e operando os Pokémon da própria lista mesmo durante quedas temporárias das APIs externas (PokéAPI / TCG) — e já criar a ponte para cálculos futuros de jogo —, será adicionado um modelo/extensão vinculado a `Trainer` / `PokedexSlot` (ex.: `TrainerPokemonSnapshot`) armazenando snapshot JSONB versionado (`stats`, `types`, `abilities`, `moves`, `evolutionSummary`, `mediaRefs`, `sourceVersion`, `syncedAt`).
   - Isso mantém o banco enxuto (sem replicar toda a PokéAPI de forma cega no Free Tier) enquanto garante **offline-resilience nominal por usuário** e serve de base direta para nível, XP, chances de encontro, dano de skills e forças/fraquezas nas fases futuras de jogo.
-- **Segurança & Higiene pendentes:** ver política de privilégio mínimo da role de runtime e worker de expurgo para `RefreshToken`/`OutboxEvent` publicados no [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md#71-postgresql--prisma-orm).
+- **Segurança pendente em banco:** role dedicada de runtime sem privilégios DDL em produção ([13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md#71-postgresql--prisma-orm)).

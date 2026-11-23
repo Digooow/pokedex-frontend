@@ -57,6 +57,22 @@ describe('shared schemas boundary validation', () => {
       evilOverride: true,
     });
     expect(extraField.success).toBe(false);
+
+    const jsSprite = SavePokedexSlotSchema.safeParse({
+      slotIndex: 1,
+      pokemonId: 1,
+      pokemonName: 'bulbasaur',
+      spriteUrl: 'javascript:alert(1)',
+    });
+    expect(jsSprite.success).toBe(false);
+
+    const httpSprite = SavePokedexSlotSchema.safeParse({
+      slotIndex: 1,
+      pokemonId: 1,
+      pokemonName: 'bulbasaur',
+      spriteUrl: 'http://insecure.example/25.png',
+    });
+    expect(httpSprite.success).toBe(false);
   });
 
   it('validates trainer registration, login, slots, and Kafka ticker events', () => {

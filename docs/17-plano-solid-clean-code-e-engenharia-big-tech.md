@@ -85,7 +85,7 @@ flowchart LR
 2. **O — Open/Closed Principle (OCP)**
    - **Ações:**
      - Substituir ramificações manuais em `MailService.renderEmail` e `AuthService` por um mapa tipado de templates/renderizadores (`Record<EmailTemplate, EmailRenderer>`).
-     - No `PrivacyConsentStore` e `QualityStore`, adotar registro declarativo de chaves sujeitas a consentimento e estratégia explícita de opt-in (`functionalPreferences === true` em vez de `?? true`).
+     - No `PrivacyConsentStore` e `QualityStore`, adotar registro declarativo de chaves sujeitas a consentimento e diferenciar explicitamente opt-in estrito (`hasExplicitFunctionalOptIn`: `functionalPreferences === true`) da permissão funcional de slots no Modo Visitante antes de revogação explícita (`canPersistFunctionalPreferences`: `functionalPreferences ?? true`).
 
 3. **L — Liskov Substitution Principle (LSP)**
    - **Ações:**

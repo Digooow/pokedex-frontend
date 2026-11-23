@@ -40,6 +40,7 @@ import {
   CurrentTrainer,
 } from '../../common/decorators/current-trainer.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles, Scopes } from '../../common/decorators/rbac.decorator';
 import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -58,6 +59,8 @@ export class MfaController {
     private readonly sessionService: SessionService,
   ) {}
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:read')
   @Get('security/overview')
   getSecurityOverview(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
@@ -65,6 +68,8 @@ export class MfaController {
     return this.authService.getSecurityOverview(trainer.trainerId);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @Post('mfa/totp/setup')
   setupTotp(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
@@ -72,6 +77,8 @@ export class MfaController {
     return this.totpService.initiateSetup(trainer.trainerId);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('mfa/totp/enable')
@@ -87,6 +94,8 @@ export class MfaController {
     );
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Post('mfa/totp/disable')
@@ -103,6 +112,8 @@ export class MfaController {
     return GenericMessageResponseSchema.parse(result);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @AllowMfaPending()
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
@@ -121,12 +132,15 @@ export class MfaController {
       trainer.trainerId,
       body,
     );
-    if (rawSid) {
-      writeAuthCookies(res, this.sessionService, rawSid, result.refreshToken);
+    const nextSid = result.sessionSid ?? rawSid;
+    if (nextSid) {
+      writeAuthCookies(res, this.sessionService, nextSid, result.refreshToken);
     }
     return result.session;
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:read')
   @Get('passkeys')
   async listPasskeys(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
@@ -135,11 +149,15 @@ export class MfaController {
     return { passkeys };
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @Post('passkeys/register/options')
   passkeyRegisterOptions(@CurrentTrainer() trainer: AuthenticatedTrainer) {
     return this.passkeyService.generateRegisterOptions(trainer.trainerId);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Post('passkeys/register/verify')
   passkeyRegisterVerify(
@@ -153,6 +171,8 @@ export class MfaController {
     );
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete('passkeys/:id')
   async deletePasskey(

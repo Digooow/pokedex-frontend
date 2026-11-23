@@ -6,6 +6,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { EmailNotificationEvent } from '@pokeverse/shared';
 import nodemailer, { type Transporter } from 'nodemailer';
+import { assertSafeOutboundUrl } from '../../common/http/safe-outbound-http';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
 
@@ -142,10 +143,14 @@ export class MailService implements OnModuleDestroy {
     subject: string,
     rendered: RenderedEmail,
   ): Promise<void> {
+    const safeUrl = await assertSafeOutboundUrl(
+      'https://api.resend.com/emails',
+      ['api.resend.com'],
+    );
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetch('https://api.resend.com/emails', {
+      const response = await fetch(safeUrl.toString(), {
         method: 'POST',
         signal: controller.signal,
         redirect: 'error',

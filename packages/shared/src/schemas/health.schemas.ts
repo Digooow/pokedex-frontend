@@ -50,6 +50,8 @@ export const SystemBootstrapSchema = z.object({
     'phase-2b',
     'phase-3',
     'phase-4',
+    'phase-4a',
+    'phase-4b',
     'phase-5',
     'phase-6',
   ]),

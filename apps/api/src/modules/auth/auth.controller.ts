@@ -39,6 +39,7 @@ import {
   CurrentTrainer,
 } from '../../common/decorators/current-trainer.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles, Scopes } from '../../common/decorators/rbac.decorator';
 import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -217,25 +218,36 @@ export class AuthController {
     return GenericMessageResponseSchema.parse(result);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:read')
   @Get('me')
   me(@CurrentTrainer() trainer: AuthenticatedTrainer): Promise<TrainerProfile> {
     return this.authService.getMe(trainer.trainerId);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:read')
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Get('me/export')
   exportMyData(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
+    @Req() req: RequestWithTrace,
   ): Promise<TrainerDataExport> {
-    return this.authService.exportTrainerData(trainer.trainerId);
+    return this.authService.exportTrainerData(
+      trainer.trainerId,
+      trainer.role,
+      req.traceId ?? null,
+    );
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @HttpCode(HttpStatus.OK)
   @Delete('me')
   async deleteMyAccount(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
-    @Req() req: Request,
+    @Req() req: RequestWithTrace,
     @Res({ passthrough: true }) res: Response,
   ): Promise<GenericMessageResponse> {
     const { sessionCookieName, refreshCookieName } =
@@ -247,11 +259,15 @@ export class AuthController {
       trainer.trainerId,
       rawSid,
       rawRefresh,
+      trainer.role,
+      req.traceId ?? null,
     );
     clearAuthCookies(res, this.sessionService);
     return GenericMessageResponseSchema.parse(result);
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:read')
   @Get('sessions')
   getActiveSessions(
     @CurrentTrainer() trainer: AuthenticatedTrainer,
@@ -262,6 +278,8 @@ export class AuthController {
     );
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @HttpCode(HttpStatus.OK)
   @Post('sessions/revoke-others')
   revokeOtherSessions(

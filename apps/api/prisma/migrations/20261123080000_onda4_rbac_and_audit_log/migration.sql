@@ -19,3 +19,18 @@ CREATE TABLE "AuditLog" (
 
 CREATE INDEX "AuditLog_actorTrainerId_createdAt_idx" ON "AuditLog"("actorTrainerId", "createdAt" DESC);
 CREATE INDEX "AuditLog_action_createdAt_idx" ON "AuditLog"("action", "createdAt" DESC);
+
+CREATE OR REPLACE FUNCTION prevent_audit_log_mutation()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'AuditLog table is append-only and immutable (REQ-SEC-35)';
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_audit_log_no_update
+BEFORE UPDATE ON "AuditLog"
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();
+
+CREATE TRIGGER trg_audit_log_no_delete
+BEFORE DELETE ON "AuditLog"
+FOR EACH ROW EXECUTE FUNCTION prevent_audit_log_mutation();

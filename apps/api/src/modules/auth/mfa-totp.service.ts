@@ -150,19 +150,13 @@ export class MfaTotpService {
   ): Promise<{
     readonly session: AuthSessionResponse;
     readonly refreshToken: string;
+    readonly sessionSid?: string;
   }> {
     if (!rawSid) {
       throw new UnauthorizedException('Sessão pendente ausente.');
     }
 
-    const failKey = `mfa_fail:${trainerId}`;
-    const failCount = Number((await this.redis.getString(failKey)) ?? '0');
-    if (failCount >= MFA_MAX_FAILURES) {
-      throw new HttpException(
-        'Muitas tentativas de 2FA falharam. Aguarde 5 minutos antes de tentar novamente.',
-        HttpStatus.TOO_MANY_REQUESTS,
-      );
-    }
+    const { failKey, failCount } = await this.checkMfaLockout(trainerId);
 
     const trainer = await this.totpRepository.findForMfaChallenge(trainerId);
     if (!trainer?.mfaEnabled || !trainer.totpSecretEncrypted) {
@@ -194,6 +188,7 @@ export class MfaTotpService {
     input: DisableTotpInput,
     traceId: string | null,
   ): Promise<{ readonly message: string }> {
+    const { failKey, failCount } = await this.checkMfaLockout(trainerId);
     const trainer = await this.totpRepository.findForTotpDisable(trainerId);
     if (!trainer?.totpSecretEncrypted) {
       throw new BadRequestException('O Authenticator TOTP não está ativado.');
@@ -205,11 +200,13 @@ export class MfaTotpService {
       input,
     );
     if (!authorized) {
+      await this.recordMfaFailure(failKey, failCount);
       throw new UnauthorizedException(
         'Credencial ou código TOTP/backup inválido para desativar 2FA.',
       );
     }
 
+    await this.redis.delKeys(failKey);
     const outboxEvent = this.outboxPublisher.buildEncryptedEmailEvent({
       aggregateId: trainerId,
       template: 'security_alert',
@@ -254,6 +251,21 @@ export class MfaTotpService {
       cleaned,
     );
     return step !== null;
+  }
+
+  private async checkMfaLockout(trainerId: string): Promise<{
+    readonly failKey: string;
+    readonly failCount: number;
+  }> {
+    const failKey = `mfa_fail:${trainerId}`;
+    const failCount = Number((await this.redis.getString(failKey)) ?? '0');
+    if (failCount >= MFA_MAX_FAILURES) {
+      throw new HttpException(
+        'Muitas tentativas de 2FA falharam. Aguarde 5 minutos antes de tentar novamente.',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+    return { failKey, failCount };
   }
 
   private async recordMfaFailure(

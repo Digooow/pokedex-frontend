@@ -13,7 +13,7 @@ Como arquivos binários de ROMs (entre `512 KB` e `64 MB`) e snapshots de memór
 - **Buckets dedicados em Object Storage S3-compatible** (**MinIO** no `docker-compose.yml` local; **Cloudflare R2** ou **AWS S3** em produção):
   - **`pokeverse-roms` (privado):** armazena os binários catalogados indexados na tabela `ArcadeRom` (`roms/gba/emerald.gba`, `roms/gbc/crystal.gbc`, etc.) com hash `SHA-256` verificado no catálogo.
   - **`pokeverse-saves` (privado):** armazena os saves individuais segmentados por usuário e jogo (`saves/{trainerId}/{romId}/slot-{0..5}.state` e `preview.webp`), onde o **Slot 0** atua como *Auto-Save* contínuo.
-- **Controle de Acesso:** nenhum bucket é exposto publicamente. Somente treinadores autenticados obtêm acesso por meio de **Presigned URLs de curtíssima duração (60 segundos)** ou streaming autenticado intermediado pela API NestJS após validação de sessão JWT.
+- **Controle de Acesso:** nenhum bucket é exposto publicamente. Somente treinadores autenticados obtêm acesso por meio de **Presigned URLs de curtíssima duração (60 segundos)** ou streaming autenticado intermediado pela API NestJS após validação de sessão opaca BFF (`HttpOnly` cookie + `SessionAuthGuard` / `RbacGuard`).
 
 ---
 
@@ -30,8 +30,8 @@ sequenceDiagram
   participant Kafka as "Redpanda / Kafka"
 
   Trainer->>Angular: "Clica em Jogar no catálogo do servidor"
-  Angular->>API: "POST /api/v1/arcade/roms/:slug/session (JWT)"
-  API->>API: "Valida JWT + Busca ArcadeRom + Último ArcadeSaveState"
+  Angular->>API: "POST /api/v1/arcade/roms/:slug/session (Cookie BFF HttpOnly)"
+  API->>API: "Valida Sessão Redis + RbacGuard + Busca ArcadeRom + Último ArcadeSaveState"
   API->>S3: "Gera Presigned URL (ROM 60s + Save Slot mais recente)"
   API-->>Angular: "200 OK (romUrl, saveUrl, checksum, console)"
 

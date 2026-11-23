@@ -96,4 +96,52 @@ describe('WorldGateway (WebSocket CORS & connection quota)', () => {
     gateway.handleConnection(replacement.socket);
     expect(replacement.disconnect).not.toHaveBeenCalled();
   });
+
+  it('resolves client IP from the trusted rightmost proxy hop when TRUST_PROXY=1 to block X-Forwarded-For spoofing', () => {
+    const previousTrustProxy = process.env['TRUST_PROXY'];
+    process.env['TRUST_PROXY'] = '1';
+    try {
+      const logger = new StructuredLoggerService();
+      jest.spyOn(logger, 'emitEvent').mockImplementation(() => undefined);
+      const gateway = new WorldGateway(logger);
+
+      for (let i = 0; i < 10; i += 1) {
+        const disconnect = jest.fn();
+        const spoofed = {
+          id: `spoof-${i}`,
+          handshake: {
+            address: '10.0.0.5',
+            headers: {
+              'x-forwarded-for': `198.18.0.${i + 1}, 198.51.100.77`,
+            },
+          },
+          emit: jest.fn(),
+          disconnect,
+        } as unknown as Socket;
+        gateway.handleConnection(spoofed);
+        expect(disconnect).not.toHaveBeenCalled();
+      }
+
+      const disconnectEleventh = jest.fn();
+      const eleventh = {
+        id: 'spoof-10',
+        handshake: {
+          address: '10.0.0.5',
+          headers: {
+            'x-forwarded-for': '203.0.113.250, 198.51.100.77',
+          },
+        },
+        emit: jest.fn(),
+        disconnect: disconnectEleventh,
+      } as unknown as Socket;
+      gateway.handleConnection(eleventh);
+      expect(disconnectEleventh).toHaveBeenCalledWith(true);
+    } finally {
+      if (previousTrustProxy === undefined) {
+        delete process.env['TRUST_PROXY'];
+      } else {
+        process.env['TRUST_PROXY'] = previousTrustProxy;
+      }
+    }
+  });
 });

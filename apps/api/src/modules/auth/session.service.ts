@@ -174,23 +174,35 @@ export class SessionService {
 
   async promoteToAuthenticated(
     rawSid: string,
-  ): Promise<ActiveRedisSession | null> {
+  ): Promise<(ActiveRedisSession & { readonly rawSid?: string }) | null> {
     const current = await this.getSessionByRawSid(rawSid);
     if (!current) {
       return null;
     }
 
+    const nextRawSid = randomBytes(32).toString('base64url');
+    const nextSidHash = this.crypto.sha256Hex(nextRawSid);
     const promoted: ActiveRedisSession = {
       ...current,
+      sidHash: nextSidHash,
       state: 'AUTHENTICATED',
     };
     const ttlSec = this.getSessionTtlSec();
-    await this.redis.setJsonEx(
-      this.sessionKey(current.sidHash),
-      ttlSec,
-      promoted,
+
+    await this.redis.delKeys(this.sessionKey(current.sidHash));
+    if (typeof this.redis.removeSetMembers === 'function') {
+      await this.redis.removeSetMembers(
+        this.trainerSessionsKey(current.trainerId),
+        current.sidHash,
+      );
+    }
+    await this.redis.setJsonEx(this.sessionKey(nextSidHash), ttlSec, promoted);
+    await this.redis.addToSetWithTtl(
+      this.trainerSessionsKey(current.trainerId),
+      nextSidHash,
+      ttlSec + 60,
     );
-    return promoted;
+    return { ...promoted, rawSid: nextRawSid };
   }
 
   async revokeByRawSid(rawSid: string | undefined): Promise<void> {

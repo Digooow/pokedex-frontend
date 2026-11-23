@@ -156,7 +156,7 @@ export class PokedexSlotsService {
 ### 3.3. Sanitização Total contra Injeção de SQL e XSS
 
 - **SQL Injection:** use exclusivamente o Prisma ORM tipado e parametrizado. Em consultas SQL nativas excepcionais (como CTEs de *atomic lease*), utilize apenas `prisma.$queryRaw` com *tagged template literals* parametrizadas — `$queryRawUnsafe` ou concatenação/interpolação manual de strings SQL são terminantemente proibidos.
-- **XSS e Segurança HTTP/Front-end:** proibido `innerHTML`, `dangerouslySetInnerHTML`, `bypassSecurityTrustHtml` sem sanitização estrita ou inserção direta de HTML de usuário. URLs dinâmicas devem ser validadas contra esquemas `javascript:` e `data:`. A borda HTTP aplica `helmet()` e CSP estrito sem `'unsafe-inline'`.
+- **XSS e Segurança HTTP/Front-end:** proibido `innerHTML`, `dangerouslySetInnerHTML`, `bypassSecurityTrustHtml` sem sanitização estrita ou inserção direta de HTML de usuário. URLs dinâmicas devem ser validadas contra esquemas `javascript:` e `data:` (exigindo `https:` via `isHttpsUrl` / `HttpsUrlSchema`). A borda HTTP aplica `helmet()` e CSP estrito sem `script-src 'unsafe-inline'` (mantendo `style-src 'unsafe-inline'` no front até adoção futura de `ngCspNonce`).
 - **Logs e Erros Seguros:** o `GlobalExceptionFilter` nunca expõe stack traces, queries SQL, chaves ou PII ao cliente, emitindo logs estruturados em JSON com `correlationId`/`traceparent` sanitizados.
 
 ---

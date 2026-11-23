@@ -120,9 +120,14 @@ export class WorldGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (trustProxy > 0) {
       const forwarded = client.handshake.headers['x-forwarded-for'];
       const rawForwarded = Array.isArray(forwarded) ? forwarded[0] : forwarded;
-      const firstIp = rawForwarded?.split(',')[0]?.trim();
-      if (firstIp) {
-        return firstIp;
+      const hops =
+        rawForwarded
+          ?.split(',')
+          .map((ip) => ip.trim())
+          .filter(Boolean) ?? [];
+      if (hops.length > 0) {
+        const trustedIndex = Math.max(0, hops.length - trustProxy);
+        return hops[trustedIndex] ?? client.handshake.address ?? 'unknown';
       }
     }
     return client.handshake.address || 'unknown';

@@ -109,7 +109,7 @@ flowchart TD
   v04["Vol. 04 · Front-end Angular 22 & Stores<br/>Signals, Zoneless, Guards, Interceptores + Doc 02"]:::plan
   v05["Vol. 05 · Visual 3D, Hardware & A11y<br/>SCSS Tokens oklch, Giro 3D, RPG Nav + Docs 03, 11"]:::plan
   v06["Vol. 06 · Back-end NestJS & Pipeline HTTP<br/>DI, Pipes, Filters, Telemetria + Doc 04"]:::plan
-  v07["Vol. 07 · PostgreSQL, Prisma & Redis<br/>13 modelos, Neon, Cache 7d, Lua Atômico + Docs 05, 06"]:::plan
+  v07["Vol. 07 · PostgreSQL, Prisma & Redis<br/>14 modelos, Neon, Cache 7d, Lua Atômico + Docs 05, 06"]:::plan
   v08["Vol. 08 · Kafka Outbox, WebSockets & S3<br/>Atomic Lease, Idempotência, DLQ, Futuros + Docs 06, 07, 08, 09"]:::plan
   v09["Vol. 09 · Segurança Enterprise (AppSec) & LGPD<br/>BFF, Argon2id, TOTP, Passkeys, PKCE, AES + Docs 13, 16"]:::plan
   v10["Vol. 10 · Testes, CDP Gate, Docker, Cloud & Defesa<br/>Vitest, Jest, CDP, CI/CD, Nuvem + Docs 10, 11, 14, 18"]:::plan
@@ -139,7 +139,7 @@ flowchart TD
 | **04** | **Front-end Angular 22: Standalone, Signals, Zoneless e Stores** *(planejado)* | `02`, `16`, `17`, `18` | `app.config.ts`, `app.routes.ts`, `auth.guard.ts`, `auth.interceptor.ts`, `AuthStore`, `SecurityIamStore`, `PrivacyConsentStore`, `PokedexStore` e diretivas. | Planejado |
 | **05** | **Engenharia Visual 3D, Perfis de Hardware e Acessibilidade (WCAG 2.2 AA)** *(planejado)* | `03`, `08`, `11`, `12` | `_tokens.scss`, `_pokedex-classic.scss`, parciais `styles/pokedex/`, `PokedexLidPhysicsService`, `PokedexRpgNavService`, `[pvRpgFocusable]`, `QualityStore` e `ScenarioStore`. | Planejado |
 | **06** | **Back-end NestJS 11, Pipeline de Requisição e Observabilidade** *(planejado)* | `04`, `10`, `17`, `18` | Ciclo da requisição (`main.ts` -> `CorrelationMiddleware` -> Guards -> `ZodValidationPipe` -> Controller -> Service -> Repository -> `GlobalExceptionFilter`), `env.schema.ts` e probes. | Planejado |
-| **07** | **Banco Relacional (PostgreSQL + Prisma 6) e Cache Atômico (Redis 7)** *(planejado)* | `05`, `06`, `11`, `17` | Os 13 modelos e 4 enums de `schema.prisma`, migrations, índice parcial, Neon pooled vs. unpooled, cache `HIT`/`MISS`/`STALE` 7d e scripts Lua anti-TOCTOU. | Planejado |
+| **07** | **Banco Relacional (PostgreSQL + Prisma 6) e Cache Atômico (Redis 7)** *(planejado)* | `05`, `06`, `11`, `17` | Os 14 modelos e 5 enums de `schema.prisma`, 3 migrations, índice parcial, Neon pooled vs. unpooled, cache `HIT`/`MISS`/`STALE` 7d e scripts Lua anti-TOCTOU. | Planejado |
 | **08** | **Mensageria Kafka/Outbox, WebSockets e Módulos Futuros (4B–6)** *(planejado)* | `06`, `07`, `08`, `09`, `15` | Transactional Outbox com `UPDATE ... RETURNING` (*Atomic Lease*), idempotência com rollback no `catch`, DLQ, `WorldGateway` e especificações de Arcade WASM, Museu e Battle Frontier. | Planejado |
 | **09** | **Segurança AppSec, IAM Enterprise BFF, Criptografia e LGPD** *(planejado)* | `04`, `13`, `16`, `17` | `AuthModule`, sessão opaca `HttpOnly`, Argon2id + dummy hash, TOTP + backup codes, WebAuthn Passkeys, Google PKCE, AES-256-GCM e conformidade LGPD. | Planejado |
 | **10** | **Testes, CDP Quality Gate, Docker, CI/CD Cloud e Arquitetura** *(planejado)* | `10`, `11`, `14`, `18` | Pirâmide de testes (unitários, E2E HTTP, integração real), `ui-quality-gate.mjs`, `docker-compose.yml`, `api.Dockerfile`, `ci.yml`, `deploy.yml` e topologia cloud. | Planejado |
@@ -156,7 +156,7 @@ flowchart TD
 | [`02`](02-frontend-angular-hud-e-estado.md) | Front-end Angular e HUD | Arquitetura da SPA Angular 22, Topbar, Quick Dock e gerenciamento de estado reativo com Signals. | **Vol. 04** |
 | [`03`](03-motores-graficos-phaser-e-threejs.md) | Motores Gráficos (Phaser / Three.js) | Especificação da integração dos futuros mundos 2D (Vila Central) e 3D (Holocron e Arcade). | **Vol. 05** & **Vol. 08** |
 | [`04`](04-backend-nestjs-auth-e-seguranca.md) | Back-end NestJS e Auth | Estrutura da API NestJS, fluxo de autenticação BFF, controle de origens e blindagem HTTP. | **Vol. 06** & **Vol. 09** |
-| [`05`](05-banco-de-dados-postgresql-e-prisma.md) | PostgreSQL e Prisma ORM | Modelagem relacional (13 tabelas), chaves estrangeiras, índices planejados e prevenção de consultas N+1. | **Vol. 07** |
+| [`05`](05-banco-de-dados-postgresql-e-prisma.md) | PostgreSQL e Prisma ORM | Modelagem relacional (14 modelos e 5 enums), chaves estrangeiras, índices planejados e prevenção de consultas N+1. | **Vol. 07** |
 | [`06`](06-cache-redis-e-eventos-kafka.md) | Redis e Mensageria Kafka | Estratégia de cache, scripts Lua atômicos, Transactional Outbox e publicação assíncrona de eventos. | **Vol. 07** & **Vol. 08** |
 | [`07`](07-arcade-retro-wasm-e-cloud-saves.md) | Arcade Retrô WASM | Especificação de emulação em WebAssembly no navegador com persistência de saves em armazenamento S3. | **Vol. 08** |
 | [`08`](08-museu-lore-e-holocron-pokedex.md) | Museu das Regiões & Holocron | Atlas público das regiões (Kanto a Paldea) e especificação do projetor holográfico 3D. | **Vol. 05** & **Vol. 08** |

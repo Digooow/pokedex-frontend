@@ -27,9 +27,25 @@ export const PokemonIdentifierParamSchema = z
   .toLowerCase()
   .regex(POKEMON_IDENTIFIER_REGEX, 'Identificador de Pokémon inválido.');
 
+export function isHttpsUrl(value: string): boolean {
+  try {
+    return new URL(value).protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+export const HttpsUrlSchema = z.url().refine(isHttpsUrl, {
+  message: 'Apenas URLs com protocolo HTTPS são permitidas.',
+});
+
+export const BoundedHttpsUrlSchema = z.url().max(512).refine(isHttpsUrl, {
+  message: 'Apenas URLs com protocolo HTTPS são permitidas.',
+});
+
 export const PokeApiNamedResourceSchema = z.object({
   name: z.string().min(1),
-  url: z.url(),
+  url: HttpsUrlSchema,
 });
 
 export const PokeApiCatalogResponseSchema = z.object({
@@ -66,14 +82,14 @@ export const PokemonDetailSchema = z.object({
   abilities: z.array(PokemonAbilitySlotSchema),
   stats: z.array(PokemonStatEntrySchema),
   sprites: z.object({
-    front_default: z.url().nullable().optional(),
-    front_shiny: z.url().nullable().optional(),
+    front_default: HttpsUrlSchema.nullable().optional(),
+    front_shiny: HttpsUrlSchema.nullable().optional(),
     other: z
       .object({
         'official-artwork': z
           .object({
-            front_default: z.url().nullable().optional(),
-            front_shiny: z.url().nullable().optional(),
+            front_default: HttpsUrlSchema.nullable().optional(),
+            front_shiny: HttpsUrlSchema.nullable().optional(),
           })
           .optional(),
       })
@@ -81,8 +97,8 @@ export const PokemonDetailSchema = z.object({
   }),
   cries: z
     .object({
-      latest: z.url().nullable().optional(),
-      legacy: z.url().nullable().optional(),
+      latest: HttpsUrlSchema.nullable().optional(),
+      legacy: HttpsUrlSchema.nullable().optional(),
     })
     .optional(),
 });
@@ -95,7 +111,7 @@ export const SavePokedexSlotSchema = z
     pokemonId: z.number().int().positive(),
     pokemonName: z.string().trim().min(1).max(64),
     nickname: z.string().trim().min(1).max(40).nullable().optional(),
-    spriteUrl: z.url().max(512).nullable().optional(),
+    spriteUrl: BoundedHttpsUrlSchema.nullable().optional(),
   })
   .strict();
 
@@ -106,7 +122,7 @@ export const PokedexSlotRecordSchema = z.object({
   pokemonId: z.number().int().positive(),
   pokemonName: z.string().min(1).max(64),
   nickname: z.string().nullable(),
-  spriteUrl: z.url().nullable(),
+  spriteUrl: HttpsUrlSchema.nullable(),
   updatedAt: z.iso.datetime(),
 });
 

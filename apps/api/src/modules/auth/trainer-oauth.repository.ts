@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import type { TrainerRole } from '@pokeverse/shared';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../infra/prisma.service';
 import type { AuthOutboxCreateInput } from './auth-outbox-publisher.service';
@@ -15,6 +16,7 @@ export interface CreatedGoogleTrainerRecord {
   readonly email: string;
   readonly emailVerifiedAt: Date | null;
   readonly mfaEnabled: boolean;
+  readonly role?: TrainerRole;
   readonly badgesCount: number;
   readonly eloRating: number;
   readonly lastMapId: string;

@@ -172,7 +172,7 @@ Todos os serviços empacotados em container (`apps/api`, Workers, Web SSR/Nginx)
 ## 3. Observabilidade & SRE (Os 3 Pilares)
 
 ### 3.1. Logs Estruturados em JSON
-Proibido `console.log("erro no usuario " + id)` em texto solto. Toda aplicação emite JSON estruturado com campos padronizados (via `pino` / Logger customizado):
+Proibido `console.log("erro no usuario " + id)` em texto solto. Toda aplicação emite JSON estruturado com campos padronizados (via `StructuredLoggerService` customizado sobre `process.stdout.write`):
 - `timestamp`, `level`, `service_name`, `trace_id`, `span_id`, `error_code`, `message` — mascarando e nunca registrando senhas, tokens JWT, cookies ou PII sensível.
 
 ### 3.2. Distributed Tracing (**OpenTelemetry**)
@@ -256,4 +256,4 @@ flowchart LR
   - [x] **Azure for Students (`brazilsouth`):** Resource Group `rg-pokeverse-prod`, ACR `acrpokeverseprod.azurecr.io`, Container Apps Env `cae-pokeverse-prod` e App `pokeverse-api` (`0.25 vCPU`, `0.5 Gi`, `min/max=1`) online em `https://pokeverse-api.gentlebeach-3a27c858.brazilsouth.azurecontainerapps.io` com segredos criptografados.
   - [x] **Cloudflare Pages + GitHub Secrets/Variables:** projeto `pokeverse` publicado em `https://pokeverse.pages.dev` com `API_ORIGIN` configurado e todas as variáveis/segredos (`AZURE_CREDENTIALS`, `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `AZURE_ACR_NAME`, `AZURE_CONTAINER_APP_NAME`, `AZURE_RESOURCE_GROUP`, `AZURE_API_FQDN`, `CF_PAGES_PROJECT`, `ENABLE_CLOUD_DEPLOY=true`) gravados no GitHub.
   - [ ] **Pendência opcional de domínio customizado (Student Pack):** registrar `digooow.<ext>`, vincular `pokedex.digooow.<ext>` no Cloudflare Pages/DNS, verificar domínio remetente no Resend e atualizar `CORS_ORIGINS`, `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGIN` e `GOOGLE_REDIRECT_URI` na Azure.
-  - Hardening remanescente das **Ondas 2–5** (`WsAuthGuard`/WASM, RBAC granular, WAF/DDoS, cofre centralizado, SBOM + SAST/DAST, trilha imutável, proteção EDoS, revisão de terceiros, alertas/playbooks IRP e Gate Pré-IA) detalhado em [13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md) e [16 — Requisitos (`REQ-SEC-01..35`)](16-cookies-lgpd-e-requisitos.md).
+  - Hardening entregue na **Onda 4 (Código + CI/CD)**: RBAC granular (`@Roles`/`@Scopes` + `RbacGuard` *deny-by-default*), `TrainerThrottlerGuard`, `assertSafeOutboundUrl`, `AuditLog` append-only no PostgreSQL + `AuditTrailService`, redação DLP ampliada, SBOM CycloneDX e SAST CodeQL em `ci.yml`. Permanece pendente em Cloud/Ops e Fases futuras (`Ondas 2–5`): `WsAuthGuard`/WASM, WAF/DDoS Cloudflare na origem, cofre centralizado/KMS, DAST automatizado, proteção EDoS de faturamento, revisão de terceiros, alertas/playbooks IRP e Gate Pré-IA ([13 — Dossiê de Segurança e Blindagem](13-dossie-de-seguranca-e-blindagem.md) e [16 — Requisitos (`REQ-SEC-01..35`)](16-cookies-lgpd-e-requisitos.md)).

@@ -19,6 +19,7 @@ import {
   CurrentTrainer,
 } from '../../common/decorators/current-trainer.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { Roles, Scopes } from '../../common/decorators/rbac.decorator';
 import { readSessionCookie } from '../../common/guards/session-auth.guard';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -116,6 +117,8 @@ export class GoogleOAuthController {
     }
   }
 
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('account:manage')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete()
   async unlinkGoogle(
