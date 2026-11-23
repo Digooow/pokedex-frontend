@@ -18,6 +18,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Secret scanning with Gitleaks
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/repo:ro" \
+            ghcr.io/gitleaks/gitleaks:v8.21.2 detect \
+            --source=/repo --no-git --redact --verbose
+
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
@@ -29,12 +35,6 @@ jobs:
 
       - name: Audit production dependencies (critical gate)
         run: npm audit --omit=dev --audit-level=critical
-
-      - name: Secret scanning with Gitleaks
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/repo:ro" \
-            ghcr.io/gitleaks/gitleaks:v8.21.2 detect \
-            --source=/repo --no-git --redact --verbose
 
       - name: Generate Prisma Client & build shared package
         run: |
@@ -58,7 +58,7 @@ jobs:
           NODE_ENV: test
           API_PORT: 3000
           CORS_ORIGINS: http://localhost:4200,http://127.0.0.1:4200
-          APP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          APP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef # gitleaks:allow
           SESSION_TTL_SEC: 900
           REFRESH_TTL_DAYS: 7
           OTP_TTL_SEC: 600
@@ -89,7 +89,7 @@ jobs:
         run: docker build -f infra/docker/api.Dockerfile -t pokeverse-api:ci .
 
       - name: Scan production API Docker image (Trivy)
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: pokeverse-api:ci
           format: table
@@ -182,7 +182,7 @@ jobs:
           NODE_ENV: test
           API_PORT: 3000
           CORS_ORIGINS: http://localhost:4200,http://127.0.0.1:4200
-          APP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          APP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef # gitleaks:allow
           SESSION_TTL_SEC: 900
           REFRESH_TTL_DAYS: 7
           OTP_TTL_SEC: 600

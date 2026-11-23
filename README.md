@@ -475,7 +475,7 @@ flowchart LR
 
   subgraph v["CI Verification (ci.yml: verify)"]
     direction LR
-    s0["npm audit critical<br/>+ Gitleaks"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>+ Lint + Prettier"]
+    s0["Gitleaks<br/>+ npm audit critical"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>+ Lint + Prettier"]
     s2 --> s4["Testes unitários<br/>104 Vitest + Jest"]
     s4 --> s5["E2E HTTP Edge<br/>11 testes (infra mockada)"]
     s5 --> s6["Build<br/>+ legado da raiz"]
@@ -573,7 +573,7 @@ flowchart TB
 | **Concorrência** | Zero TOCTOU em contadores (Lua), consumo one-time atômico via `GETDEL` (OAuth/Passkey) e `DEL` (OTP), zero efeito externo antes da constraint `UNIQUE`, lease atômico no Outbox e rollback de idempotência no `catch` |
 | **WebSockets & Logs** | `/ws/world` rejeita `!origin` em produção e aplica cota (`10`/IP, `1000` globais); `StructuredLoggerService` mascara segredos/tokens e logs HTTP gravam só `req.path`; `bodyParser: false` com `64kb` (`413`/`400`) |
 | **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), chaves não essenciais registradas declarativamente, portabilidade em `GET /auth/me/export`, eliminação definitiva em cascata via `DELETE /auth/me` (confirmação em 2 etapas na UI), expurgo automático a cada `6h` de tokens/eventos expirados e zero rastreadores de terceiros |
-| **Infra & CI/CD** | Container multi-stage não-root stateless (migrations pré-deploy separadas em `deploy.yml` via `DATABASE_URL_UNPOOLED`), backing services reais no `ci.yml` (`postgres`, `redis`, `apache/kafka`), **Gitleaks**, **Trivy** (`CRITICAL`), `npm audit --omit=dev --audit-level=critical`, TLS e mTLS em nuvem |
+| **Infra & CI/CD** | Container multi-stage não-root stateless (migrations pré-deploy separadas em `deploy.yml` via `DATABASE_URL_UNPOOLED` e step `db-secret`), backing services reais no `ci.yml` (`postgres`, `redis`, `apache/kafka`), **Gitleaks** (pré-`npm ci` + `.gitleaks.toml`), **Trivy** (`CRITICAL`, pinado por SHA), `npm audit --omit=dev --audit-level=critical`, TLS e mTLS em nuvem |
 | **Observabilidade** | Logs JSON estruturados, `x-correlation-id` e `traceparent` W3C, health checks separados de liveness e readiness |
 
 Os detalhes estão no [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e no [documento de cookies e LGPD](docs/16-cookies-lgpd-e-requisitos.md).

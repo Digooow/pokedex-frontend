@@ -235,9 +235,9 @@ O `helmet()` atual precisa de configuração explícita por ambiente para proteg
    - Execução sem privilégios (`USER node`), `HEALTHCHECK` apontando para `/health/live` e `CMD ["node", "apps/api/dist/main.js"]`;
    - Para ambientes orquestrados adicionais: aplicar `read_only: true`, `cap_drop: [ALL]`, `security_opt: [no-new-privileges:true]` e tetos de memória/CPU.
 2. **Pipeline de Segurança & Integração Real ([ci.yml](../.github/workflows/ci.yml)):**
-   - **Secret Scanning:** `gitleaks` em container (`--no-git --redact`) em todo push/PR;
+   - **Secret Scanning:** `gitleaks` em container (`--no-git --redact`) executado antes de `npm ci` (apoiado por [`.gitleaks.toml`](../.gitleaks.toml)) em todo push/PR;
    - **Dependências (SCA):** `npm ci` + `npm audit --omit=dev --audit-level=critical` bloqueante (com triagem documentada dos `4` avisos `high` CLI-only em `@prisma/config` da linha `prisma@6.19.3`, ausentes da imagem final de runtime);
-   - **Varredura de Imagem (Trivy):** `aquasecurity/trivy-action` falhando o pipeline em vulnerabilidades `CRITICAL` na imagem `pokeverse-api:ci`;
+   - **Varredura de Imagem (Trivy):** `aquasecurity/trivy-action` pinado por commit SHA imutável (`v0.36.0`) falhando o pipeline em vulnerabilidades `CRITICAL` na imagem `pokeverse-api:ci`;
    - **Backing Services Reais no CI:** job dedicado `integration-e2e` provisionando `postgres:16-alpine`, `redis:7-alpine` e `apache/kafka:3.9.0` reais, aplicando `prisma migrate deploy` e executando [app.integration-spec.ts](../apps/api/test/app.integration-spec.ts), separado da suíte HTTP edge ([app.e2e-spec.ts](../apps/api/test/app.e2e-spec.ts)).
 3. **Observabilidade de Segurança (Alertas Acionáveis):**
    - Eventos estruturados com `errorCode` explícito em [StructuredLoggerService](../apps/api/src/common/telemetry/structured-logger.service.ts) (com redação automática de segredos/tokens/PII):

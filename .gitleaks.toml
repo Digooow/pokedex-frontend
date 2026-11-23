@@ -1,0 +1,15 @@
+title = "PokéVerse Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Template placeholders and deterministic CI/test fixtures"
+paths = [
+  '''(?:^|/)\.env\.example$''',
+]
+regexes = [
+  '''^0123456789abcdef0123456789abcdef(?:0123456789abcdef0123456789abcdef)?$''',
+  '''^abc123def456$''',
+  '''^pokedex_cenario_(?:ativo|auto)$''',
+]
