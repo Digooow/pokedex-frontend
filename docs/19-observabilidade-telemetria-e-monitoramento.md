@@ -145,7 +145,7 @@ sequenceDiagram
   Consumer-->>Tempo: "Child Span kafka.consume ligado ao mesmo traceId"
 ```
 
-Tanto [`WorldEventsConsumerService`](../apps/api/src/modules/events/world-events.consumer.ts) quanto [`EmailNotificationsConsumerService`](../apps/api/src/modules/events/email-notifications.consumer.ts) criam spans filhos `kafka.consume` com atributos semânticos `messaging.system="kafka"`, `messaging.destination.name` e `messaging.consumer.group.name`, registrando contadores e histogramas por desfecho (`processed`, `duplicate`, `dlq`).
+Tanto [`WorldEventsConsumerService`](../apps/api/src/modules/events/world-events.consumer.ts) quanto [`EmailNotificationsConsumerService`](../apps/api/src/modules/events/email-notifications.consumer.ts) (via classe base compartilhada [`BaseIdempotentKafkaConsumer`](../apps/api/src/modules/events/base-idempotent-kafka.consumer.ts)) criam spans filhos `kafka.consume` com atributos semânticos `messaging.system="kafka"`, `messaging.destination.name` e `messaging.consumer.group.name`, registrando contadores e histogramas por desfecho (`processed`, `duplicate`, `dlq`).
 
 ---
 

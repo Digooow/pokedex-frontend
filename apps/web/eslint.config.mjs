@@ -1,47 +1,16 @@
 // @ts-check
-import eslint from '@eslint/js';
-import { defineConfig } from 'eslint/config';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import { createWorkspaceEslintConfig, maxLinesRule } from '../../eslint.base.mjs';
 
-export default defineConfig(
-  {
-    ignores: ['dist/**', '.angular/**', 'eslint.config.mjs'],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommended,
-  eslintPluginPrettierRecommended,
-  {
-    languageOptions: {
-      globals: {
-        ...globals.browser,
-        ...globals.node,
-      },
+export default createWorkspaceEslintConfig({
+  ignores: ['dist/**', '.angular/**', 'eslint.config.mjs'],
+  languageOptions: { globals: { ...globals.browser, ...globals.node } },
+  specFiles: ['src/**/*.spec.ts', 'src/**/*.spec-helper.ts'],
+  specMaxLines: 400,
+  extraConfigs: [
+    {
+      files: ['src/**/*.component.ts'],
+      rules: { 'max-lines': maxLinesRule(200) },
     },
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
-      complexity: ['error', 15],
-      'max-depth': ['error', 3],
-      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
-      'max-lines-per-function': [
-        'error',
-        { max: 65, skipBlankLines: true, skipComments: true, IIFEs: true },
-      ],
-    },
-  },
-  {
-    files: ['src/**/*.component.ts'],
-    rules: {
-      'max-lines': ['error', { max: 200, skipBlankLines: true, skipComments: true }],
-    },
-  },
-  {
-    files: ['src/**/*.spec.ts', 'src/**/*.spec-helper.ts'],
-    rules: {
-      'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
-      'max-lines-per-function': 'off',
-    },
-  },
-);
+  ],
+});

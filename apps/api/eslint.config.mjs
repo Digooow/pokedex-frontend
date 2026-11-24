@@ -1,56 +1,30 @@
 // @ts-check
-import eslint from '@eslint/js';
-import { defineConfig } from 'eslint/config';
-import eslintPluginPrettierRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
-import tseslint from 'typescript-eslint';
+import {
+  createWorkspaceEslintConfig,
+  maxLinesRule,
+} from '../../eslint.base.mjs';
 
-export default defineConfig(
-  {
-    ignores: ['eslint.config.mjs'],
-  },
-  eslint.configs.recommended,
-  ...tseslint.configs.recommendedTypeChecked,
-  eslintPluginPrettierRecommended,
-  {
-    languageOptions: {
-      globals: {
-        ...globals.node,
-        ...globals.jest,
-      },
-      sourceType: 'commonjs',
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-      },
+export default createWorkspaceEslintConfig({
+  ignores: ['eslint.config.mjs'],
+  typeChecked: true,
+  languageOptions: {
+    globals: { ...globals.node, ...globals.jest },
+    sourceType: 'commonjs',
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir: import.meta.dirname,
     },
   },
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      'prettier/prettier': ['error', { endOfLine: 'auto' }],
-      complexity: ['error', 15],
-      'max-depth': ['error', 3],
-      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
-      'max-lines-per-function': [
-        'error',
-        { max: 65, skipBlankLines: true, skipComments: true, IIFEs: true },
-      ],
-    },
+  extraRules: {
+    '@typescript-eslint/no-floating-promises': 'warn',
+    '@typescript-eslint/no-unsafe-argument': 'warn',
   },
-  {
-    files: ['src/**/*.spec.ts', 'test/**/*.ts'],
-    rules: {
-      'max-lines': ['error', { max: 450, skipBlankLines: true, skipComments: true }],
-      'max-lines-per-function': 'off',
+  specFiles: ['src/**/*.spec.ts', 'test/**/*.ts'],
+  extraConfigs: [
+    {
+      files: ['src/modules/auth/auth.service.spec.ts'],
+      rules: { 'max-lines': maxLinesRule(800) },
     },
-  },
-  {
-    files: ['src/modules/auth/auth.service.spec.ts'],
-    rules: {
-      'max-lines': ['error', { max: 800, skipBlankLines: true, skipComments: true }],
-    },
-  },
-);
+  ],
+});
