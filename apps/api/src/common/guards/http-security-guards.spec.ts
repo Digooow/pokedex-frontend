@@ -35,7 +35,7 @@ describe('HTTP Security Guards (SessionAuthGuard, CsrfOriginGuard, TrainerThrott
         { cookies: null } as unknown as RequestWithTrainer,
         's',
       ),
-    ).toBe(undefined);
+    ).toBeUndefined();
     expect(
       readSessionCookie(
         { cookies: { s: 'abc' } } as unknown as RequestWithTrainer,

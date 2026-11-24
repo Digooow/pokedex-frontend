@@ -38,6 +38,26 @@ function isS3NotFoundError(error: unknown): boolean {
   );
 }
 
+async function ensureSingleBucket(
+  client: S3Client,
+  bucket: string,
+): Promise<void> {
+  try {
+    await client.send(new HeadBucketCommand({ Bucket: bucket }));
+  } catch {
+    await client.send(new CreateBucketCommand({ Bucket: bucket }));
+  }
+}
+
+export async function ensureS3BucketsExist(
+  client: S3Client,
+  buckets: readonly string[],
+): Promise<void> {
+  await Promise.all(
+    buckets.map((bucket) => ensureSingleBucket(client, bucket)),
+  );
+}
+
 @Injectable()
 export class S3ObjectStorageAdapter
   implements ObjectStorageReadWritePort, OnModuleDestroy
@@ -85,13 +105,7 @@ export class S3ObjectStorageAdapter
 
   async ensureBucketsExist(buckets: readonly string[]): Promise<void> {
     const client = this.requireClient();
-    for (const bucket of buckets) {
-      try {
-        await client.send(new HeadBucketCommand({ Bucket: bucket }));
-      } catch {
-        await client.send(new CreateBucketCommand({ Bucket: bucket }));
-      }
-    }
+    await ensureS3BucketsExist(client, buckets);
   }
 
   async putObject(input: PutStorageObjectInput): Promise<StoredObjectMetadata> {

@@ -5,10 +5,10 @@ function resolveSystemBrowserExecutable(): string | undefined {
   const envBin = process.env['CHROME_BIN']?.trim();
   const candidates = [
     ...(envBin ? [envBin] : []),
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    String.raw`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+    String.raw`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+    String.raw`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+    String.raw`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,
     '/usr/bin/google-chrome',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
-import { test as base, expect } from '@playwright/test';
+import { test as base } from '@playwright/test';
 
 const DIST_DIR = path.resolve(__dirname, '..', 'dist', 'pokeverse-web', 'browser');
 
@@ -305,4 +305,4 @@ export const test = base.extend<{ bff: BffE2eHarness }>({
   },
 });
 
-export { expect };
+export { expect } from '@playwright/test';

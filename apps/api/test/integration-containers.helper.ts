@@ -1,10 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import * as path from 'node:path';
-import {
-  CreateBucketCommand,
-  HeadBucketCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
+import { ensureS3BucketsExist } from '../src/infra/s3-object-storage.adapter';
 import {
   PostgreSqlContainer,
   type StartedPostgreSqlContainer,
@@ -68,13 +65,7 @@ async function ensureIntegrationBuckets(): Promise<void> {
     process.env['S3_BUCKET_SAVES'] ?? DEFAULT_S3_SAVES_BUCKET,
   ];
   try {
-    for (const bucket of buckets) {
-      try {
-        await client.send(new HeadBucketCommand({ Bucket: bucket }));
-      } catch {
-        await client.send(new CreateBucketCommand({ Bucket: bucket }));
-      }
-    }
+    await ensureS3BucketsExist(client, buckets);
   } finally {
     client.destroy();
   }
