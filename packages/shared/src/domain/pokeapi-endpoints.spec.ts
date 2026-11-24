@@ -90,7 +90,16 @@ describe('pokeapi-endpoints domain catalog and advanced query', () => {
     }
     expect(
       POKEAPI_V2_ENDPOINTS.filter((entry) => entry.implementedInBff).map((e) => e.key),
-    ).toEqual(['pokemon', 'pokemon-cries', 'pokemon-sprites-matrix']);
+    ).toEqual([
+      'evolution-chain',
+      'pokemon',
+      'pokemon-form',
+      'pokemon-species',
+      'type',
+      'pokemon-encounters',
+      'pokemon-cries',
+      'pokemon-sprites-matrix',
+    ]);
   });
 
   it('filters by types, generation, habitat, species flags, minBst, and fuzzy term', () => {

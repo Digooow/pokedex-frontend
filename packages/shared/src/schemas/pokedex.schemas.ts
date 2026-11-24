@@ -132,15 +132,18 @@ export const PokedexSlotsListResponseSchema = z.object({
   slots: z.array(PokedexSlotRecordSchema),
 });
 
+export const CacheOutcomeSchema = z.enum(['hit', 'miss', 'stale-fallback']);
+export type CacheOutcome = z.infer<typeof CacheOutcomeSchema>;
+
 export const CachedPokemonResponseSchema = z.object({
-  cache: z.enum(['hit', 'miss', 'stale-fallback']),
+  cache: CacheOutcomeSchema,
   pokemon: PokemonDetailSchema,
 });
 
 export type CachedPokemonResponse = z.infer<typeof CachedPokemonResponseSchema>;
 
 export const CachedCatalogResponseSchema = z.object({
-  cache: z.enum(['hit', 'miss', 'stale-fallback']),
+  cache: CacheOutcomeSchema,
   catalog: PokeApiCatalogResponseSchema,
 });
 

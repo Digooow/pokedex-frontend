@@ -38,7 +38,7 @@ egg-group|/api/v2/egg-group/{idOrName}|evolution-genetics|static-lookup-7d|false
 encounter-condition|/api/v2/encounter-condition/{idOrName}|world-encounters|static-lookup-7d|false|Spawn Probability Engine
 encounter-condition-value|/api/v2/encounter-condition-value/{idOrName}|world-encounters|static-lookup-7d|false|Day/Night & Weather Encounters
 encounter-method|/api/v2/encounter-method/{idOrName}|world-encounters|static-lookup-7d|false|Habitat Map & Fishing
-evolution-chain|/api/v2/evolution-chain/{id}|evolution-genetics|hot-redis-24h|false|Evolution Tree & Chance Calc
+evolution-chain|/api/v2/evolution-chain/{id}|evolution-genetics|hot-redis-24h|true|Evolution Tree & Chance Calc
 evolution-trigger|/api/v2/evolution-trigger/{idOrName}|evolution-genetics|static-lookup-7d|false|Catalyst & Evolution Conditions
 gender|/api/v2/gender/{idOrName}|evolution-genetics|static-lookup-7d|false|Dimorphism & Cloning Fidelity
 generation|/api/v2/generation/{idOrName}|world-encounters|static-lookup-7d|false|Advanced Catalog Filter (I-IX)
@@ -65,17 +65,17 @@ pokeathlon-stat|/api/v2/pokeathlon-stat/{idOrName}|contests-meta|static-lookup-7
 pokedex|/api/v2/pokedex/{idOrName}|core-pokemon|static-lookup-7d|false|Regional Pokedex Switching
 pokemon|/api/v2/pokemon/{idOrName}|core-pokemon|stale-snapshot|true|Core Pokedex Sheet & Catalog
 pokemon-color|/api/v2/pokemon-color/{idOrName}|core-pokemon|static-lookup-7d|false|Visual Color Search Filter
-pokemon-form|/api/v2/pokemon-form/{idOrName}|core-pokemon|lazy-tab-24h|false|Forms & Regional Variants UI
+pokemon-form|/api/v2/pokemon-form/{idOrName}|core-pokemon|lazy-tab-24h|true|Forms & Regional Variants UI
 pokemon-habitat|/api/v2/pokemon-habitat/{idOrName}|world-encounters|static-lookup-7d|false|Biome Search Filter & Radar
 pokemon-shape|/api/v2/pokemon-shape/{idOrName}|core-pokemon|static-lookup-7d|false|Silhouette Filter & Minigame
-pokemon-species|/api/v2/pokemon-species/{idOrName}|core-pokemon|stale-snapshot|false|Lore, Capture Rate & Breeding
+pokemon-species|/api/v2/pokemon-species/{idOrName}|core-pokemon|stale-snapshot|true|Lore, Capture Rate & Breeding
 region|/api/v2/region/{idOrName}|world-encounters|static-lookup-7d|false|Regions Atlas & Kanto-Paldea
 stat|/api/v2/stat/{idOrName}|combat-mechanics|static-lookup-7d|false|Base Stats & Nature Matrix
 super-contest-effect|/api/v2/super-contest-effect/{id}|contests-meta|static-lookup-7d|false|Contest Archive
-type|/api/v2/type/{idOrName}|combat-mechanics|static-lookup-7d|false|0x-4x Weakness Matrix & STAB
+type|/api/v2/type/{idOrName}|combat-mechanics|static-lookup-7d|true|0x-4x Weakness Matrix & STAB
 version|/api/v2/version/{idOrName}|world-encounters|static-lookup-7d|false|Game Version Tags & History
 version-group|/api/v2/version-group/{idOrName}|world-encounters|static-lookup-7d|false|Generation Ruleset Context
-pokemon-encounters|/api/v2/pokemon/{id}/encounters|world-encounters|lazy-tab-24h|false|Radar & Capture Chance Tab
+pokemon-encounters|/api/v2/pokemon/{id}/encounters|world-encounters|lazy-tab-24h|true|Radar & Capture Chance Tab
 pokemon-cries|/pokemon/cries/{id}|core-pokemon|hot-redis-24h|true|Web Audio Acoustic Waveform
 pokemon-sprites-matrix|/pokemon/sprites/{id}|core-pokemon|hot-redis-24h|true|Normal, Shiny & Showdown Renders
 `;

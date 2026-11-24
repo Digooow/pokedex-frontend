@@ -13,6 +13,9 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import {
   type CachedCatalogResponse,
+  type CachedPokemonBundleResponse,
+  type CachedPokemonEncountersResponse,
+  type CachedPokemonFormsResponse,
   type CachedPokemonResponse,
   PokedexSlotIndexParamSchema,
   type PokedexSlotRecord,
@@ -31,12 +34,14 @@ import { Roles, Scopes } from '../../common/decorators/rbac.decorator';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PokeApiCacheService } from './pokeapi-cache.service';
+import { PokedexEnrichmentService } from './pokedex-enrichment.service';
 import { PokedexSlotsService } from './pokedex-slots.service';
 
 @Controller('pokedex')
 export class PokedexController {
   constructor(
     private readonly pokeApiCache: PokeApiCacheService,
+    private readonly enrichmentService: PokedexEnrichmentService,
     private readonly slotsService: PokedexSlotsService,
   ) {}
 
@@ -58,6 +63,42 @@ export class PokedexController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<CachedPokemonResponse> {
     const result = await this.pokeApiCache.getPokemon(idOrName);
+    res.setHeader('X-Cache', result.cache.toUpperCase());
+    return result;
+  }
+
+  @Public()
+  @Get('pokemon/:idOrName/bundle')
+  async getPokemonBundle(
+    @Param('idOrName', new ZodValidationPipe(PokemonIdentifierParamSchema))
+    idOrName: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CachedPokemonBundleResponse> {
+    const result = await this.enrichmentService.getPokemonBundle(idOrName);
+    res.setHeader('X-Cache', result.cache.toUpperCase());
+    return result;
+  }
+
+  @Public()
+  @Get('pokemon/:idOrName/encounters')
+  async getPokemonEncounters(
+    @Param('idOrName', new ZodValidationPipe(PokemonIdentifierParamSchema))
+    idOrName: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CachedPokemonEncountersResponse> {
+    const result = await this.enrichmentService.getPokemonEncounters(idOrName);
+    res.setHeader('X-Cache', result.cache.toUpperCase());
+    return result;
+  }
+
+  @Public()
+  @Get('pokemon/:idOrName/forms')
+  async getPokemonForms(
+    @Param('idOrName', new ZodValidationPipe(PokemonIdentifierParamSchema))
+    idOrName: string,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CachedPokemonFormsResponse> {
+    const result = await this.enrichmentService.getPokemonForms(idOrName);
     res.setHeader('X-Cache', result.cache.toUpperCase());
     return result;
   }

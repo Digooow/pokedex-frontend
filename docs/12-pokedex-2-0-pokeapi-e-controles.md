@@ -2,7 +2,7 @@
 
 ## 1. Motivação e Premissa Visual Inegociável
 
-Atualmente, a Pokédex consome apenas `https://pokeapi.co/api/v2/pokemon/{nomeOuId}` e exibe um recorte básico: **Nome, ID, Altura, Peso, Tipos, Sprite principal e Habilidades**. Ao inspecionar os recursos públicos expostos pela **PokéAPI v2**, constatamos que existem **51 endpoints raiz** com dados completos de combate, biologia, evoluções, sprites retrô/animados, áudios (*cries*), golpes, itens e localizações — fundamentais tanto para enriquecer a ficha na Pokédex quanto para sustentar o **Museu, Overworld, Team Builder, Mini-Games e Simulador de Batalha**.
+No Passo 2A.1 da Fase 4B, o BFF NestJS passou a servir também `/api/v1/pokedex/pokemon/:idOrName/bundle` (agregando `pokemon` + `pokemon-species` + `evolution-chain` + matriz defensiva `0x..4x` calculada no servidor), `/encounters` e `/forms` com cache Redis `24h` + `7d` stale (`8/51` recursos ativos no BFF). Enquanto o front-end Angular consome `/catalog` e `/pokemon/:idOrName` (exibindo **Nome, ID, Altura, Peso, Tipos, Sprite principal e Habilidades**), os demais recursos de combate, biologia, evoluções, sprites retrô/animados, áudios (*cries*), golpes, itens e localizações já catalogados nos **51 endpoints raiz** da **PokéAPI v2** seguem sendo liberados incrementalmente para sustentar a Pokédex 2.0 (Passo 2B), o **Museu, Overworld, Team Builder, Mini-Games e Simulador de Batalha**.
 
 ### Restrição Absoluta de Hardware (Aparência Física Preservada)
 A evolução para a **Pokédex 2.0** deve comportar todos esses novos dados **sem adicionar nenhum botão físico novo à carcaça**:

@@ -7,6 +7,13 @@ import { StructuredLoggerService } from '../../common/telemetry/structured-logge
 import type { ApiEnvConfig } from '../../config/env.schema';
 import type { RedisService } from '../../infra/redis.service';
 import { PokeApiCacheService } from './pokeapi-cache.service';
+import { PokeApiHttpCacheClient } from './pokeapi-http-cache.client';
+
+jest.mock('node:dns/promises', () => ({
+  lookup: jest
+    .fn()
+    .mockResolvedValue([{ address: '104.26.10.233', family: 4 }]),
+}));
 
 function createConfigMock(): ConfigService<ApiEnvConfig, true> {
   return {
@@ -63,11 +70,12 @@ describe('PokeApiCacheService (Redis cache, stale-fallback & Circuit Breaker)', 
       setJsonEx: jest.fn(),
     } as unknown as RedisService;
 
-    const service = new PokeApiCacheService(
+    const client = new PokeApiHttpCacheClient(
       redisMock,
       createConfigMock(),
       new StructuredLoggerService(),
     );
+    const service = new PokeApiCacheService(client);
 
     await expect(service.getPokemon('../etc/passwd')).rejects.toThrow(
       BadRequestException,
@@ -97,11 +105,12 @@ describe('PokeApiCacheService (Redis cache, stale-fallback & Circuit Breaker)', 
       }),
     );
 
-    const service = new PokeApiCacheService(
+    const client = new PokeApiHttpCacheClient(
       redisMock,
       createConfigMock(),
       new StructuredLoggerService(),
     );
+    const service = new PokeApiCacheService(client);
 
     const missResult = await service.getPokemon('Pikachu');
     expect(missResult.cache).toBe('miss');
@@ -144,11 +153,12 @@ describe('PokeApiCacheService (Redis cache, stale-fallback & Circuit Breaker)', 
         Promise.resolve(new Response('Upstream down', { status: 503 })),
       );
 
-    const service = new PokeApiCacheService(
+    const client = new PokeApiHttpCacheClient(
       redisMock,
       createConfigMock(),
       new StructuredLoggerService(),
     );
+    const service = new PokeApiCacheService(client);
 
     const staleCatalog = await service.getCatalog();
     expect(staleCatalog.cache).toBe('stale-fallback');

@@ -22,7 +22,16 @@ describe('PokéAPI v2 51-endpoint catalog and Advanced Query Engine', () => {
     const bffKeys = POKEAPI_V2_ENDPOINTS.filter((entry) => entry.implementedInBff).map(
       (entry) => entry.key,
     );
-    expect(bffKeys).toEqual(['pokemon', 'pokemon-cries', 'pokemon-sprites-matrix']);
+    expect(bffKeys).toEqual([
+      'evolution-chain',
+      'pokemon',
+      'pokemon-form',
+      'pokemon-species',
+      'type',
+      'pokemon-encounters',
+      'pokemon-cries',
+      'pokemon-sprites-matrix',
+    ]);
     expect(POKEAPI_V2_ENDPOINTS[0]).toEqual({
       key: 'ability',
       pathTemplate: '/api/v2/ability/{idOrName}',
