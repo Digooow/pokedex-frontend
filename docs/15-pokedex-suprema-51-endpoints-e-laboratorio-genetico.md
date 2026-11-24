@@ -1,6 +1,14 @@
 # 15 — Pokédex Suprema: Auditoria Completa, 51 Endpoints e Laboratório Genético
 
-> **Marco Estratégico Atual:** Consolidar a **Pokédex Suprema** (experiência visual de console/anime com fluidez nível PS5, zero travamentos e domínio completo dos **51 endpoints** e filtros combinados) antes de liberar o **Laboratório Genético e de Combate no Back-end** (evolução por nível, ganho de atributos, chances de evolução, replicação/clonagem e reciclagem de espécimes capturados sem uso).
+> **Marco Estratégico Atual:** Consolidar a **Pokédex Suprema** (experiência visual de console/anime com fluidez nível PS5, zero travamentos e domínio completo dos endpoints da PokéAPI v2 e filtros combinados, com créditos e atribuições explícitas à PokéAPI, `PokeAPI/sprites`, `PokeAPI/cries` e detentores das marcas) antes de liberar o **Laboratório Genético e de Combate no Back-end** (evolução por nível, ganho de atributos, chances de evolução, replicação/clonagem e reciclagem de espécimes capturados sem uso).
+
+---
+
+## 0. Atribuição Explícita de Terceiros & Fair Use
+
+- **Dados e metadados:** **[PokéAPI v2](https://pokeapi.co/)** (`BSD-3-Clause`, criada por **Paul Hallett** e contribuidores). Auditoria ao vivo confirmou **51 endpoints raiz** em `/api/v2/` (incluindo os recentes `currency`, `evolution-variable` e `meta`), além de `/pokemon/{id}/encounters` e `https://graphql.pokeapi.co/v1beta2`.
+- **Mídia oficial da comunidade:** **[PokeAPI/sprites](https://github.com/PokeAPI/sprites)** e **[PokeAPI/cries](https://github.com/PokeAPI/cries)**.
+- **Uso justo na UI e no BFF:** o front-end exibe créditos visíveis na Topbar (`Créditos & APIs`), no rodapé global (`app-credits-bar`), no visor LCD da Pokédex (`.pokemon-fonte-creditos`), no Museu e no diálogo dedicado [`ApiCreditsDialogComponent`](../apps/web/src/app/shared/hud/api-credits-dialog.component.ts); o back-end aplica cache Redis `24h` + `7d` stale e deduplicação em voo conforme a [Fair Use Policy](https://pokeapi.co/docs/v2#fairuse).
 
 ---
 

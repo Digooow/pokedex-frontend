@@ -65,6 +65,14 @@
       <button
         type="button"
         class="hud-pill"
+        [attr.aria-pressed]="apiCredits.dialogOpen()"
+        (click)="apiCredits.openDialog()"
+      >
+        Créditos &amp; APIs
+      </button>
+      <button
+        type="button"
+        class="hud-pill"
         [attr.aria-pressed]="privacy.dialogOpen()"
         (click)="privacy.openDialog()"
       >

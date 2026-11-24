@@ -7,6 +7,7 @@ import {
   signal,
   viewChild,
 } from '@angular/core';
+import { ApiCreditsStore } from '../../core/stores/api-credits.store';
 import { AuthStore } from '../../core/stores/auth.store';
 import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { SecurityIamStore } from '../../core/stores/security-iam.store';
@@ -18,6 +19,7 @@ import { SecurityIamStore } from '../../core/stores/security-iam.store';
   styleUrl: './privacy-consent-dialog.component.scss',
 })
 export class PrivacyConsentDialogComponent {
+  readonly apiCredits = inject(ApiCreditsStore);
   readonly privacy = inject(PrivacyConsentStore);
   readonly auth = inject(AuthStore);
   private readonly securityIam = inject(SecurityIamStore);
@@ -70,6 +72,11 @@ export class PrivacyConsentDialogComponent {
   openTrainerSecurityAndExport(): void {
     this.privacy.closeDialog();
     this.securityIam.openDialog();
+  }
+
+  openThirdPartyCredits(): void {
+    this.privacy.closeDialog();
+    this.apiCredits.openDialog();
   }
 
   onNativeClose(): void {

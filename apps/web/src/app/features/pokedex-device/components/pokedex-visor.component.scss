@@ -5,3 +5,46 @@
   min-height: 0;
   width: 100%;
 }
+
+.pokemon-fonte-creditos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+  padding: var(--espaco-2) var(--espaco-3);
+  background-color: var(--bg-dado-celula);
+  border: 1px solid var(--borda-lcd-suave);
+  border-radius: var(--raio-pequeno);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--texto-lcd-secundario);
+}
+
+.pokemon-fonte-texto {
+  flex: 1 1 12rem;
+  min-inline-size: 0;
+}
+
+.pokemon-fonte-texto a {
+  color: var(--pv-cyan);
+  font-weight: 600;
+}
+
+.btn-creditos-visor {
+  flex: 0 0 auto;
+  min-block-size: 2rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-strong);
+  background-color: var(--bg-cartao-interno);
+  color: var(--texto-lcd-principal);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-creditos-visor:hover {
+  border-color: var(--pv-cyan);
+  background-color: var(--bg-botao-cenario-hover);
+}

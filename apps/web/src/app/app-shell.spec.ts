@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { App } from './app';
 import { routes } from './app.routes';
+import { ApiCreditsStore } from './core/stores/api-credits.store';
 import { AuthStore } from './core/stores/auth.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
@@ -150,5 +151,36 @@ describe('PokéVerse OS Shell', () => {
       'ainda não implementada',
     );
     expect(compiled.querySelector('.uc-pokemon-img')?.getAttribute('alt')).toContain('Porygon');
+  });
+
+  it('renders explicit PokéAPI third-party attribution and opens ApiCreditsDialogComponent', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitialRequests(TestBed.inject(HttpTestingController));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const compiled = fixture.nativeElement as HTMLElement;
+    const footerText = compiled.querySelector('.app-credits-bar')?.textContent ?? '';
+    expect(footerText).toContain('PokéAPI v2');
+    expect(footerText).toContain('PokeAPI/sprites');
+    expect(footerText).toContain('PokeAPI/cries');
+    expect(footerText).toContain('Nintendo');
+
+    const topbarCreditsBtn = Array.from(compiled.querySelectorAll('.hud-topbar .hud-pill')).find(
+      (btn) => btn.textContent?.includes('Créditos & APIs'),
+    ) as HTMLButtonElement | undefined;
+    expect(topbarCreditsBtn).toBeDefined();
+    topbarCreditsBtn?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const apiCredits = TestBed.inject(ApiCreditsStore);
+    expect(apiCredits.dialogOpen()).toBe(true);
+    const dialogText = compiled.querySelector('.credits-dialog')?.textContent ?? '';
+    expect(dialogText).toContain('Paul Hallett');
+    expect(dialogText).toContain('PokéAPI Fair Use Policy');
+    expect(dialogText).toContain('The Pokémon Company International');
   });
 });

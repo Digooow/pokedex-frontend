@@ -9,6 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
+import { ApiCreditsStore } from '../../../core/stores/api-credits.store';
 import {
   PvRpgContainerDirective,
   PvRpgFocusableDirective,
@@ -26,6 +27,7 @@ import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
   styleUrl: './pokedex-visor.component.scss',
 })
 export class PokedexVisorComponent {
+  readonly apiCredits = inject(ApiCreditsStore);
   readonly rpg = inject(PokedexRpgNavService);
   readonly slotsStore = inject(PokedexSlotsStore);
 
@@ -136,6 +138,11 @@ export class PokedexVisorComponent {
   onRetryClick(event: Event): void {
     event.stopPropagation();
     this.retry.emit();
+  }
+
+  onCreditsClick(event: Event): void {
+    event.stopPropagation();
+    this.apiCredits.openDialog();
   }
 
   onVisorKeyDown(event: KeyboardEvent): void {

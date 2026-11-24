@@ -168,6 +168,27 @@
                   }
                 </li>
               </ul>
+
+              <footer class="pokemon-fonte-creditos">
+                <span class="pokemon-fonte-texto">
+                  Fonte:
+                  <a href="https://pokeapi.co/" target="_blank" rel="noopener noreferrer">
+                    PokéAPI v2
+                  </a>
+                  · Sprites:
+                  <a
+                    href="https://github.com/PokeAPI/sprites"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    PokeAPI/sprites
+                  </a>
+                  · Pokémon © Nintendo / Game Freak / TPC
+                </span>
+                <button type="button" class="btn-creditos-visor" (click)="onCreditsClick($event)">
+                  Créditos &amp; APIs
+                </button>
+              </footer>
             </article>
           }
         }

@@ -53,7 +53,9 @@ Para evitar uma lista única gigante difícil de rolar no celular e no desktop, 
 
 ## 3. Catálogo Oficial dos Endpoints da PokéAPI v2 (`https://pokeapi.co/api/v2/`)
 
-A PokéAPI v2 expõe **`51` endpoints raiz** (auditados diretamente contra `https://pokeapi.co/api/v2/`). Abaixo estão classificados os **comandos (endpoints) estratégicos** para a Pokédex 2.0 e para os módulos do **PokéVerse OS**:
+> **Créditos & Fair Use:** Dados fornecidos pela API pública de terceiros **[PokéAPI v2](https://pokeapi.co/)** (criada por **Paul Hallett** e mantida por contribuidores open-source sob licença `BSD-3-Clause`), com mídias de **[PokeAPI/sprites](https://github.com/PokeAPI/sprites)** e **[PokeAPI/cries](https://github.com/PokeAPI/cries)**. Todas as consultas passam por cache Redis no BFF (`24h` + `7d` stale) em cumprimento à [Fair Use Policy](https://pokeapi.co/docs/v2#fairuse). Pokémon é marca registrada de **Nintendo, Creatures Inc., Game Freak Inc. e The Pokémon Company International**.
+
+A PokéAPI v2 expõe **`51` endpoints raiz** no diretório `/api/v2/` (auditados diretamente contra `https://pokeapi.co/api/v2/`, incluindo os recursos `currency`, `evolution-variable` e `meta`, além do sub-recurso `/pokemon/{id}/encounters`, os repositórios CDN `PokeAPI/sprites` / `PokeAPI/cries` e o endpoint `https://graphql.pokeapi.co/v1beta2`). Abaixo estão classificados os **comandos (endpoints) estratégicos** para a Pokédex 2.0 e para os módulos do **PokéVerse OS**:
 
 ### 3.1. Endpoints de Pokémon, Formas e Evolução (Pokédex 2.0 & Holocron)
 

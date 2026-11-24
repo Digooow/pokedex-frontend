@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ApiCreditsStore } from '../../core/stores/api-credits.store';
 import { AuthStore } from '../../core/stores/auth.store';
 import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { SystemStatusStore } from '../../core/stores/system-status.store';
@@ -14,6 +15,7 @@ import { MainLandmarkFocusService } from '../directives/main-heading.directive';
   styleUrl: './hud-topbar.component.scss',
 })
 export class HudTopbarComponent {
+  readonly apiCredits = inject(ApiCreditsStore);
   readonly auth = inject(AuthStore);
   readonly privacy = inject(PrivacyConsentStore);
   readonly systemStatus = inject(SystemStatusStore);

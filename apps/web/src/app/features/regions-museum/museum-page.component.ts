@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ApiCreditsStore } from '../../core/stores/api-credits.store';
 import { REGIONS_ATLAS_PREVIEW } from '../../shared/data/regions-atlas.data';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
 
@@ -38,6 +39,17 @@ import { PvMainHeadingDirective } from '../../shared/directives/main-heading.dir
           </li>
         }
       </ul>
+
+      <footer class="museum-page__footer">
+        <p class="museum-page__credit">
+          Dados regionais e espécies integrados à
+          <a href="https://pokeapi.co/" target="_blank" rel="noopener noreferrer">PokéAPI v2</a>.
+          Pokémon © Nintendo, Game Freak e The Pokémon Company.
+        </p>
+        <button type="button" class="museum-page__credit-btn" (click)="apiCredits.openDialog()">
+          Créditos &amp; APIs
+        </button>
+      </footer>
     </section>
   `,
   styles: [
@@ -137,9 +149,42 @@ import { PvMainHeadingDirective } from '../../shared/directives/main-heading.dir
         font-weight: 700;
         text-decoration: none;
       }
+
+      .museum-page__footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--pv-space-2);
+        padding: var(--pv-space-3) var(--pv-space-4);
+        border-radius: var(--pv-radius-md);
+        border: 1px solid var(--pv-border-subtle);
+        background: var(--pv-surface-solid);
+      }
+
+      .museum-page__credit {
+        margin: 0;
+        flex: 1 1 18rem;
+        min-inline-size: 0;
+        font-size: 0.8125rem;
+        color: var(--pv-ink-muted);
+      }
+
+      .museum-page__credit-btn {
+        min-block-size: 2.25rem;
+        padding: 0.35rem 0.75rem;
+        border-radius: var(--pv-radius-sm);
+        border: 1px solid var(--pv-hud-border);
+        background: var(--pv-hud-pill-bg);
+        color: var(--pv-ink-primary);
+        font-size: 0.75rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
     `,
   ],
 })
 export class MuseumPageComponent {
+  readonly apiCredits = inject(ApiCreditsStore);
   readonly regions = REGIONS_ATLAS_PREVIEW;
 }

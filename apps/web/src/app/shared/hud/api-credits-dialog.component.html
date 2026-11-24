@@ -1,0 +1,122 @@
+<dialog
+  #creditsDialogEl
+  class="credits-dialog"
+  aria-labelledby="pv-credits-title"
+  closedby="any"
+  (close)="onNativeClose()"
+>
+  @if (apiCredits.dialogOpen()) {
+    <div class="credits-dialog__card">
+      <div class="credits-dialog__head">
+        <div>
+          <span class="credits-dialog__badge" aria-hidden="true">FONTES &amp; ATRIBUIÇÕES</span>
+          <h2 id="pv-credits-title" class="credits-dialog__title">
+            Créditos de APIs de Terceiros e Propriedade Intelectual
+          </h2>
+        </div>
+        <button type="button" class="credits-btn credits-btn--ghost" (click)="apiCredits.closeDialog()">
+          Fechar
+        </button>
+      </div>
+
+      <div class="credits-dialog__body">
+        <section class="credits-panel" aria-labelledby="pv-credits-pokeapi-heading">
+          <div class="credits-panel__head">
+            <h3 id="pv-credits-pokeapi-heading" class="credits-panel__title">
+              1. Serviços de Terceiros Ativos (PokéAPI)
+            </h3>
+            <span class="credits-tag credits-tag--ok">Fonte oficial de dados</span>
+          </div>
+          <p class="credits-muted">
+            Todos os dados de espécies, tipos, habilidades, atributos base, sprites, artes e áudios
+            exibidos na Pokédex vêm integralmente de serviços públicos mantidos pela comunidade
+            <strong>PokéAPI</strong> (criada por <strong>Paul Hallett</strong> e mantida por
+            contribuidores open-source sob licença <code>BSD-3-Clause</code>):
+          </p>
+          <ul class="credits-list">
+            <li>
+              <a href="https://pokeapi.co/" target="_blank" rel="noopener noreferrer">
+                PokéAPI v2 (pokeapi.co)
+              </a>
+              — API RESTful principal (<code>/api/v2/pokemon</code> e recursos relacionados),
+              documentação e metadados das gerações I a IX.
+            </li>
+            <li>
+              <a
+                href="https://github.com/PokeAPI/sprites"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                PokeAPI/sprites
+              </a>
+              — Repositório comunitário de sprites clássicos, <em>official-artwork</em>,
+              renders <em>HOME</em>, <em>Dream World</em> e animações <em>Showdown</em>.
+            </li>
+            <li>
+              <a
+                href="https://github.com/PokeAPI/cries"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                PokeAPI/cries
+              </a>
+              — Biblioteca de áudios oficiais de gritos (<em>cries</em>: <code>latest</code> e
+              <code>legacy</code>).
+            </li>
+          </ul>
+        </section>
+
+        <section class="credits-panel" aria-labelledby="pv-credits-fairuse-heading">
+          <h3 id="pv-credits-fairuse-heading" class="credits-panel__title">
+            2. Política de Uso Justo (Fair Use) e Cache BFF
+          </h3>
+          <p class="credits-muted">
+            Em conformidade explícita com a
+            <a href="https://pokeapi.co/docs/v2#fairuse" target="_blank" rel="noopener noreferrer">
+              PokéAPI Fair Use Policy
+            </a>
+            , o back-end NestJS atua como proxy com deduplicação <em>singleflight</em> em voo,
+            cache distribuído no Redis (TTL quente de 24 h e contingência <code>stale-fallback</code>
+            de 7 dias) e <em>Circuit Breaker</em>, evitando requisições redundantes à infraestrutura
+            gratuita da PokéAPI.
+          </p>
+        </section>
+
+        <section class="credits-panel" aria-labelledby="pv-credits-roadmap-heading">
+          <h3 id="pv-credits-roadmap-heading" class="credits-panel__title">
+            3. Fontes Complementares em Planejamento (Roadmap)
+          </h3>
+          <p class="credits-muted">
+            Para futuras expansões da enciclopédia (cartas colecionáveis e catálogo de mídia), o
+            roadmap prevê integração opcional com a
+            <a href="https://pokemontcg.io/" target="_blank" rel="noopener noreferrer">
+              Pokémon TCG API
+            </a>
+            e catálogos públicos de séries/filmes — ainda não ativos nesta versão.
+          </p>
+        </section>
+
+        <section class="credits-panel" aria-labelledby="pv-credits-legal-heading">
+          <h3 id="pv-credits-legal-heading" class="credits-panel__title">
+            4. Marcas Registradas e Aviso de Não-Afiliação
+          </h3>
+          <p class="credits-muted">
+            O <strong>PokéVerse OS</strong> é um projeto de fã, educacional e sem fins lucrativos
+            (iniciado como projeto de Front-end no <strong>Senac</strong>).
+            <strong>Pokémon</strong> e todos os nomes, personagens, ilustrações, sprites, sons e
+            marcas relacionadas são propriedade exclusiva de
+            <strong>Nintendo, Creatures Inc., Game Freak Inc. e The Pokémon Company International</strong>.
+            Este projeto não é afiliado, patrocinado, endossado nem mantido pela Nintendo, The
+            Pokémon Company ou pelos mantenedores da PokéAPI.
+          </p>
+        </section>
+      </div>
+
+      <div class="credits-footer">
+        <button type="button" class="credits-btn credits-btn--primary" (click)="apiCredits.closeDialog()">
+          Entendi
+        </button>
+      </div>
+    </div>
+  }
+</dialog>

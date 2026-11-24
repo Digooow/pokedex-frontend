@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ApiCreditsStore } from './core/stores/api-credits.store';
 import { AuthStore } from './core/stores/auth.store';
 import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { SystemStatusStore } from './core/stores/system-status.store';
 import { WorldTickerStore } from './core/stores/world-ticker.store';
 import { PvMainLandmarkDirective } from './shared/directives/main-heading.directive';
+import { ApiCreditsDialogComponent } from './shared/hud/api-credits-dialog.component';
 import { CenariosBackdropComponent } from './shared/hud/cenarios-backdrop.component';
 import { CenariosBarComponent } from './shared/hud/cenarios-bar.component';
 import { HudQuickDockComponent } from './shared/hud/hud-quick-dock.component';
@@ -18,6 +20,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
   selector: 'pv-root',
   imports: [
     RouterOutlet,
+    ApiCreditsDialogComponent,
     CenariosBackdropComponent,
     CenariosBarComponent,
     HudTopbarComponent,
@@ -33,6 +36,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
   styleUrl: './app.scss',
 })
 export class App implements OnInit {
+  readonly apiCredits = inject(ApiCreditsStore);
   readonly auth = inject(AuthStore);
   readonly privacy = inject(PrivacyConsentStore);
   private readonly systemStatus = inject(SystemStatusStore);

@@ -11,6 +11,12 @@ Back-end **NestJS 11** da plataforma **PokéVerse OS**, projetado como **IAM Ent
 - **Persistência, Auditoria & Eventos:** `14` modelos e `5` enums no [`schema.prisma`](prisma/schema.prisma), incluindo `AuditLog` *append-only* imutável por trigger PostgreSQL (`REQ-SEC-35`), `OutboxEvent` com *atomic lease* (`UPDATE ... RETURNING`) e consumidores Kafka idempotentes com criptografia obrigatória em e-mails e rollback de lock no `catch`.
 - **Proteção HTTP & Externa:** `helmet()`, `bodyParser: false` (`64kb` JSON / `16kb` URL-encoded), `ZodValidationPipe` com contratos `@pokeverse/shared` e validação anti-SSRF pós-DNS (`assertSafeOutboundUrl`) em clientes externos.
 
+## Fonte de Dados Externa, Créditos & Fair Use (PokéAPI)
+
+- **API de Terceiros Ativa:** os dados enciclopédicos de Pokémon são obtidos da **[PokéAPI v2](https://pokeapi.co/)** (`https://pokeapi.co/api/v2/`), projeto open-source (`BSD-3-Clause`) criado por **Paul Hallett** e mantido pela comunidade PokéAPI, com sprites/artworks de **[PokeAPI/sprites](https://github.com/PokeAPI/sprites)** e áudios de **[PokeAPI/cries](https://github.com/PokeAPI/cries)**.
+- **Política de Uso Justo (*Fair Use Policy*):** [`PokeApiCacheService`](src/modules/pokedex/pokeapi-cache.service.ts) cumpre a [Fair Use Policy da PokéAPI](https://pokeapi.co/docs/v2#fairuse) por meio de cache distribuído no Redis (`TTL 24h` + chave `stale-fallback` de `7 dias`), deduplicação *singleflight* em voo (`inflightCatalog` / `inflightPokemon`), validação anti-SSRF (`assertSafeOutboundUrl`), `redirect: 'error'` e *Circuit Breaker*.
+- **Aviso Legal:** projeto educacional e sem fins lucrativos. Pokémon e marcas correlatas pertencem a **Nintendo, Creatures Inc., Game Freak Inc. e The Pokémon Company International**, sem afiliação ou endosso oficial.
+
 ## Comandos Principais (a partir da raiz ou do workspace)
 
 ```bash

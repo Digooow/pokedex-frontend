@@ -91,18 +91,26 @@
 
         <section class="priv-panel" aria-labelledby="pv-lgpd-info-heading">
           <h3 id="pv-lgpd-info-heading" class="priv-panel__title">
-            4. Direitos do Titular &amp; Infraestrutura (LGPD)
+            4. Direitos do Titular, APIs de Terceiros &amp; Infraestrutura (LGPD)
           </h3>
           <p class="priv-muted">
             Para contas de Treinador, seus dados (perfil, slots, Passkeys e vínculo Google opcional) são armazenados em PostgreSQL (Neon), Redis (Upstash), Kafka (Aiven) e e-mails transacionais OTP via Resend, com senhas em Argon2id e segredos 2FA cifrados em AES-256-GCM.
           </p>
-          @if (auth.isAuthenticated()) {
-            <div class="priv-inline-actions">
+          <p class="priv-muted">
+            Os dados enciclopédicos, sprites e áudios Pokémon são consumidos da API pública de terceiros
+            <strong>PokéAPI v2</strong> (<code>pokeapi.co</code>, <code>PokeAPI/sprites</code> e
+            <code>PokeAPI/cries</code>) via proxy BFF com cache Redis, sem envio de dados pessoais do visitante.
+          </p>
+          <div class="priv-inline-actions">
+            <button type="button" class="priv-btn" (click)="openThirdPartyCredits()">
+              Ver Créditos &amp; APIs de Terceiros
+            </button>
+            @if (auth.isAuthenticated()) {
               <button type="button" class="priv-btn" (click)="openTrainerSecurityAndExport()">
                 Gerenciar Sessões &amp; Exportar Dados (JSON)
               </button>
-            </div>
-          }
+            }
+          </div>
         </section>
       </div>
 
