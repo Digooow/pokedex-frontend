@@ -41,11 +41,7 @@ function extractUiErrorMessage(error: unknown): string {
   if (typeof error === 'string') {
     return error || 'Unknown UI error';
   }
-  if (
-    typeof error === 'number' ||
-    typeof error === 'boolean' ||
-    typeof error === 'bigint'
-  ) {
+  if (typeof error === 'number' || typeof error === 'boolean' || typeof error === 'bigint') {
     return String(error);
   }
   if (error && typeof error === 'object') {

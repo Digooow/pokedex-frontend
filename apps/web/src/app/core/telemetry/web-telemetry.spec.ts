@@ -81,5 +81,11 @@ describe('WebTelemetryService & W3C Trace Propagation', () => {
         credentials: 'same-origin',
       }),
     );
+
+    await expect(telemetry.reportUiCrash({ detail: 'WebGL context lost' })).resolves.toBe(true);
+    const lastInit = fetchSpy.mock.calls.at(-1)?.[1];
+    const lastBody = typeof lastInit?.body === 'string' ? lastInit.body : '';
+    expect(lastBody).not.toContain('[object Object]');
+    expect(lastBody).toContain('WebGL context lost');
   });
 });
