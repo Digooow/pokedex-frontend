@@ -20,3 +20,7 @@ process.env['DATABASE_URL_UNPOOLED'] ??=
 process.env['REDIS_URL'] ??= 'redis://127.0.0.1:6379';
 process.env['KAFKA_BROKERS'] ??= '127.0.0.1:19092';
 process.env['S3_ENABLED'] ??= 'false';
+// ConfigModule.forRoot valida o env no import do AppModule (antes de qualquer beforeAll),
+// então credenciais OAuth simuladas precisam existir aqui para o e2e ser hermético (sem depender do .env local).
+process.env['GOOGLE_CLIENT_ID'] ??= 'e2e-google-client';
+process.env['GOOGLE_CLIENT_SECRET'] ??= 'e2e-google-secret';

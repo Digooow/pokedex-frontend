@@ -248,13 +248,8 @@ describe('PokéVerse API E2E (Simulated Google OAuth PKCE & Redis Cache Policy)'
   let app: INestApplication<App>;
   const redisStore = new Map<string, string>();
   const { prismaMock, outboxEvents } = createInMemoryPrismaMock();
-  const prevGoogleId = process.env['GOOGLE_CLIENT_ID'];
-  const prevGoogleSecret = process.env['GOOGLE_CLIENT_SECRET'];
 
   beforeAll(async () => {
-    process.env['GOOGLE_CLIENT_ID'] = 'e2e-google-client';
-    process.env['GOOGLE_CLIENT_SECRET'] = 'e2e-google-secret';
-
     const healthyChecks: ReadinessChecks = {
       postgres: { status: 'up', latencyMs: 2 },
       redis: { status: 'up', latencyMs: 1 },
@@ -315,13 +310,6 @@ describe('PokéVerse API E2E (Simulated Google OAuth PKCE & Redis Cache Policy)'
   });
 
   afterAll(async () => {
-    if (prevGoogleId === undefined) delete process.env['GOOGLE_CLIENT_ID'];
-    else process.env['GOOGLE_CLIENT_ID'] = prevGoogleId;
-    if (prevGoogleSecret === undefined) {
-      delete process.env['GOOGLE_CLIENT_SECRET'];
-    } else {
-      process.env['GOOGLE_CLIENT_SECRET'] = prevGoogleSecret;
-    }
     await app.close();
   });
 
