@@ -24,6 +24,10 @@ import {
   type SavePokedexSlotInput,
   SavePokedexSlotSchema,
 } from '@pokeverse/shared';
+import type {
+  CachedEnrichedCatalogResponse,
+  CachedPokedexMetaFiltersResponse,
+} from '@pokeverse/shared/pokedex-encyclopedia';
 import type { Response } from 'express';
 import {
   type AuthenticatedTrainer,
@@ -34,6 +38,7 @@ import { Roles, Scopes } from '../../common/decorators/rbac.decorator';
 import type { RequestWithTrace } from '../../common/middleware/correlation.middleware';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
 import { PokeApiCacheService } from './pokeapi-cache.service';
+import { PokedexCatalogService } from './pokedex-catalog.service';
 import { PokedexEnrichmentService } from './pokedex-enrichment.service';
 import { PokedexSlotsService } from './pokedex-slots.service';
 
@@ -41,6 +46,7 @@ import { PokedexSlotsService } from './pokedex-slots.service';
 export class PokedexController {
   constructor(
     private readonly pokeApiCache: PokeApiCacheService,
+    private readonly catalogService: PokedexCatalogService,
     private readonly enrichmentService: PokedexEnrichmentService,
     private readonly slotsService: PokedexSlotsService,
   ) {}
@@ -51,6 +57,26 @@ export class PokedexController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<CachedCatalogResponse> {
     const result = await this.pokeApiCache.getCatalog();
+    res.setHeader('X-Cache', result.cache.toUpperCase());
+    return result;
+  }
+
+  @Public()
+  @Get('catalog/enriched')
+  async getEnrichedCatalog(
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CachedEnrichedCatalogResponse> {
+    const result = await this.catalogService.getEnrichedCatalog();
+    res.setHeader('X-Cache', result.cache.toUpperCase());
+    return result;
+  }
+
+  @Public()
+  @Get('meta/filters')
+  async getMetaFilters(
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<CachedPokedexMetaFiltersResponse> {
+    const result = await this.catalogService.getMetaFilters();
     res.setHeader('X-Cache', result.cache.toUpperCase());
     return result;
   }

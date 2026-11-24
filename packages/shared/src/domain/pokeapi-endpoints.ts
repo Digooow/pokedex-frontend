@@ -41,7 +41,7 @@ encounter-method|/api/v2/encounter-method/{idOrName}|world-encounters|static-loo
 evolution-chain|/api/v2/evolution-chain/{id}|evolution-genetics|hot-redis-24h|true|Evolution Tree & Chance Calc
 evolution-trigger|/api/v2/evolution-trigger/{idOrName}|evolution-genetics|static-lookup-7d|false|Catalyst & Evolution Conditions
 gender|/api/v2/gender/{idOrName}|evolution-genetics|static-lookup-7d|false|Dimorphism & Cloning Fidelity
-generation|/api/v2/generation/{idOrName}|world-encounters|static-lookup-7d|false|Advanced Catalog Filter (I-IX)
+generation|/api/v2/generation/{idOrName}|world-encounters|static-lookup-7d|true|Advanced Catalog Filter (I-IX)
 growth-rate|/api/v2/growth-rate/{idOrName}|evolution-genetics|static-lookup-7d|false|XP Curve & Level Stat Simulator
 item|/api/v2/item/{idOrName}|items-berries|lazy-tab-24h|false|Stones, Held Items & Lab Gear
 item-attribute|/api/v2/item-attribute/{idOrName}|items-berries|static-lookup-7d|false|Item Filtering
@@ -64,10 +64,10 @@ pal-park-area|/api/v2/pal-park-area/{idOrName}|world-encounters|static-lookup-7d
 pokeathlon-stat|/api/v2/pokeathlon-stat/{idOrName}|contests-meta|static-lookup-7d|false|Mini-Game Performance Metrics
 pokedex|/api/v2/pokedex/{idOrName}|core-pokemon|static-lookup-7d|false|Regional Pokedex Switching
 pokemon|/api/v2/pokemon/{idOrName}|core-pokemon|stale-snapshot|true|Core Pokedex Sheet & Catalog
-pokemon-color|/api/v2/pokemon-color/{idOrName}|core-pokemon|static-lookup-7d|false|Visual Color Search Filter
+pokemon-color|/api/v2/pokemon-color/{idOrName}|core-pokemon|static-lookup-7d|true|Visual Color Search Filter
 pokemon-form|/api/v2/pokemon-form/{idOrName}|core-pokemon|lazy-tab-24h|true|Forms & Regional Variants UI
-pokemon-habitat|/api/v2/pokemon-habitat/{idOrName}|world-encounters|static-lookup-7d|false|Biome Search Filter & Radar
-pokemon-shape|/api/v2/pokemon-shape/{idOrName}|core-pokemon|static-lookup-7d|false|Silhouette Filter & Minigame
+pokemon-habitat|/api/v2/pokemon-habitat/{idOrName}|world-encounters|static-lookup-7d|true|Biome Search Filter & Radar
+pokemon-shape|/api/v2/pokemon-shape/{idOrName}|core-pokemon|static-lookup-7d|true|Silhouette Filter & Minigame
 pokemon-species|/api/v2/pokemon-species/{idOrName}|core-pokemon|stale-snapshot|true|Lore, Capture Rate & Breeding
 region|/api/v2/region/{idOrName}|world-encounters|static-lookup-7d|false|Regions Atlas & Kanto-Paldea
 stat|/api/v2/stat/{idOrName}|combat-mechanics|static-lookup-7d|false|Base Stats & Nature Matrix
@@ -128,9 +128,12 @@ export const PokedexAdvancedQuerySchema = z.object({
   types: z.array(z.enum(POKEMON_TYPES)).max(2).default([]),
   generation: z.number().int().min(1).max(9).nullable().default(null),
   habitat: z.string().trim().max(40).nullable().default(null),
+  color: z.string().trim().max(40).nullable().default(null),
+  shape: z.string().trim().max(40).nullable().default(null),
   onlyLegendary: z.boolean().default(false),
   onlyMythical: z.boolean().default(false),
   onlyBaby: z.boolean().default(false),
+  excludeAlternateForms: z.boolean().default(false),
   minBst: z.number().int().min(0).max(1200).default(0),
   sortBy: z.enum(['id-asc', 'id-desc', 'name-asc', 'bst-desc']).default('id-asc'),
   limit: z.number().int().min(1).max(1500).default(MAX_CATALOG_RESULTS),
@@ -139,9 +142,12 @@ export const PokedexAdvancedQuerySchema = z.object({
 export type PokedexAdvancedQuery = z.input<typeof PokedexAdvancedQuerySchema>;
 
 export interface EnrichedCatalogItem extends SearchablePokemonItem {
+  readonly isDefault?: boolean;
   readonly types?: readonly PokemonTypeName[];
   readonly generation?: number;
   readonly habitat?: string | null;
+  readonly color?: string | null;
+  readonly shape?: string | null;
   readonly isLegendary?: boolean;
   readonly isMythical?: boolean;
   readonly isBaby?: boolean;
@@ -161,10 +167,20 @@ function matchesSpeciesFlags(
   if (parsed.onlyBaby && !item.isBaby) {
     return false;
   }
+  if (parsed.excludeAlternateForms && item.isDefault === false) {
+    return false;
+  }
   if (parsed.minBst > 0 && (item.baseStatTotal ?? 0) < parsed.minBst) {
     return false;
   }
   return true;
+}
+
+function matchesOptionalLabel(actual: string | null | undefined, expected: string | null): boolean {
+  if (!expected) {
+    return true;
+  }
+  return (actual ?? '').toLowerCase() === expected.toLowerCase();
 }
 
 function matchesEnrichedFilters(
@@ -180,7 +196,13 @@ function matchesEnrichedFilters(
   if (parsed.generation !== null && item.generation !== parsed.generation) {
     return false;
   }
-  if (parsed.habitat && (item.habitat ?? '').toLowerCase() !== parsed.habitat.toLowerCase()) {
+  if (!matchesOptionalLabel(item.habitat, parsed.habitat)) {
+    return false;
+  }
+  if (!matchesOptionalLabel(item.color, parsed.color)) {
+    return false;
+  }
+  if (!matchesOptionalLabel(item.shape, parsed.shape)) {
     return false;
   }
   return matchesSpeciesFlags(item, parsed);

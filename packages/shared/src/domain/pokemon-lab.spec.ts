@@ -24,8 +24,12 @@ describe('PokéAPI v2 51-endpoint catalog and Advanced Query Engine', () => {
     );
     expect(bffKeys).toEqual([
       'evolution-chain',
+      'generation',
       'pokemon',
+      'pokemon-color',
       'pokemon-form',
+      'pokemon-habitat',
+      'pokemon-shape',
       'pokemon-species',
       'type',
       'pokemon-encounters',

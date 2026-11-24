@@ -92,8 +92,12 @@ describe('pokeapi-endpoints domain catalog and advanced query', () => {
       POKEAPI_V2_ENDPOINTS.filter((entry) => entry.implementedInBff).map((e) => e.key),
     ).toEqual([
       'evolution-chain',
+      'generation',
       'pokemon',
+      'pokemon-color',
       'pokemon-form',
+      'pokemon-habitat',
+      'pokemon-shape',
       'pokemon-species',
       'type',
       'pokemon-encounters',
@@ -102,7 +106,7 @@ describe('pokeapi-endpoints domain catalog and advanced query', () => {
     ]);
   });
 
-  it('filters by types, generation, habitat, species flags, minBst, and fuzzy term', () => {
+  it('filters by types, generation, habitat, color, shape, species flags, minBst, and fuzzy term', () => {
     const dualType = filterCatalogWithAdvancedQuery(SAMPLE_CATALOG, {
       types: ['fire', 'flying'],
       generation: 1,
@@ -110,6 +114,45 @@ describe('pokeapi-endpoints domain catalog and advanced query', () => {
       minBst: 500,
     });
     expect(dualType.map((entry) => entry.name)).toEqual(['charizard']);
+
+    const megaCatalog: readonly EnrichedCatalogItem[] = [
+      ...SAMPLE_CATALOG.map((item) => ({
+        ...item,
+        isDefault: true,
+        color: item.name === 'charizard' ? 'red' : 'yellow',
+        shape: item.name === 'charizard' ? 'upright' : 'quadruped',
+      })),
+      createCatalogItem({
+        id: 10034,
+        name: 'charizard-mega-x',
+        displayName: 'Charizard Mega X',
+        isDefault: false,
+        types: ['fire', 'dragon'],
+        generation: 1,
+        habitat: 'mountain',
+        color: 'black',
+        shape: 'upright',
+        isLegendary: false,
+        isMythical: false,
+        isBaby: false,
+        baseStatTotal: 634,
+      }),
+    ];
+
+    expect(
+      filterCatalogWithAdvancedQuery(megaCatalog, {
+        color: 'RED',
+        shape: 'Upright',
+        excludeAlternateForms: true,
+      }).map((entry) => entry.name),
+    ).toEqual(['charizard']);
+
+    expect(
+      filterCatalogWithAdvancedQuery(megaCatalog, {
+        term: 'charizard',
+        excludeAlternateForms: false,
+      }).map((entry) => entry.name),
+    ).toEqual(['charizard', 'charizard-mega-x']);
 
     const legendary = filterCatalogWithAdvancedQuery(SAMPLE_CATALOG, {
       onlyLegendary: true,

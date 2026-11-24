@@ -16,6 +16,16 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./pokedex-encyclopedia": {
+      "import": {
+        "types": "./dist/encyclopedia.d.mts",
+        "default": "./dist/encyclopedia.mjs"
+      },
+      "require": {
+        "types": "./dist/encyclopedia.d.ts",
+        "default": "./dist/encyclopedia.js"
+      }
     }
   },
   "scripts": {

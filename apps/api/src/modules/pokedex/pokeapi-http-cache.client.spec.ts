@@ -198,4 +198,66 @@ describe('PokeApiHttpCacheClient', () => {
     ).rejects.toThrow('Circuit Breaker');
     expect(fetchSpy).toHaveBeenCalledTimes(callsBeforeOpen);
   });
+
+  it('isolates Circuit Breaker state per host between graphql.pokeapi.co and pokeapi.co', async () => {
+    const { redis } = createRedisMemoryMock();
+    const fetchSpy = jest
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation((input) => {
+        const url =
+          typeof input === 'string'
+            ? input
+            : input instanceof URL
+              ? input.toString()
+              : input.url;
+        if (new URL(url).hostname === 'graphql.pokeapi.co') {
+          return Promise.resolve(new Response('GraphQL down', { status: 503 }));
+        }
+        return Promise.resolve(
+          new Response(JSON.stringify({ id: 25, name: 'pikachu' }), {
+            status: 200,
+          }),
+        );
+      });
+
+    const client = new PokeApiHttpCacheClient(
+      redis,
+      createConfigMock(),
+      new StructuredLoggerService(),
+    );
+
+    for (let i = 0; i < 3; i += 1) {
+      await expect(
+        client.postUpstreamJson(
+          'https://graphql.pokeapi.co/v1beta2',
+          { query: '{ pokemon { id } }' },
+          ['graphql.pokeapi.co'],
+        ),
+      ).rejects.toThrow(ServiceUnavailableException);
+    }
+
+    const callsWhenGraphQlOpened = fetchSpy.mock.calls.length;
+    await expect(
+      client.postUpstreamJson(
+        'https://graphql.pokeapi.co/v1beta2',
+        { query: '{ pokemon { id } }' },
+        ['graphql.pokeapi.co'],
+      ),
+    ).rejects.toThrow('Circuit Breaker');
+    expect(fetchSpy).toHaveBeenCalledTimes(callsWhenGraphQlOpened);
+
+    const restResult = await client.fetchCachedJson({
+      cacheKey: 'pokeapi:v2:raw:pokemon:pikachu',
+      url: 'https://pokeapi.co/api/v2/pokemon/pikachu',
+      ttlSec: CACHE_TTL_24H_SEC,
+      staleTtlSec: CACHE_STALE_TTL_7D_SEC,
+      notFoundMessage: 'Missing',
+      parse: (raw) => raw as { id: number; name: string },
+    });
+
+    expect(restResult).toEqual({
+      cache: 'miss',
+      data: { id: 25, name: 'pikachu' },
+    });
+  });
 });

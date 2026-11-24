@@ -15,14 +15,12 @@ import {
 } from '../../common/telemetry/telemetry.port';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { RedisService } from '../../infra/redis.service';
+import { UpstreamCircuitBreaker } from './upstream-circuit-breaker';
 
 export const CACHE_TTL_24H_SEC = 86_400;
 export const CACHE_STALE_TTL_7D_SEC = 604_800;
 export const CACHE_TTL_7D_SEC = 604_800;
 export const CACHE_STALE_TTL_14D_SEC = 1_209_600;
-
-const CB_FAILURE_THRESHOLD = 3;
-const CB_OPEN_COOLDOWN_MS = 30_000;
 
 export interface CachedResourceResult<T> {
   readonly cache: CacheOutcome;
@@ -56,8 +54,7 @@ export class PokeApiHttpCacheClient {
     string,
     Promise<CachedResourceResult<unknown>>
   >();
-  private consecutiveFailures = 0;
-  private circuitOpenUntil = 0;
+  private readonly circuitBreaker = new UpstreamCircuitBreaker();
 
   constructor(
     private readonly redis: RedisService,
@@ -72,15 +69,12 @@ export class PokeApiHttpCacheClient {
     options: FetchCachedJsonOptions<T>,
   ): Promise<CachedResourceResult<T>> {
     return this.getCachedOrCompute({
-      cacheKey: options.cacheKey,
-      ttlSec: options.ttlSec,
-      staleTtlSec: options.staleTtlSec,
-      parse: options.parse,
-      aliasKeys: options.aliasKeys,
-      recordMetrics: options.recordMetrics,
+      ...options,
       compute: async () => {
-        const raw = await this.fetchUpstreamJson(
+        const raw = await this.executeUpstreamRequest(
           options.url,
+          { method: 'GET', headers: { accept: 'application/json' } },
+          ['pokeapi.co'],
           options.notFoundMessage,
         );
         try {
@@ -98,20 +92,46 @@ export class PokeApiHttpCacheClient {
     options: GetCachedOrComputeOptions<T>,
   ): Promise<CachedResourceResult<T>> {
     const emitMetrics = options.recordMetrics !== false;
-    const cached = await this.safeRedisGet(options.cacheKey, options.parse);
+    const cached = await this.readFreshCache(options.cacheKey, options.parse);
     if (cached !== null) {
       if (emitMetrics) {
-        this.telemetry?.recordCacheOutcome('hit');
+        this.recordCacheMetric('hit');
       }
       return { cache: 'hit', data: cached };
     }
-
     return this.runSingleflight(options.cacheKey, () =>
       this.computeAndCache(options, emitMetrics),
     );
   }
 
-  private async runSingleflight<T>(
+  readFreshCache<T>(
+    key: string,
+    parse: (raw: unknown) => T,
+  ): Promise<T | null> {
+    return this.safeRedisGet(key, parse);
+  }
+
+  readStaleCache<T>(
+    key: string,
+    parse: (raw: unknown) => T,
+  ): Promise<T | null> {
+    return this.safeRedisGet(`${key}:stale`, parse);
+  }
+
+  writeCache(
+    key: string,
+    ttlSec: number,
+    staleTtlSec: number,
+    value: unknown,
+  ): Promise<void> {
+    return this.safeRedisSet(key, ttlSec, staleTtlSec, value);
+  }
+
+  recordCacheMetric(outcome: CacheOutcome): void {
+    this.telemetry?.recordCacheOutcome(outcome);
+  }
+
+  async runSingleflight<T>(
     cacheKey: string,
     producer: () => Promise<CachedResourceResult<T>>,
   ): Promise<CachedResourceResult<T>> {
@@ -119,7 +139,6 @@ export class PokeApiHttpCacheClient {
     if (existing) {
       return existing as Promise<CachedResourceResult<T>>;
     }
-
     const request = producer().finally(() => {
       this.inflight.delete(cacheKey);
     });
@@ -127,70 +146,34 @@ export class PokeApiHttpCacheClient {
     return request;
   }
 
-  private async computeAndCache<T>(
-    options: GetCachedOrComputeOptions<T>,
-    emitMetrics: boolean,
-  ): Promise<CachedResourceResult<T>> {
-    try {
-      const data = await options.compute();
-      await this.persistWithAliases(options, data);
-      if (emitMetrics) {
-        this.telemetry?.recordCacheOutcome('miss');
-      }
-      return { cache: 'miss', data };
-    } catch (error) {
-      if (
-        !(error instanceof ServiceUnavailableException) ||
-        options.staleTtlSec <= 0
-      ) {
-        throw error;
-      }
-      const stale = await this.safeRedisGet(
-        `${options.cacheKey}:stale`,
-        options.parse,
-      );
-      if (!stale) {
-        throw error;
-      }
-      if (emitMetrics) {
-        this.telemetry?.recordCacheOutcome('stale-fallback');
-      }
-      return { cache: 'stale-fallback', data: stale };
-    }
-  }
-
-  private async persistWithAliases<T>(
-    options: GetCachedOrComputeOptions<T>,
-    data: T,
-  ): Promise<void> {
-    await this.safeRedisSet(
-      options.cacheKey,
-      options.ttlSec,
-      options.staleTtlSec,
-      data,
-    );
-    if (!options.aliasKeys) {
-      return;
-    }
-
-    const aliases = new Set(options.aliasKeys(data));
-    for (const aliasKey of aliases) {
-      if (aliasKey && aliasKey !== options.cacheKey) {
-        await this.safeRedisSet(
-          aliasKey,
-          options.ttlSec,
-          options.staleTtlSec,
-          data,
-        );
-      }
-    }
-  }
-
-  private async fetchUpstreamJson(
+  postUpstreamJson(
     url: string,
+    body: unknown,
+    allowedHosts: readonly string[],
+  ): Promise<unknown> {
+    return this.executeUpstreamRequest(
+      url,
+      {
+        method: 'POST',
+        headers: {
+          accept: 'application/json',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify(body),
+      },
+      allowedHosts,
+      'Recurso não encontrado na PokéAPI.',
+    );
+  }
+
+  private async executeUpstreamRequest(
+    url: string,
+    init: Omit<RequestInit, 'signal' | 'redirect'>,
+    allowedHosts: readonly string[],
     notFoundMessage: string,
   ): Promise<unknown> {
-    if (Date.now() < this.circuitOpenUntil) {
+    let targetHost = this.extractHostname(url) || 'pokeapi.co';
+    if (this.circuitBreaker.isOpen(targetHost)) {
       throw new ServiceUnavailableException(
         'PokéAPI temporariamente protegida por Circuit Breaker. Tente em instantes.',
       );
@@ -200,16 +183,22 @@ export class PokeApiHttpCacheClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
+    const host = targetHost;
     try {
-      const safeUrl = await assertSafeOutboundUrl(url, ['pokeapi.co']);
+      const safeUrl = await assertSafeOutboundUrl(url, allowedHosts);
+      targetHost = safeUrl.hostname.toLowerCase();
+      if (targetHost !== host && this.circuitBreaker.isOpen(targetHost)) {
+        throw new ServiceUnavailableException(
+          'PokéAPI temporariamente protegida por Circuit Breaker. Tente em instantes.',
+        );
+      }
       const response = await fetch(safeUrl.toString(), {
+        ...init,
         signal: controller.signal,
         redirect: 'error',
-        headers: { accept: 'application/json' },
       });
-
       if (response.status === 404) {
-        this.consecutiveFailures = 0;
+        this.circuitBreaker.recordSuccess(targetHost);
         throw new NotFoundException(notFoundMessage);
       }
       if (!response.ok) {
@@ -217,25 +206,64 @@ export class PokeApiHttpCacheClient {
           `PokéAPI retornou HTTP ${response.status}.`,
         );
       }
-
-      this.consecutiveFailures = 0;
-      this.circuitOpenUntil = 0;
+      this.circuitBreaker.recordSuccess(targetHost);
       return (await response.json()) as unknown;
     } catch (error) {
-      throw this.handleUpstreamError(error);
+      throw this.handleUpstreamError(targetHost, error);
     } finally {
       clearTimeout(timer);
     }
   }
 
-  private handleUpstreamError(error: unknown): Error {
+  private extractHostname(rawUrl: string): string {
+    try {
+      return new URL(rawUrl).hostname.toLowerCase();
+    } catch {
+      return '';
+    }
+  }
+
+  private async computeAndCache<T>(
+    options: GetCachedOrComputeOptions<T>,
+    emitMetrics: boolean,
+  ): Promise<CachedResourceResult<T>> {
+    try {
+      const data = await options.compute();
+      await this.persistWithAliases(options, data);
+      if (emitMetrics) this.recordCacheMetric('miss');
+      return { cache: 'miss', data };
+    } catch (error) {
+      const isRecoverable =
+        error instanceof ServiceUnavailableException && options.staleTtlSec > 0;
+      if (!isRecoverable) throw error;
+      const stale = await this.readStaleCache(options.cacheKey, options.parse);
+      if (!stale) throw error;
+      if (emitMetrics) this.recordCacheMetric('stale-fallback');
+      return { cache: 'stale-fallback', data: stale };
+    }
+  }
+
+  private async persistWithAliases<T>(
+    options: GetCachedOrComputeOptions<T>,
+    data: T,
+  ): Promise<void> {
+    const { cacheKey, ttlSec, staleTtlSec, aliasKeys } = options;
+    await this.writeCache(cacheKey, ttlSec, staleTtlSec, data);
+    if (!aliasKeys) {
+      return;
+    }
+    for (const aliasKey of new Set(aliasKeys(data))) {
+      if (aliasKey && aliasKey !== cacheKey) {
+        await this.writeCache(aliasKey, ttlSec, staleTtlSec, data);
+      }
+    }
+  }
+
+  private handleUpstreamError(host: string, error: unknown): Error {
     if (error instanceof NotFoundException) {
       return error;
     }
-
-    this.consecutiveFailures += 1;
-    if (this.consecutiveFailures >= CB_FAILURE_THRESHOLD) {
-      this.circuitOpenUntil = Date.now() + CB_OPEN_COOLDOWN_MS;
+    if (this.circuitBreaker.recordFailure(host)) {
       this.logger.emitEvent(
         'warn',
         'Circuit breaker opened for PokéAPI upstream',
@@ -245,7 +273,6 @@ export class PokeApiHttpCacheClient {
         },
       );
     }
-
     if (error instanceof ServiceUnavailableException) {
       return error;
     }
@@ -260,10 +287,7 @@ export class PokeApiHttpCacheClient {
   ): Promise<T | null> {
     try {
       const raw = await this.redis.getJson<unknown>(key);
-      if (!raw) {
-        return null;
-      }
-      return parse(raw);
+      return raw ? parse(raw) : null;
     } catch {
       return null;
     }
