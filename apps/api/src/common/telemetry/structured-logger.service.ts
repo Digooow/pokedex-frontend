@@ -1,6 +1,19 @@
 import { Injectable, LoggerService } from '@nestjs/common';
+import {
+  SeverityNumber,
+  isSpanContextValid,
+  logs,
+  trace,
+} from '@opentelemetry/api';
 
 export type LogLevel = 'info' | 'warn' | 'error' | 'debug';
+
+interface LogEmitMeta {
+  readonly context?: string;
+  readonly errorCode?: string;
+  readonly traceId?: string | null;
+  readonly spanId?: string | null;
+}
 
 interface StructuredLogPayload {
   readonly timestamp: string;
@@ -15,7 +28,7 @@ interface StructuredLogPayload {
 
 const SENSITIVE_KEY_PATTERN =
   /(password|passwd|secret|token|cookie|authorization|apikey|api_key|otp|codeverifier|privatekey)/i;
-const BEARER_PATTERN = /Bearer\s+[A-Za-z0-9\-._~+/]+=*/gi;
+const BEARER_PATTERN = /Bearer\s+[A-Z0-9\-._~+/]+=*/gi;
 const JWT_PATTERN =
   /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/g;
 const PEM_KEY_PATTERN =
@@ -26,6 +39,13 @@ const AUTH_HEADER_PAIR_PATTERN =
 const SENSITIVE_QUERY_PATTERN =
   /([?&](?:code|state|token|access_token|id_token|refresh_token|password|secret|otp|otpCode|api_key|apikey)=)([^&#\s]+)/gi;
 const MAX_LOG_DEPTH = 4;
+
+const OTEL_SEVERITY_MAP: Readonly<Record<LogLevel, SeverityNumber>> = {
+  debug: SeverityNumber.DEBUG,
+  info: SeverityNumber.INFO,
+  warn: SeverityNumber.WARN,
+  error: SeverityNumber.ERROR,
+};
 
 export function redactSensitiveText(raw: string): string {
   return raw
@@ -63,6 +83,33 @@ export function sanitizeLogValue(value: unknown, depth = 0): unknown {
   return sanitized;
 }
 
+function resolveTraceIds(meta?: LogEmitMeta): {
+  readonly traceId: string | null;
+  readonly spanId: string | null;
+} {
+  const activeCtx = trace.getActiveSpan()?.spanContext();
+  const validActive =
+    activeCtx && isSpanContextValid(activeCtx) ? activeCtx : null;
+  return {
+    traceId: meta?.traceId ?? validActive?.traceId ?? null,
+    spanId: meta?.spanId ?? validActive?.spanId ?? null,
+  };
+}
+
+function buildOtelLogAttributes(
+  serviceName: string,
+  traceId: string | null,
+  spanId: string | null,
+  meta?: LogEmitMeta,
+): Record<string, string> {
+  const attrs: Record<string, string> = { 'service.name': serviceName };
+  if (meta?.context) attrs['context'] = meta.context;
+  if (meta?.errorCode) attrs['error_code'] = meta.errorCode;
+  if (traceId) attrs['trace_id'] = traceId;
+  if (spanId) attrs['span_id'] = spanId;
+  return attrs;
+}
+
 @Injectable()
 export class StructuredLoggerService implements LoggerService {
   private readonly serviceName = 'pokeverse-api';
@@ -87,29 +134,12 @@ export class StructuredLoggerService implements LoggerService {
     this.emit('debug', message, { context });
   }
 
-  emitEvent(
-    level: LogLevel,
-    message: string,
-    meta?: {
-      readonly context?: string;
-      readonly errorCode?: string;
-      readonly traceId?: string | null;
-      readonly spanId?: string | null;
-    },
-  ): void {
+  emitEvent(level: LogLevel, message: string, meta?: LogEmitMeta): void {
     this.emit(level, message, meta);
   }
 
-  private emit(
-    level: LogLevel,
-    message: unknown,
-    meta?: {
-      readonly context?: string;
-      readonly errorCode?: string;
-      readonly traceId?: string | null;
-      readonly spanId?: string | null;
-    },
-  ): void {
+  private emit(level: LogLevel, message: unknown, meta?: LogEmitMeta): void {
+    const ids = resolveTraceIds(meta);
     const sanitized = sanitizeLogValue(message);
     const serializedMessage =
       typeof sanitized === 'string'
@@ -120,12 +150,24 @@ export class StructuredLoggerService implements LoggerService {
       timestamp: new Date().toISOString(),
       level,
       service_name: this.serviceName,
-      trace_id: meta?.traceId ?? null,
-      span_id: meta?.spanId ?? null,
+      trace_id: ids.traceId,
+      span_id: ids.spanId,
       error_code: meta?.errorCode ?? null,
       message: serializedMessage,
       ...(meta?.context ? { context: meta.context } : {}),
     };
+
+    logs.getLogger(this.serviceName).emit({
+      severityNumber: OTEL_SEVERITY_MAP[level],
+      severityText: level.toUpperCase(),
+      body: serializedMessage,
+      attributes: buildOtelLogAttributes(
+        this.serviceName,
+        ids.traceId,
+        ids.spanId,
+        meta,
+      ),
+    });
 
     const line = `${JSON.stringify(payload)}\n`;
     if (level === 'error') {

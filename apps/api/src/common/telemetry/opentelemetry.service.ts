@@ -1,67 +1,56 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  type Counter,
-  type Histogram,
-  type Meter,
   SpanStatusCode,
   type Tracer,
-  type UpDownCounter,
   metrics,
   trace,
 } from '@opentelemetry/api';
 import {
+  type ClientRumSample,
   type TelemetrySnapshot,
   TelemetrySnapshotSchema,
 } from '@pokeverse/shared';
 import type { ApiEnvConfig } from '../../config/env.schema';
+import {
+  ERROR_REPORTER_PORT,
+  type ErrorReporterPort,
+} from './error-reporter.port';
+import {
+  type OtelInstruments,
+  computeLatencyPercentile,
+  createOtelInstruments,
+  pushLatencySample,
+} from './otel-instruments.util';
 import {
   type OtelSdkBootstrapHandle,
   startOtelNodeSdk,
 } from './otel-sdk.bootstrap';
 import type {
   CacheMetricOutcome,
+  ErrorSource,
+  KafkaConsumeOutcome,
   TelemetryMetricsPort,
 } from './telemetry.port';
-
-const MAX_LATENCY_SAMPLES = 512;
-
-function pushSample(buffer: number[], value: number): void {
-  const normalized = Number.isFinite(value) ? Math.max(0, value) : 0;
-  if (buffer.length >= MAX_LATENCY_SAMPLES) {
-    buffer.shift();
-  }
-  buffer.push(normalized);
-}
-
-function computePercentile(samples: readonly number[], p: number): number {
-  if (samples.length === 0) {
-    return 0;
-  }
-  const sorted = samples.slice().sort((a, b) => a - b);
-  const idx = Math.min(
-    sorted.length - 1,
-    Math.max(0, Math.ceil((p / 100) * sorted.length) - 1),
-  );
-  return Number((sorted[idx] ?? 0).toFixed(2));
-}
 
 @Injectable()
 export class OpenTelemetryService
   implements TelemetryMetricsPort, OnModuleInit, OnModuleDestroy
 {
   private readonly serviceName: string;
+  private readonly serviceVersion: string;
+  private readonly environment: string;
   private readonly otelEnabled: boolean;
   private readonly isTestEnv: boolean;
   private readonly otlpEndpoint: string;
   private readonly tracer: Tracer;
-  private readonly meter: Meter;
-  private readonly httpDurationHistogram: Histogram;
-  private readonly httpErrorCounter: Counter;
-  private readonly cacheOutcomeCounter: Counter;
-  private readonly dbDurationHistogram: Histogram;
-  private readonly kafkaPublishCounter: Counter;
-  private readonly wsConnectionsGauge: UpDownCounter;
+  private readonly instruments: OtelInstruments;
   private sdkHandle: OtelSdkBootstrapHandle | null = null;
 
   private readonly httpLatenciesMs: number[] = [];
@@ -73,37 +62,33 @@ export class OpenTelemetryService
   private cacheStaleFallbacks = 0;
   private dbQueryCount = 0;
   private kafkaPublishedCount = 0;
+  private kafkaConsumedCount = 0;
   private kafkaDlqCount = 0;
   private wsActiveConnections = 0;
   private wsBroadcastCount = 0;
+  private unhandledApiErrors = 0;
+  private clientUiErrors = 0;
+  private rumSamplesCount = 0;
 
-  constructor(config: ConfigService<ApiEnvConfig, true>) {
+  constructor(
+    config: ConfigService<ApiEnvConfig, true>,
+    @Optional()
+    @Inject(ERROR_REPORTER_PORT)
+    private readonly errorReporter?: ErrorReporterPort,
+  ) {
     this.serviceName = config.get('OTEL_SERVICE_NAME', { infer: true });
+    this.serviceVersion =
+      config.get('OTEL_SERVICE_VERSION', { infer: true }) ?? '0.1.0';
+    this.environment = config.get('NODE_ENV', { infer: true });
     this.otelEnabled = config.get('OTEL_ENABLED', { infer: true });
-    this.isTestEnv = config.get('NODE_ENV', { infer: true }) === 'test';
+    this.isTestEnv = this.environment === 'test';
     this.otlpEndpoint = config.get('OTEL_EXPORTER_OTLP_ENDPOINT', {
       infer: true,
     });
 
     this.tracer = trace.getTracer(this.serviceName);
-    this.meter = metrics.getMeter(this.serviceName);
-    this.httpDurationHistogram = this.meter.createHistogram(
-      'http.server.request.duration',
-      { unit: 'ms' },
-    );
-    this.httpErrorCounter = this.meter.createCounter('http.server.errors_5xx');
-    this.cacheOutcomeCounter = this.meter.createCounter(
-      'cache.pokeapi.outcomes',
-    );
-    this.dbDurationHistogram = this.meter.createHistogram(
-      'db.prisma.query.duration',
-      { unit: 'ms' },
-    );
-    this.kafkaPublishCounter = this.meter.createCounter(
-      'messaging.kafka.published',
-    );
-    this.wsConnectionsGauge = this.meter.createUpDownCounter(
-      'ws.world.active_connections',
+    this.instruments = createOtelInstruments(
+      metrics.getMeter(this.serviceName),
     );
   }
 
@@ -112,6 +97,8 @@ export class OpenTelemetryService
       enabled: this.otelEnabled,
       isTestEnv: this.isTestEnv,
       serviceName: this.serviceName,
+      serviceVersion: this.serviceVersion,
+      environment: this.environment,
       otlpEndpoint: this.otlpEndpoint,
     });
   }
@@ -155,15 +142,15 @@ export class OpenTelemetryService
     durationMs: number,
   ): void {
     this.totalHttpRequests += 1;
-    pushSample(this.httpLatenciesMs, durationMs);
-    this.httpDurationHistogram.record(durationMs, {
+    pushLatencySample(this.httpLatenciesMs, durationMs);
+    this.instruments.httpDurationHistogram.record(durationMs, {
       'http.request.method': method,
       'http.route': routeGroup,
       'http.response.status_code': statusCode,
     });
     if (statusCode >= 500) {
       this.error5xxCount += 1;
-      this.httpErrorCounter.add(1, {
+      this.instruments.httpErrorCounter.add(1, {
         'http.request.method': method,
         'http.route': routeGroup,
       });
@@ -174,27 +161,47 @@ export class OpenTelemetryService
     if (outcome === 'hit') this.cacheHits += 1;
     else if (outcome === 'miss') this.cacheMisses += 1;
     else this.cacheStaleFallbacks += 1;
-    this.cacheOutcomeCounter.add(1, { outcome });
+    this.instruments.cacheOutcomeCounter.add(1, { outcome });
   }
 
   recordDatabaseQuery(target: string, durationMs: number): void {
     this.dbQueryCount += 1;
-    pushSample(this.dbLatenciesMs, durationMs);
-    this.dbDurationHistogram.record(durationMs, { 'db.target': target });
+    pushLatencySample(this.dbLatenciesMs, durationMs);
+    this.instruments.dbDurationHistogram.record(durationMs, {
+      'db.target': target,
+    });
   }
 
   recordKafkaPublish(topic: string, isDlq: boolean): void {
     if (isDlq) this.kafkaDlqCount += 1;
     else this.kafkaPublishedCount += 1;
-    this.kafkaPublishCounter.add(1, {
+    this.instruments.kafkaPublishCounter.add(1, {
       'messaging.destination.name': topic,
       dlq: isDlq,
     });
   }
 
+  recordKafkaConsume(
+    topic: string,
+    consumerGroup: string,
+    outcome: KafkaConsumeOutcome,
+    durationMs: number,
+  ): void {
+    this.kafkaConsumedCount += 1;
+    this.instruments.kafkaConsumeCounter.add(1, {
+      'messaging.destination.name': topic,
+      'messaging.consumer.group.name': consumerGroup,
+      outcome,
+    });
+    this.instruments.kafkaConsumeDurationHistogram.record(durationMs, {
+      'messaging.destination.name': topic,
+      outcome,
+    });
+  }
+
   recordWsConnectionDelta(delta: 1 | -1): void {
     this.wsActiveConnections = Math.max(0, this.wsActiveConnections + delta);
-    this.wsConnectionsGauge.add(delta);
+    this.instruments.wsConnectionsGauge.add(delta);
   }
 
   recordWsBroadcast(eventType: string, traceId: string | null): void {
@@ -206,6 +213,28 @@ export class OpenTelemetryService
       },
     });
     span.end();
+  }
+
+  recordRumSample(sample: ClientRumSample): void {
+    this.rumSamplesCount += 1;
+    this.instruments.webVitalsHistogram.record(sample.value, {
+      'metric.name': sample.name,
+      'http.route': sample.route,
+      'hardware.tier': sample.tier,
+    });
+  }
+
+  recordUnhandledError(source: ErrorSource, errorCode: string): void {
+    if (source === 'api') {
+      this.unhandledApiErrors += 1;
+    } else {
+      this.clientUiErrors += 1;
+      this.instruments.clientUiErrorsCounter.add(1, { error_code: errorCode });
+    }
+    this.instruments.unhandledErrorsCounter.add(1, {
+      source,
+      error_code: errorCode,
+    });
   }
 
   getSnapshot(): TelemetrySnapshot {
@@ -227,9 +256,9 @@ export class OpenTelemetryService
         error5xxCount: this.error5xxCount,
         errorRate5xx,
         latencyMs: {
-          p50: computePercentile(this.httpLatenciesMs, 50),
-          p95: computePercentile(this.httpLatenciesMs, 95),
-          p99: computePercentile(this.httpLatenciesMs, 99),
+          p50: computeLatencyPercentile(this.httpLatenciesMs, 50),
+          p95: computeLatencyPercentile(this.httpLatenciesMs, 95),
+          p99: computeLatencyPercentile(this.httpLatenciesMs, 99),
         },
       },
       redisCache: {
@@ -240,15 +269,23 @@ export class OpenTelemetryService
       },
       database: {
         queryCount: this.dbQueryCount,
-        p95DurationMs: computePercentile(this.dbLatenciesMs, 95),
+        p95DurationMs: computeLatencyPercentile(this.dbLatenciesMs, 95),
       },
       messaging: {
         publishedCount: this.kafkaPublishedCount,
+        consumedCount: this.kafkaConsumedCount,
         dlqCount: this.kafkaDlqCount,
       },
       websocket: {
         activeConnections: this.wsActiveConnections,
         broadcastCount: this.wsBroadcastCount,
+      },
+      observability: {
+        otelLogsActive: this.sdkHandle?.logsActive ?? false,
+        sentryEnabled: this.errorReporter?.isEnabled() ?? false,
+        unhandledApiErrors: this.unhandledApiErrors,
+        clientUiErrors: this.clientUiErrors,
+        rumSamplesCount: this.rumSamplesCount,
       },
     });
   }

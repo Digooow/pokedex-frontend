@@ -1,10 +1,12 @@
 import type { ConfigService } from '@nestjs/config';
 import type { ApiEnvConfig } from '../../config/env.schema';
+import type { ErrorReporterPort } from './error-reporter.port';
 import { OpenTelemetryService } from './opentelemetry.service';
 
 function createOtelConfigMock(): ConfigService<ApiEnvConfig, true> {
   const values: Record<string, unknown> = {
     OTEL_SERVICE_NAME: 'pokeverse-api',
+    OTEL_SERVICE_VERSION: '0.1.0',
     OTEL_ENABLED: false,
     NODE_ENV: 'test',
     OTEL_EXPORTER_OTLP_ENDPOINT: '',
@@ -15,8 +17,15 @@ function createOtelConfigMock(): ConfigService<ApiEnvConfig, true> {
 }
 
 describe('OpenTelemetryService', () => {
-  it('computes RED metrics, cache hit ratio, database, kafka and ws gauges accurately', async () => {
-    const service = new OpenTelemetryService(createOtelConfigMock());
+  it('computes RED, cache, database, kafka consume, RUM, and observability counters accurately', async () => {
+    const mockReporter: ErrorReporterPort = {
+      isEnabled: () => true,
+      captureException: jest.fn().mockResolvedValue(true),
+    };
+    const service = new OpenTelemetryService(
+      createOtelConfigMock(),
+      mockReporter,
+    );
     service.onModuleInit();
 
     for (const ms of [10, 20, 30, 40, 100]) {
@@ -34,11 +43,26 @@ describe('OpenTelemetryService', () => {
 
     service.recordKafkaPublish('pokeverse.world.events.v1', false);
     service.recordKafkaPublish('pokeverse.dlq.v1', true);
+    service.recordKafkaConsume(
+      'pokeverse.world.events.v1',
+      'pokeverse-world-ticker',
+      'processed',
+      14,
+    );
 
     service.recordWsConnectionDelta(1);
     service.recordWsConnectionDelta(1);
     service.recordWsConnectionDelta(-1);
     service.recordWsBroadcast('pokemon.saved', 'a'.repeat(32));
+
+    service.recordRumSample({
+      name: 'LCP',
+      value: 1120,
+      route: '/pokedex',
+      tier: 'ULTRA',
+    });
+    service.recordUnhandledError('api', 'INTERNAL_SERVER_ERROR');
+    service.recordUnhandledError('web', 'CLIENT_UI_ERROR');
 
     const spanValue = await service.withSpan(
       'test.operation',
@@ -67,11 +91,19 @@ describe('OpenTelemetryService', () => {
     });
     expect(snapshot.messaging).toEqual({
       publishedCount: 1,
+      consumedCount: 1,
       dlqCount: 1,
     });
     expect(snapshot.websocket).toEqual({
       activeConnections: 1,
       broadcastCount: 1,
+    });
+    expect(snapshot.observability).toEqual({
+      otelLogsActive: false,
+      sentryEnabled: true,
+      unhandledApiErrors: 1,
+      clientUiErrors: 1,
+      rumSamplesCount: 1,
     });
 
     await service.onModuleDestroy();

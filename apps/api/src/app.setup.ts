@@ -8,7 +8,15 @@ import express, {
 } from 'express';
 import helmet from 'helmet';
 import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import {
+  ERROR_REPORTER_PORT,
+  type ErrorReporterPort,
+} from './common/telemetry/error-reporter.port';
 import { StructuredLoggerService } from './common/telemetry/structured-logger.service';
+import {
+  TELEMETRY_METRICS_PORT,
+  type TelemetryMetricsPort,
+} from './common/telemetry/telemetry.port';
 import type { ApiEnvConfig } from './config/env.schema';
 
 export function configureApiApp(app: INestApplication): {
@@ -64,7 +72,15 @@ export function configureApiApp(app: INestApplication): {
   app.setGlobalPrefix('api/v1', {
     exclude: ['health/live', 'health/ready'],
   });
-  app.useGlobalFilters(new GlobalExceptionFilter(logger));
+  const telemetry = app.get<TelemetryMetricsPort>(TELEMETRY_METRICS_PORT, {
+    strict: false,
+  });
+  const errorReporter = app.get<ErrorReporterPort>(ERROR_REPORTER_PORT, {
+    strict: false,
+  });
+  app.useGlobalFilters(
+    new GlobalExceptionFilter(logger, telemetry, errorReporter),
+  );
   app.enableShutdownHooks();
 
   return {

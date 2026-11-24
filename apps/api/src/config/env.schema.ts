@@ -69,6 +69,38 @@ function validateUnpooledDatabaseUrl(
   }
 }
 
+function validateSentryDsn(rawDsn: string, ctx: z.RefinementCtx): void {
+  const dsn = rawDsn.trim();
+  if (dsn.length === 0) {
+    return;
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(dsn);
+  } catch {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['SENTRY_DSN'],
+      message: 'SENTRY_DSN deve ser uma URL https:// válida.',
+    });
+    return;
+  }
+
+  const projectId = parsed.pathname.replace(/^\/+/, '');
+  const isValidProject = /^\d+$/.test(projectId);
+  const isHttps = parsed.protocol === 'https:';
+  const hasPublicKey = parsed.username.trim().length > 0;
+  if (!isHttps || !hasPublicKey || !isValidProject) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['SENTRY_DSN'],
+      message:
+        'SENTRY_DSN deve seguir o formato https://<publicKey>@<host>/<projectId>.',
+    });
+  }
+}
+
 const ApiEnvSchema = z
   .object({
     NODE_ENV: z
@@ -156,7 +188,11 @@ const ApiEnvSchema = z
     S3_BUCKET_SAVES: z.string().min(1).default('pokeverse-saves'),
     OTEL_ENABLED: BooleanFalseDefaultSchema,
     OTEL_SERVICE_NAME: z.string().min(1).default('pokeverse-api'),
+    OTEL_SERVICE_VERSION: z.string().min(1).default('0.1.0'),
     OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional().default(''),
+    SENTRY_DSN: z.string().optional().default(''),
+    SENTRY_ENVIRONMENT: z.string().min(1).default('development'),
+    SENTRY_RELEASE: z.string().min(1).default('pokeverse@0.1.0'),
   })
   .superRefine((env, ctx) => {
     if (
@@ -210,6 +246,8 @@ const ApiEnvSchema = z
           'OTEL_EXPORTER_OTLP_ENDPOINT deve ser uma URL http:// ou https:// válida.',
       });
     }
+
+    validateSentryDsn(env.SENTRY_DSN, ctx);
   });
 
 export type ApiEnvConfig = z.infer<typeof ApiEnvSchema>;

@@ -79,4 +79,30 @@ describe('validateApiEnv', () => {
       'postgresql://user:pass@ep-cool.neon.tech/neondb?sslmode=require',
     );
   });
+
+  it('validates optional SENTRY_DSN and OTEL_SERVICE_VERSION format strictly', () => {
+    const withSentry = validateApiEnv({
+      ...validEnv,
+      OTEL_SERVICE_VERSION: '1.4.0',
+      SENTRY_DSN: 'https://publickey@o1.ingest.sentry.io/12345',
+      SENTRY_ENVIRONMENT: 'production',
+      SENTRY_RELEASE: 'pokeverse@1.4.0',
+    });
+    expect(withSentry.OTEL_SERVICE_VERSION).toBe('1.4.0');
+    expect(withSentry.SENTRY_ENVIRONMENT).toBe('production');
+
+    expect(() =>
+      validateApiEnv({
+        ...validEnv,
+        SENTRY_DSN: 'http://insecure@o1.ingest.sentry.io/12345',
+      }),
+    ).toThrow(/SENTRY_DSN/);
+
+    expect(() =>
+      validateApiEnv({
+        ...validEnv,
+        SENTRY_DSN: 'https://o1.ingest.sentry.io/not-numeric',
+      }),
+    ).toThrow(/SENTRY_DSN/);
+  });
 });

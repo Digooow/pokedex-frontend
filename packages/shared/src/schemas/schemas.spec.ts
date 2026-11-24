@@ -31,6 +31,11 @@ import {
   PokemonIdentifierParamSchema,
   SavePokedexSlotSchema,
 } from './pokedex.schemas';
+import {
+  ClientErrorReportSchema,
+  ClientRumBatchSchema,
+  TelemetryIngestAckSchema,
+} from './telemetry.schemas';
 
 describe('shared schemas boundary validation', () => {
   it('validates strict SavePokedexSlotSchema bounds', () => {
@@ -364,5 +369,54 @@ describe('shared schemas boundary validation', () => {
     for (const invalidId of ['not-a-uuid', '', '123']) {
       expect(PasskeyIdParamSchema.safeParse(invalidId).success).toBe(false);
     }
+  });
+
+  it('validates ClientRumBatchSchema, ClientErrorReportSchema, and TelemetryIngestAckSchema', () => {
+    const validRum = ClientRumBatchSchema.safeParse({
+      samples: [
+        { name: 'LCP', value: 1240.5, route: '/pokedex', tier: 'ULTRA' },
+        { name: 'CLS', value: 0.01, route: '/', tier: 'BALANCED' },
+      ],
+      traceId: 'a'.repeat(32),
+    });
+    expect(validRum.success).toBe(true);
+
+    expect(
+      ClientRumBatchSchema.safeParse({
+        samples: [{ name: 'LCP', value: 100, route: '/pokedex', tier: 'LITE' }],
+        unexpectedField: true,
+      }).success,
+    ).toBe(false);
+
+    expect(
+      ClientRumBatchSchema.safeParse({
+        samples: [{ name: 'LCP', value: -1, route: 'no-slash', tier: 'LITE' }],
+      }).success,
+    ).toBe(false);
+
+    const validErr = ClientErrorReportSchema.safeParse({
+      message: 'TypeError: Cannot read properties of undefined',
+      name: 'TypeError',
+      route: '/pokedex',
+      tier: 'ULTRA',
+      traceId: 'b'.repeat(32),
+    });
+    expect(validErr.success).toBe(true);
+
+    expect(
+      ClientErrorReportSchema.safeParse({
+        message: '',
+        route: '/pokedex',
+        extraProp: 'blocked',
+      }).success,
+    ).toBe(false);
+
+    expect(
+      TelemetryIngestAckSchema.safeParse({
+        accepted: true,
+        count: 2,
+        correlationId: 'c'.repeat(32),
+      }).success,
+    ).toBe(true);
   });
 });

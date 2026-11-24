@@ -7,7 +7,9 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import type { RequestWithTrace } from '../middleware/correlation.middleware';
+import type { ErrorReporterPort } from '../telemetry/error-reporter.port';
 import { StructuredLoggerService } from '../telemetry/structured-logger.service';
+import type { TelemetryMetricsPort } from '../telemetry/telemetry.port';
 
 interface BodyParserHttpErrorLike {
   readonly status?: unknown;
@@ -60,7 +62,11 @@ function resolveBodyParserHttpError(
 
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
-  constructor(private readonly logger: StructuredLoggerService) {}
+  constructor(
+    private readonly logger: StructuredLoggerService,
+    private readonly telemetry?: TelemetryMetricsPort,
+    private readonly errorReporter?: ErrorReporterPort,
+  ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -76,18 +82,31 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : (bodyParserError?.status ?? HttpStatus.INTERNAL_SERVER_ERROR);
-
     const errorCode =
       status >= 500 ? 'INTERNAL_SERVER_ERROR' : `HTTP_${status}`;
-
     const clientMessage =
       exception instanceof HttpException
         ? this.extractSafeHttpMessage(exception)
         : (bodyParserError?.message ??
           'Erro interno inesperado ao processar a requisição.');
-
     const safePath = req.path || req.url.split('?')[0] || '/';
 
+    this.reportException(status, exception, errorCode, safePath, req);
+
+    res.status(status).json({
+      code: errorCode,
+      message: clientMessage,
+      correlationId: req.correlationId ?? null,
+    });
+  }
+
+  private reportException(
+    status: number,
+    exception: unknown,
+    errorCode: string,
+    safePath: string,
+    req: RequestWithTrace,
+  ): void {
     this.logger.emitEvent(
       status >= 500 ? 'error' : 'warn',
       `${req.method} ${safePath} -> ${status}`,
@@ -98,11 +117,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         spanId: req.spanId ?? null,
       },
     );
-
-    res.status(status).json({
-      code: errorCode,
-      message: clientMessage,
-      correlationId: req.correlationId ?? null,
+    if (status < 500) {
+      return;
+    }
+    this.telemetry?.recordUnhandledError('api', errorCode);
+    void this.errorReporter?.captureException({
+      source: 'api',
+      exception,
+      errorCode,
+      route: safePath,
+      method: req.method,
+      traceId: req.traceId ?? null,
+      spanId: req.spanId ?? null,
     });
   }
 

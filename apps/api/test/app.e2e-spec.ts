@@ -365,4 +365,38 @@ describe('PokéVerse API (e2e)', () => {
       expect(parsed.data.http.totalRequests).toBeGreaterThanOrEqual(1);
     }
   });
+
+  it('ingests validated RUM samples and client error reports on /api/v1/telemetry/* and rejects invalid payloads', async () => {
+    const rumRes = await request(app.getHttpServer())
+      .post('/api/v1/telemetry/rum')
+      .set('Origin', 'http://localhost:4200')
+      .send({
+        samples: [
+          { name: 'LCP', value: 980, route: '/pokedex', tier: 'ULTRA' },
+        ],
+        traceId: 'a'.repeat(32),
+      })
+      .expect(202);
+    expect(rumRes.body).toMatchObject({ accepted: true, count: 1 });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/telemetry/rum')
+      .set('Origin', 'http://localhost:4200')
+      .send({
+        samples: [{ name: 'LCP', value: 100, route: 'bad', tier: 'ULTRA' }],
+      })
+      .expect(400);
+
+    const errRes = await request(app.getHttpServer())
+      .post('/api/v1/telemetry/errors')
+      .set('Origin', 'http://localhost:4200')
+      .send({
+        name: 'TypeError',
+        message: 'Unexpected null sprite',
+        route: '/pokedex',
+        tier: 'BALANCED',
+      })
+      .expect(202);
+    expect(errRes.body).toMatchObject({ accepted: true, count: 1 });
+  });
 });

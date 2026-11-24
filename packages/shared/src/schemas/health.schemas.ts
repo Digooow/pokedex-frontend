@@ -87,11 +87,19 @@ export const TelemetrySnapshotSchema = z.object({
   }),
   messaging: z.object({
     publishedCount: z.number().int().nonnegative(),
+    consumedCount: z.number().int().nonnegative(),
     dlqCount: z.number().int().nonnegative(),
   }),
   websocket: z.object({
     activeConnections: z.number().int().nonnegative(),
     broadcastCount: z.number().int().nonnegative(),
+  }),
+  observability: z.object({
+    otelLogsActive: z.boolean(),
+    sentryEnabled: z.boolean(),
+    unhandledApiErrors: z.number().int().nonnegative(),
+    clientUiErrors: z.number().int().nonnegative(),
+    rumSamplesCount: z.number().int().nonnegative(),
   }),
 });
 

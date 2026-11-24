@@ -9,7 +9,8 @@
 docker compose --env-file .env -f infra/docker/docker-compose.yml up -d
 ```
 
-- **Portas padrão parametrizadas no `.env`:** `POSTGRES_PORT=5433` e `REDPANDA_CONSOLE_PORT=8085` evitam conflito com eventuais instâncias nativas do Windows/Linux nas portas `5432` e `8080`.
+- **Portas padrão parametrizadas no `.env`:** `POSTGRES_PORT=5433`, `REDPANDA_CONSOLE_PORT=8085` e `GRAFANA_PORT=3005` evitam conflito com eventuais instâncias nativas do Windows/Linux nas portas `5432`, `8080` e com a `pokeverse-api` na porta `3000`.
+- **Stack Completa de Observabilidade Local + Perfil SaaS (`infra/observability/`):** além dos serviços transacionais (`postgres`, `redis`, `redpanda`, `redpanda-console`, `minio`/`pgsty/silo`, `mailpit`), o `docker-compose.yml` orquestra `otel-collector` (`:4317/:4318/:8889`), `prometheus` (`:9090` + `alerts.yml`), `postgres-exporter` (`:9187`), `redis-exporter` (`:9121`), `loki` (`:3100`, retenção `30d`), `promtail`, `tempo` (`:3200`), `grafana` (`:3005` autenticado em `127.0.0.1`) e o `datadog-agent` isolado em `--profile datadog` (`npm run infra:datadog:up`). Consulte a arquitetura completa em [19 — Observabilidade Híbrida, Telemetria e Monitoramento](19-observabilidade-telemetria-e-monitoramento.md).
 - **Object Storage S3 local (`pgsty/silo`):** como as imagens públicas antigas `minio/minio` e `minio/mc` no Docker Hub tiveram o acesso público restringido, o ambiente usa a release pinada `pgsty/silo:RELEASE.2026-11-12T00-00-00Z` (drop-in 100% compatível com a API S3, console na `:9001` e cliente `mc` embutido na mesma imagem), reduzindo também o número de downloads.
 
 ```yaml
@@ -178,10 +179,11 @@ Proibido `console.log("erro no usuario " + id)` em texto solto. Toda aplicação
 
 - `timestamp`, `level`, `service_name`, `trace_id`, `span_id`, `error_code`, `message` — mascarando e nunca registrando senhas, tokens JWT, cookies ou PII sensível.
 
-### 3.2. Distributed Tracing (**OpenTelemetry**)
+### 3.2. Distributed Tracing, Logs OTLP e APM SaaS (**OpenTelemetry + Tempo + Sentry + Datadog**)
 
-- Instrumentação **OpenTelemetry SDK** ([`otel-sdk.bootstrap.ts`](../apps/api/src/common/telemetry/otel-sdk.bootstrap.ts) + [`opentelemetry.service.ts`](../apps/api/src/common/telemetry/opentelemetry.service.ts) + [`telemetry.port.ts`](../apps/api/src/common/telemetry/telemetry.port.ts)) cobrindo HTTP (`CorrelationMiddleware`), Prisma (`PrismaService` query events), Redis (`RedisService` + `PokeApiCacheService`), KafkaJS (`KafkaService`) e WebSocket (`WorldGateway`), com exportação OTLP HTTP opcional (`OTEL_ENABLED` / `OTEL_EXPORTER_OTLP_ENDPOINT`) e endpoint protegido `/api/v1/system/telemetry` (`TelemetrySnapshotSchema`).
-- Propagação explícita do cabeçalho **W3C Trace Context (`traceparent`)** através de chamadas HTTP, eventos gravados em `OutboxEvent`, mensagens Kafka e notificações WebSocket, permitindo rastrear uma ação do usuário do clique no Angular até o processamento assíncrono em Worker.
+- Instrumentação **OpenTelemetry SDK (3 Sinais)** ([`otel-sdk.bootstrap.ts`](../apps/api/src/common/telemetry/otel-sdk.bootstrap.ts) + [`opentelemetry.service.ts`](../apps/api/src/common/telemetry/opentelemetry.service.ts) + [`otel-instruments.util.ts`](../apps/api/src/common/telemetry/otel-instruments.util.ts) + [`telemetry.port.ts`](../apps/api/src/common/telemetry/telemetry.port.ts)) cobrindo HTTP (`CorrelationMiddleware`), Prisma (`PrismaService` query events), Redis (`RedisService` + `PokeApiCacheService`), KafkaJS (`KafkaService` + *Child Spans* `kafka.consume` nos consumidores), WebSocket (`WorldGateway`), Logs OTLP (`StructuredLoggerService`), RUM Angular (`WebTelemetryService` + `telemetryTraceInterceptor` via `POST /api/v1/telemetry/rum`) e endpoint protegido `/api/v1/system/telemetry` (`TelemetrySnapshotSchema`).
+- **Crash Reporting & APM SaaS:** [`SentryErrorReporterService`](../apps/api/src/common/telemetry/sentry-error-reporter.service.ts) (`ErrorReporterPort`) envia exceções 5xx do `GlobalExceptionFilter` e crashes do `GlobalErrorHandler` Angular (via túnel BFF `/api/v1/telemetry/errors` sob gate LGPD) usando Sentry Envelope v7 com `assertSafeOutboundUrl` anti-SSRF pós-DNS; em paralelo, o perfil Docker `datadog` ativa o `datadog-agent` para Datadog Pro (GitHub Student Pack). Consulte os detalhes completos em [doc 19](19-observabilidade-telemetria-e-monitoramento.md).
+- Propagação explícita do cabeçalho **W3C Trace Context (`traceparent`)** através de chamadas HTTP do Angular, eventos gravados em `OutboxEvent`, mensagens Kafka e notificações WebSocket, permitindo rastrear uma ação do usuário do clique no Angular até o processamento assíncrono em Worker no **Grafana Tempo**.
 
 ### 3.3. Métricas RED/USE e Probes de Saúde Distintos
 

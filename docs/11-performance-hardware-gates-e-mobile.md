@@ -5,6 +5,7 @@
 Desempenho no **PokéVerse OS** não é otimização opcional de fim de projeto: é um **requisito funcional bloqueante** em todas as camadas — gráficos WebGL2/2D, CSS mobile, APIs NestJS, PostgreSQL, Redis, Apache Kafka e pipeline de CI/CD.
 
 ### Por que esta arquitetura nasceu? (Post-Mortem de Campo)
+
 Na versão inicial da Pokédex 3D publicada no GitHub Pages, o desempenho parecia fluido em desktops potentes, mas **testes reais em smartphone revelaram travamentos severos** durante carregamento e abertura. A investigação técnica apontou 4 gargalos concretos no código:
 
 | Gargalo Medido na Versão Original | Impacto Real no Celular | Solução Aplicada & Regra Arquitetural Derivada |
@@ -61,6 +62,7 @@ flowchart TD
 | **CSS Skeuomórfico (Pokédex 3D)** | Gradientes `oklch`, reflexos e microtexturas em bitmap pré-assado | Mesmo visual nítido sem animar `filter`/`box-shadow` ou `backdrop-filter` | Sem `backdrop-filter`, sem `mix-blend-mode`, sombras simplificadas para compositing instantâneo |
 
 ### 2.3. Degradação Dinâmica em Tempo de Execução (*FpsWatchdog*)
+
 - Mesmo se um aparelho declarar boas especificações no papel (ex.: modo economia de bateria ativo ou superaquecimento térmico), um monitor leve baseado em janela deslizante de `requestAnimationFrame` observa os quadros durante cenas ativas:
   - Se `180` quadros consecutivos (~3 segundos) registrarem **média abaixo de `45 FPS`** ou picos frequentes de frame `> 30ms`, o `AdaptiveQualityManager` reduz o tier em um degrau (`ULTRA -> BALANCED` ou `BALANCED -> LITE`) em tempo real e notifica discretamente no HUD.
   - O usuário pode fixar manualmente sua preferência (**Auto / Ultra / Balanceado / Lite**) no menu de configurações do HUD.
@@ -120,9 +122,10 @@ Nenhuma estimativa subjetiva: toda camada tem metas numéricas verificáveis.
 
 ## 5. Telemetria Real (RUM) e Painel Interno de Diagnóstico (`PerfHUD`)
 
-1. **Coleta Real de Usuários (*Real User Monitoring*):**
-   - Um serviço leve no Angular observa nativamente via `PerformanceObserver` as métricas `largest-contentful-paint`, `layout-shift`, `event` (INP) e `longtask`, anexando o perfil de hardware ativo (`tier`, `deviceMemory`, viewport mobile/desktop) sem nenhum dado pessoal (sem PII).
-   - Ao final de interações ou saída da página (`visibilitychange` -> `hidden`), envia via `navigator.sendBeacon()` para `POST /api/v1/telemetry/vitals`, alimentando métricas RED/USE no back-end.
+1. **Coleta Real de Usuários (*Real User Monitoring* — Implementada via Gate LGPD):**
+   - [`WebTelemetryService`](../apps/web/src/app/core/telemetry/web-telemetry.service.ts) no Angular observa nativamente via `PerformanceObserver` as métricas `largest-contentful-paint` (`LCP`), `layout-shift` (`CLS`) e `longtask` (`LONG_TASK`), anexando a rota normalizada e o perfil de hardware ativo (`ULTRA` / `BALANCED` / `LITE`) sem nenhum dado pessoal (sem PII) e respeitando estritamente o opt-in `PrivacyConsentStore.optionalTelemetryEnabled()`.
+   - Ao sair ou ocultar a página (`visibilitychange` -> `hidden`), envia em JSON (`fetch(..., { keepalive: true, credentials: 'same-origin' })`) para `POST /api/v1/telemetry/rum` ([`ClientTelemetryController`](../apps/api/src/modules/system/client-telemetry.controller.ts)), alimentando o histograma `web.vitals.value` no OpenTelemetry Collector -> Prometheus/Grafana ([doc 19](19-observabilidade-telemetria-e-monitoramento.md)).
+   - Em paralelo, [`telemetryTraceInterceptor`](../apps/web/src/app/core/interceptors/telemetry-trace.interceptor.ts) propaga `traceparent` W3C nas chamadas `/api/*` e [`GlobalErrorHandler`](../apps/web/src/app/core/telemetry/global-error-handler.ts) encaminha crashes de UI (sob opt-in LGPD) para `POST /api/v1/telemetry/errors` -> `SentryErrorReporterService`.
 2. **Painel Técnico Ativável (`PerfHUD` para Desenvolvimento e Portfólio):**
    - Um atalho discreto (`Ctrl+Shift+P` ou opção de diagnóstico no HUD) exibe um medidor compacto ao vivo com:
      - **FPS atual e frame time (ms)**;

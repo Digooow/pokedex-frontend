@@ -1,4 +1,10 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   EmailNotificationEventSchema,
@@ -8,6 +14,11 @@ import {
 import type { Consumer } from 'kafkajs';
 import { CryptoService } from '../../common/security/crypto.service';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
+import {
+  TELEMETRY_METRICS_PORT,
+  type KafkaConsumeOutcome,
+  type TelemetryMetricsPort,
+} from '../../common/telemetry/telemetry.port';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { KafkaService } from '../../infra/kafka.service';
 import { RedisService } from '../../infra/redis.service';
@@ -28,6 +39,9 @@ export class EmailNotificationsConsumerService
     private readonly mailService: MailService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
     private readonly logger: StructuredLoggerService,
+    @Optional()
+    @Inject(TELEMETRY_METRICS_PORT)
+    private readonly telemetry?: TelemetryMetricsPort,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -53,7 +67,38 @@ export class EmailNotificationsConsumerService
   async handleRawMessage(
     topic: string,
     rawValue: string,
-  ): Promise<'processed' | 'duplicate' | 'dlq'> {
+  ): Promise<KafkaConsumeOutcome> {
+    const startedAt = performance.now();
+    const execute = async (): Promise<KafkaConsumeOutcome> => {
+      const outcome = await this.consumeMessage(topic, rawValue);
+      this.telemetry?.recordKafkaConsume(
+        topic,
+        EMAIL_CONSUMER_GROUP,
+        outcome,
+        Math.max(0, performance.now() - startedAt),
+      );
+      return outcome;
+    };
+
+    if (!this.telemetry) {
+      return execute();
+    }
+
+    return this.telemetry.withSpan(
+      'kafka.consume',
+      {
+        'messaging.system': 'kafka',
+        'messaging.destination.name': topic,
+        'messaging.consumer.group.name': EMAIL_CONSUMER_GROUP,
+      },
+      execute,
+    );
+  }
+
+  private async consumeMessage(
+    topic: string,
+    rawValue: string,
+  ): Promise<KafkaConsumeOutcome> {
     let candidateEvent: unknown;
     try {
       const outer: unknown = JSON.parse(rawValue);

@@ -1,0 +1,80 @@
+groups:
+  - name: pokeverse-slo-alerts
+    rules:
+      - alert: PokeVerseHigh5xxErrorRate
+        expr: |
+          (
+            sum(rate(http_server_errors_5xx_total[5m]))
+            /
+            clamp_min(sum(rate(http_server_request_duration_milliseconds_count[5m])), 1)
+          ) > 0.005
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Taxa de erros HTTP 5xx acima do SLO (< 0.5%)
+          description: A API NestJS ultrapassou 0.5% de respostas 5xx nos ultimos 5 minutos.
+
+      - alert: PokeVerseHighHttpLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (le) (rate(http_server_request_duration_milliseconds_bucket[5m]))
+          ) > 350
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Latencia HTTP p95 acima de 350 ms
+          description: A latencia p95 da pokeverse-api superou o orcamento maximo de 350 ms.
+
+      - alert: PokeVerseKafkaDlqMessagesDetected
+        expr: increase(messaging_kafka_published_total{dlq="true"}[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Mensagens enviadas para Dead Letter Queue (pokeverse.dlq.v1)
+          description: Foram detectadas falhas persistentes no processamento Outbox/Kafka encaminhadas para a DLQ.
+
+      - alert: PokeVerseLowPokeApiCacheHitRatio
+        expr: |
+          (
+            sum(rate(cache_pokeapi_outcomes_total{outcome="hit"}[10m]))
+            /
+            clamp_min(sum(rate(cache_pokeapi_outcomes_total[10m])), 0.001)
+          ) < 0.80
+          and sum(rate(cache_pokeapi_outcomes_total[10m])) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Cache Hit Ratio da PokeAPI abaixo de 80%
+          description: O cache Redis da PokeAPI esta com taxa de acerto abaixo de 80% sob trafego ativo.
+
+      - alert: PokeVersePostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: PostgreSQL inacessivel no postgres-exporter
+          description: O banco relacional PostgreSQL parou de responder ao exporter.
+
+      - alert: PokeVerseRedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Redis inacessivel no redis-exporter
+          description: A instancia Redis de sessoes BFF e cache parou de responder ao exporter.
+
+      - alert: PokeVerseClientCrashSpike
+        expr: increase(client_ui_errors_total[5m]) >= 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Pico de excecoes nao tratadas no front-end Angular
+          description: Cinco ou mais crashes de interface foram reportados via /api/v1/telemetry/errors em 5 minutos.

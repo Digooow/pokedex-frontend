@@ -1,7 +1,9 @@
 import { Global, Module } from '@nestjs/common';
 import { CryptoService } from '../common/security/crypto.service';
 import { AuditTrailService } from '../common/telemetry/audit-trail.service';
+import { ERROR_REPORTER_PORT } from '../common/telemetry/error-reporter.port';
 import { OpenTelemetryService } from '../common/telemetry/opentelemetry.service';
+import { SentryErrorReporterService } from '../common/telemetry/sentry-error-reporter.service';
 import { StructuredLoggerService } from '../common/telemetry/structured-logger.service';
 import { TELEMETRY_METRICS_PORT } from '../common/telemetry/telemetry.port';
 import { InfraProbesService } from './infra-probes.service';
@@ -15,6 +17,8 @@ import { S3ObjectStorageAdapter } from './s3-object-storage.adapter';
 @Module({
   providers: [
     StructuredLoggerService,
+    SentryErrorReporterService,
+    { provide: ERROR_REPORTER_PORT, useExisting: SentryErrorReporterService },
     OpenTelemetryService,
     { provide: TELEMETRY_METRICS_PORT, useExisting: OpenTelemetryService },
     AuditTrailService,
@@ -28,6 +32,8 @@ import { S3ObjectStorageAdapter } from './s3-object-storage.adapter';
   ],
   exports: [
     StructuredLoggerService,
+    SentryErrorReporterService,
+    ERROR_REPORTER_PORT,
     OpenTelemetryService,
     TELEMETRY_METRICS_PORT,
     AuditTrailService,

@@ -9,6 +9,8 @@
   "scripts": {
     "infra:up": "docker compose --env-file .env -f infra/docker/docker-compose.yml up -d",
     "infra:down": "docker compose --env-file .env -f infra/docker/docker-compose.yml down",
+    "infra:datadog:up": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile datadog up -d",
+    "infra:datadog:down": "docker compose --env-file .env -f infra/docker/docker-compose.yml --profile datadog down",
     "build:shared": "npm run build --workspace=@pokeverse/shared",
     "build:api": "npm run build --workspace=pokeverse-api",
     "build:web": "npm run build --workspace=pokeverse-web",

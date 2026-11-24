@@ -24,7 +24,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-121_unit_%2B_12_E2E_%2B_3_integra%C3%A7%C3%A3o-3ddc84">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-129_unit_%2B_13_E2E_%2B_3_integra%C3%A7%C3%A3o-3ddc84">
   <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
 </p>
 
@@ -253,6 +253,7 @@ flowchart TD
 | **Dados** | PostgreSQL com Prisma 6.19 (14 modelos, 5 enums, 3 migrações), Redis 7 via `ioredis`, Kafka via `kafkajs` (Redpanda no local, Aiven na nuvem) |
 | **Contratos** | Zod v4 em `@pokeverse/shared`, compilado com `tsup` |
 | **Qualidade** | Vitest 5, Jest 30, ESLint 9, Prettier, SonarCloud, UI Quality Gate próprio |
+| **Observabilidade** | OpenTelemetry SDK (Traces, Metrics e Logs OTLP), OTel Collector, Prometheus + Postgres/Redis Exporters + alertas, Grafana Loki + Promtail, Grafana Tempo, Grafana, Sentry Envelope v7 e Datadog Agent |
 | **Infra** | Docker multi-stage não-root, GitHub Actions, Cloudflare Pages, Azure Container Apps, Neon, Upstash, Aiven, Resend |
 
 ---
@@ -477,8 +478,8 @@ flowchart LR
   subgraph v["CI Verification (ci.yml: verify)"]
     direction LR
     s0["Gitleaks<br/>+ npm audit critical"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>+ Lint + Prettier"]
-    s2 --> s4["Testes unitários<br/>113 Vitest + Jest"]
-    s4 --> s5["E2E HTTP Edge<br/>11 testes (infra mockada)"]
+    s2 --> s4["Testes unitários<br/>129 Vitest + Jest"]
+    s4 --> s5["E2E HTTP Edge<br/>13 testes (infra mockada)"]
     s5 --> s6["Build<br/>+ legado da raiz"]
     s6 --> s7["UI Quality Gate"]
     s7 --> s8["Docker build<br/>+ Trivy CRITICAL"]
@@ -516,26 +517,26 @@ flowchart LR
 
 | Workspace | Runner | Testes |
 | :--- | :--- | :-: |
-| `@pokeverse/shared` | Vitest 5 | 17 (3 arquivos) |
-| `pokeverse-api` (unit) | Jest 30 | 65 (23 suítes) |
-| `pokeverse-api` (E2E HTTP edge) | Jest + Supertest | 11 (1 suíte) |
+| `@pokeverse/shared` | Vitest 5 | 18 (3 arquivos) |
+| `pokeverse-api` (unit) | Jest 30 | 78 (28 suítes) |
+| `pokeverse-api` (E2E HTTP edge) | Jest + Supertest | 13 (1 suíte) |
 | `pokeverse-api` (integração real CI) | Jest + Postgres/Redis/Kafka | 3 (1 suíte) |
-| `pokeverse-web` | Vitest 5 + TestBed | 31 (7 arquivos) |
-| **Total** | | **113 unitários + 11 E2E edge + 3 integração real (127 verificações)** |
+| `pokeverse-web` | Vitest 5 + TestBed | 33 (8 arquivos) |
+| **Total** | | **129 unitários + 13 E2E edge + 3 integração real (145 verificações)** |
 
 ```mermaid
 xychart-beta
   title "Testes automatizados por workspace"
   x-axis ["shared", "api unit", "api edge", "api integ", "web"]
-  y-axis "Testes" 0 --> 70
-  bar [17, 65, 11, 3, 31]
+  y-axis "Testes" 0 --> 80
+  bar [18, 78, 13, 3, 33]
 ```
 
-Os testes cobrem busca fuzzy, regras do Laboratório, schemas (incluindo validação `https:` em URLs, parâmetros de rota da Pokédex, callback Google OAuth e Passkey ID), `RbacGuard` (*deny-by-default* em rotas privadas), `AuditTrailService` + `TrainerGdprService` (`export`/`delete` pseudonimizado), `assertSafeOutboundUrl` (anti-SSRF pós-DNS), `StructuredLoggerService` (redator DLP de segredos/PII), `WorldGateway` (origem em produção, cota/IP e anti-spoofing de `x-forwarded-for`), `PokeApiCacheService`, `PokedexSlotRepository`, `PokedexSlotsService`, `totp-crypto.util`, `TrainerAccountRepository`, `AuthTokenRepository`, `PasskeyRepository`, TOTP, Passkeys WebAuthn, OAuth PKCE (`GETDEL` atômico), OTP concorrente, `OutboxEventRepository`, `OutboxRelayService`, consumidores Kafka, deleção LGPD, expurgo temporal, limites `413`/`400` de body parser, integração real com PostgreSQL/Redis/Kafka e o front-end Angular (`app-shell.spec.ts`, `pokedex-device.spec.ts`, `privacy-consent.store.spec.ts`, `auth-iam.spec.ts`, `pokedex-view-mapper.util`, `PokedexLocalSlotsStorage`, `auth-dialog-validator.util` e `test-fixtures.spec-helper.ts`).
+Os testes cobrem busca fuzzy, regras do Laboratório, schemas (incluindo validação `https:` em URLs, parâmetros de rota da Pokédex, callback Google OAuth, Passkey ID e contratos RUM/Crash Reporting), `RbacGuard` (*deny-by-default* em rotas privadas), `AuditTrailService` + `TrainerGdprService` (`export`/`delete` pseudonimizado), `assertSafeOutboundUrl` (anti-SSRF pós-DNS), `StructuredLoggerService` (redator DLP de segredos/PII + OTel Logs), `SentryErrorReporterService` (Envelope HTTP v7 + anti-SSRF), `TelemetryIngestionService` (`/api/v1/telemetry/{rum,errors}`), `WorldGateway` (origem em produção, cota/IP e anti-spoofing de `x-forwarded-for`), `PokeApiCacheService`, `PokedexSlotRepository`, `PokedexSlotsService`, `totp-crypto.util`, `TrainerAccountRepository`, `AuthTokenRepository`, `PasskeyRepository`, TOTP, Passkeys WebAuthn, OAuth PKCE (`GETDEL` atômico), OTP concorrente, `OutboxEventRepository`, `OutboxRelayService`, consumidores Kafka, deleção LGPD, expurgo temporal, limites `413`/`400` de body parser, integração real com PostgreSQL/Redis/Kafka e o front-end Angular (`app-shell.spec.ts`, `pokedex-device.spec.ts`, `privacy-consent.store.spec.ts`, `auth-iam.spec.ts`, `web-telemetry.spec.ts`, `pokedex-view-mapper.util`, `PokedexLocalSlotsStorage`, `auth-dialog-validator.util` e `test-fixtures.spec-helper.ts`).
 
 ### Bundle do front-end
 
-`498.50 kB` raw e `128.16 kB` de transferência estimada no bundle inicial (`0` warnings de budget). O CSS global tem `69.12 kB` (`11.90 kB` transferido) e o `main` tem `37.34 kB` (`9.99 kB` transferido). O resto é carregado sob demanda: Pokédex (`87.78 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`22.50 kB`), diálogo de visitante (`18.27 kB`), configurações de segurança (`18.18 kB`), diálogo de privacidade/LGPD (`10.70 kB`) e Museu (`3.86 kB`).
+`505.94 kB` raw e `130.01 kB` de transferência estimada no bundle inicial (`0` warnings de budget). O CSS global tem `71.08 kB` (`12.31 kB` transferido) e o `main` tem `41.21 kB` (`11.16 kB` transferido). O resto é carregado sob demanda: Pokédex (`87.99 kB`), `socket.io-client` (`42.17 kB`), telas em construção (`22.68 kB`), diálogo de visitante (`18.32 kB`), configurações de segurança (`18.25 kB`), diálogo de privacidade/LGPD (`10.75 kB`) e Museu (`3.86 kB`).
 
 ---
 
@@ -575,7 +576,7 @@ flowchart TB
 | **WebSockets & Logs** | `/ws/world` rejeita `!origin` em produção e aplica cota (`10`/IP, `1000` globais); `StructuredLoggerService` mascara segredos/tokens e logs HTTP gravam só `req.path`; `bodyParser: false` com `64kb` (`413`/`400`) |
 | **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), chaves não essenciais registradas declarativamente, portabilidade em `GET /auth/me/export`, eliminação definitiva em cascata via `DELETE /auth/me` (confirmação em 2 etapas na UI), expurgo automático a cada `6h` de tokens/eventos expirados e zero rastreadores de terceiros |
 | **Infra & CI/CD** | Container multi-stage não-root stateless (migrations pré-deploy separadas em `deploy.yml` via `DATABASE_URL_UNPOOLED` e step `db-secret`), backing services reais no `ci.yml` (`postgres`, `redis`, `apache/kafka`), **Testcontainers** local (`test:integration:tc`), **Gitleaks** (pré-`npm ci` + `.gitleaks.toml`), **Trivy** (`CRITICAL`, pinado por SHA + SBOM CycloneDX), **CodeQL** SAST, `npm audit --omit=dev --audit-level=high` (`0` vulnerabilidades), `.github/CODEOWNERS` + template de PR, TLS e mTLS em nuvem |
-| **Observabilidade** | **OpenTelemetry SDK** ponta a ponta (HTTP, Prisma, Redis, KafkaJS, WebSocket) com exportação OTLP HTTP opcional, métricas RED (`GET /api/v1/system/telemetry` protegido por RBAC), logs JSON estruturados, `x-correlation-id` e `traceparent` W3C, health checks separados de liveness e readiness |
+| **Observabilidade** | **OpenTelemetry SDK (3 sinais OTLP)** ponta a ponta (HTTP, Prisma, Redis, KafkaJS + *Child Spans*, WebSocket e RUM Angular via `/api/v1/telemetry/rum` sob gate LGPD) -> **OTel Collector** -> **Prometheus** (+ Postgres/Redis Exporters e `alerts.yml`), **Grafana Loki** (`30d`) + Promtail, **Grafana Tempo** e **Grafana** (`:3005` autenticado em `127.0.0.1`), além de **`SentryErrorReporterService`** (Envelope v7 + anti-SSRF pós-DNS via `/api/v1/telemetry/errors`) e perfil paralelo `datadog` (`Datadog Agent`) ([doc 19](docs/19-observabilidade-telemetria-e-monitoramento.md)) |
 | **Governança & Gate Pré-IA (35 controles)** | Matriz completa `REQ-SEC-01..35` documentada: RBAC granular/escopos, WAF/DDoS, CORS/CSP estritos, anti-SSRF, rate limit por usuário/chave, proteção EDoS, cofre centralizado de segredos, KMS em repouso, DLP runtime, TTLs automatizados, trilha de auditoria imutável, SCA/SBOM + SAST/DAST, revisão de terceiros, controle estrito de logs/métricas, alertas + playbooks IRP, limitações/AUP, SLAs de responsabilidade compartilhada e portões obrigatórios antes de qualquer uso de IA/modelos (tokenização PII, filtro de *prompt injection*, moderação, Red Teaming, vieses, sandboxing sem rede, HITL, privacidade diferencial e assinatura de respostas) |
 
 Os detalhes estão no [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e nos [requisitos de privacidade, LGPD e segurança (`REQ-SEC-01..35`)](docs/16-cookies-lgpd-e-requisitos.md).
@@ -658,7 +659,7 @@ Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 
 | Lint, formatação e SonarCloud no CI | **Concluída (Onda 4 + Remediação SonarCloud + Fechamento Doc 17):** `npm run lint` (`--max-warnings=0`, `eslint-plugin-prettier/recommended`, `@typescript-eslint/no-explicit-any: error`, `complexity: ['error', 15]`, `max-depth: ['error', 3]`, `max-lines` `300`/`200` no web e `max-lines-per-function: 65` em código de produção) e `npm run format:check` ativos nos 3 workspaces e no `ci.yml`, além da correção dos `18` apontamentos do SonarCloud, eliminação das duplicações CPD, `0` cores literais em `apps/web/src/app/**/*.scss` (tokens `--pv-*`) e governança `.github/CODEOWNERS` + template de PR |
 | Decomposição SOLID, Portas DIP/LSP e IAM | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + portas DIP/LSP (`EmailTransport`, `SessionRepository`, `OtpStore`, `ObjectStoragePort`, `TelemetryMetricsPort`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; `AuthStore` (`<= 291` linhas) com `AuthRecoveryService` + `AuthCrossTabSyncService` e validação do diálogo em `auth-dialog-validator.util.ts` (`DIALOG_VALIDATORS`) |
 | Pokédex 3D, DIP e Tokens HUD (`apps/web`) | **Concluída (Ondas 3–4 + Doc 17):** stores e serviços (`PokedexStore` + `PokedexApiClient` + `pokedex-view-mapper.util`, `PokedexSlotsStore` + `PokedexLocalSlotsStorage`, `PokedexRpgNavService` + `pokedex-rpg-nav.util`, `PokedexInputShortcutsService`, `PokedexLidPhysicsService`) e componentes UI (`PokedexDevicePage`, `PokedexCover`, `PokedexSearchPanel`, `PokedexPhysicalControls`, `PokedexVisor`, `PokedexSlotsConfig`, `PokedexSlotsGrid`, `SlotConfirmDialog`, `HudTopbar`, `HudQuickDock`, `TitleScreen`) fatiados com `.html`/`.scss` dedicados, diretivas `[pvRpgFocusable]`, `[pvRpgAction]`, `[pvRpgEditForm]` e `[pvMainHeading]` (zero `getElementById`/`querySelector`/`.dataset`), tokens `--pv-*`/`--pv-hud-*` em `_tokens.scss` e 5 parciais `styles/pokedex/` |
-| Cobertura e integração reais | **121 unitários + 12 E2E HTTP edge + 3 integração real (`136` verificações):** `17` shared, `73` api unit (`26` suítes, incluindo `auth-ports-lsp.spec.ts`, `opentelemetry.service.spec.ts` e `events-chaos.spec.ts`), `12` api E2E HTTP edge (`app.e2e-spec.ts`), `3` integração real (`app.integration-spec.ts` com Postgres 16 + Redis 7 + Apache Kafka 3.9 no job `integration-e2e` do CI e Testcontainers local via `test:integration:tc`) e `31` web Vitest em `7` arquivos |
+| Cobertura e integração reais | **129 unitários + 13 E2E HTTP edge + 3 integração real (`145` verificações):** `18` shared, `78` api unit (`28` suítes, incluindo `auth-ports-lsp.spec.ts`, `opentelemetry.service.spec.ts`, `sentry-error-reporter.service.spec.ts`, `telemetry-ingestion.service.spec.ts` e `events-chaos.spec.ts`), `13` api E2E HTTP edge (`app.e2e-spec.ts`), `3` integração real (`app.integration-spec.ts` com Postgres 16 + Redis 7 + Apache Kafka 3.9 no job `integration-e2e` do CI e Testcontainers local via `test:integration:tc`) e `33` web Vitest em `8` arquivos |
 | Observabilidade & Segurança (Ondas 2–5) | **Onda 1 + Onda 4 (Código + CI/CD) + Fechamento Doc 17 concluídos** (`gitleaks`, `Trivy` + **SBOM CycloneDX**, **SAST CodeQL**, `npm audit --omit=dev --audit-level=high` zerado, **OpenTelemetry SDK + métricas RED** em `/api/v1/system/telemetry`, migrations pré-deploy fora do container, `RbacGuard` *deny-by-default* em todas as rotas privadas com preservação de `TrainerRole` e rotação de `sid` no MFA, `TrainerThrottlerGuard`, `assertSafeOutboundUrl` anti-SSRF pós-DNS, `AuditLog` append-only por trigger SQL + `AuditTrailService`, DLP ampliado e `WorldGateway` com resolução direita-esquerda); pendente `WsAuthGuard` + `ngCspNonce` + regras R2/WASM (**Ondas 2–3 / Fase 6**), WAF/cofre centralizado/DAST/playbooks IRP/revisão de terceiros (**Onda 4 Cloud/Ops**) e gate pré-IA + EDoS (**Onda 5**) conforme [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e [doc 16](docs/16-cookies-lgpd-e-requisitos.md) |
 | Domínio próprio | Opcional: conectar `pokedex.<domínio>` no Cloudflare e atualizar `CORS_ORIGINS`, `WEBAUTHN_*` e `GOOGLE_REDIRECT_URI` |
 | `WsAuthGuard` | O `/ws/world` aceita visitantes para o ticker. Ações do Overworld exigirão sessão autenticada |
@@ -710,6 +711,10 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | Redpanda (Kafka) / Console | `19092` / `8085` | Console web para inspecionar tópicos |
 | MinIO (S3) / Console | `9000` / `9001` | Buckets privados `pokeverse-roms` e `pokeverse-saves` |
 | Mailpit | `1025` / `8025` | Captura os e-mails de OTP em desenvolvimento |
+| Grafana | `3005` | Dashboards correlacionados em `127.0.0.1:3005` (login via `.env`) |
+| Prometheus | `9090` | Séries temporais, Exporters (`9187` / `9121`) e `alerts.yml` |
+| Loki / Tempo | `3100` / `3200` | Logs centralizados (`30d`) e Traces distribuídos |
+| OTel Collector | `4317` / `4318` | Ingestão OTLP gRPC / HTTP (métricas Prometheus em `8889`) |
 
 ### Scripts do monorepo
 
@@ -724,7 +729,8 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | `npm run test:integration --workspace=pokeverse-api` | Integração real sem mocks contra Postgres, Redis e Kafka (`app.integration-spec.ts`) |
 | `npm run test:integration:tc --workspace=pokeverse-api` | Integração real autocontida via Testcontainers (Postgres, Redis e Redpanda locais) |
 | `npm run audit:ui` | UI Quality Gate sobre o build do front-end |
-| `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker |
+| `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker (incluindo stack de observabilidade) |
+| `npm run infra:datadog:up` / `infra:datadog:down` | Sobe e derruba a stack incluindo o perfil paralelo `datadog` (`DD_API_KEY`) |
 
 > **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint`, `format:check`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
 
@@ -750,25 +756,27 @@ pokedex-frontend/
 │   ├── api/                       # NestJS 11 + Prisma 6 + Redis + Kafka + Socket.IO
 │   │   ├── prisma/                #   schema.prisma (14 modelos, 5 enums) e 3 migrações
 │   │   └── src/
-│   │       ├── common/            #   guards, filtros, pipes, middleware, telemetria, crypto
+│   │       ├── common/            #   guards, filtros, pipes, middleware, telemetria (OTel 3 sinais + Sentry Envelope v7 + AuditTrail), crypto
 │   │       ├── config/            #   env.schema.ts (validação fail-fast com Zod)
 │   │       ├── infra/             #   Prisma, Redis, Kafka e probes de saúde
-│   │       └── modules/           #   auth (SOLID IAM: AuthService fachada, 5 services, 5 repositórios [TrainerAccount, AuthToken, MfaTotp, Passkey, TrainerOAuth], totp-crypto.util, SessionIssuer, OutboxPublisher, GoogleOAuth*), pokedex (PokedexSlotRepository) · events (OutboxEventRepository) · notifications · world · health · system
+│   │       └── modules/           #   auth (SOLID IAM: AuthService fachada, 5 services, 5 repositórios [TrainerAccount, AuthToken, MfaTotp, Passkey, TrainerOAuth], totp-crypto.util, SessionIssuer, OutboxPublisher, GoogleOAuth*), pokedex (PokedexSlotRepository) · events (OutboxEventRepository) · notifications · world · health · system (System, Telemetry, ClientTelemetry)
 │   └── web/                       # Angular 22 Standalone + Zoneless
 │       ├── functions/             #   Cloudflare Pages Functions (proxy same-origin)
 │       └── src/
-│           ├── app/core/          #   guards · interceptors · http (api-error.util) · stores (Auth, AuthCrossTabSync, AuthRecovery, SecurityIam, PrivacyConsent, Quality, Scenario, SystemStatus, WorldTicker) · suítes auth-iam e privacy-consent.store
+│           ├── app/core/          #   guards · interceptors (auth + telemetryTrace) · http (api-error.util) · telemetry (WebTelemetryService RUM + GlobalErrorHandler + traceparent) · stores (Auth, AuthCrossTabSync, AuthRecovery, SecurityIam, PrivacyConsent, Quality, Scenario, SystemStatus, WorldTicker) · suítes auth-iam, privacy-consent e web-telemetry
 │           ├── app/features/      #   pokedex-device (services/ [PokedexApiClient, PokedexLocalSlotsStorage, PokedexInputShortcuts, PokedexLidPhysics, PokedexRpgNav, mapper/nav utils], directives/ [pvRpgFocusable, pvRpgEditForm], components/ [Cover, SearchPanel, PhysicalControls, Visor, SlotsConfig, SlotsGrid, SlotConfirmDialog] e pokedex-device.spec.ts) · regions-museum · title-screen · under-construction
 │           ├── app/shared/        #   data (regions-atlas.data.ts) · HUD (Topbar, QuickDock, Cenarios*), diálogos (VisitorLock + auth-dialog-validator.util, SecuritySettings, PrivacyConsent) e diretivas (RequiresTrainer, MainHeading)
 │           ├── app/testing/       #   test-fixtures.spec-helper.ts (fixtures e helpers compartilhados do Vitest) + app-shell.spec.ts na raiz de app/
 │           └── styles/            #   _tokens.scss (--pv-*, --pv-hud-*) · _pokedex-classic.scss + parciais styles/pokedex/ (_chassis-3d, _search-scanner, _controls-dpad, _slots-grid, _visor-lcd)
 ├── packages/
 │   └── shared/                    # @pokeverse/shared: schemas Zod, busca fuzzy, 51 endpoints, Laboratório
-├── infra/docker/                  # api.Dockerfile e docker-compose.yml
+├── infra/
+│   ├── docker/                    # api.Dockerfile e docker-compose.yml (dados + observabilidade + perfil datadog)
+│   └── observability/             # otel-collector, prometheus (+ alerts.yml), loki, promtail, tempo e grafana
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
 ├── .github/                       # CODEOWNERS, pull_request_template.md e workflows (ci.yml, deploy.yml)
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
-├── docs/                          # Documentação (00 a 18), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
+├── docs/                          # Documentação (00 a 19), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
 ├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
@@ -800,6 +808,7 @@ pokedex-frontend/
 | 16 | [Cookies, LGPD e requisitos (RF, RNF e `REQ-SEC-01..35`)](docs/16-cookies-lgpd-e-requisitos.md) |
 | 17 | [Plano SOLID, Clean Code e engenharia Big Tech](docs/17-plano-solid-clean-code-e-engenharia-big-tech.md) |
 | 18 | [Auditoria técnica e plano de dívida técnica (`ARCHITECTURE.md`)](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) |
+| 19 | [Observabilidade híbrida: OpenTelemetry, Prometheus, Loki, Tempo, Grafana, Sentry e Datadog](docs/19-observabilidade-telemetria-e-monitoramento.md) |
 | Guia 00 | **[Capítulo 00 — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-00-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
 | Guia 01 | **[Capítulo 01 — Manual Técnico e Guia de Estudos Full-Stack](docs/capitulo-01-guia-de-estudos-pokedex.md)** (`docs/capitulo-01-guia-de-estudos/`: Vols. 01–03 concluídos — Anatomia de Pastas/Arquivos, Linguagens/Frameworks/Estruturas de Dados com exemplos reais + `@pokeverse/shared` e Glossário Técnico; Vols. 04–10 planejados) |
 
