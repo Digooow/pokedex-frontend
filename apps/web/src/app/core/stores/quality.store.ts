@@ -154,6 +154,9 @@ export class QualityStore {
   }
 
   private probeWebGl2(): boolean {
+    if (typeof WebGL2RenderingContext === 'undefined') {
+      return false;
+    }
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('webgl2');

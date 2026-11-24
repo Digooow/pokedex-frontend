@@ -67,3 +67,6 @@ obj/
 *.docx
 
 .neon
+
+test-results/
+playwright-report/

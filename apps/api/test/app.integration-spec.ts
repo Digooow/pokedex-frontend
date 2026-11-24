@@ -1,5 +1,5 @@
-import { randomUUID } from 'node:crypto';
-import { INestApplication } from '@nestjs/common';
+import { createHash, randomUUID } from 'node:crypto';
+import { BadRequestException, INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { OutboxStatus } from '@prisma/client';
 import request, { type Response } from 'supertest';
@@ -10,6 +10,7 @@ import { CryptoService } from '../src/common/security/crypto.service';
 import { OpenTelemetryService } from '../src/common/telemetry/opentelemetry.service';
 import { PrismaService } from '../src/infra/prisma.service';
 import { RedisService } from '../src/infra/redis.service';
+import { S3ObjectStorageAdapter } from '../src/infra/s3-object-storage.adapter';
 import { OutboxRelayService } from '../src/modules/events/outbox-relay.service';
 import {
   type IntegrationBackingServicesHandle,
@@ -58,6 +59,7 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
   let crypto: CryptoService;
   let outboxRelay: OutboxRelayService;
   let telemetry: OpenTelemetryService;
+  let objectStorage: S3ObjectStorageAdapter;
   const suffix = randomUUID().slice(0, 8);
   const trainerEmail = `integration-${suffix}@pokeverse.local`;
   const trainerUsername = `Int_${suffix}`;
@@ -78,6 +80,7 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
     crypto = app.get(CryptoService);
     outboxRelay = app.get(OutboxRelayService);
     telemetry = app.get(OpenTelemetryService);
+    objectStorage = app.get(S3ObjectStorageAdapter);
   });
 
   afterAll(async () => {
@@ -97,7 +100,7 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
     }
   });
 
-  it('GET /health/ready probes real PostgreSQL, Redis, and Kafka cluster', async () => {
+  it('GET /health/ready probes real PostgreSQL, Redis, Kafka, and S3 storage', async () => {
     const res = await request(app.getHttpServer())
       .get('/health/ready')
       .expect(200);
@@ -108,7 +111,7 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
         postgres: { status: 'up' },
         redis: { status: 'up' },
         kafka: { status: 'up' },
-        s3: { status: 'up', detail: 'disabled' },
+        s3: { status: 'up' },
       },
     });
   });
@@ -262,5 +265,46 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
     expect(consumed.filter((val) => val === null)).toHaveLength(1);
 
     await redis.delKeys(counterKey, oneTimeKey);
+  });
+
+  it('uploads, verifies SHA-256 metadata, blocks traversal, and deletes objects in real S3/MinIO storage', async () => {
+    if (!objectStorage.isEnabled()) {
+      return;
+    }
+
+    const bucket = process.env['S3_BUCKET_SAVES'] ?? 'pokeverse-saves';
+    const key = `saves/${suffix}/emerald-slot-1.sav`;
+    const binaryPayload = Buffer.from(`pokeverse-save-${suffix}`);
+    const expectedSha = createHash('sha256')
+      .update(binaryPayload)
+      .digest('hex');
+
+    const stored = await objectStorage.putObject({
+      bucket,
+      key,
+      body: binaryPayload,
+      contentType: 'application/octet-stream',
+    });
+    expect(stored.sha256).toBe(expectedSha);
+
+    const fetched = await objectStorage.headObject(bucket, key);
+    expect(fetched).toEqual({
+      key,
+      contentLength: binaryPayload.byteLength,
+      contentType: 'application/octet-stream',
+      sha256: expectedSha,
+    });
+
+    await expect(
+      objectStorage.putObject({
+        bucket,
+        key: '../escape.sav',
+        body: binaryPayload,
+        contentType: 'application/octet-stream',
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    await objectStorage.deleteObject(bucket, key);
+    expect(await objectStorage.headObject(bucket, key)).toBeNull();
   });
 });

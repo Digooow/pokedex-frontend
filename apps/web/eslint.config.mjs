@@ -5,7 +5,7 @@ import { createWorkspaceEslintConfig, maxLinesRule } from '../../eslint.base.mjs
 export default createWorkspaceEslintConfig({
   ignores: ['dist/**', '.angular/**', 'eslint.config.mjs'],
   languageOptions: { globals: { ...globals.browser, ...globals.node } },
-  specFiles: ['src/**/*.spec.ts', 'src/**/*.spec-helper.ts'],
+  specFiles: ['src/**/*.spec.ts', 'src/**/*.spec-helper.ts', 'e2e/**/*.ts', 'playwright.config.ts'],
   specMaxLines: 400,
   extraConfigs: [
     {

@@ -20,8 +20,14 @@ export default createWorkspaceEslintConfig({
     '@typescript-eslint/no-floating-promises': 'warn',
     '@typescript-eslint/no-unsafe-argument': 'warn',
   },
-  specFiles: ['src/**/*.spec.ts', 'test/**/*.ts'],
+  specFiles: ['src/**/*.spec.ts', 'test/**/*.ts', 'src/testing/**/*.ts'],
   extraConfigs: [
+    {
+      files: ['src/**/*.spec.ts', 'test/**/*.ts', 'src/testing/**/*.ts'],
+      rules: {
+        '@typescript-eslint/unbound-method': 'off',
+      },
+    },
     {
       files: ['src/modules/auth/auth.service.spec.ts'],
       rules: { 'max-lines': maxLinesRule(800) },

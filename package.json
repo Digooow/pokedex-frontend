@@ -19,11 +19,14 @@
     "dev:web": "npm run start --workspace=pokeverse-web",
     "typecheck": "npm run typecheck --workspace=@pokeverse/shared && npm run typecheck --workspace=pokeverse-api && npm run typecheck --workspace=pokeverse-web",
     "test": "npm run test --workspace=@pokeverse/shared && npm run test --workspace=pokeverse-api && npm run test --workspace=pokeverse-web -- --watch=false",
+    "test:e2e:api": "npm run test:e2e --workspace=pokeverse-api",
+    "test:e2e:web": "npm run test:e2e --workspace=pokeverse-web",
+    "test:e2e": "npm run test:e2e:api && npm run test:e2e:web",
     "lint:shared": "npm run lint --workspace=@pokeverse/shared",
     "lint:api": "npm run lint --workspace=pokeverse-api",
     "lint:web": "npm run lint --workspace=pokeverse-web",
     "lint": "npm run lint:shared && npm run lint:api && npm run lint:web",
-    "format:check": "prettier --check \"packages/shared/src/**/*.ts\" \"apps/api/{src,test}/**/*.ts\" \"apps/web/{src,cloudflare}/**/*.ts\"",
+    "format:check": "prettier --check \"packages/shared/src/**/*.ts\" \"apps/api/{src,test}/**/*.ts\" \"apps/web/{src,cloudflare,e2e}/**/*.ts\" \"apps/web/playwright.config.ts\"",
     "audit:ui": "node scripts/ui-quality-gate.mjs"
   },
   "devDependencies": {

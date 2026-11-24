@@ -85,6 +85,9 @@ jobs:
       - name: Run UI Quality Gate (Contrast, Text Fit & Typography)
         run: npm run audit:ui
 
+      - name: Run Playwright Frontend E2E user journeys
+        run: npm run test:e2e:web
+
       - name: Validate production API Docker image build
         run: docker build -f infra/docker/api.Dockerfile -t pokeverse-api:ci .
 
@@ -135,7 +138,7 @@ jobs:
           category: '/language:javascript-typescript'
 
   integration-e2e:
-    name: Real Backing Services Integration E2E (Postgres + Redis + Kafka)
+    name: Real Backing Services Integration E2E (Postgres + Redis + Kafka + S3)
     runs-on: ubuntu-latest
 
     services:
@@ -213,6 +216,20 @@ jobs:
           DATABASE_URL_UNPOOLED: postgresql://ci:ci_ephemeral_password@127.0.0.1:5432/pokeverse_ci?schema=public
         run: npx --workspace=pokeverse-api prisma migrate deploy
 
+      - name: Start ephemeral S3-compatible storage (pgsty/silo)
+        run: |
+          docker run -d --name pokeverse-ci-s3 -p 9000:9000 \
+            -e MINIO_ROOT_USER=ci_minio_admin \
+            -e MINIO_ROOT_PASSWORD=ci_minio_ephemeral_secret \
+            pgsty/silo:RELEASE.2026-11-12T00-00-00Z server /data
+          for i in $(seq 1 30); do
+            if docker exec pokeverse-ci-s3 mc ready local >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec pokeverse-ci-s3 mc ready local
+
       - name: Run real backing services integration E2E tests
         env:
           NODE_ENV: test
@@ -234,5 +251,10 @@ jobs:
           DATABASE_URL_UNPOOLED: postgresql://ci:ci_ephemeral_password@127.0.0.1:5432/pokeverse_ci?schema=public
           REDIS_URL: redis://127.0.0.1:6379
           KAFKA_BROKERS: 127.0.0.1:19092
-          S3_ENABLED: 'false'
+          S3_ENABLED: 'true'
+          S3_ENDPOINT: http://127.0.0.1:9000
+          MINIO_ROOT_USER: ci_minio_admin
+          MINIO_ROOT_PASSWORD: ci_minio_ephemeral_secret # gitleaks:allow
+          S3_BUCKET_ROMS: pokeverse-roms
+          S3_BUCKET_SAVES: pokeverse-saves
         run: npm run test:integration --workspace=pokeverse-api

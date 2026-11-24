@@ -12,6 +12,7 @@
 4. [Performance e Otimização (Banco de Dados)](#4-performance-e-otimização-banco-de-dados)
 5. [Clean Code e Semântica (Anti-AI Slop)](#5-clean-code-e-semântica-anti-ai-slop)
 6. [Diretrizes de Atuação para IA e Fluxo de Trabalho (Sessões Curtas)](#6-diretrizes-de-atuação-para-ia-e-fluxo-de-trabalho-sessões-curtas)
+7. [Estratégia de Testes e Blindagem Anti-Regressão](#7-estratégia-de-testes-e-blindagem-anti-regressão)
 
 ---
 
@@ -350,3 +351,32 @@ Todo agente de IA ou contribuidor atuando neste repositório deve seguir um ritm
      ```
    - Para qualquer mudança de UI, rode também `npm run audit:ui` e realize conferência visual real em Desktop (`1440×900`) e Mobile (`375×812`).
    - Toda criação, alteração estrutural ou remoção exige atualização simultânea do [`README.md`](../README.md) e dos guias impactados em `docs/` (especialmente [`14 — Status Real`](14-status-e-changelog-implementacao.md)).
+
+
+---
+
+## 7. Estratégia de Testes e Blindagem Anti-Regressão
+
+### 7.1. Regra Obrigatória de Geração de `.spec.ts` para Agentes de IA
+
+- Todo agente de IA ou contribuidor (Antigravity, Cursor, Windsurf ou Copilot) que criar ou alterar um **Controller**, **Service**, **Repository**, **Guard**, **Pipe**, **Store** ou **Componente** em `@pokeverse/shared`, `apps/api` ou `apps/web` **DEVE** criar ou atualizar o arquivo `.spec.ts` correspondente na mesma entrega.
+- Entregas sem cobertura unitária para *early returns* (guard clauses), limites de paginação, validação fail-fast na borda e invariantes de segurança serão reprovadas na revisão.
+- No back-end NestJS, o isolamento do ORM em testes unitários usa `jest-mock-extended` via [`createDeepPrismaMock()`](../apps/api/src/testing/prisma-mock.helper.ts), evitando casts inseguros e acesso a banco em testes rápidos.
+
+### 7.2. Quatro Camadas da Pirâmide de Testes
+
+1. **Testes Unitários Rápidos (`npm run test`):**
+   - `@pokeverse/shared` e `pokeverse-web` executam em **Vitest 5** (com `TestBed` e `HttpTestingController` no Angular 22 Zoneless, validando loaders, estados de erro/vazio/sucesso, rotas, guards e interceptors sem I/O real).
+   - `pokeverse-api` executa em **Jest 30** + `jest-mock-extended`, cobrindo regras de negócio, pipes Zod, guards HTTP, filtros globais, repositórios Prisma, portas DIP/LSP e caos sem tocar em banco, Redis ou rede externa.
+2. **Testes E2E de Borda HTTP (`npm run test:e2e:api`):**
+   - Utilizam `Test.createTestingModule({ imports: [AppModule] })` + **Supertest** com infraestrutura controlada em memória para validar `ZodValidationPipe`, Helmet/CSP, `CsrfOriginGuard`, RBAC, cookies BFF `HttpOnly`, fluxo Google OAuth 2.0 PKCE simulado (`start -> callback -> /auth/me`) e política `X-Cache` (`MISS -> HIT -> STALE-FALLBACK`) no Redis.
+3. **Testes de Integração Real (`npm run test:integration:tc` e CI `integration-e2e`):**
+   - Sobem containers descartáveis reais via **Testcontainers** (`PostgreSQL 16`, `Redis 7`, `Redpanda/Kafka` e `pgsty/silo` S3/MinIO) localmente ou via serviços no GitHub Actions, validando migrations Prisma, conflito `P2002`, scripts Lua atômicos, `GETDEL`, Transactional Outbox com *atomic lease* e upload/verificação SHA-256/remoção de objetos no S3.
+4. **Jornadas Visuais E2E no Navegador (`npm run test:e2e:web` + `npm run audit:ui`):**
+   - **Playwright** em Chromium/Edge executa fluxos completos de usuário (login BFF com cookie `HttpOnly`, desbloqueio de rota protegida, abertura 3D da Pokédex, busca, seleção em 2 passos, gravação de slot azul e responsividade Mobile `375×812` sem erros de console).
+   - `npm run audit:ui` valida contraste WCAG AA, backing de superfície, overflow horizontal e tipografia sobre o bundle de produção.
+
+### 7.3. Escopo de Testes em Sessões de 5 Prompts
+
+- Ao solicitar criação ou expansão de suítes de teste para agentes de IA, **limite o escopo a um único domínio ou camada por vez** (ex.: apenas testes unitários de `AuthService`, ou apenas jornada Playwright da Pokédex).
+- Ao final de cada entrega, execute `npm run typecheck && npm run lint && npm run test && npm run build` (e `npm run test:e2e` quando aplicável), sincronize a documentação e consolide via `git commit` antes de iniciar uma nova sessão.

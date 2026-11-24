@@ -1,0 +1,76 @@
+import { expect, test } from './bff-e2e-fixture';
+
+test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
+  test('authenticates visitor through BFF cookie login and unlocks protected Arcade route', async ({
+    page,
+    bff,
+  }) => {
+    await page.goto(`${bff.baseUrl}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-heading')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Apenas essenciais' }).click();
+
+    const lockedArcadeBtn = page.locator('button.hud-dock__link--locked', {
+      hasText: 'Arcade',
+    });
+    await expect(lockedArcadeBtn).toBeVisible();
+    await expect(lockedArcadeBtn).toHaveAttribute('aria-disabled', 'true');
+    await lockedArcadeBtn.click({ force: true });
+
+    const dialog = page.locator('dialog.visitor-dialog');
+    await expect(dialog).toBeVisible();
+
+    await page.locator('.visitor-dialog__btn-primary').click();
+    await expect(page.locator('#pv-auth-error')).toBeVisible();
+
+    await page.locator('#pv-auth-email').fill('red@pokeverse.dev');
+    await page.locator('#pv-auth-password').fill('Password1234!');
+    await page.locator('.visitor-dialog__btn-primary').click();
+
+    await expect(page).toHaveURL(/\/arcade$/);
+    await expect(page.locator('.hud-pill--trainer')).toContainText('Red_Kanto');
+    await expect(page.locator('h1#main-heading')).toContainText('ainda não implementada');
+
+    const cookies = await page.context().cookies();
+    expect(cookies.some((c) => c.name === 'pokeverse_session' && c.httpOnly)).toBe(true);
+    expect(bff.consoleErrors).toEqual([]);
+  });
+
+  test('opens 3D Pokédex, searches and selects Pikachu in 2 clicks, saves slot 01, and checks mobile viewport', async ({
+    page,
+    bff,
+  }) => {
+    await page.goto(`${bff.baseUrl}/`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-heading')).toBeVisible();
+
+    const aparelho = page.locator('#pokedex-aparelho');
+    await expect(aparelho).toHaveAttribute('data-aberta', 'false');
+
+    await page.locator('#btn-abrir-pokedex').click();
+    await expect(aparelho).toHaveAttribute('data-aberta', 'true');
+
+    const searchInput = page.locator('#pokemon-input');
+    await searchInput.fill('pikachu');
+
+    const pikachuItem = page.locator('.catalogo-item', { hasText: 'Pikachu' }).first();
+    await expect(pikachuItem).toBeVisible();
+
+    await pikachuItem.click();
+    await expect(pikachuItem).toHaveClass(/is-cursor/);
+    await expect(page.locator('.pokemon-nome')).toHaveCount(0);
+
+    await pikachuItem.click();
+    await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
+
+    const slotZero = page.locator('.btn-slot-azul[data-slot-index="0"]');
+    await slotZero.click();
+    await expect(slotZero).toHaveClass(/is-ocupado/);
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+    expect(bff.consoleErrors).toEqual([]);
+  });
+});
