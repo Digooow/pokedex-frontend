@@ -1,5 +1,5 @@
+import { DOCUMENT, isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, computed, effect, inject, signal } from '@angular/core';
-import { isPlatformBrowser } from '@angular/common';
 import {
   HardwareProfileSchema,
   type HardwareProfile,
@@ -20,6 +20,7 @@ interface NavigatorWithCapabilities extends Navigator {
 @Injectable({ providedIn: 'root' })
 export class QualityStore {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly doc = inject(DOCUMENT);
   private readonly privacy = inject(PrivacyConsentStore);
 
   private readonly profileSignal = signal<HardwareProfile>(this.detectInitialProfile());
@@ -47,7 +48,7 @@ export class QualityStore {
       if (!this.isBrowser) {
         return;
       }
-      document.documentElement.dataset['perfTier'] = this.profileSignal().tier;
+      this.doc.documentElement.dataset['perfTier'] = this.profileSignal().tier;
     });
   }
 

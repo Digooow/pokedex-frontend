@@ -1,5 +1,4 @@
-import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   type DependencyStatus,
@@ -8,6 +7,10 @@ import {
 } from '@pokeverse/shared';
 import type { ApiEnvConfig } from '../config/env.schema';
 import { KafkaService } from './kafka.service';
+import {
+  OBJECT_STORAGE_PORT,
+  type ObjectStoragePort,
+} from './object-storage.port';
 import { PrismaService } from './prisma.service';
 import { RedisService } from './redis.service';
 
@@ -19,9 +22,7 @@ export interface ReadinessChecks {
 }
 
 @Injectable()
-export class InfraProbesService implements OnModuleDestroy {
-  private readonly s3: S3Client | null;
-  private readonly s3Enabled: boolean;
+export class InfraProbesService {
   private readonly romBucket: string;
   private readonly savesBucket: string;
 
@@ -30,21 +31,11 @@ export class InfraProbesService implements OnModuleDestroy {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly kafka: KafkaService,
+    @Inject(OBJECT_STORAGE_PORT)
+    private readonly objectStorage: ObjectStoragePort,
   ) {
-    this.s3Enabled = config.get('S3_ENABLED', { infer: true });
     this.romBucket = config.get('S3_BUCKET_ROMS', { infer: true });
     this.savesBucket = config.get('S3_BUCKET_SAVES', { infer: true });
-    this.s3 = this.s3Enabled
-      ? new S3Client({
-          region: 'us-east-1',
-          endpoint: config.get('S3_ENDPOINT', { infer: true }),
-          forcePathStyle: true,
-          credentials: {
-            accessKeyId: config.get('MINIO_ROOT_USER', { infer: true }),
-            secretAccessKey: config.get('MINIO_ROOT_PASSWORD', { infer: true }),
-          },
-        })
-      : null;
   }
 
   async checkAll(): Promise<ReadinessChecks> {
@@ -87,7 +78,7 @@ export class InfraProbesService implements OnModuleDestroy {
   }
 
   checkS3(): Promise<DependencyStatus> {
-    if (!this.s3Enabled || !this.s3) {
+    if (!this.objectStorage.isEnabled()) {
       return Promise.resolve({
         status: 'up',
         latencyMs: 0,
@@ -95,22 +86,12 @@ export class InfraProbesService implements OnModuleDestroy {
       });
     }
 
-    const s3Client = this.s3;
-    return this.measureProbe('S3 object storage unreachable', async () => {
-      const signal = AbortSignal.timeout(HEALTH_PROBE_TIMEOUT_MS);
-      await Promise.all([
-        s3Client.send(new HeadBucketCommand({ Bucket: this.romBucket }), {
-          abortSignal: signal,
-        }),
-        s3Client.send(new HeadBucketCommand({ Bucket: this.savesBucket }), {
-          abortSignal: signal,
-        }),
-      ]);
-    });
-  }
-
-  onModuleDestroy(): void {
-    this.s3?.destroy();
+    return this.measureProbe('S3 object storage unreachable', () =>
+      this.objectStorage.verifyBucketsReachable(
+        [this.romBucket, this.savesBucket],
+        HEALTH_PROBE_TIMEOUT_MS,
+      ),
+    );
   }
 
   private async measureProbe(

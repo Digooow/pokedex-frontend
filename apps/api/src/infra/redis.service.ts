@@ -1,9 +1,17 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { ThrottlerStorage } from '@nestjs/throttler';
 import { HEALTH_PROBE_TIMEOUT_MS } from '@pokeverse/shared';
 import Redis from 'ioredis';
+import {
+  TELEMETRY_METRICS_PORT,
+  type TelemetryMetricsPort,
+} from '../common/telemetry/telemetry.port';
 import type { ApiEnvConfig } from '../config/env.schema';
+import type {
+  OtpStore,
+  SessionRepository,
+} from '../modules/auth/auth-storage.ports';
 
 type ThrottleRecord = Awaited<ReturnType<ThrottlerStorage['increment']>>;
 
@@ -48,10 +56,17 @@ return current
 `;
 
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService
+  implements SessionRepository, OtpStore, OnModuleDestroy
+{
   private readonly client: Redis;
 
-  constructor(config: ConfigService<ApiEnvConfig, true>) {
+  constructor(
+    config: ConfigService<ApiEnvConfig, true>,
+    @Optional()
+    @Inject(TELEMETRY_METRICS_PORT)
+    private readonly telemetry?: TelemetryMetricsPort,
+  ) {
     const redisUrl = config.get('REDIS_URL', { infer: true });
     this.client = new Redis(redisUrl, {
       lazyConnect: true,
@@ -77,8 +92,10 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async getString(key: string): Promise<string | null> {
-    await this.ensureConnected();
-    return this.client.get(key);
+    return this.traceRedis('get', async () => {
+      await this.ensureConnected();
+      return this.client.get(key);
+    });
   }
 
   async setStringEx(
@@ -86,8 +103,10 @@ export class RedisService implements OnModuleDestroy {
     ttlSeconds: number,
     value: string,
   ): Promise<void> {
-    await this.ensureConnected();
-    await this.client.set(key, value, 'EX', ttlSeconds);
+    await this.traceRedis('setex', async () => {
+      await this.ensureConnected();
+      await this.client.set(key, value, 'EX', ttlSeconds);
+    });
   }
 
   async setStringNxEx(
@@ -95,22 +114,28 @@ export class RedisService implements OnModuleDestroy {
     ttlSeconds: number,
     value: string,
   ): Promise<boolean> {
-    await this.ensureConnected();
-    const res = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
-    return res === 'OK';
+    return this.traceRedis('setnx', async () => {
+      await this.ensureConnected();
+      const res = await this.client.set(key, value, 'EX', ttlSeconds, 'NX');
+      return res === 'OK';
+    });
   }
 
   async delKeys(...keys: string[]): Promise<number> {
     if (keys.length === 0) {
       return 0;
     }
-    await this.ensureConnected();
-    return this.client.del(...keys);
+    return this.traceRedis('del', async () => {
+      await this.ensureConnected();
+      return this.client.del(...keys);
+    });
   }
 
   async consumeString(key: string): Promise<string | null> {
-    await this.ensureConnected();
-    return this.client.getdel(key);
+    return this.traceRedis('getdel', async () => {
+      await this.ensureConnected();
+      return this.client.getdel(key);
+    });
   }
 
   async consumeJson<T>(key: string): Promise<T | null> {
@@ -186,14 +211,27 @@ export class RedisService implements OnModuleDestroy {
     key: string,
     ttlSeconds: number,
   ): Promise<number> {
-    await this.ensureConnected();
-    const rawResult = await this.client.eval(
-      INCR_WITH_TTL_LUA_SCRIPT,
-      1,
-      key,
-      String(Math.max(1, ttlSeconds)),
+    return this.traceRedis('eval.incr_ttl', async () => {
+      await this.ensureConnected();
+      const rawResult = await this.client.eval(
+        INCR_WITH_TTL_LUA_SCRIPT,
+        1,
+        key,
+        String(Math.max(1, ttlSeconds)),
+      );
+      return Number(rawResult ?? 1);
+    });
+  }
+
+  private traceRedis<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    if (!this.telemetry) {
+      return fn();
+    }
+    return this.telemetry.withSpan(
+      `redis.${operation}`,
+      { 'db.system': 'redis', 'db.operation.name': operation },
+      fn,
     );
-    return Number(rawResult ?? 1);
   }
 
   async incrementThrottle(

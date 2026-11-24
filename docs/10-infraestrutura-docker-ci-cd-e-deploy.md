@@ -161,6 +161,7 @@ volumes:
 ## 2. Padrão de Containers em Produção (Dockerfiles)
 
 Todos os serviços empacotados em container (`apps/api`, Workers, Web SSR/Nginx) seguem rigorosamente:
+
 1. **Multi-Stage Build:** etapa `builder` instala dependências e compila TypeScript; etapa `runner` copia apenas o artefato compilado e dependências de produção sobre base mínima (`node:22-alpine` ou `distroless`).
 2. **Execução sem privilégios de `root`:** usuário e grupo dedicados (`USER node` / `appuser`) com permissões mínimas de escrita.
 3. **`HEALTHCHECK` nativo no Dockerfile** apontando para `/health/live`.
@@ -172,14 +173,18 @@ Todos os serviços empacotados em container (`apps/api`, Workers, Web SSR/Nginx)
 ## 3. Observabilidade & SRE (Os 3 Pilares)
 
 ### 3.1. Logs Estruturados em JSON
+
 Proibido `console.log("erro no usuario " + id)` em texto solto. Toda aplicação emite JSON estruturado com campos padronizados (via `StructuredLoggerService` customizado sobre `process.stdout.write`):
+
 - `timestamp`, `level`, `service_name`, `trace_id`, `span_id`, `error_code`, `message` — mascarando e nunca registrando senhas, tokens JWT, cookies ou PII sensível.
 
 ### 3.2. Distributed Tracing (**OpenTelemetry**)
-- Instrumentação automática HTTP, Prisma, Redis e Kafka com **OpenTelemetry (OTel)**.
+
+- Instrumentação **OpenTelemetry SDK** ([`otel-sdk.bootstrap.ts`](../apps/api/src/common/telemetry/otel-sdk.bootstrap.ts) + [`opentelemetry.service.ts`](../apps/api/src/common/telemetry/opentelemetry.service.ts) + [`telemetry.port.ts`](../apps/api/src/common/telemetry/telemetry.port.ts)) cobrindo HTTP (`CorrelationMiddleware`), Prisma (`PrismaService` query events), Redis (`RedisService` + `PokeApiCacheService`), KafkaJS (`KafkaService`) e WebSocket (`WorldGateway`), com exportação OTLP HTTP opcional (`OTEL_ENABLED` / `OTEL_EXPORTER_OTLP_ENDPOINT`) e endpoint protegido `/api/v1/system/telemetry` (`TelemetrySnapshotSchema`).
 - Propagação explícita do cabeçalho **W3C Trace Context (`traceparent`)** através de chamadas HTTP, eventos gravados em `OutboxEvent`, mensagens Kafka e notificações WebSocket, permitindo rastrear uma ação do usuário do clique no Angular até o processamento assíncrono em Worker.
 
 ### 3.3. Métricas RED/USE e Probes de Saúde Distintos
+
 - **Métricas RED (APIs/Consumers):** *Rate* (req/s), *Errors* (5xx / DLQ rate) e *Duration* (latência `p50`, `p95`, `p99`).
 - **Métricas USE (Infraestrutura):** *Utilization*, *Saturation* (fila do `OutboxEvent` e *consumer lag* no Kafka) e *Errors*.
 - **Separação rigorosa de Health Checks:**
@@ -187,7 +192,9 @@ Proibido `console.log("erro no usuario " + id)` em texto solto. Toda aplicação
   - `GET /health/ready`: valida ativamente conectividade com PostgreSQL, Redis, Redpanda e MinIO/S3 (usado pelo Load Balancer para liberar tráfego apenas quando as dependências estão saudáveis).
 
 ### 3.4. Governança Operacional, WAF, Cofre, CI/CD DevSecOps, Auditoria e SLAs (`Ondas 4–5`)
+
 Conforme o catálogo normativo de **35 controles** em [doc 13 §9–10](13-dossie-de-seguranca-e-blindagem.md#9-governança-ampliada-de-segurança-privacidade-operações-e-ia-35-controles) e [doc 16 §4.3](16-cookies-lgpd-e-requisitos.md#43-catálogo-normativo-de-requisitos-de-segurança-req-sec-01-a-req-sec-35):
+
 - **Borda WAF/DDoS, CORS/CSP & Anti-SSRF (`REQ-SEC-28, 33, 34`):** WAF + anti-bot Cloudflare com restrição de tráfego direto à origem Azure, `CORS_ORIGINS` explícito sem `*`, CSP estrita em `_headers`/`helmet()` e bloqueio pós-DNS contra IPs internos/metadados em qualquer fetch dinâmico.
 - **Cofre Centralizado, KMS & Revisão de Terceiros (`REQ-SEC-05, 20, 30`):** migração progressiva de segredos distribuídos para cofre centralizado criptografado (Azure Key Vault / HashiCorp Vault / Doppler) com rotação periódica e auditoria trimestral de permissões em Cloudflare, Azure, Neon, Upstash, Aiven, Resend e Google.
 - **Logs Restritos, Trilha Imutável, Alertas & Playbooks IRP (`REQ-SEC-04, 19, 21, 23, 35`):** consoles (Redpanda Console, Azure logs, OTel) restritos por RBAC/SSO/rede privada, redação sem PII (`TTL <= 30–90d`), armazenamento *append-only* (WORM) imutável para eventos críticos de segurança/LGPD e roteamento automático dos `errorCode`s para playbooks IRP.
@@ -223,6 +230,7 @@ flowchart LR
 | **Domínio Customizado** | **Namecheap / Name.com** (GitHub Student Pack) | `1` ano gratuito (`.me` ou `.tech`) | HTTPS automático via Cloudflare DNS |
 
 ### Pipeline CI/CD & Performance Release Gates (GitHub Actions)
+
 - **Trigger em Pull Requests para `main` (portões obrigatórios de bloqueio descritos em [doc 11](11-performance-hardware-gates-e-mobile.md)):**
   1. `lint` + validação de formatação + checagem de vulnerabilidades;
   2. `typecheck` compartilhado (`packages/shared`, `apps/web`, `apps/api`) + verificação de orçamentos de bundle;
@@ -246,7 +254,7 @@ flowchart LR
   2. **Suporte Cloud Gerenciado no Back-end:** `env.schema.ts`, `RedisService`, `KafkaService`, `InfraProbesService`, `app.setup.ts`, `schema.prisma` (`directUrl = env("DATABASE_URL_UNPOOLED")`), [`neon.ts`](../neon.ts) e `SessionService` preparados para **Neon** (`DATABASE_URL` `-pooler` + `DATABASE_URL_UNPOOLED` direta + timeout `4000ms` para *scale-to-zero*), **Upstash** (`rediss://` TLS + guard contra quedas transitórias), **Aiven Kafka** (`KAFKA_SSL`, `KAFKA_SSL_CA_PEM`, `KAFKA_SSL_CERT_PEM`, `KAFKA_SSL_KEY_PEM`, `KAFKA_SASL_*`), **`S3_ENABLED=false`** antes do R2, **`TRUST_PROXY=1`** atrás do proxy Azure/Cloudflare e cookies flexíveis (`COOKIE_SAMESITE`, `COOKIE_DOMAIN`).
   3. **Proxy Same-Origin & Headers no Cloudflare Pages:** [api-proxy.ts](../apps/web/cloudflare/api-proxy.ts) (com timeout `15s` e `502` JSON seguro), rotas em `apps/web/functions/{api,health,socket.io}/[[path]].ts`, [apps/web/public/_routes.json](../apps/web/public/_routes.json) e [apps/web/public/_headers](../apps/web/public/_headers) (`Strict-Transport-Security` + `connect-src 'self' https://pokeapi.co` sem `ws: wss:` wildcard) — garantindo cookies `__Host-*` e WebSocket no mesmo host (`*.pages.dev` hoje ou `pokedex.digooow.<ext>` amanhã).
   4. **Pipelines GitHub Actions:**
-     - [ci.yml](../.github/workflows/ci.yml): job `verify` (**Gitleaks** pré-`npm ci` com [`.gitleaks.toml`](../.gitleaks.toml), `npm audit --omit=dev --audit-level=critical`, `typecheck`, `lint`, `format:check`, unitários, E2E HTTP edge [app.e2e-spec.ts](../apps/api/test/app.e2e-spec.ts), `build`, `audit:ui`, `docker build` + **Trivy** via `aquasecurity/trivy-action` pinado por commit SHA de `v0.36.0`) e job `integration-e2e` com `services:` reais (`postgres:16-alpine`, `redis:7-alpine`, `apache/kafka:3.9.2`, corrigindo o bug `KAFKA-18281` da `3.9.0`), aplicando `prisma migrate deploy` e executando [app.integration-spec.ts](../apps/api/test/app.integration-spec.ts).
+     - [ci.yml](../.github/workflows/ci.yml): job `verify` (**Gitleaks** pré-`npm ci` com [`.gitleaks.toml`](../.gitleaks.toml), `npm audit --omit=dev --audit-level=high` com `0` vulnerabilidades via `overrides` + `@prisma/config` na raiz, `typecheck`, `lint`, `format:check`, unitários/caos, E2E HTTP edge [app.e2e-spec.ts](../apps/api/test/app.e2e-spec.ts), `build`, `audit:ui`, `docker build` + **Trivy** via `aquasecurity/trivy-action` pinado por commit SHA de `v0.36.0`) e job `integration-e2e` com `services:` reais (`postgres:16-alpine`, `redis:7-alpine`, `apache/kafka:3.9.2`, corrigindo o bug `KAFKA-18281` da `3.9.0`), aplicando `prisma migrate deploy` e executando [app.integration-spec.ts](../apps/api/test/app.integration-spec.ts) (também executável localmente via `npm run test:integration:tc --workspace=pokeverse-api` com **Testcontainers**). Governança complementada por [`.github/CODEOWNERS`](../.github/CODEOWNERS) e [`.github/pull_request_template.md`](../.github/pull_request_template.md).
      - [deploy.yml](../.github/workflows/deploy.yml): build/push ACR, detecção prévia do secret `DATABASE_URL_UNPOOLED` via step `db-secret` (sem acessar `secrets.*` diretamente em `if:`) e **step pré-deploy único de `prisma migrate deploy`**, atualização do Azure Container App e deploy no Cloudflare Pages (`ENABLE_CLOUD_DEPLOY=true` ou *dispatch* manual).
 - **Provisionamento Externo (Checklist Executado em Produção):**
   - [x] **Neon (Lakebase Postgres 18 — `aws-sa-east-1`):** projeto `pokeverse` (`weathered-tooth-28070740`), branch `production`, `neon.ts` na raiz, migrations aplicadas e smoke E2E aprovado.

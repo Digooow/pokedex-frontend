@@ -29,8 +29,8 @@ flowchart LR
 | :--- | :---: | :--- | :--- |
 | **`AuthModule`** | **Implementado + Refatorado SOLID & Repos (2A–2B + Docs 17–18)** | Fachada `AuthService` + `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` (`distinct: ['familyId']` + `take` + expurgo `OutboxStatus.PUBLISHED`), `TrainerGdprService` (`/me/export`, `DELETE /me`), `TrainerSessionIssuer`, `AuthOutboxPublisher` (`OutboxStatus.PENDING`), `GoogleOAuthService` (`GoogleOAuthHttpClient`, `GoogleOidcVerifier`, `GoogleAccountLinker`), `MfaTotpService` + `totp-crypto.util.ts`, `PasskeyService`, `OtpService`, `SessionService`, 5 repositórios Prisma isolados (`TrainerAccountRepository`, `AuthTokenRepository`, `MfaTotpRepository`, `PasskeyRepository`, `TrainerOAuthRepository`) e borda Zod (`GoogleOAuthCallbackQuerySchema`, `PasskeyIdParamSchema`) | `@Public()` em `/providers`, `/register`, `/login`, `/refresh`, `/logout`, `/verify-email`, `/resend-verification`, `/forgot-password`, `/reset-password`, `/google/*`, `/passkeys/login/*` + BFF/CSRF no restante |
 | **`PokedexModule`** | **Implementado (2–4A)** | Proxy com cache Redis da PokéAPI (TTL 24h + `stale-fallback` 7d) + CRUD atômico dos 10 slots (`409` unicidade e `DELETE /slots`) | Leitura pública (`GET /pokedex/*`) + Slots protegidos (`SessionAuthGuard` + escopo `trainerId`) |
-| **`WorldModule`, `EventsModule` & `NotificationsModule`** | **Implementado (2–Doc 17)** | `OutboxRelayService` (*atomic lease* `UPDATE ... RETURNING`) -> Redpanda -> `WorldEventsConsumerService` + `EmailNotificationsConsumerService` (rollback de idempotência no `catch`) -> `WorldGateway` (`/ws/world`) e `MailService` (tabela OCP) | Handshake ticker aberto nesta fase (`WsAuthGuard` obrigatório na Fase 6/Overworld) |
-| **`HealthModule` & `SystemModule`** | **Implementados (1–Doc 17)** | Endpoints `/health/live`, `/health/ready` e `/api/v1/system/bootstrap` com `POKEVERSE_PHASE` dinâmico (default `'phase-2b'`) | `@Public()` controlado (infraestrutura) |
+| **`WorldModule`, `EventsModule` & `NotificationsModule`** | **Implementado (2–Doc 17)** | `OutboxRelayService` (*atomic lease* `UPDATE ... RETURNING`) -> Redpanda -> `WorldEventsConsumerService` + `EmailNotificationsConsumerService` (rollback de idempotência no `catch`) -> `WorldGateway` (`/ws/world`) e `MailService` via porta `EmailTransport` (`SmtpEmailTransport` / `ResendEmailTransport` + tabela OCP) | Handshake ticker aberto nesta fase (`WsAuthGuard` obrigatório na Fase 6/Overworld) |
+| **`HealthModule` & `SystemModule`** | **Implementados (1–Doc 17)** | Endpoints `/health/live`, `/health/ready` (via `ObjectStoragePort` / `S3ObjectStorageAdapter`), `/api/v1/system/bootstrap` (`POKEVERSE_PHASE` dinâmico) e `/api/v1/system/telemetry` (métricas RED + snapshot OpenTelemetry) | `@Public()` em `/health/*` e `/system/bootstrap`; `@Roles('MODERATOR', 'ADMIN')` + `@Scopes('ops:audit')` em `/system/telemetry` |
 | **`TrainersModule`** | **Planejado (Fase 3)** | Perfil do treinador, avatar, últimas coordenadas no Overworld e insígnias | Protegido (`AuthGuard`) |
 | **`MuseumModule`** | **Planejado (Fase 4)** | Entrega estruturada de regiões, ginásios, líderes e linha do tempo de jogos | `@Public()` |
 | **`ArcadeModule`** | **Planejado (Fase 5)** | Catálogo fixo de ROMs, geração de URL/stream autenticado e *Cloud Save States* | Protegido (`AuthGuard`) |
@@ -42,6 +42,7 @@ flowchart LR
 ## 2. Fluxo de Autenticação, Sessão e RBAC
 
 ### Política de Sessão BFF (Estado Real em Produção)
+
 - **Hashing de Senha:** **Argon2id** com *salt* criptográfico por usuário e **verificação dummy (`DUMMY_ARGON2_HASH`)** no `login()` para impedir *timing enumeration* de e-mails.
 - **Sessão Opaca no Redis (`900s`) + Cookie `HttpOnly` (`__Host-pokeverse_session` em HTTPS):** zero token JWT ou bearer exposto ao JavaScript do navegador; revogação imediata no `/logout`, na troca/redefinição de senha e no `DELETE /auth/me`.
 - **Máquina de Estados `MFA_PENDING -> AUTHENTICATED`:** contas com 2FA ativo recebem sessão restrita `MFA_PENDING` (bloqueada por padrão no `SessionAuthGuard` até conclusão em `/auth/mfa/verify` ou Passkey, liberando apenas rotas com `@AllowMfaPending()`).
@@ -67,6 +68,7 @@ sequenceDiagram
 ```
 
 ### Matriz RBAC (`@Public()` vs. `SessionAuthGuard`) e Evolução por Escopos
+
 - O `SessionAuthGuard` é registrado como **Guard Global (`APP_GUARD`)** no NestJS (*Secure by Default*): toda rota exige cookie de sessão válido no Redis em estado `AUTHENTICATED`.
 - Endpoints abertos a **Visitantes** recebem explicitamente `@Public()` (ex.: catálogo e detalhe cacheados da PokéAPI, bootstrap de sessão e health checks).
 - Endpoints de conclusão de 2FA ou logout recebem `@AllowMfaPending()`.

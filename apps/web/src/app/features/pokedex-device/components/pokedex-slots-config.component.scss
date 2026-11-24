@@ -6,16 +6,16 @@
   margin-top: 0.2rem;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--texto-visor-suave, oklch(36% 0.04 125));
+  color: var(--texto-visor-suave, var(--pv-visor-muted-ink));
 }
 
 .slot-feedback-banner {
   margin: 0.25rem 0 0;
   padding: 0.35rem 0.55rem;
   border-radius: 0.375rem;
-  border: 1px solid oklch(46% 0.14 152);
-  background: oklch(93% 0.05 152);
-  color: oklch(26% 0.09 152);
+  border: 1px solid var(--pv-slot-banner-border);
+  background: var(--pv-slot-banner-bg);
+  color: var(--pv-slot-banner-ink);
   font-size: 0.74rem;
   font-weight: 700;
 }

@@ -1,14 +1,9 @@
-import {
-  Injectable,
-  OnModuleDestroy,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { EmailNotificationEvent } from '@pokeverse/shared';
-import nodemailer, { type Transporter } from 'nodemailer';
-import { assertSafeOutboundUrl } from '../../common/http/safe-outbound-http';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
+import { EMAIL_TRANSPORT, type EmailTransport } from './email-transport.port';
 
 interface RenderedEmail {
   readonly html: string;
@@ -73,40 +68,28 @@ const EMAIL_TEMPLATE_RENDERERS: Readonly<
 };
 
 @Injectable()
-export class MailService implements OnModuleDestroy {
-  private readonly transporter: Transporter | null = null;
-  private readonly transportMode: 'smtp' | 'resend';
+export class MailService {
   private readonly mailFrom: string;
-  private readonly resendApiKey: string;
 
   constructor(
     config: ConfigService<ApiEnvConfig, true>,
     private readonly logger: StructuredLoggerService,
+    @Inject(EMAIL_TRANSPORT)
+    private readonly transport: EmailTransport,
   ) {
-    this.transportMode = config.get('MAIL_TRANSPORT', { infer: true });
     this.mailFrom = config.get('MAIL_FROM', { infer: true });
-    this.resendApiKey = config.get('RESEND_API_KEY', { infer: true }).trim();
-
-    if (this.transportMode === 'smtp') {
-      const user = config.get('SMTP_USER', { infer: true }).trim();
-      const pass = config.get('SMTP_PASS', { infer: true });
-      this.transporter = nodemailer.createTransport({
-        host: config.get('SMTP_HOST', { infer: true }),
-        port: config.get('SMTP_PORT', { infer: true }),
-        secure: config.get('SMTP_SECURE', { infer: true }),
-        ...(user ? { auth: { user, pass } } : {}),
-      });
-    }
   }
 
   async sendNotification(event: EmailNotificationEvent): Promise<void> {
     const rendered = this.renderEmail(event);
 
-    if (this.transportMode === 'resend') {
-      await this.sendViaResend(event.toEmail, event.subject, rendered);
-    } else {
-      await this.sendViaSmtp(event.toEmail, event.subject, rendered);
-    }
+    await this.transport.send({
+      from: this.mailFrom,
+      to: event.toEmail,
+      subject: event.subject,
+      text: rendered.text,
+      html: rendered.html,
+    });
 
     this.logger.emitEvent(
       'info',
@@ -116,65 +99,6 @@ export class MailService implements OnModuleDestroy {
         traceId: event.traceId,
       },
     );
-  }
-
-  private async sendViaSmtp(
-    to: string,
-    subject: string,
-    rendered: RenderedEmail,
-  ): Promise<void> {
-    if (!this.transporter) {
-      throw new ServiceUnavailableException(
-        'Transporte SMTP não inicializado.',
-      );
-    }
-
-    await this.transporter.sendMail({
-      from: this.mailFrom,
-      to,
-      subject,
-      text: rendered.text,
-      html: rendered.html,
-    });
-  }
-
-  private async sendViaResend(
-    to: string,
-    subject: string,
-    rendered: RenderedEmail,
-  ): Promise<void> {
-    const safeUrl = await assertSafeOutboundUrl(
-      'https://api.resend.com/emails',
-      ['api.resend.com'],
-    );
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    try {
-      const response = await fetch(safeUrl.toString(), {
-        method: 'POST',
-        signal: controller.signal,
-        redirect: 'error',
-        headers: {
-          Authorization: `Bearer ${this.resendApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: this.mailFrom,
-          to: [to],
-          subject,
-          html: rendered.html,
-          text: rendered.text,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new ServiceUnavailableException(
-          `Resend API retornou HTTP ${response.status}.`,
-        );
-      }
-    } finally {
-      clearTimeout(timer);
-    }
   }
 
   private renderEmail(event: EmailNotificationEvent): RenderedEmail {
@@ -187,9 +111,5 @@ export class MailService implements OnModuleDestroy {
       safeOtp: event.otpCode ? escapeHtml(event.otpCode) : null,
       safeDetail: event.detail ? escapeHtml(event.detail) : null,
     });
-  }
-
-  onModuleDestroy(): void {
-    this.transporter?.close();
   }
 }

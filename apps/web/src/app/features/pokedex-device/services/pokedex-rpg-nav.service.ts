@@ -318,7 +318,10 @@ export class PokedexRpgNavService {
   private readonly willBlueButtonEnterSubmenu = () =>
     rpgNav.shouldBlueButtonEnterFromVisor(
       this.navSnapshot(),
-      this.collectScreenControls('visor'),
-      this.rpgControlIndices().visor,
+      this.focusRegistry.resolveGroupControlAction(
+        this.hostEl,
+        'visor',
+        this.rpgControlIndices().visor,
+      ),
     );
 }

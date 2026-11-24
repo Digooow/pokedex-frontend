@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD033 MD041 -->
 <p align="center">
   <img src="docs/assets/banner.svg" alt="PokéVerse OS — Pokédex 3D interativa e plataforma full-stack" width="100%">
 </p>
@@ -23,7 +24,7 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-113_unit_%2B_11_E2E_%2B_3_integra%C3%A7%C3%A3o-3ddc84">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-121_unit_%2B_12_E2E_%2B_3_integra%C3%A7%C3%A3o-3ddc84">
   <img alt="Fase" src="https://img.shields.io/badge/fase-4A_conclu%C3%ADda-ffd23f">
 </p>
 
@@ -79,7 +80,7 @@ A plataforma tem **cinco módulos**, acessíveis pelo dock inferior (atalhos `1`
 <tr>
 <td width="50%" valign="top">
 
-**Pokédex 3D e experiência**
+#### Pokédex 3D e experiência
 
 - Chassi skeuomórfico fiel, com luz que segue o ponteiro, microtexturas WebP, dobradiça, lente de safira e LEDs reativos
 - Abertura e fechamento 3D **reversíveis em voo**
@@ -93,7 +94,7 @@ A plataforma tem **cinco módulos**, acessíveis pelo dock inferior (atalhos `1`
 </td>
 <td width="50%" valign="top">
 
-**Plataforma e back-end**
+#### Plataforma e back-end
 
 - Proxy e cache da PokéAPI no Redis: 24 h de TTL e `stale-fallback` de 7 dias
 - Sessões **BFF opacas** no Redis, cookie `HttpOnly` e zero JWT no JavaScript do navegador
@@ -573,8 +574,8 @@ flowchart TB
 | **Concorrência** | Zero TOCTOU em contadores (Lua), consumo one-time atômico via `GETDEL` (OAuth/Passkey) e `DEL` (OTP), zero efeito externo antes da constraint `UNIQUE`, lease atômico no Outbox e rollback de idempotência no `catch` |
 | **WebSockets & Logs** | `/ws/world` rejeita `!origin` em produção e aplica cota (`10`/IP, `1000` globais); `StructuredLoggerService` mascara segredos/tokens e logs HTTP gravam só `req.path`; `bodyParser: false` com `64kb` (`413`/`400`) |
 | **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), chaves não essenciais registradas declarativamente, portabilidade em `GET /auth/me/export`, eliminação definitiva em cascata via `DELETE /auth/me` (confirmação em 2 etapas na UI), expurgo automático a cada `6h` de tokens/eventos expirados e zero rastreadores de terceiros |
-| **Infra & CI/CD** | Container multi-stage não-root stateless (migrations pré-deploy separadas em `deploy.yml` via `DATABASE_URL_UNPOOLED` e step `db-secret`), backing services reais no `ci.yml` (`postgres`, `redis`, `apache/kafka`), **Gitleaks** (pré-`npm ci` + `.gitleaks.toml`), **Trivy** (`CRITICAL`, pinado por SHA), `npm audit --omit=dev --audit-level=critical`, TLS e mTLS em nuvem |
-| **Observabilidade** | Logs JSON estruturados, `x-correlation-id` e `traceparent` W3C, health checks separados de liveness e readiness |
+| **Infra & CI/CD** | Container multi-stage não-root stateless (migrations pré-deploy separadas em `deploy.yml` via `DATABASE_URL_UNPOOLED` e step `db-secret`), backing services reais no `ci.yml` (`postgres`, `redis`, `apache/kafka`), **Testcontainers** local (`test:integration:tc`), **Gitleaks** (pré-`npm ci` + `.gitleaks.toml`), **Trivy** (`CRITICAL`, pinado por SHA + SBOM CycloneDX), **CodeQL** SAST, `npm audit --omit=dev --audit-level=high` (`0` vulnerabilidades), `.github/CODEOWNERS` + template de PR, TLS e mTLS em nuvem |
+| **Observabilidade** | **OpenTelemetry SDK** ponta a ponta (HTTP, Prisma, Redis, KafkaJS, WebSocket) com exportação OTLP HTTP opcional, métricas RED (`GET /api/v1/system/telemetry` protegido por RBAC), logs JSON estruturados, `x-correlation-id` e `traceparent` W3C, health checks separados de liveness e readiness |
 | **Governança & Gate Pré-IA (35 controles)** | Matriz completa `REQ-SEC-01..35` documentada: RBAC granular/escopos, WAF/DDoS, CORS/CSP estritos, anti-SSRF, rate limit por usuário/chave, proteção EDoS, cofre centralizado de segredos, KMS em repouso, DLP runtime, TTLs automatizados, trilha de auditoria imutável, SCA/SBOM + SAST/DAST, revisão de terceiros, controle estrito de logs/métricas, alertas + playbooks IRP, limitações/AUP, SLAs de responsabilidade compartilhada e portões obrigatórios antes de qualquer uso de IA/modelos (tokenização PII, filtro de *prompt injection*, moderação, Red Teaming, vieses, sandboxing sem rede, HITL, privacidade diferencial e assinatura de respostas) |
 
 Os detalhes estão no [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e nos [requisitos de privacidade, LGPD e segurança (`REQ-SEC-01..35`)](docs/16-cookies-lgpd-e-requisitos.md).
@@ -654,11 +655,11 @@ Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 
 | Item | Situação |
 | :--- | :--- |
 | Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | **Concluída no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota `10,0 / 10` — Ondas 1, 2, 3 e 4 concluídas):** 100% de `@pokeverse/shared`, `apps/api` e `apps/web` atendem ao contrato (`DT-01..DT-06` resolvidos, guardrails automáticos de `max-lines`/`complexity`/Prettier e `app.spec.ts` fatiado por domínio) |
-| Lint, formatação e SonarCloud no CI | **Concluída (Onda 4 + Remediação SonarCloud + Zero Duplicações):** `npm run lint` (`--max-warnings=0`, `eslint-plugin-prettier/recommended`, `@typescript-eslint/no-explicit-any: error`, `complexity: ['error', 15]` e `max-lines` `300`/`200` no web) e `npm run format:check` ativos nos 3 workspaces e no `ci.yml`, além da correção integral dos `18` apontamentos do SonarCloud (`3` bugs `Web:MouseEventWithoutKeyboardEquivalentCheck`, `1` blocker `typescript:S7649`, `3` `css:S9440` `prefers-reduced-motion` e `11` code smells TypeScript) e eliminação das duplicações CPD nos `5` arquivos apontados (`pokeapi-endpoints.ts` em tabela tabular + `/* @__PURE__ */` e remoção da exceção `max-lines` em `packages/shared`, helpers em `app.routes.ts`, fonte única `shared/data/regions-atlas.data.ts` entre Museu e Em Construção, e `@default` em `pokedex-visor.component.html`) |
-| Decomposição SOLID do IAM e `AuthStore` | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; `AuthStore` (`<= 291` linhas) com `AuthRecoveryService` + `AuthCrossTabSyncService` e validação do diálogo em `auth-dialog-validator.util.ts` (`DIALOG_VALIDATORS`) |
-| Pokédex 3D, DIP e Tokens HUD (`apps/web`) | **Concluída (Ondas 3–4):** stores e serviços (`PokedexStore` + `PokedexApiClient` + `pokedex-view-mapper.util`, `PokedexSlotsStore` + `PokedexLocalSlotsStorage`, `PokedexRpgNavService` + `pokedex-rpg-nav.util`, `PokedexInputShortcutsService`, `PokedexLidPhysicsService`) e componentes UI (`PokedexDevicePage`, `PokedexCover`, `PokedexSearchPanel`, `PokedexPhysicalControls`, `PokedexVisor`, `PokedexSlotsConfig`, `PokedexSlotsGrid`, `SlotConfirmDialog`, `HudTopbar`, `HudQuickDock`, `TitleScreen`) fatiados com `.html`/`.scss` dedicados, diretivas `[pvRpgFocusable]`, `[pvRpgEditForm]` e `[pvMainHeading]` (zero `getElementById`/`querySelector`), tokens `--pv-hud-*` em `_tokens.scss` e 5 parciais `styles/pokedex/` |
-| Cobertura e integração reais | **113 unitários + 11 E2E HTTP edge + 3 integração real (`127` verificações):** `17` shared, `65` api unit (`23` suítes), `11` api E2E HTTP edge (`app.e2e-spec.ts`), `3` integração real (`app.integration-spec.ts` com Postgres 16 + Redis 7 + Apache Kafka 3.9 no job `integration-e2e` do CI) e `31` web Vitest em `7` arquivos |
-| Observabilidade & Segurança (Ondas 2–5) | **Onda 1 + Onda 4 (Código + CI/CD) concluídas** (`gitleaks`, `Trivy` + **SBOM CycloneDX**, **SAST CodeQL**, `npm audit --omit=dev --audit-level=critical`, migrations pré-deploy fora do container, `RbacGuard` *deny-by-default* em todas as rotas privadas com preservação de `TrainerRole` e rotação de `sid` no MFA, `TrainerThrottlerGuard`, `assertSafeOutboundUrl` anti-SSRF pós-DNS, `AuditLog` append-only por trigger SQL + `AuditTrailService`, DLP ampliado e `WorldGateway` com resolução direita-esquerda); pendente `WsAuthGuard` + `ngCspNonce` + OpenTelemetry OTLP + regras R2/WASM (**Ondas 2–3 / Fase 6**), WAF/cofre centralizado/DAST/playbooks IRP/revisão de terceiros (**Onda 4 Cloud/Ops**) e gate pré-IA + EDoS (**Onda 5**) conforme [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e [doc 16](docs/16-cookies-lgpd-e-requisitos.md) |
+| Lint, formatação e SonarCloud no CI | **Concluída (Onda 4 + Remediação SonarCloud + Fechamento Doc 17):** `npm run lint` (`--max-warnings=0`, `eslint-plugin-prettier/recommended`, `@typescript-eslint/no-explicit-any: error`, `complexity: ['error', 15]`, `max-depth: ['error', 3]`, `max-lines` `300`/`200` no web e `max-lines-per-function: 65` em código de produção) e `npm run format:check` ativos nos 3 workspaces e no `ci.yml`, além da correção dos `18` apontamentos do SonarCloud, eliminação das duplicações CPD, `0` cores literais em `apps/web/src/app/**/*.scss` (tokens `--pv-*`) e governança `.github/CODEOWNERS` + template de PR |
+| Decomposição SOLID, Portas DIP/LSP e IAM | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + portas DIP/LSP (`EmailTransport`, `SessionRepository`, `OtpStore`, `ObjectStoragePort`, `TelemetryMetricsPort`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; `AuthStore` (`<= 291` linhas) com `AuthRecoveryService` + `AuthCrossTabSyncService` e validação do diálogo em `auth-dialog-validator.util.ts` (`DIALOG_VALIDATORS`) |
+| Pokédex 3D, DIP e Tokens HUD (`apps/web`) | **Concluída (Ondas 3–4 + Doc 17):** stores e serviços (`PokedexStore` + `PokedexApiClient` + `pokedex-view-mapper.util`, `PokedexSlotsStore` + `PokedexLocalSlotsStorage`, `PokedexRpgNavService` + `pokedex-rpg-nav.util`, `PokedexInputShortcutsService`, `PokedexLidPhysicsService`) e componentes UI (`PokedexDevicePage`, `PokedexCover`, `PokedexSearchPanel`, `PokedexPhysicalControls`, `PokedexVisor`, `PokedexSlotsConfig`, `PokedexSlotsGrid`, `SlotConfirmDialog`, `HudTopbar`, `HudQuickDock`, `TitleScreen`) fatiados com `.html`/`.scss` dedicados, diretivas `[pvRpgFocusable]`, `[pvRpgAction]`, `[pvRpgEditForm]` e `[pvMainHeading]` (zero `getElementById`/`querySelector`/`.dataset`), tokens `--pv-*`/`--pv-hud-*` em `_tokens.scss` e 5 parciais `styles/pokedex/` |
+| Cobertura e integração reais | **121 unitários + 12 E2E HTTP edge + 3 integração real (`136` verificações):** `17` shared, `73` api unit (`26` suítes, incluindo `auth-ports-lsp.spec.ts`, `opentelemetry.service.spec.ts` e `events-chaos.spec.ts`), `12` api E2E HTTP edge (`app.e2e-spec.ts`), `3` integração real (`app.integration-spec.ts` com Postgres 16 + Redis 7 + Apache Kafka 3.9 no job `integration-e2e` do CI e Testcontainers local via `test:integration:tc`) e `31` web Vitest em `7` arquivos |
+| Observabilidade & Segurança (Ondas 2–5) | **Onda 1 + Onda 4 (Código + CI/CD) + Fechamento Doc 17 concluídos** (`gitleaks`, `Trivy` + **SBOM CycloneDX**, **SAST CodeQL**, `npm audit --omit=dev --audit-level=high` zerado, **OpenTelemetry SDK + métricas RED** em `/api/v1/system/telemetry`, migrations pré-deploy fora do container, `RbacGuard` *deny-by-default* em todas as rotas privadas com preservação de `TrainerRole` e rotação de `sid` no MFA, `TrainerThrottlerGuard`, `assertSafeOutboundUrl` anti-SSRF pós-DNS, `AuditLog` append-only por trigger SQL + `AuditTrailService`, DLP ampliado e `WorldGateway` com resolução direita-esquerda); pendente `WsAuthGuard` + `ngCspNonce` + regras R2/WASM (**Ondas 2–3 / Fase 6**), WAF/cofre centralizado/DAST/playbooks IRP/revisão de terceiros (**Onda 4 Cloud/Ops**) e gate pré-IA + EDoS (**Onda 5**) conforme [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e [doc 16](docs/16-cookies-lgpd-e-requisitos.md) |
 | Domínio próprio | Opcional: conectar `pokedex.<domínio>` no Cloudflare e atualizar `CORS_ORIGINS`, `WEBAUTHN_*` e `GOOGLE_REDIRECT_URI` |
 | `WsAuthGuard` | O `/ws/world` aceita visitantes para o ticker. Ações do Overworld exigirão sessão autenticada |
 
@@ -716,11 +717,12 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | :--- | :--- |
 | `npm run build` | Build de `shared`, `api` e `web` |
 | `npm run typecheck` | `tsc --noEmit` nos 3 workspaces |
-| `npm run lint` | ESLint (`--max-warnings=0`, `complexity`, `max-lines`) nos 3 workspaces |
+| `npm run lint` | ESLint (`--max-warnings=0`, `complexity`, `max-depth`, `max-lines`, `max-lines-per-function`) nos 3 workspaces |
 | `npm run format:check` | Valida formatação Prettier nos 3 workspaces (`shared`, `api`, `web`) |
 | `npm run test` | Vitest (`shared`, `web`) e Jest (`api` unitários) |
 | `npm run test:e2e --workspace=pokeverse-api` | Suíte E2E da borda HTTP (`app.e2e-spec.ts`) |
 | `npm run test:integration --workspace=pokeverse-api` | Integração real sem mocks contra Postgres, Redis e Kafka (`app.integration-spec.ts`) |
+| `npm run test:integration:tc --workspace=pokeverse-api` | Integração real autocontida via Testcontainers (Postgres, Redis e Redpanda locais) |
 | `npm run audit:ui` | UI Quality Gate sobre o build do front-end |
 | `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker |
 
@@ -764,7 +766,7 @@ pokedex-frontend/
 │   └── shared/                    # @pokeverse/shared: schemas Zod, busca fuzzy, 51 endpoints, Laboratório
 ├── infra/docker/                  # api.Dockerfile e docker-compose.yml
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
-├── .github/workflows/             # ci.yml e deploy.yml
+├── .github/                       # CODEOWNERS, pull_request_template.md e workflows (ci.yml, deploy.yml)
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
 ├── docs/                          # Documentação (00 a 18), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
 ├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)

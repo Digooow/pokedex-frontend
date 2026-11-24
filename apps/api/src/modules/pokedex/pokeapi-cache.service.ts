@@ -1,7 +1,9 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -17,6 +19,10 @@ import {
 } from '@pokeverse/shared';
 import { assertSafeOutboundUrl } from '../../common/http/safe-outbound-http';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
+import {
+  TELEMETRY_METRICS_PORT,
+  type TelemetryMetricsPort,
+} from '../../common/telemetry/telemetry.port';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { RedisService } from '../../infra/redis.service';
 
@@ -45,6 +51,9 @@ export class PokeApiCacheService {
     private readonly redis: RedisService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
     private readonly logger: StructuredLoggerService,
+    @Optional()
+    @Inject(TELEMETRY_METRICS_PORT)
+    private readonly telemetry?: TelemetryMetricsPort,
   ) {}
 
   async getCatalog(): Promise<CachedCatalogResponse> {
@@ -54,6 +63,7 @@ export class PokeApiCacheService {
       PokeApiCatalogResponseSchema,
     );
     if (cached) {
+      this.telemetry?.recordCacheOutcome('hit');
       return { cache: 'hit', catalog: cached };
     }
 
@@ -80,6 +90,7 @@ export class PokeApiCacheService {
     const cacheKey = `pokeapi:v2:pokemon:${normalized}`;
     const cached = await this.safeRedisGet(cacheKey, PokemonDetailSchema);
     if (cached) {
+      this.telemetry?.recordCacheOutcome('hit');
       return { cache: 'hit', pokemon: cached };
     }
 
@@ -110,6 +121,7 @@ export class PokeApiCacheService {
       }
 
       await this.safeRedisSet(cacheKey, parsed.data);
+      this.telemetry?.recordCacheOutcome('miss');
       return { cache: 'miss', catalog: parsed.data };
     } catch (error) {
       if (error instanceof ServiceUnavailableException) {
@@ -118,6 +130,7 @@ export class PokeApiCacheService {
           PokeApiCatalogResponseSchema,
         );
         if (stale) {
+          this.telemetry?.recordCacheOutcome('stale-fallback');
           return { cache: 'stale-fallback', catalog: stale };
         }
       }
@@ -146,6 +159,7 @@ export class PokeApiCacheService {
           parsed.data,
         );
       }
+      this.telemetry?.recordCacheOutcome('miss');
       return { cache: 'miss', pokemon: parsed.data };
     } catch (error) {
       if (error instanceof ServiceUnavailableException) {
@@ -154,6 +168,7 @@ export class PokeApiCacheService {
           PokemonDetailSchema,
         );
         if (stale) {
+          this.telemetry?.recordCacheOutcome('stale-fallback');
           return { cache: 'stale-fallback', pokemon: stale };
         }
       }

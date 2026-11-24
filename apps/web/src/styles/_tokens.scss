@@ -95,6 +95,54 @@
   --pv-hud-warn-ink: oklch(96.2% 0.059 95.6);
   --pv-hud-error-ink: oklch(88.5% 0.062 18.3);
 
+  --pv-shadow-dialog: 0 24px 60px oklch(0% 0 0 / 0.65);
+  --pv-shadow-dialog-strong: 0 24px 60px oklch(0% 0 0 / 0.7);
+  --pv-shadow-hero: 0 24px 64px oklch(0% 0 0 / 0.55);
+  --pv-status-ok-bg: oklch(24% 0.05 155 / 0.45);
+  --pv-status-error-bg: oklch(25% 0.08 25 / 0.4);
+  --pv-status-danger-box-bg: oklch(22% 0.06 25 / 0.55);
+  --pv-slot-banner-border: oklch(46% 0.14 152);
+  --pv-slot-banner-bg: oklch(93% 0.05 152);
+  --pv-slot-banner-ink: oklch(26% 0.09 152);
+  --pv-visor-muted-ink: oklch(36% 0.04 125);
+  --pv-btn-amber-grad: linear-gradient(180deg, oklch(68% 0.16 84), oklch(54% 0.15 76));
+  --pv-btn-danger-grad: linear-gradient(180deg, oklch(56% 0.21 25), oklch(42% 0.19 25));
+  --pv-ink-dark-strong: oklch(14% 0.02 255);
+  --pv-panel-inset-bg: oklch(15% 0.02 255 / 0.85);
+
+  --pv-uc-card-bg: oklch(17% 0.026 255 / 0.88);
+  --pv-uc-card-bg-blur: oklch(17% 0.026 255 / 0.78);
+  --pv-uc-card-bg-lite: oklch(18% 0.024 255 / 0.94);
+  --pv-uc-card-shadow: 0 24px 64px rgba(2, 6, 23, 0.58);
+  --pv-uc-pill-bg: oklch(14% 0.025 255 / 0.85);
+  --pv-uc-progress-bg: oklch(14% 0.022 255 / 0.78);
+  --pv-uc-track-bg: oklch(26% 0.03 255);
+  --pv-uc-spec-bg: oklch(21% 0.028 255 / 0.72);
+  --pv-uc-tab-bg: oklch(22% 0.03 255 / 0.72);
+  --pv-uc-tab-current-bg: oklch(27% 0.04 255 / 0.9);
+  --pv-uc-cta-border: rgba(255, 255, 255, 0.16);
+  --pv-uc-cta-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+  --pv-uc-cta-sec-bg: oklch(24% 0.035 255 / 0.85);
+  --pv-uc-diorama-bg: radial-gradient(
+    circle at 50% 35%,
+    oklch(28% 0.06 245 / 0.68),
+    oklch(13% 0.02 255 / 0.92) 72%
+  );
+  --pv-uc-diorama-inset: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --pv-uc-ring-outer: rgba(103, 232, 249, 0.34);
+  --pv-uc-ring-inner: rgba(251, 191, 36, 0.24);
+  --pv-uc-drop-lg: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.68));
+  --pv-uc-drop-md: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.68));
+  --pv-uc-fallback-bg: oklch(18% 0.03 255 / 0.9);
+  --pv-uc-pedestal-bg: radial-gradient(
+    ellipse at center,
+    rgba(56, 189, 248, 0.38),
+    rgba(56, 189, 248, 0.06) 65%,
+    transparent 75%
+  );
+  --pv-uc-plaque-bg: oklch(14% 0.02 255 / 0.88);
+  --pv-uc-region-bg: oklch(20% 0.028 255 / 0.76);
+
   color-scheme: light dark;
   --palette-red-500: #ef4444;
   --palette-red-600: #c81e2b;

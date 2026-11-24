@@ -16,6 +16,7 @@ interface FocusableEntry {
   readonly element: HTMLElement;
   readonly order: number;
   readonly sequence: number;
+  readonly action?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -27,7 +28,12 @@ export class PokedexRpgFocusRegistry {
   private focusedElement: HTMLElement | null = null;
   private nextSequence = 0;
 
-  register(group: RpgFocusGroup, element: HTMLElement, order?: number): () => void {
+  register(
+    group: RpgFocusGroup,
+    element: HTMLElement,
+    order?: number,
+    action?: string,
+  ): () => void {
     let set = this.groups.get(group);
     if (!set) {
       set = new Set<FocusableEntry>();
@@ -37,6 +43,7 @@ export class PokedexRpgFocusRegistry {
       element,
       order: order ?? Number.MAX_SAFE_INTEGER,
       sequence: this.nextSequence++,
+      action,
     };
     set.add(entry);
     return () => {
@@ -63,10 +70,21 @@ export class PokedexRpgFocusRegistry {
   }
 
   collectGroupControls(hostEl: HTMLElement | null, group: RpgFocusGroup): HTMLElement[] {
+    return this.collectGroupEntries(hostEl, group).map((entry) => entry.element);
+  }
+
+  resolveGroupControlAction(
+    hostEl: HTMLElement | null,
+    group: RpgFocusGroup,
+    index: number,
+  ): string | undefined {
+    return this.collectGroupEntries(hostEl, group)[index]?.action;
+  }
+
+  private collectGroupEntries(hostEl: HTMLElement | null, group: RpgFocusGroup): FocusableEntry[] {
     return Array.from(this.groups.get(group) ?? [])
       .filter((entry) => this.isElementInteractable(entry.element, hostEl))
-      .sort((a, b) => a.order - b.order || a.sequence - b.sequence)
-      .map((entry) => entry.element);
+      .sort((a, b) => a.order - b.order || a.sequence - b.sequence);
   }
 
   resolveGroupTarget(
@@ -162,6 +180,7 @@ export class PvRpgFocusableDirective {
 
   readonly group = input.required<RpgFocusGroup>({ alias: 'pvRpgFocusable' });
   readonly pvRpgOrder = input<number | undefined>(undefined);
+  readonly pvRpgAction = input<string | undefined>(undefined);
 
   constructor() {
     let unregister: (() => void) | null = null;
@@ -171,6 +190,7 @@ export class PvRpgFocusableDirective {
         this.group(),
         this.elementRef.nativeElement,
         this.pvRpgOrder(),
+        this.pvRpgAction(),
       );
       onCleanup(() => {
         unregister?.();

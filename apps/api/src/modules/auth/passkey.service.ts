@@ -24,7 +24,10 @@ import {
 } from '@simplewebauthn/server';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { RedisService } from '../../infra/redis.service';
-import { PasskeyRepository } from './passkey.repository';
+import {
+  type PasskeyAssertionRecord,
+  PasskeyRepository,
+} from './passkey.repository';
 import { SessionService } from './session.service';
 import type { PersistedPasskeySummary } from './trainer-account.repository';
 import { TrainerSessionIssuer } from './trainer-session-issuer.service';
@@ -34,6 +37,12 @@ const CHALLENGE_TTL_SEC = 120;
 interface StoredAuthChallenge {
   readonly challenge: string;
   readonly expectedTrainerId: string | null;
+}
+
+interface PasskeyLoginResult {
+  readonly session: AuthSessionResponse;
+  readonly sessionSid: string;
+  readonly refreshToken: string;
 }
 
 @Injectable()
@@ -88,11 +97,10 @@ export class PasskeyService {
     });
 
     await this.redis.setStringEx(
-      this.regChallengeKey(trainerId),
+      `webauthn_reg:${trainerId}`,
       CHALLENGE_TTL_SEC,
       options.challenge,
     );
-
     return options;
   }
 
@@ -100,9 +108,9 @@ export class PasskeyService {
     trainerId: string,
     input: PasskeyRegisterVerifyInput,
   ): Promise<PasskeySummary> {
-    const regKey = this.regChallengeKey(trainerId);
-    const expectedChallenge = await this.redis.consumeString(regKey);
-
+    const expectedChallenge = await this.redis.consumeString(
+      `webauthn_reg:${trainerId}`,
+    );
     if (!expectedChallenge) {
       throw new BadRequestException(
         'Desafio de Passkey expirado. Tente registrar novamente.',
@@ -150,11 +158,13 @@ export class PasskeyService {
     readonly pendingTrainerId?: string;
   }) {
     const targetTrainerId = params.pendingTrainerId ?? null;
-    const selector = this.resolveLoginPasskeySelector(
-      targetTrainerId,
-      params.email,
-    );
-
+    let selector:
+      { readonly trainerId: string } | { readonly email: string } | null = null;
+    if (targetTrainerId) {
+      selector = { trainerId: targetTrainerId };
+    } else if (params.email) {
+      selector = { email: params.email };
+    }
     const descriptors = selector
       ? await this.passkeyRepository.findPasskeyDescriptorsForLogin(selector)
       : [];
@@ -174,15 +184,10 @@ export class PasskeyService {
     });
 
     const challengeToken = randomBytes(24).toString('base64url');
-    const stored: StoredAuthChallenge = {
-      challenge: options.challenge,
-      expectedTrainerId: targetTrainerId,
-    };
-
     await this.redis.setJsonEx(
-      this.authChallengeKey(challengeToken),
+      `webauthn_auth:${challengeToken}`,
       CHALLENGE_TTL_SEC,
-      stored,
+      { challenge: options.challenge, expectedTrainerId: targetTrainerId },
     );
 
     return { challengeToken, options };
@@ -191,15 +196,10 @@ export class PasskeyService {
   async verifyLoginAssertion(
     input: PasskeyLoginVerifyInput,
     currentRawSid?: string,
-  ): Promise<{
-    readonly session: AuthSessionResponse;
-    readonly sessionSid: string;
-    readonly refreshToken: string;
-  }> {
-    const challengeKey = this.authChallengeKey(input.challengeToken);
-    const challengeRecord =
-      await this.redis.consumeJson<StoredAuthChallenge>(challengeKey);
-
+  ): Promise<PasskeyLoginResult> {
+    const challengeRecord = await this.redis.consumeJson<StoredAuthChallenge>(
+      `webauthn_auth:${input.challengeToken}`,
+    );
     if (!challengeRecord) {
       throw new UnauthorizedException(
         'Desafio de Passkey expirado ou já utilizado.',
@@ -215,7 +215,6 @@ export class PasskeyService {
     const passkey = await this.passkeyRepository.findByCredentialIdWithTrainer(
       authResponse.id,
     );
-
     if (
       !passkey ||
       (challengeRecord.expectedTrainerId &&
@@ -224,9 +223,32 @@ export class PasskeyService {
       throw new UnauthorizedException('Passkey não reconhecida.');
     }
 
+    const newCounter = await this.verifyAssertionCryptographically(
+      authResponse,
+      challengeRecord.challenge,
+      passkey,
+    );
+    await this.passkeyRepository.updateUsage(
+      passkey.id,
+      newCounter,
+      new Date(),
+    );
+
+    return this.issuePasskeyLoginSession(
+      passkey.trainer,
+      challengeRecord.expectedTrainerId,
+      currentRawSid,
+    );
+  }
+
+  private async verifyAssertionCryptographically(
+    authResponse: AuthenticationResponseJSON,
+    expectedChallenge: string,
+    passkey: PasskeyAssertionRecord,
+  ): Promise<number> {
     const verification = await verifyAuthenticationResponse({
       response: authResponse,
-      expectedChallenge: challengeRecord.challenge,
+      expectedChallenge,
       expectedOrigin: this.getAllowedOrigins(),
       expectedRPID: this.config.get('WEBAUTHN_RP_ID', { infer: true }),
       requireUserVerification: false,
@@ -243,34 +265,33 @@ export class PasskeyService {
     if (!verification.verified) {
       throw new UnauthorizedException('Assinatura da Passkey inválida.');
     }
+    return verification.authenticationInfo.newCounter;
+  }
 
-    await this.passkeyRepository.updateUsage(
-      passkey.id,
-      verification.authenticationInfo.newCounter,
-      new Date(),
-    );
-
+  private async issuePasskeyLoginSession(
+    trainer: PasskeyAssertionRecord['trainer'],
+    expectedTrainerId: string | null,
+    currentRawSid?: string,
+  ): Promise<PasskeyLoginResult> {
     let activeSid = currentRawSid;
     let familyId: string = randomUUID();
     let mfaMethods: readonly MfaMethod[] = ['passkey'];
 
-    if (currentRawSid && challengeRecord.expectedTrainerId) {
+    if (currentRawSid && expectedTrainerId) {
       const promoted =
         await this.sessionService.promoteToAuthenticated(currentRawSid);
+      activeSid = promoted ? (promoted.rawSid ?? currentRawSid) : undefined;
       if (promoted) {
-        activeSid = promoted.rawSid ?? currentRawSid;
         familyId = promoted.familyId;
         mfaMethods = promoted.mfaMethods;
-      } else {
-        activeSid = undefined;
       }
     }
 
     if (!activeSid) {
       const created = await this.sessionService.createSession({
-        trainerId: passkey.trainer.id,
-        username: passkey.trainer.username,
-        role: passkey.trainer.role ?? 'TRAINER',
+        trainerId: trainer.id,
+        username: trainer.username,
+        role: trainer.role ?? 'TRAINER',
         familyId,
         state: 'AUTHENTICATED',
         mfaMethods: ['passkey'],
@@ -279,26 +300,15 @@ export class PasskeyService {
     }
 
     const refreshToken = await this.sessionIssuer.createRefreshTokenRecord(
-      passkey.trainer.id,
+      trainer.id,
       familyId,
     );
-
     const session = this.sessionService.buildAuthSessionResponse(
-      passkey.trainer,
+      trainer,
       'AUTHENTICATED',
       mfaMethods,
     );
-
     return { session, sessionSid: activeSid, refreshToken };
-  }
-
-  private resolveLoginPasskeySelector(
-    trainerId: string | null,
-    email?: string,
-  ): { trainerId: string } | { email: string } | null {
-    if (trainerId) return { trainerId };
-    if (email) return { email };
-    return null;
   }
 
   private toPasskeySummary(row: PersistedPasskeySummary): PasskeySummary {
@@ -317,13 +327,5 @@ export class PasskeyService {
       .map((item) => item.trim())
       .filter(Boolean);
     return Array.from(new Set([primary, ...cors]));
-  }
-
-  private regChallengeKey(trainerId: string): string {
-    return `webauthn_reg:${trainerId}`;
-  }
-
-  private authChallengeKey(challengeToken: string): string {
-    return `webauthn_auth:${challengeToken}`;
   }
 }

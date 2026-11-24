@@ -1,4 +1,10 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  OnModuleDestroy,
+  OnModuleInit,
+  Optional,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { KAFKA_TOPICS } from '@pokeverse/shared';
 import {
@@ -11,6 +17,10 @@ import {
 } from 'kafkajs';
 import type { ApiEnvConfig } from '../config/env.schema';
 import { StructuredLoggerService } from '../common/telemetry/structured-logger.service';
+import {
+  TELEMETRY_METRICS_PORT,
+  type TelemetryMetricsPort,
+} from '../common/telemetry/telemetry.port';
 
 function normalizePem(raw: string): string | undefined {
   const trimmed = raw.trim();
@@ -37,6 +47,47 @@ function buildSaslOptions(
   return { mechanism, username, password };
 }
 
+function buildKafkaClientConfig(
+  config: ConfigService<ApiEnvConfig, true>,
+): KafkaConfig {
+  const brokers = config
+    .get('KAFKA_BROKERS', { infer: true })
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  const sslEnabled = config.get('KAFKA_SSL', { infer: true });
+  const caPem = normalizePem(config.get('KAFKA_SSL_CA_PEM', { infer: true }));
+  const certPem = normalizePem(
+    config.get('KAFKA_SSL_CERT_PEM', { infer: true }),
+  );
+  const keyPem = normalizePem(config.get('KAFKA_SSL_KEY_PEM', { infer: true }));
+  const sasl = buildSaslOptions(config);
+  const connectTimeoutMs = config.get('KAFKA_CONNECT_TIMEOUT_MS', {
+    infer: true,
+  });
+
+  const sslConfig =
+    sslEnabled || caPem || certPem || keyPem
+      ? {
+          rejectUnauthorized: true,
+          ...(caPem ? { ca: [caPem] } : {}),
+          ...(certPem ? { cert: certPem } : {}),
+          ...(keyPem ? { key: keyPem } : {}),
+        }
+      : undefined;
+
+  return {
+    clientId: 'pokeverse-api',
+    brokers,
+    connectionTimeout: connectTimeoutMs,
+    requestTimeout: connectTimeoutMs,
+    retry: { retries: 3, initialRetryTime: 200 },
+    logLevel: logLevel.ERROR,
+    ...(sslConfig ? { ssl: sslConfig } : {}),
+    ...(sasl ? { sasl } : {}),
+  };
+}
+
 @Injectable()
 export class KafkaService implements OnModuleInit, OnModuleDestroy {
   private readonly kafka: Kafka;
@@ -49,55 +100,17 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
   constructor(
     config: ConfigService<ApiEnvConfig, true>,
     private readonly logger: StructuredLoggerService,
+    @Optional()
+    @Inject(TELEMETRY_METRICS_PORT)
+    private readonly telemetry?: TelemetryMetricsPort,
   ) {
-    const brokers = config
-      .get('KAFKA_BROKERS', { infer: true })
-      .split(',')
-      .map((entry) => entry.trim())
-      .filter(Boolean);
-
-    const sslEnabled = config.get('KAFKA_SSL', { infer: true });
-    const caPem = normalizePem(config.get('KAFKA_SSL_CA_PEM', { infer: true }));
-    const certPem = normalizePem(
-      config.get('KAFKA_SSL_CERT_PEM', { infer: true }),
-    );
-    const keyPem = normalizePem(
-      config.get('KAFKA_SSL_KEY_PEM', { infer: true }),
-    );
-    const sasl = buildSaslOptions(config);
-    const connectTimeoutMs = config.get('KAFKA_CONNECT_TIMEOUT_MS', {
-      infer: true,
-    });
     this.replicationFactor = config.get('KAFKA_REPLICATION_FACTOR', {
       infer: true,
     });
     this.autoCreateTopics = config.get('KAFKA_AUTO_CREATE_TOPICS', {
       infer: true,
     });
-
-    const sslConfig =
-      sslEnabled || caPem || certPem || keyPem
-        ? {
-            rejectUnauthorized: true,
-            ...(caPem ? { ca: [caPem] } : {}),
-            ...(certPem ? { cert: certPem } : {}),
-            ...(keyPem ? { key: keyPem } : {}),
-          }
-        : undefined;
-
-    const kafkaConfig: KafkaConfig = {
-      clientId: 'pokeverse-api',
-      brokers,
-      connectionTimeout: connectTimeoutMs,
-      requestTimeout: connectTimeoutMs,
-      retry: { retries: 3, initialRetryTime: 200 },
-      logLevel: logLevel.ERROR,
-      ...(sslConfig ? { ssl: sslConfig } : {}),
-      ...(sasl ? { sasl } : {}),
-    };
-
-    this.kafka = new Kafka(kafkaConfig);
-
+    this.kafka = new Kafka(buildKafkaClientConfig(config));
     this.producer = this.kafka.producer({
       allowAutoTopicCreation: this.autoCreateTopics,
     });
@@ -160,21 +173,38 @@ export class KafkaService implements OnModuleInit, OnModuleDestroy {
     payload: unknown,
     headers?: Record<string, string>,
   ): Promise<void> {
-    if (!this.producerConnected) {
-      await this.producer.connect();
-      this.producerConnected = true;
+    const execute = async () => {
+      if (!this.producerConnected) {
+        await this.producer.connect();
+        this.producerConnected = true;
+      }
+
+      await this.producer.send({
+        topic,
+        messages: [
+          {
+            key,
+            value: JSON.stringify(payload),
+            headers,
+          },
+        ],
+      });
+      this.telemetry?.recordKafkaPublish(topic, topic === KAFKA_TOPICS.DLQ);
+    };
+
+    if (!this.telemetry) {
+      await execute();
+      return;
     }
 
-    await this.producer.send({
-      topic,
-      messages: [
-        {
-          key,
-          value: JSON.stringify(payload),
-          headers,
-        },
-      ],
-    });
+    await this.telemetry.withSpan(
+      'kafka.publish',
+      {
+        'messaging.system': 'kafka',
+        'messaging.destination.name': topic,
+      },
+      execute,
+    );
   }
 
   async publishDlq(

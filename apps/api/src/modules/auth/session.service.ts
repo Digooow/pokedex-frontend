@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   type AuthSessionResponse,
@@ -12,7 +12,10 @@ import {
 } from '@pokeverse/shared';
 import type { ApiEnvConfig } from '../../config/env.schema';
 import { CryptoService } from '../../common/security/crypto.service';
-import { RedisService } from '../../infra/redis.service';
+import {
+  SESSION_REPOSITORY,
+  type SessionRepository,
+} from './auth-storage.ports';
 
 export interface SessionTrainerRecord {
   readonly id: string;
@@ -44,7 +47,8 @@ export interface ActiveRedisSession {
 @Injectable()
 export class SessionService {
   constructor(
-    private readonly redis: RedisService,
+    @Inject(SESSION_REPOSITORY)
+    private readonly redis: SessionRepository,
     private readonly crypto: CryptoService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
   ) {}
@@ -253,7 +257,7 @@ export class SessionService {
     }
 
     await this.redis.delKeys(...keysToDelete);
-    await this.redis.removeSetMembers(indexKey, ...membersToRemove);
+    await this.redis.removeSetMembers?.(indexKey, ...membersToRemove);
     return revokedCount;
   }
 

@@ -60,3 +60,39 @@ export const SystemBootstrapSchema = z.object({
 });
 
 export type SystemBootstrap = z.infer<typeof SystemBootstrapSchema>;
+
+export const TelemetrySnapshotSchema = z.object({
+  service: z.literal('pokeverse-api'),
+  otelSdkActive: z.boolean(),
+  generatedAt: z.iso.datetime(),
+  http: z.object({
+    totalRequests: z.number().int().nonnegative(),
+    error5xxCount: z.number().int().nonnegative(),
+    errorRate5xx: z.number().nonnegative(),
+    latencyMs: z.object({
+      p50: z.number().nonnegative(),
+      p95: z.number().nonnegative(),
+      p99: z.number().nonnegative(),
+    }),
+  }),
+  redisCache: z.object({
+    hits: z.number().int().nonnegative(),
+    misses: z.number().int().nonnegative(),
+    staleFallbacks: z.number().int().nonnegative(),
+    hitRatio: z.number().min(0).max(1),
+  }),
+  database: z.object({
+    queryCount: z.number().int().nonnegative(),
+    p95DurationMs: z.number().nonnegative(),
+  }),
+  messaging: z.object({
+    publishedCount: z.number().int().nonnegative(),
+    dlqCount: z.number().int().nonnegative(),
+  }),
+  websocket: z.object({
+    activeConnections: z.number().int().nonnegative(),
+    broadcastCount: z.number().int().nonnegative(),
+  }),
+});
+
+export type TelemetrySnapshot = z.infer<typeof TelemetrySnapshotSchema>;

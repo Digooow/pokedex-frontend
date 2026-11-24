@@ -198,10 +198,8 @@ export function isRpgVisorSelectingList(nav: RpgNavSnapshot): boolean {
 
 export function shouldBlueButtonEnterFromVisor(
   nav: RpgNavSnapshot,
-  visorControls: readonly HTMLElement[],
-  visorControlIndex: number,
+  visorAction: string | undefined,
 ): boolean {
-  const visorAction = visorControls[visorControlIndex]?.dataset['acaoSlot'];
   return shouldBlueButtonEnterSubmenu(nav.level, nav.screen, nav.slotFocusIndex, visorAction);
 }
 

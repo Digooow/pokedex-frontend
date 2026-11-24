@@ -60,57 +60,19 @@ function buildUpstreamUnavailableResponse(): Response {
   );
 }
 
-export async function proxyToApiOrigin(context: PagesFunctionContext): Promise<Response> {
-  const { request, env } = context;
-  const upstreamBase = resolveUpstreamOrigin(env.API_ORIGIN);
-  if (!upstreamBase) {
-    return new Response(
-      JSON.stringify({
-        error: 'API_ORIGIN_UNCONFIGURED',
-        message: 'Configure API_ORIGIN no Cloudflare Pages para conectar à API na Azure.',
-      }),
-      {
-        status: 503,
-        headers: { 'content-type': 'application/json; charset=utf-8' },
-      },
-    );
-  }
-
-  const incomingUrl = new URL(request.url);
-  const targetUrl = new URL(`${incomingUrl.pathname}${incomingUrl.search}`, upstreamBase);
-
+function buildUpstreamHeaders(request: Request, incomingUrl: URL): Headers {
   const upstreamHeaders = new Headers(request.headers);
   upstreamHeaders.delete('host');
   upstreamHeaders.set('x-forwarded-host', incomingUrl.host);
   upstreamHeaders.set('x-forwarded-proto', incomingUrl.protocol.replace(':', ''));
+  return upstreamHeaders;
+}
 
-  if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
-    try {
-      return await fetch(
-        new Request(targetUrl.toString(), {
-          method: request.method,
-          headers: upstreamHeaders,
-        }),
-      );
-    } catch {
-      return buildUpstreamUnavailableResponse();
-    }
-  }
-
-  const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
-  let upstreamResponse: Response;
-  try {
-    upstreamResponse = await fetch(targetUrl.toString(), {
-      method: request.method,
-      headers: upstreamHeaders,
-      body: hasBody ? request.body : undefined,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
-    });
-  } catch {
-    return buildUpstreamUnavailableResponse();
-  }
-
+function buildClientResponse(
+  upstreamResponse: Response,
+  upstreamBase: URL,
+  incomingUrl: URL,
+): Response {
   const responseHeaders = new Headers(upstreamResponse.headers);
   const location = responseHeaders.get('location');
   if (location?.startsWith(upstreamBase.origin)) {
@@ -133,4 +95,52 @@ export async function proxyToApiOrigin(context: PagesFunctionContext): Promise<R
     statusText: upstreamResponse.statusText,
     headers: responseHeaders,
   });
+}
+
+export async function proxyToApiOrigin(context: PagesFunctionContext): Promise<Response> {
+  const { request, env } = context;
+  const upstreamBase = resolveUpstreamOrigin(env.API_ORIGIN);
+  if (!upstreamBase) {
+    return new Response(
+      JSON.stringify({
+        error: 'API_ORIGIN_UNCONFIGURED',
+        message: 'Configure API_ORIGIN no Cloudflare Pages para conectar à API na Azure.',
+      }),
+      {
+        status: 503,
+        headers: { 'content-type': 'application/json; charset=utf-8' },
+      },
+    );
+  }
+
+  const incomingUrl = new URL(request.url);
+  const targetUrl = new URL(`${incomingUrl.pathname}${incomingUrl.search}`, upstreamBase);
+  const upstreamHeaders = buildUpstreamHeaders(request, incomingUrl);
+
+  if (request.headers.get('upgrade')?.toLowerCase() === 'websocket') {
+    try {
+      return await fetch(
+        new Request(targetUrl.toString(), {
+          method: request.method,
+          headers: upstreamHeaders,
+        }),
+      );
+    } catch {
+      return buildUpstreamUnavailableResponse();
+    }
+  }
+
+  const hasBody = request.method !== 'GET' && request.method !== 'HEAD';
+  try {
+    const upstreamResponse = await fetch(targetUrl.toString(), {
+      method: request.method,
+      headers: upstreamHeaders,
+      body: hasBody ? request.body : undefined,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
+    });
+    return buildClientResponse(upstreamResponse, upstreamBase, incomingUrl);
+  } catch {
+    return buildUpstreamUnavailableResponse();
+  }
 }

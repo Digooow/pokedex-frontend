@@ -7,18 +7,28 @@ import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { configureApiApp } from '../src/app.setup';
 import { CryptoService } from '../src/common/security/crypto.service';
+import { OpenTelemetryService } from '../src/common/telemetry/opentelemetry.service';
 import { PrismaService } from '../src/infra/prisma.service';
 import { RedisService } from '../src/infra/redis.service';
 import { OutboxRelayService } from '../src/modules/events/outbox-relay.service';
+import {
+  type IntegrationBackingServicesHandle,
+  startIntegrationBackingServices,
+} from './integration-containers.helper';
+
+jest.setTimeout(120_000);
 
 function extractCookieMap(res: Response): Map<string, string> {
   const headersRecord = res.headers as Record<string, unknown>;
   const rawSetCookie = headersRecord['set-cookie'];
-  const entries = Array.isArray(rawSetCookie)
-    ? rawSetCookie.filter((item): item is string => typeof item === 'string')
-    : typeof rawSetCookie === 'string'
-      ? [rawSetCookie]
-      : [];
+  let entries: string[] = [];
+  if (Array.isArray(rawSetCookie)) {
+    entries = rawSetCookie.filter(
+      (item): item is string => typeof item === 'string',
+    );
+  } else if (typeof rawSetCookie === 'string') {
+    entries = [rawSetCookie];
+  }
 
   const jar = new Map<string, string>();
   for (const headerLine of entries) {
@@ -41,16 +51,20 @@ function formatCookieHeader(jar: ReadonlyMap<string, string>): string {
 }
 
 describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () => {
+  let backingHandle: IntegrationBackingServicesHandle | null = null;
   let app: INestApplication<App>;
   let prisma: PrismaService;
   let redis: RedisService;
   let crypto: CryptoService;
   let outboxRelay: OutboxRelayService;
+  let telemetry: OpenTelemetryService;
   const suffix = randomUUID().slice(0, 8);
   const trainerEmail = `integration-${suffix}@pokeverse.local`;
   const trainerUsername = `Int_${suffix}`;
 
   beforeAll(async () => {
+    backingHandle = await startIntegrationBackingServices();
+
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
     }).compile();
@@ -63,6 +77,7 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
     redis = app.get(RedisService);
     crypto = app.get(CryptoService);
     outboxRelay = app.get(OutboxRelayService);
+    telemetry = app.get(OpenTelemetryService);
   });
 
   afterAll(async () => {
@@ -76,6 +91,9 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
     }
     if (app) {
       await app.close();
+    }
+    if (backingHandle) {
+      await backingHandle.stop();
     }
   });
 
@@ -186,13 +204,22 @@ describe('PokéVerse API Integration E2E (Real Postgres + Redis + Kafka)', () =>
       .set('Cookie', formatCookieHeader(cookieJar))
       .expect(204);
 
-    const relayedCount = await outboxRelay.processPendingBatch();
+    const relayRuns = await Promise.all([
+      outboxRelay.processPendingBatch(),
+      outboxRelay.processPendingBatch(),
+    ]);
+    const relayedCount = relayRuns[0] + relayRuns[1];
     expect(relayedCount).toBeGreaterThanOrEqual(4);
 
     const publishedEvents = await prisma.outboxEvent.findMany({
       where: { status: OutboxStatus.PUBLISHED },
     });
     expect(publishedEvents.length).toBeGreaterThanOrEqual(4);
+
+    const otelSnapshot = telemetry.getSnapshot();
+    expect(otelSnapshot.http.totalRequests).toBeGreaterThanOrEqual(5);
+    expect(otelSnapshot.database.queryCount).toBeGreaterThanOrEqual(1);
+    expect(otelSnapshot.messaging.publishedCount).toBeGreaterThanOrEqual(4);
 
     await request(app.getHttpServer())
       .delete('/api/v1/auth/me')

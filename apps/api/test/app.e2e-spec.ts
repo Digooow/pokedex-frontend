@@ -1,5 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { TelemetrySnapshotSchema } from '@pokeverse/shared';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
@@ -321,5 +322,47 @@ describe('PokéVerse API (e2e)', () => {
       .set('Origin', 'http://localhost:4200')
       .set('Cookie', `pokeverse_session=${rawSid}`)
       .expect(400);
+  });
+
+  it('protects GET /api/v1/system/telemetry with RBAC and returns RED telemetry for ADMIN', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/system/telemetry')
+      .expect(401);
+
+    const sessionService = app.get(SessionService);
+    const trainerSession = await sessionService.createSession({
+      trainerId: '550e8400-e29b-41d4-a716-446655440001',
+      username: 'Blue_Pallet',
+      role: 'TRAINER',
+      familyId: '550e8400-e29b-41d4-a716-446655440096',
+      state: 'AUTHENTICATED',
+      mfaMethods: [],
+    });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/system/telemetry')
+      .set('Cookie', `pokeverse_session=${trainerSession.rawSid}`)
+      .expect(403);
+
+    const adminSession = await sessionService.createSession({
+      trainerId: '550e8400-e29b-41d4-a716-446655440002',
+      username: 'Oak_Admin',
+      role: 'ADMIN',
+      familyId: '550e8400-e29b-41d4-a716-446655440095',
+      state: 'AUTHENTICATED',
+      mfaMethods: [],
+    });
+
+    const telemetryRes = await request(app.getHttpServer())
+      .get('/api/v1/system/telemetry')
+      .set('Cookie', `pokeverse_session=${adminSession.rawSid}`)
+      .expect(200);
+
+    const parsed = TelemetrySnapshotSchema.safeParse(telemetryRes.body);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.service).toBe('pokeverse-api');
+      expect(parsed.data.http.totalRequests).toBeGreaterThanOrEqual(1);
+    }
   });
 });

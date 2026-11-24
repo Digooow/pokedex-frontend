@@ -1,3 +1,4 @@
+import { Inject, Optional } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -7,13 +8,22 @@ import {
 import type { WorldTickerEvent } from '@pokeverse/shared';
 import type { Server, Socket } from 'socket.io';
 import { StructuredLoggerService } from '../../common/telemetry/structured-logger.service';
+import {
+  TELEMETRY_METRICS_PORT,
+  type TelemetryMetricsPort,
+} from '../../common/telemetry/telemetry.port';
 
 const MAX_RECENT_TICKER_EVENTS = 12;
 const MAX_CONNECTIONS_PER_IP = 10;
 const MAX_TOTAL_CONNECTIONS = 1000;
 
 function normalizeOrigin(raw: string): string {
-  return raw.trim().replace(/\/+$/, '');
+  const trimmed = raw.trim();
+  let end = trimmed.length;
+  while (end > 0 && trimmed[end - 1] === '/') {
+    end -= 1;
+  }
+  return trimmed.slice(0, end);
 }
 
 export function isAllowedWebSocketOrigin(
@@ -52,7 +62,12 @@ export class WorldGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly socketIpMap = new Map<string, string>();
   private totalConnections = 0;
 
-  constructor(private readonly logger: StructuredLoggerService) {}
+  constructor(
+    private readonly logger: StructuredLoggerService,
+    @Optional()
+    @Inject(TELEMETRY_METRICS_PORT)
+    private readonly telemetry?: TelemetryMetricsPort,
+  ) {}
 
   handleConnection(client: Socket): void {
     const ip = this.resolveClientIp(client);
@@ -77,6 +92,7 @@ export class WorldGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.socketIpMap.set(client.id, ip);
     this.activeConnectionsByIp.set(ip, ipCount + 1);
     this.totalConnections += 1;
+    this.telemetry?.recordWsConnectionDelta(1);
 
     if (this.recentEvents.length > 0) {
       client.emit('world:recent-events', this.recentEvents);
@@ -90,6 +106,7 @@ export class WorldGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     this.socketIpMap.delete(client.id);
     this.totalConnections = Math.max(0, this.totalConnections - 1);
+    this.telemetry?.recordWsConnectionDelta(-1);
 
     const nextCount = (this.activeConnectionsByIp.get(ip) ?? 0) - 1;
     if (nextCount <= 0) {
@@ -109,6 +126,7 @@ export class WorldGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.server.emit('world:global-event', event);
     }
 
+    this.telemetry?.recordWsBroadcast(event.eventType, event.traceId ?? null);
     this.logger.emitEvent('info', `World event broadcast: ${event.eventType}`, {
       context: WorldGateway.name,
       traceId: event.traceId,

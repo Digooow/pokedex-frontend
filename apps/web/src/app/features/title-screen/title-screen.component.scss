@@ -27,7 +27,7 @@
   border-radius: var(--pv-radius-lg);
   border: 1px solid var(--pv-border-subtle);
   background: var(--pv-surface);
-  box-shadow: 0 24px 64px oklch(0% 0 0 / 0.55);
+  box-shadow: var(--pv-shadow-hero);
 }
 
 .title-hero__badge {
@@ -97,7 +97,7 @@
   gap: var(--pv-space-3);
   padding: var(--pv-space-3);
   border-radius: var(--pv-radius-md);
-  background: oklch(15% 0.02 255 / 0.85);
+  background: var(--pv-panel-inset-bg);
   border: 1px solid var(--pv-border-subtle);
 }
 

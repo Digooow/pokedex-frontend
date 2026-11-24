@@ -1,9 +1,9 @@
 import { randomInt } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CryptoService } from '../../common/security/crypto.service';
 import type { ApiEnvConfig } from '../../config/env.schema';
-import { RedisService } from '../../infra/redis.service';
+import { OTP_STORE, type OtpStore } from './auth-storage.ports';
 
 export type OtpPurpose = 'verify' | 'reset';
 
@@ -24,7 +24,8 @@ export interface OtpDraft {
 @Injectable()
 export class OtpService {
   constructor(
-    private readonly redis: RedisService,
+    @Inject(OTP_STORE)
+    private readonly redis: OtpStore,
     private readonly crypto: CryptoService,
     private readonly config: ConfigService<ApiEnvConfig, true>,
   ) {}

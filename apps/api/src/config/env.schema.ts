@@ -154,6 +154,9 @@ const ApiEnvSchema = z
     MINIO_ROOT_PASSWORD: z.string().optional().default(''),
     S3_BUCKET_ROMS: z.string().min(1).default('pokeverse-roms'),
     S3_BUCKET_SAVES: z.string().min(1).default('pokeverse-saves'),
+    OTEL_ENABLED: BooleanFalseDefaultSchema,
+    OTEL_SERVICE_NAME: z.string().min(1).default('pokeverse-api'),
+    OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional().default(''),
   })
   .superRefine((env, ctx) => {
     if (
@@ -192,6 +195,21 @@ const ApiEnvSchema = z
     }
 
     validateUnpooledDatabaseUrl(env.DATABASE_URL_UNPOOLED, ctx);
+
+    const otlpEndpoint = env.OTEL_EXPORTER_OTLP_ENDPOINT.trim();
+    if (
+      otlpEndpoint.length > 0 &&
+      (!z.url().safeParse(otlpEndpoint).success ||
+        (!otlpEndpoint.startsWith('http://') &&
+          !otlpEndpoint.startsWith('https://')))
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['OTEL_EXPORTER_OTLP_ENDPOINT'],
+        message:
+          'OTEL_EXPORTER_OTLP_ENDPOINT deve ser uma URL http:// ou https:// válida.',
+      });
+    }
   });
 
 export type ApiEnvConfig = z.infer<typeof ApiEnvSchema>;

@@ -75,48 +75,48 @@ flowchart LR
 ### 3.2. Checklist Prático por Princípio SOLID
 
 1. **S — Single Responsibility Principle (SRP)**
-   - **Meta:** máximo de `~300` linhas por Service/Store e `~150–200` linhas por Componente UI; funções com `<= 45` linhas e profundidade de aninhamento `<= 3`.
-   - **Ações:**
+   - **Meta:** máximo de `~300` linhas por Service/Store e `~150–200` linhas por Componente UI; funções com `<= 65` linhas (`max-lines-per-function` bloqueante no ESLint) e profundidade de aninhamento `<= 3` (`max-depth: ['error', 3]`).
+   - **Ações (Concluídas):**
      - Fatiar `auth.service.ts` (`998` linhas) em `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` e `TrainerGdprService`.
      - Fatiar `google-oauth.service.ts` (`748` linhas) isolando `GoogleOidcVerifier` (JWKS + RS256), `GoogleOAuthHttpClient` e `GoogleAccountLinker`.
      - Fatiar `auth.store.ts` (`606` linhas) separando estado de sessão (`AuthSessionStore`), ações de recuperação/OTP (`AuthRecoveryService`) e sincronização multi-aba (`AuthCrossTabSync`).
-     - Fatiar `_pokedex-classic.scss` (`3.203` linhas) em `_chassis-3d.scss`, `_search-scanner.scss`, `_visor-lcd.scss`, `_controls-dpad.scss` e `_slots-grid.scss`, removendo cores hardcoded dos componentes HUD para tokens únicos `--pv-*`.
+     - Fatiar `_pokedex-classic.scss` (`3.203` linhas) em `_chassis-3d.scss`, `_search-scanner.scss`, `_visor-lcd.scss`, `_controls-dpad.scss` e `_slots-grid.scss`, migrando 100% das cores literais dos diálogos/telas de `apps/web/src/app/**/*.scss` para tokens semânticos `--pv-*`.
 
 2. **O — Open/Closed Principle (OCP)**
-   - **Ações:**
-     - Substituir ramificações manuais em `MailService.renderEmail` e `AuthService` por um mapa tipado de templates/renderizadores (`Record<EmailTemplate, EmailRenderer>`).
+   - **Ações (Concluídas):**
+     - Substituir ramificações manuais em `MailService` por mapa tipado de renderizadores (`Record<EmailTemplate, EmailRenderer>`) e estratégias plugáveis via porta `EmailTransport` (`SmtpEmailTransport` e `ResendEmailTransport`).
      - No `PrivacyConsentStore` e `QualityStore`, adotar registro declarativo de chaves sujeitas a consentimento e diferenciar explicitamente opt-in estrito (`hasExplicitFunctionalOptIn`: `functionalPreferences === true`) da permissão funcional de slots no Modo Visitante antes de revogação explícita (`canPersistFunctionalPreferences`: `functionalPreferences ?? true`).
 
 3. **L — Liskov Substitution Principle (LSP)**
-   - **Ações:**
-     - Definir contratos explícitos (`SessionRepository`, `OtpStore`, `EmailTransport`) para que implementações reais (Redis/Prisma/Resend) e fakes em memória para testes respeitem exatamente as mesmas pré e pós-condições (incluindo atomicidade de contadores e códigos de erro).
+   - **Ações (Concluídas):**
+     - Definidos contratos explícitos [`SessionRepository` e `OtpStore`](../apps/api/src/modules/auth/auth-storage.ports.ts), [`EmailTransport`](../apps/api/src/modules/notifications/email-transport.port.ts), [`ObjectStoragePort`](../apps/api/src/infra/object-storage.port.ts) e [`TelemetryMetricsPort`](../apps/api/src/common/telemetry/telemetry.port.ts), validados por suíte de substituição LSP ([`auth-ports-lsp.spec.ts`](../apps/api/src/modules/auth/auth-ports-lsp.spec.ts)) garantindo mesmas pré e pós-condições entre Redis/SMTP/Resend reais e implementações *in-memory*.
 
 4. **I — Interface Segregation Principle (ISP)**
-   - **Ações:**
+   - **Ações (Concluídas):**
      - Extrair `TrainerSessionIssuer` e `AuthOutboxPublisher` com interfaces mínimas para `GoogleOAuthService`, `MfaTotpService` e `PasskeyService`, eliminando duplicação de `TRAINER_PROFILE_SELECT`, montagem de `mfaMethods`, gravação de `RefreshToken` e envelopes cifrados.
-     - No front-end, centralizar `extractApiErrorMessage()` em `@pokeverse/shared` ou `core/http/api-error.util.ts` (eliminando duplicação entre `AuthStore` e `SecurityIamStore`).
+     - No front-end, centralizar `extractApiErrorMessage()` em `core/http/api-error.util.ts` (eliminando duplicação entre `AuthRecoveryService` e `SecurityIamStore`).
 
 5. **D — Dependency Inversion Principle (DIP)**
-   - **Ações:**
-     - Remover toda consulta direta ao DOM (`document.querySelector`, `hostEl.querySelectorAll`, `dataset`) de `PokedexRpgNavService` (`695` linhas), substituindo por registro declarativo via diretiva Angular `[pvRpgFocusable]` e `viewChildren`.
-     - Extrair portas abstratas para transporte de e-mail, armazenamento S3 e métricas de telemetria no back-end.
+   - **Ações (Concluídas):**
+     - Removida toda consulta direta ao DOM (`document.querySelector`, `hostEl.querySelectorAll`, `getElementById`) de `PokedexRpgNavService`, `pokedex-rpg-nav.util.ts` e `QualityStore` via `[pvRpgFocusable]` / `[pvRpgAction]` e injeção de `DOCUMENT` (`dataset['perfTier']`).
+     - Extraídas portas abstratas no back-end para transporte de e-mail (`EMAIL_TRANSPORT`), sessão/OTP (`SESSION_REPOSITORY` / `OTP_STORE`), armazenamento S3 (`OBJECT_STORAGE_PORT`) e telemetria (`TELEMETRY_METRICS_PORT`).
 
 ---
 
 ## 4. Roadmap para Elevar o Projeto ao Nível Big Tech
 
-| Pilar | Estado Anterior | Marco Implementado / Próximo Passo |
+| Pilar | Estado Anterior | Marco Implementado (100% Concluído) |
 | :--- | :--- | :--- |
-| **Lint & Clean Code Gates** | ESLint apenas em `apps/api`; sem limite de linhas/complexidade. | **Concluído (Onda 4 — Guardrails Completos):** `eslint-plugin-prettier/recommended`, `--max-warnings=0`, `@typescript-eslint/no-explicit-any: 'error'`, `complexity: ['error', 15]` e `max-lines` (`300` geral / `200` `*.component.ts` no web) ativos nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`), com `npm run format:check` bloqueante no CI. |
-| **Testes de Integração Reais & Caos** | E2E com mocks em memória; falta cobertura em `PokeApiCacheService`, `PokedexSlotsService` e `PasskeyService`. | **Parcialmente Concluído (Onda 4 no Web):** adicionados testes unitários completos em `pokeapi-cache.service.spec.ts`, `pokedex-slots.service.spec.ts`, `passkey.service.spec.ts`, `deleteTrainerAccount` e `purgeExpiredTokensAndEvents`, e `app.spec.ts` fatiado em `app-shell.spec.ts`, `pokedex-device.spec.ts`, `privacy-consent.store.spec.ts` e `auth-iam.spec.ts` (`31` testes web); próximo passo: **Testcontainers** (PostgreSQL + Redis + Redpanda reais) no CI. |
-| **Observabilidade & SLOs** | Logs JSON estruturados + `traceparent` manual. | Instrumentação **OpenTelemetry SDK** ponta a ponta (HTTP + Prisma + ioredis + KafkaJS), métricas RED (`p95`/`p99`, taxa 5xx, hit ratio Redis) e rastreamento de WebSocket. |
-| **Segurança Contínua & LGPD** | Cookies `__Host-`/`__Secure-`, Argon2id, exportação JSON; falta exclusão de conta e expurgo automático. | **Concluído (LGPD + `SystemController` Dinâmico):** implementado `DELETE /api/v1/auth/me` com confirmação na UI, `SessionManagementService.purgeExpiredTokensAndEvents()` e fase dinâmica via `POKEVERSE_PHASE`; próximo passo: `gitleaks` + `npm audit --audit-level=high` bloqueantes no CI. |
-| **Higiene de Dependências & Repo** | `@neon/config` e `@neon/env` nas `dependencies` raiz; alterações WIP sem commit. | **Concluído (`devDependencies`):** `@neon/config` e `@neon/env` movidos para `devDependencies` na raiz; próximo passo: `CODEOWNERS` e template de PR. |
+| **Lint & Clean Code Gates** | ESLint apenas em `apps/api`; sem limite de linhas/complexidade. | **Concluído:** `eslint-plugin-prettier/recommended`, `--max-warnings=0`, `@typescript-eslint/no-explicit-any: 'error'`, `complexity: ['error', 15]`, `max-depth: ['error', 3]`, `max-lines` (`300` geral / `200` `*.component.ts` no web) e `max-lines-per-function` (`65` em código de produção) ativos nos 3 workspaces (`@pokeverse/shared`, `apps/api`, `apps/web`), com `npm run format:check` bloqueante no CI. |
+| **Testes de Integração Reais & Caos** | E2E com mocks em memória; falta cobertura em `PokeApiCacheService`, `PokedexSlotsService` e `PasskeyService`. | **Concluído:** `121` testes unitários (`17` shared + `73` api em `26` suítes incluindo `auth-ports-lsp.spec.ts`, `opentelemetry.service.spec.ts` e `events-chaos.spec.ts` + `31` web em `7` arquivos), `12` testes E2E HTTP edge (`app.e2e-spec.ts`) e `3` testes de integração real em `app.integration-spec.ts` com PostgreSQL 16, Redis 7 e Kafka/Redpanda reais no CI (`integration-e2e`) e **Testcontainers** autocontido local (`npm run test:integration:tc` via `integration-containers.helper.ts`). |
+| **Observabilidade & SLOs** | Logs JSON estruturados + `traceparent` manual. | **Concluído:** **OpenTelemetry SDK** (`otel-sdk.bootstrap.ts` + `OpenTelemetryService` + `TelemetryMetricsPort`) instrumentando HTTP (`CorrelationMiddleware`), Prisma (`PrismaService` query events), Redis (`RedisService` spans + `PokeApiCacheService` hit/miss/stale), KafkaJS (`KafkaService`) e WebSocket (`WorldGateway`), com métricas RED (`p50`/`p95`/`p99`, taxa `5xx`, hit ratio Redis) expostas em `GET /api/v1/system/telemetry` (`@Roles('MODERATOR', 'ADMIN')` + `@Scopes('ops:audit')`). |
+| **Segurança Contínua & LGPD** | Cookies `__Host-`/`__Secure-`, Argon2id, exportação JSON; falta exclusão de conta e expurgo automático. | **Concluído:** `DELETE /api/v1/auth/me` com confirmação na UI, `SessionManagementService.purgeExpiredTokensAndEvents()` (6h), `POKEVERSE_PHASE` dinâmico, **Gitleaks**, **Trivy** (`CRITICAL` + SBOM CycloneDX), **CodeQL** SAST e `npm audit --omit=dev --audit-level=high` zerado (`0` vulnerabilidades via `overrides` + `@prisma/config` na raiz) bloqueantes no [ci.yml](../.github/workflows/ci.yml). |
+| **Higiene de Dependências & Repo** | `@neon/config` e `@neon/env` nas `dependencies` raiz; alterações WIP sem commit. | **Concluído:** `@neon/config` e `@neon/env` em `devDependencies` na raiz, [`.github/CODEOWNERS`](../.github/CODEOWNERS) e [`.github/pull_request_template.md`](../.github/pull_request_template.md) adicionados ao repositório. |
 
 ---
 
 ## 5. Cronograma de Execução & Status Real
 
 1. **Sprint 1 (Estabilização & SOLID no Auth) — Concluída:** extraídos `TrainerSessionIssuer` + `AuthOutboxPublisher`; `AuthService` decomposto em `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` e `TrainerGdprService`; `GoogleOAuthService` decomposto em `GoogleOAuthHttpClient`, `GoogleOidcVerifier` e `GoogleAccountLinker`; `MailService` em tabela OCP (`EMAIL_TEMPLATE_RENDERERS`); novos testes unitários em `PokeApiCacheService`, `PokedexSlotsService` e `PasskeyService`.
-2. **Sprint 2 (Front-End & CSS Modular) — Concluída:** criado `api-error.util.ts`; `AuthStore` fatiado com `AuthRecoveryService` e `AuthCrossTabSyncService`; `PrivacyConsentStore` extensível via `registerNonEssentialStorageKey` + `hasExplicitFunctionalOptIn`; `PokedexRpgNavService` decomposto com `PokedexLidPhysicsService` e diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]`; `_pokedex-classic.scss` fatiado em 5 parciais (`styles/pokedex/`); ESLint unificado em `@pokeverse/shared`, `apps/api` e `apps/web`.
-3. **Sprint 3 (Confiabilidade Big Tech & LGPD Final) — Parcialmente Concluída:** entregue `DELETE /api/v1/auth/me` + confirmação LGPD em `SecuritySettingsDialogComponent`, `purgeExpiredTokensAndEvents()`, `SystemController` dinâmico (`POKEVERSE_PHASE`) e `@neon/*` em `devDependencies`; pendentes apenas Testcontainers no CI e OpenTelemetry SDK completo.
+2. **Sprint 2 (Front-End & CSS Modular) — Concluída:** criado `api-error.util.ts`; `AuthStore` fatiado com `AuthRecoveryService` e `AuthCrossTabSyncService`; `PrivacyConsentStore` extensível via `registerNonEssentialStorageKey` + `hasExplicitFunctionalOptIn`; `PokedexRpgNavService` decomposto com `PokedexLidPhysicsService` e diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` / `[pvRpgAction]`; `_pokedex-classic.scss` fatiado em 5 parciais (`styles/pokedex/`); todos os `.scss` de diálogos/telas migrados para `--pv-*`; ESLint unificado em `@pokeverse/shared`, `apps/api` e `apps/web`.
+3. **Sprint 3 (Confiabilidade Big Tech & LGPD Final) — Concluída:** entregues `DELETE /api/v1/auth/me` + confirmação LGPD em `SecuritySettingsDialogComponent`, `purgeExpiredTokensAndEvents()`, `SystemController` dinâmico (`POKEVERSE_PHASE`), portas DIP/LSP (`EmailTransport`, `SessionRepository`, `OtpStore`, `ObjectStoragePort`, `TelemetryMetricsPort`) + `auth-ports-lsp.spec.ts`, **OpenTelemetry SDK + métricas RED** (`GET /api/v1/system/telemetry`), **Testcontainers** (`integration-containers.helper.ts`) + suíte de caos (`events-chaos.spec.ts`), `npm audit --omit=dev --audit-level=high` zerado no `ci.yml`, `max-depth`/`max-lines-per-function` no ESLint e `.github/CODEOWNERS` + template de PR.

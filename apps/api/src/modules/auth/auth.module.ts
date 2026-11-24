@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { RedisService } from '../../infra/redis.service';
 import { AccountRecoveryService } from './account-recovery.service';
 import { AuthOutboxPublisher } from './auth-outbox-publisher.service';
+import { OTP_STORE, SESSION_REPOSITORY } from './auth-storage.ports';
 import { AuthTokenRepository } from './auth-token.repository';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
@@ -27,6 +29,8 @@ import { TrainerSessionIssuer } from './trainer-session-issuer.service';
 @Module({
   controllers: [AuthController, MfaController, GoogleOAuthController],
   providers: [
+    { provide: SESSION_REPOSITORY, useExisting: RedisService },
+    { provide: OTP_STORE, useExisting: RedisService },
     TrainerAccountRepository,
     AuthTokenRepository,
     MfaTotpRepository,

@@ -29,12 +29,14 @@
 | **Após Onda 3** *(Front-End Web)* | 2026-11-22 | **9,8** | 10,0 | 9,8 | 9,8 | 9,8 | Decomposição SRP de 100% dos stores/serviços (`<= 293` linhas físicas) e componentes UI (`<= 196` linhas físicas) de `apps/web`, tokens `--pv-hud-*`, remoção total de `getElementById`/`querySelector`/`FALLBACK_SELECTORS` (`[pvMainHeading]`, `[pvRpgEditForm]`, `viewChild`), `28` testes Vitest web e `audit:ui` aprovado em `1440×900` e `375×812`. |
 | **Após Onda 4** *(ESLint + Prettier + Testes)* | 2026-11-22 | **10,0** | 10,0 | 10,0 | 10,0 | 10,0 | `eslint-plugin-prettier/recommended`, `--max-warnings=0`, `complexity: ['error', 15]` e `max-lines` (`300`/`200`) nos 3 workspaces + `npm run format:check` no CI; refatoração de complexidade em `shared`/`api`/`web` e fatiamento de `app.spec.ts` em `app-shell.spec.ts`, `pokedex-device.spec.ts`, `privacy-consent.store.spec.ts` e `auth-iam.spec.ts` (`31` testes Vitest web; `97` unit + `10` E2E). |
 | **Pós-Onda 4** *(Remediação SonarQube Cloud + CPD)* | 2026-11-22 | **10,0** | 10,0 | 10,0 | 10,0 | 10,0 | Resolvidos os `18` apontamentos e as `550` linhas duplicadas (CPD) do SonarQube Cloud: `3` bugs `Web:MouseEventWithoutKeyboardEquivalentCheck` (`pokedex-search-panel.component.html`, `pokedex-visor.component.html`), `1` blocker `typescript:S7649` (`rpg-focusable.directive.ts`), `3` `css:S9440`, `11` code smells TypeScript, tabela compacta com `/* @__PURE__ */` em `pokeapi-endpoints.ts` (removendo a exceção `560` de `packages/shared/eslint.config.mjs`), helpers em `app.routes.ts`, fonte única `regions-atlas.data.ts` entre Museu e Em Construção, e `@default` em `pokedex-visor.component.html`. |
+| **Fechamento Doc 17** *(DIP/LSP + OTel + Testcontainers + Audit High)* | 2026-11-23 | **10,0** | 10,0 | 10,0 | 10,0 | 10,0 | Extraídas portas DIP/LSP (`EmailTransport`, `SessionRepository`, `OtpStore`, `ObjectStoragePort`, `TelemetryMetricsPort`) + `auth-ports-lsp.spec.ts`; implementado OpenTelemetry SDK + métricas RED (`GET /api/v1/system/telemetry` RBAC); adicionados `integration-containers.helper.ts` (`@testcontainers/*`) e `events-chaos.spec.ts`; `npm audit --omit=dev --audit-level=high` com `0` vulnerabilidades no `ci.yml`; adicionados `max-depth: 3`, `max-lines-per-function: 65`, `.github/CODEOWNERS`, `.github/pull_request_template.md`, tokens `--pv-*` em 100% dos `.scss` de `apps/web/src/app` e substituição de leituras DOM `.dataset` em navegação por `[pvRpgAction]` / `DOCUMENT` (`QualityStore` com `dataset['perfTier']`, `136` verificações totais). |
 
 ---
 
 ## 2. Catálogo Rastreável de Dívidas Técnicas (`DT-01` a `DT-06`)
 
 ### `DT-01` — Ausência de Repositórios Isolados (`apps/api`) — **Resolvido na API**
+
 - **Norma:** [`ARCHITECTURE.md` §1.2, §1.3 e §4.4](ARCHITECTURE.md#L44-L47) (*"Consultas diretas via `PrismaService` não devem poluir Services de negócio. Toda query SQL/Prisma, projeção (`select`), join (`include`) e transação ACID pertence a um Repository."*).
 - **Situação Atual:**
   - **Pokédex & Eventos (Resolvido na Onda 1):**
@@ -49,6 +51,7 @@
     - Todos os services do `AuthModule` ([`auth.service.ts`](../apps/api/src/modules/auth/auth.service.ts), [`credentials-auth.service.ts`](../apps/api/src/modules/auth/credentials-auth.service.ts), [`account-recovery.service.ts`](../apps/api/src/modules/auth/account-recovery.service.ts), [`token-refresh.service.ts`](../apps/api/src/modules/auth/token-refresh.service.ts), [`session-management.service.ts`](../apps/api/src/modules/auth/session-management.service.ts), [`trainer-gdpr.service.ts`](../apps/api/src/modules/auth/trainer-gdpr.service.ts), [`trainer-session-issuer.service.ts`](../apps/api/src/modules/auth/trainer-session-issuer.service.ts), [`google-account-linker.service.ts`](../apps/api/src/modules/auth/google-account-linker.service.ts), [`mfa-totp.service.ts`](../apps/api/src/modules/auth/mfa-totp.service.ts), [`passkey.service.ts`](../apps/api/src/modules/auth/passkey.service.ts), [`google-oauth.service.ts`](../apps/api/src/modules/auth/google-oauth.service.ts)) possuem **zero** dependências de `PrismaService`.
 
 ### `DT-02` — Validação na Borda (`ZodValidationPipe`) e Regras em Controllers — **Resolvido na API**
+
 - **Norma:** [`ARCHITECTURE.md` §1.2 e §3.1](ARCHITECTURE.md#L145-L149) (*"Toda fronteira externa (`@Body`, `@Query`, `@Param`) deve passar por validação rigorosa via schemas Zod v4 e `ZodValidationPipe` antes de alcançar qualquer Service. Nenhuma regra de negócio pode existir dentro de um Controller."*).
 - **Evidências:**
   1. [`pokedex.controller.ts`](../apps/api/src/modules/pokedex/pokedex.controller.ts) (**Resolvido na Onda 1**): `ZodValidationPipe(PokedexSlotIndexParamSchema)` e `ZodValidationPipe(PokemonIdentifierParamSchema)` substituindo `ParseIntPipe` e regra no controller.
@@ -57,6 +60,7 @@
      - `MfaController.deletePasskey` valida `@Param('id')` com `new ZodValidationPipe(PasskeyIdParamSchema)`.
 
 ### `DT-03` — Consultas `.findMany()` sem `take` Explícito / Paginação — **Resolvido na API**
+
 - **Norma:** [`ARCHITECTURE.md` §4.2](ARCHITECTURE.md#L173-L179) (*"Consultas `.findMany()` sem `take` explícito são proibidas em endpoints da API."*).
 - **Evidências:**
   1. [`pokedex-slot.repository.ts`](../apps/api/src/modules/pokedex/pokedex-slot.repository.ts) (**Resolvido na Onda 1**): `take: TOTAL_POKEDEX_SLOTS` (`10`) em `findByTrainerId()`.
@@ -65,6 +69,7 @@
   4. [`trainer-account.repository.ts`](../apps/api/src/modules/auth/trainer-account.repository.ts) e [`trainer-oauth.repository.ts`](../apps/api/src/modules/auth/trainer-oauth.repository.ts) (**Resolvido na Onda 2**): relações `oauthAccounts` (`take: 10` / `1`), `passkeys` (`take: 50` / `1`) e `pokedexSlots` (`take: TOTAL_POKEDEX_SLOTS`) com limites explícitos em `findSecurityOverviewById()`, `findExportSnapshotById()` e `findUnlinkCandidates()`.
 
 ### `DT-04` — Limites de Coesão SRP (`< 300` linhas Services/Stores e `< 200` linhas UI) — **Resolvido**
+
 - **Norma:** [`ARCHITECTURE.md` §1.2](ARCHITECTURE.md#L45) e [`AGENTS.md` §3.1](../AGENTS.md#L33).
 - **Resolvido na API (Onda 2):** [`mfa-totp.service.ts`](../apps/api/src/modules/auth/mfa-totp.service.ts) caiu de `395` para **`278` linhas** (após extração de [`totp-crypto.util.ts`](../apps/api/src/modules/auth/totp-crypto.util.ts) com `110` linhas e [`mfa-totp.repository.ts`](../apps/api/src/modules/auth/mfa-totp.repository.ts) com `128` linhas) e [`passkey.service.ts`](../apps/api/src/modules/auth/passkey.service.ts) caiu de `330` para **`272` linhas** (após extração de [`passkey.repository.ts`](../apps/api/src/modules/auth/passkey.repository.ts) com `140` linhas) — todos os arquivos de `apps/api/src/modules/auth/` estão abaixo do teto normativo de `300` linhas.
 - **Resolvido no Front-End (Onda 3 — medido via linhas físicas e SLOC):**
@@ -86,6 +91,7 @@
 | **Web UI** | [`hud-quick-dock.component.ts`](../apps/web/src/app/shared/hud/hud-quick-dock.component.ts) | `208` | `67 / 61` | `< 200` | Template `.html` e `.scss` separados com tokens `--pv-hud-*` |
 
 ### `DT-05` — Resíduos de DOM Direto (DIP), Literais de Status Outbox e Tokens CSS — **Resolvido**
+
 - **Norma:** [`ARCHITECTURE.md` §1.1 e §5.2](ARCHITECTURE.md#L26) e [`AGENTS.md` §3.5 / §3.9](../AGENTS.md#L56-L77).
 - **Evidências:**
   1. **Strings mágicas de status Outbox (100% Resolvido na API — Ondas 1 e 2):** [`pokedex-slot.repository.ts`](../apps/api/src/modules/pokedex/pokedex-slot.repository.ts), [`outbox-event.repository.ts`](../apps/api/src/modules/events/outbox-event.repository.ts), [`auth-outbox-publisher.service.ts`](../apps/api/src/modules/auth/auth-outbox-publisher.service.ts) e [`auth-token.repository.ts`](../apps/api/src/modules/auth/auth-token.repository.ts) utilizam exclusivamente `OutboxStatus.PENDING`, `OutboxStatus.PUBLISHED` e `OutboxStatus.FAILED` do Prisma.
@@ -98,6 +104,7 @@
      - [`hud-topbar.component.scss`](../apps/web/src/app/shared/hud/hud-topbar.component.scss), [`hud-quick-dock.component.scss`](../apps/web/src/app/shared/hud/hud-quick-dock.component.scss) e [`slot-confirm-dialog.component.scss`](../apps/web/src/app/features/pokedex-device/components/slot-confirm-dialog.component.scss) operam sem literais hex/`rgba`/`oklch` avulsos no HUD.
 
 ### `DT-06` — Guardrails Automatizados no ESLint/CI e Modularização de `app.spec.ts` — **Resolvido na Onda 4**
+
 - **Norma:** [`ARCHITECTURE.md` §6](ARCHITECTURE.md#L346-L350) e [`17-plano-solid-clean-code-e-engenharia-big-tech.md` §4](17-plano-solid-clean-code-e-engenharia-big-tech.md#L110-L111).
 - **Evidências:**
   1. **ESLint, Prettier, `complexity` e `max-lines` nos 3 workspaces:** criado [`packages/shared/.prettierrc`](../packages/shared/.prettierrc) e configurados `eslint-plugin-prettier/recommended`, `--max-warnings=0`, `complexity: ['error', 15]` e `max-lines` (`300` geral com `skipBlankLines`/`skipComments`, `200` em `src/**/*.component.ts` de `apps/web`) em [`packages/shared/eslint.config.mjs`](../packages/shared/eslint.config.mjs), [`apps/api/eslint.config.mjs`](../apps/api/eslint.config.mjs) e [`apps/web/eslint.config.mjs`](../apps/web/eslint.config.mjs), com exceções explícitas e justificadas apenas para `pokemon-lab.ts` (`420`) e arquivos `*.spec.ts`/`test/**/*.ts` (`400` no web, `450` em shared/api, `800` em `auth.service.spec.ts`), tendo `pokeapi-endpoints.ts` retornado abaixo de `300` linhas após a remoção das duplicações.
@@ -121,6 +128,7 @@ Cada onda foi dimensionada para caber integralmente em **1 sessão curta (até 5
 ---
 
 ### Onda 1 — Isolamento de Repositórios, `take` e Borda Zod em `PokedexModule` + `EventsModule` (`Concluída`)
+
 - **Cluster de Aproximação (`1 <-> 2 <-> 3`):**
   - *Upstreams (`@pokeverse/shared`):* [`pokedex.schemas.ts`](../packages/shared/src/schemas/pokedex.schemas.ts) (`PokedexSlotIndexParamSchema`, `PokemonIdentifierParamSchema`) + [`schemas.spec.ts`](../packages/shared/src/schemas/schemas.spec.ts).
   - *Alvos (`apps/api`):* [`pokedex.controller.ts`](../apps/api/src/modules/pokedex/pokedex.controller.ts), [`pokeapi-cache.service.ts`](../apps/api/src/modules/pokedex/pokeapi-cache.service.ts), [`pokedex-slots.service.ts`](../apps/api/src/modules/pokedex/pokedex-slots.service.ts), [`pokedex-slot.repository.ts`](../apps/api/src/modules/pokedex/pokedex-slot.repository.ts), [`pokedex.module.ts`](../apps/api/src/modules/pokedex/pokedex.module.ts), [`outbox-relay.service.ts`](../apps/api/src/modules/events/outbox-relay.service.ts), [`outbox-event.repository.ts`](../apps/api/src/modules/events/outbox-event.repository.ts), [`events.module.ts`](../apps/api/src/modules/events/events.module.ts).
@@ -134,6 +142,7 @@ Cada onda foi dimensionada para caber integralmente em **1 sessão curta (até 5
 ---
 
 ### Onda 2 — Repositórios ISP de Auth, Extração TOTP (`<= 300` linhas), `take`/`distinct` e Borda OAuth (`Concluída`)
+
 - **Cluster de Aproximação (`1 <-> 2 <-> 3`):**
   - *Upstreams (`@pokeverse/shared`):* [`auth.schemas.ts`](../packages/shared/src/schemas/auth.schemas.ts) (`GoogleOAuthCallbackQuerySchema`, `PasskeyIdParamSchema`) + [`schemas.spec.ts`](../packages/shared/src/schemas/schemas.spec.ts).
   - *Alvos (`apps/api/src/modules/auth`):* [`totp-crypto.util.ts`](../apps/api/src/modules/auth/totp-crypto.util.ts), [`trainer-account.repository.ts`](../apps/api/src/modules/auth/trainer-account.repository.ts), [`auth-token.repository.ts`](../apps/api/src/modules/auth/auth-token.repository.ts), [`mfa-totp.repository.ts`](../apps/api/src/modules/auth/mfa-totp.repository.ts), [`passkey.repository.ts`](../apps/api/src/modules/auth/passkey.repository.ts), [`trainer-oauth.repository.ts`](../apps/api/src/modules/auth/trainer-oauth.repository.ts), [`auth.service.ts`](../apps/api/src/modules/auth/auth.service.ts), [`mfa-totp.service.ts`](../apps/api/src/modules/auth/mfa-totp.service.ts), [`passkey.service.ts`](../apps/api/src/modules/auth/passkey.service.ts), [`credentials-auth.service.ts`](../apps/api/src/modules/auth/credentials-auth.service.ts), [`token-refresh.service.ts`](../apps/api/src/modules/auth/token-refresh.service.ts), [`account-recovery.service.ts`](../apps/api/src/modules/auth/account-recovery.service.ts), [`session-management.service.ts`](../apps/api/src/modules/auth/session-management.service.ts), [`trainer-gdpr.service.ts`](../apps/api/src/modules/auth/trainer-gdpr.service.ts), [`trainer-session-issuer.service.ts`](../apps/api/src/modules/auth/trainer-session-issuer.service.ts), [`google-account-linker.service.ts`](../apps/api/src/modules/auth/google-account-linker.service.ts), [`google-oauth.service.ts`](../apps/api/src/modules/auth/google-oauth.service.ts), [`auth-outbox-publisher.service.ts`](../apps/api/src/modules/auth/auth-outbox-publisher.service.ts), [`google-oauth.controller.ts`](../apps/api/src/modules/auth/google-oauth.controller.ts), [`mfa.controller.ts`](../apps/api/src/modules/auth/mfa.controller.ts), [`auth.module.ts`](../apps/api/src/modules/auth/auth.module.ts).
@@ -149,6 +158,7 @@ Cada onda foi dimensionada para caber integralmente em **1 sessão curta (até 5
 ---
 
 ### Onda 3 — Coesão SRP no Front-End (`apps/web`), Tokens HUD e Limpeza DIP (`Concluída`)
+
 - **Cluster de Aproximação (`1 <-> 2 <-> 3`):**
   - *Alvos Stores/Services (`apps/web/src/app/features/pokedex-device/services` & `core`):* novos [`pokedex-view-mapper.util.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-view-mapper.util.ts), [`pokedex-api.client.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-api.client.ts), [`pokedex-local-slots.storage.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-local-slots.storage.ts), [`pokedex-rpg-nav.util.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-rpg-nav.util.ts), [`pokedex-input-shortcuts.service.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-input-shortcuts.service.ts); refatoração de [`pokedex.store.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex.store.ts), [`pokedex-slots.store.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-slots.store.ts), [`pokedex-rpg-nav.service.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-rpg-nav.service.ts), [`auth-recovery.service.ts`](../apps/web/src/app/core/stores/auth-recovery.service.ts), [`auth-cross-tab-sync.service.ts`](../apps/web/src/app/core/stores/auth-cross-tab-sync.service.ts) e [`auth.store.ts`](../apps/web/src/app/core/stores/auth.store.ts) para `< 300` linhas físicas.
   - *Alvos Diretivas, Validação & Tokens:* [`rpg-focusable.directive.ts`](../apps/web/src/app/features/pokedex-device/directives/rpg-focusable.directive.ts) (adicionado `[pvRpgEditForm]`), [`main-heading.directive.ts`](../apps/web/src/app/shared/directives/main-heading.directive.ts) (`MainLandmarkFocusService`, `[pvMainHeading]`, `[pvMainLandmark]`), [`auth-dialog-validator.util.ts`](../apps/web/src/app/shared/hud/auth-dialog-validator.util.ts) e [`_tokens.scss`](../apps/web/src/styles/_tokens.scss) (`--pv-cyan`, `--pv-border-focus`, `--pv-hud-*`).
@@ -163,6 +173,7 @@ Cada onda foi dimensionada para caber integralmente em **1 sessão curta (até 5
 ---
 
 ### Onda 4 — Guardrails Automatizados no ESLint/CI e Fatiamento de `app.spec.ts` (`Concluída`)
+
 - **Cluster de Aproximação (`1 <-> 2 <-> 3`):**
   - *Alvos Config/CI:* [`packages/shared/.prettierrc`](../packages/shared/.prettierrc), [`packages/shared/eslint.config.mjs`](../packages/shared/eslint.config.mjs), [`apps/api/eslint.config.mjs`](../apps/api/eslint.config.mjs), [`apps/web/eslint.config.mjs`](../apps/web/eslint.config.mjs), [`package.json`](../package.json), [`packages/shared/package.json`](../packages/shared/package.json), [`apps/api/package.json`](../apps/api/package.json), [`apps/web/package.json`](../apps/web/package.json), [`tsconfig.app.json`](../apps/web/tsconfig.app.json), [`tsconfig.spec.json`](../apps/web/tsconfig.spec.json) e [`ci.yml`](../.github/workflows/ci.yml).
   - *Alvos Refatoração de Complexidade/Coesão:* [`pokeapi-endpoints.ts`](../packages/shared/src/domain/pokeapi-endpoints.ts), [`pokemon-lab.ts`](../packages/shared/src/domain/pokemon-lab.ts), [`csrf-origin.guard.ts`](../apps/api/src/common/guards/csrf-origin.guard.ts), [`env.schema.ts`](../apps/api/src/config/env.schema.ts), [`auth-dialog-validator.util.ts`](../apps/web/src/app/shared/hud/auth-dialog-validator.util.ts), [`pokedex-rpg-nav.util.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-rpg-nav.util.ts) e [`pokedex-rpg-nav.service.ts`](../apps/web/src/app/features/pokedex-device/services/pokedex-rpg-nav.service.ts).

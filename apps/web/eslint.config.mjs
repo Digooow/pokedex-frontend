@@ -23,7 +23,12 @@ export default defineConfig(
       '@typescript-eslint/no-explicit-any': 'error',
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
       complexity: ['error', 15],
+      'max-depth': ['error', 3],
       'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': [
+        'error',
+        { max: 65, skipBlankLines: true, skipComments: true, IIFEs: true },
+      ],
     },
   },
   {
@@ -36,6 +41,7 @@ export default defineConfig(
     files: ['src/**/*.spec.ts', 'src/**/*.spec-helper.ts'],
     rules: {
       'max-lines': ['error', { max: 400, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': 'off',
     },
   },
 );

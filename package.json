@@ -26,6 +26,11 @@
   },
   "devDependencies": {
     "@neon/config": "^1.14.4",
-    "@neon/env": "^2.1.7"
+    "@neon/env": "^2.1.7",
+    "@prisma/config": "^6.19.3"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.2",
+    "effect": "^3.22.5"
   }
 }

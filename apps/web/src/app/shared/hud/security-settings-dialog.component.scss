@@ -5,7 +5,7 @@
   background: var(--pv-surface-solid);
   color: var(--pv-ink-primary);
   inline-size: min(38rem, calc(100vw - 2rem));
-  box-shadow: 0 24px 60px oklch(0% 0 0 / 0.65);
+  box-shadow: var(--pv-shadow-dialog);
 }
 
 .sec-dialog:not([open]) {
@@ -71,13 +71,13 @@
 
 .sec-msg--error {
   border: 1px solid var(--pv-danger);
-  background: oklch(25% 0.08 25 / 0.4);
+  background: var(--pv-status-error-bg);
   color: var(--pv-amber);
 }
 
 .sec-msg--ok {
   border: 1px solid var(--pv-emerald);
-  background: oklch(24% 0.05 155 / 0.45);
+  background: var(--pv-status-ok-bg);
   color: var(--pv-emerald);
 }
 
@@ -157,7 +157,7 @@
   padding: var(--pv-space-3);
   border-radius: var(--pv-radius-sm);
   border: 1px solid var(--pv-danger);
-  background: oklch(22% 0.06 25 / 0.55);
+  background: var(--pv-status-danger-box-bg);
 }
 
 .sec-btn--ghost {

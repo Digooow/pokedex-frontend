@@ -37,6 +37,68 @@ const GoogleIdTokenClaimsSchema = z.object({
 export type VerifiedGoogleClaims = z.infer<typeof GoogleIdTokenClaimsSchema>;
 export type GoogleJwkEntry = z.infer<typeof GoogleJwkKeySchema>;
 
+function decodeGoogleIdTokenParts(idToken: string): {
+  readonly headerB64: string;
+  readonly payloadB64: string;
+  readonly sigB64: string;
+  readonly rawHeader: unknown;
+  readonly rawClaims: unknown;
+} {
+  const parts = idToken.split('.');
+  if (parts.length !== 3) {
+    throw new UnauthorizedException('Token OIDC do Google malformado.');
+  }
+  const [headerB64, payloadB64, sigB64] = parts;
+  if (!headerB64 || !payloadB64 || !sigB64) {
+    throw new UnauthorizedException('Segmentos ausentes no ID token.');
+  }
+  try {
+    return {
+      headerB64,
+      payloadB64,
+      sigB64,
+      rawHeader: JSON.parse(
+        Buffer.from(headerB64, 'base64url').toString('utf8'),
+      ),
+      rawClaims: JSON.parse(
+        Buffer.from(payloadB64, 'base64url').toString('utf8'),
+      ),
+    };
+  } catch {
+    throw new UnauthorizedException('Falha ao decodificar ID token OIDC.');
+  }
+}
+
+function validateDecodedGoogleClaims(params: {
+  readonly rawClaims: unknown;
+  readonly expectedAudience: string;
+  readonly expectedNonce: string;
+  readonly nowSec?: number;
+}): VerifiedGoogleClaims {
+  const claimsParsed = GoogleIdTokenClaimsSchema.safeParse(params.rawClaims);
+  if (!claimsParsed.success) {
+    throw new UnauthorizedException('Claims obrigatórias do Google ausentes.');
+  }
+
+  const claims = claimsParsed.data;
+  const now = params.nowSec ?? Math.floor(Date.now() / 1000);
+  if (claims.aud !== params.expectedAudience) {
+    throw new UnauthorizedException('Audience OIDC inválida.');
+  }
+  if (claims.exp <= now - 30) {
+    throw new UnauthorizedException('ID token do Google expirado.');
+  }
+  if (claims.nonce !== params.expectedNonce) {
+    throw new UnauthorizedException('Nonce OIDC divergente.');
+  }
+  if (!claims.email_verified) {
+    throw new UnauthorizedException(
+      'O e-mail da conta Google precisa estar verificado.',
+    );
+  }
+  return claims;
+}
+
 export function verifyGoogleIdTokenSignature(params: {
   readonly idToken: string;
   readonly keys: readonly GoogleJwkEntry[];
@@ -44,28 +106,8 @@ export function verifyGoogleIdTokenSignature(params: {
   readonly expectedNonce: string;
   readonly nowSec?: number;
 }): VerifiedGoogleClaims {
-  const parts = params.idToken.split('.');
-  if (parts.length !== 3) {
-    throw new UnauthorizedException('Token OIDC do Google malformado.');
-  }
-
-  const [headerB64, payloadB64, sigB64] = parts;
-  if (!headerB64 || !payloadB64 || !sigB64) {
-    throw new UnauthorizedException('Segmentos ausentes no ID token.');
-  }
-
-  let rawHeader: unknown;
-  let rawClaims: unknown;
-  try {
-    rawHeader = JSON.parse(
-      Buffer.from(headerB64, 'base64url').toString('utf8'),
-    );
-    rawClaims = JSON.parse(
-      Buffer.from(payloadB64, 'base64url').toString('utf8'),
-    );
-  } catch {
-    throw new UnauthorizedException('Falha ao decodificar ID token OIDC.');
-  }
+  const { headerB64, payloadB64, sigB64, rawHeader, rawClaims } =
+    decodeGoogleIdTokenParts(params.idToken);
 
   const headerParsed = GoogleIdTokenHeaderSchema.safeParse(rawHeader);
   if (!headerParsed.success) {
@@ -89,38 +131,16 @@ export function verifyGoogleIdTokenSignature(params: {
   verifier.update(`${headerB64}.${payloadB64}`);
   verifier.end();
 
-  const signatureValid = verifier.verify(
-    publicKey,
-    Buffer.from(sigB64, 'base64url'),
-  );
-  if (!signatureValid) {
+  if (!verifier.verify(publicKey, Buffer.from(sigB64, 'base64url'))) {
     throw new UnauthorizedException('Assinatura OIDC do Google inválida.');
   }
 
-  const claimsParsed = GoogleIdTokenClaimsSchema.safeParse(rawClaims);
-  if (!claimsParsed.success) {
-    throw new UnauthorizedException('Claims obrigatórias do Google ausentes.');
-  }
-
-  const claims = claimsParsed.data;
-  const now = params.nowSec ?? Math.floor(Date.now() / 1000);
-
-  if (claims.aud !== params.expectedAudience) {
-    throw new UnauthorizedException('Audience OIDC inválida.');
-  }
-  if (claims.exp <= now - 30) {
-    throw new UnauthorizedException('ID token do Google expirado.');
-  }
-  if (claims.nonce !== params.expectedNonce) {
-    throw new UnauthorizedException('Nonce OIDC divergente.');
-  }
-  if (!claims.email_verified) {
-    throw new UnauthorizedException(
-      'O e-mail da conta Google precisa estar verificado.',
-    );
-  }
-
-  return claims;
+  return validateDecodedGoogleClaims({
+    rawClaims,
+    expectedAudience: params.expectedAudience,
+    expectedNonce: params.expectedNonce,
+    nowSec: params.nowSec,
+  });
 }
 
 @Injectable()
