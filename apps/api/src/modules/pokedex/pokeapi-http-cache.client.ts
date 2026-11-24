@@ -136,7 +136,7 @@ export class PokeApiHttpCacheClient {
     producer: () => Promise<CachedResourceResult<T>>,
   ): Promise<CachedResourceResult<T>> {
     const existing = this.inflight.get(cacheKey);
-    if (existing) {
+    if (existing !== undefined) {
       return existing as Promise<CachedResourceResult<T>>;
     }
     const request = producer().finally(() => {
@@ -248,15 +248,19 @@ export class PokeApiHttpCacheClient {
     data: T,
   ): Promise<void> {
     const { cacheKey, ttlSec, staleTtlSec, aliasKeys } = options;
-    await this.writeCache(cacheKey, ttlSec, staleTtlSec, data);
-    if (!aliasKeys) {
-      return;
-    }
-    for (const aliasKey of new Set(aliasKeys(data))) {
-      if (aliasKey && aliasKey !== cacheKey) {
-        await this.writeCache(aliasKey, ttlSec, staleTtlSec, data);
+    const keys = new Set<string>([cacheKey]);
+    if (aliasKeys) {
+      for (const aliasKey of aliasKeys(data)) {
+        if (aliasKey) {
+          keys.add(aliasKey);
+        }
       }
     }
+    await Promise.all(
+      Array.from(keys, (key) =>
+        this.writeCache(key, ttlSec, staleTtlSec, data),
+      ),
+    );
   }
 
   private handleUpstreamError(host: string, error: unknown): Error {

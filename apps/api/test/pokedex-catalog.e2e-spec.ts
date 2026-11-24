@@ -13,9 +13,7 @@ import { PrismaService } from '../src/infra/prisma.service';
 import { RedisService } from '../src/infra/redis.service';
 
 jest.mock('node:dns/promises', () => ({
-  lookup: jest
-    .fn()
-    .mockResolvedValue([{ address: '104.26.10.233', family: 4 }]),
+  lookup: jest.fn().mockResolvedValue([{ address: '2001:db8::1', family: 6 }]),
 }));
 
 function extractFetchUrl(input: string | URL | Request): string {

@@ -5,7 +5,9 @@
 Nos Passos 2A.1 e 2A.2 da Fase 4B, o BFF NestJS passou a servir `/api/v1/pokedex/catalog/enriched` (1 query na PokéAPI GraphQL v1beta2 + fallback degradado REST), `/api/v1/pokedex/meta/filters` (`7d` + `14d` stale), `/api/v1/pokedex/pokemon/:idOrName/bundle` (agregando `pokemon` + `pokemon-species` + `evolution-chain` + matriz defensiva `0x..4x` calculada no servidor), `/encounters` e `/forms` com cache Redis (`12/51` recursos ativos no BFF). Enquanto o front-end Angular ainda consome `/catalog` e `/pokemon/:idOrName` (exibindo **Nome, ID, Altura, Peso, Tipos, Sprite principal e Habilidades**), os demais recursos de combate, biologia, evoluções, sprites retrô/animados, áudios (*cries*), golpes, itens e localizações já catalogados nos **51 endpoints raiz** da **PokéAPI v2** seguem sendo liberados incrementalmente para sustentar a Pokédex 2.0 (Passo 2B), o **Museu, Overworld, Team Builder, Mini-Games e Simulador de Batalha**.
 
 ### Restrição Absoluta de Hardware (Aparência Física Preservada)
+
 A evolução para a **Pokédex 2.0** deve comportar todos esses novos dados **sem adicionar nenhum botão físico novo à carcaça**:
+
 - A silhueta skeuomórfica original da Fase 0 (`index.html` e `css/style.css`, já portada para `apps/web` e removida da raiz por desuso) permanece **100% intacta** (`4` setas do D-Pad, `2` botões em fenda vermelho/azul, `1` botão circular `A`, `10` teclas iluminadas inferiores e `1` botão amarelo compacto).
 - Toda a expansão acontece **por software dentro dos visores LCD existentes** (abas paginadas no visor direito, filtros internos no terminal de busca) e **pelo comportamento contextual dos botões físicos existentes**, exatamente como ocorre em sistemas de consoles portáteis.
 
@@ -28,6 +30,7 @@ flowchart TD
 ```
 
 ### 2.1. Os 5 Visores Paginados dentro de `#resultado-conteudo`
+
 Para evitar uma lista única gigante difícil de rolar no celular e no desktop, o visor escuro (`#resultado-conteudo`) ganha uma barra de abas tática interna (**5 sub-telas**):
 
 | Aba | Conteúdo Exibido no LCD | Endpoints PokéAPI Usados | Estratégia de Carga (Performance) |
@@ -147,23 +150,29 @@ Consultar múltiplos endpoints sem critério derrubaria a performance mobile (e 
 Após a publicação oficial da infraestrutura (saindo do GitHub Pages), a **prioridade máxima do produto** passa a ser transformar a Pokédex na enciclopédia definitiva — antes de avançar para o desenvolvimento do jogo completo:
 
 ### 6.1. Foco da Interface & Upgrade Visual/Motor Gráfico
+
 - **Restauração Fiel no Angular:** aplicar a Regra Zero do [AGENTS.md](../AGENTS.md) mantendo integralmente a anatomia 3D skeuomórfica, iluminação `--luz-x/--luz-y`, materiais OKLCH, dobradiça e os 10 botões iluminados originalmente criados em `index.html` + `css/style.css` (Fase 0, já removida por desuso após migração) dentro de `apps/web/src/app/features/pokedex-device/`.
 - **Evolução Gráfica & Animações:** integrar **Three.js + WebGL2/Shaders + GSAP + Web Audio API** para adicionar animações fluidas, efeitos de câmera/visor holográfico elemental, partículas temáticas e espectro sonoro dos *cries*, respeitando sempre a detecção de hardware e o fallback `LITE`.
 - **Shell Focada no Produto:** enquanto o foco principal estiver na Enciclopédia/Pokédex, as rotas futuras de jogo (Vila Central, Arcade, Battle Frontier) permanecem visíveis no Dock com cadeado `[pvRequiresTrainer]` e tela *Em Construção* (`UnderConstructionComponent`) até sua entrega dedicada na Fase 6.
 
 ### 6.2. Novas Fontes de Dados Multimídia (Além dos 51 Endpoints da PokéAPI)
+
 Como a **PokéAPI v2** entrega dados profundos dos **jogos** (stats, golpes, habilidades, evoluções, capturas por versão, *flavor text*, sprites e áudios), mas **não possui cartas TCG, anime nem filmes**, a camada de consulta da API integrará:
+
 1. **PokéAPI v2 (Catálogo & Jogos):** expansão do atual cache (hoje com apenas 2 endpoints) para espécie, árvore evolutiva, golpes, habilidades, formas regionais/Mega/Gmax, encontros por jogo e gerações.
 2. **Cartas Pokémon (TCG):** integração com **Pokémon TCG API** (`api.pokemontcg.io`) para exibir coleções, artes em alta resolução, raridade, artistas, tipos e ataques das cartas de cada Pokémon.
 3. **História no Anime & Filmes:** integração com API pública de mídia (ex.: **TMDB API** para catálogos/sinopses de séries e filmes) combinada com curadoria estruturada por espécie (aparições marcantes no desenho e papel nos filmes).
 
 ### 6.3. Arquitetura Híbrida em 3 Camadas (Sem Abandonar a API Externa)
+
 Para continuar consumindo as APIs vivas sem perder latência baixa, desempenho nem disponibilidade quando uma API externa oscilar:
+
 1. **Camada 1 — Upstream APIs Vivas:** consultas orquestradas no NestJS em paralelo com `AbortController`, timeout explícito, validação Zod na borda e *Circuit Breaker*.
 2. **Camada 2 — Cache Inteligente no Redis (*Read-Through + Stale-If-Error*):** respostas em milissegundos para qualquer usuário no TTL fresco (`24h`) + chave de retenção *stale* para continuar respondendo normalmente se a API externa sair do ar temporariamente.
 3. **Camada 3 — Snapshot no PostgreSQL atrelado ao Usuário (`TrainerPokemonSnapshot`):** ao salvar um Pokémon nos favoritos/slots do treinador, o back-end persiste um snapshot estruturado dos dados principais daquele Pokémon vinculado à conta. Assim, **mesmo com queda externa prolongada e cache Redis expirado**, o usuário continua usando e consultando os Pokémon da própria lista — criando exatamente a fundação de dados que, na etapa seguinte, alimentará o **back-end de jogo** (chances de encontro, cálculo de dano das skills, matriz de forças/fraquezas e evolução de atributos por level).
 
 ### 6.4. Estado de Base Já Entregue no Código (`@pokeverse/shared` + NestJS)
+
 - A especificação completa dos **51 endpoints** e o filtro avançado combinado (`PokedexAdvancedQuerySchema` + `filterCatalogWithAdvancedQuery`) já estão implementados e testados em [pokeapi-endpoints.ts](../packages/shared/src/domain/pokeapi-endpoints.ts).
 - O cache do back-end ([pokeapi-cache.service.ts](../apps/api/src/modules/pokedex/pokeapi-cache.service.ts)) já opera com camada quente (`24h`) e camada **`stale-fallback` de 7 dias** para catálogo e detalhes.
 - O detalhamento arquitetural completo da **Pokédex Suprema**, do motor gráfico WebGL2/Web Audio e do **Laboratório Genético** (evolução, nível, clonagem e reciclagem) está documentado em [15 — Pokédex Suprema, 51 Endpoints e Laboratório Genético](15-pokedex-suprema-51-endpoints-e-laboratorio-genetico.md).

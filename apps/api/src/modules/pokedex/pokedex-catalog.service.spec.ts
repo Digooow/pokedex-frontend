@@ -9,9 +9,7 @@ import { PokeApiHttpCacheClient } from './pokeapi-http-cache.client';
 import { PokedexCatalogService } from './pokedex-catalog.service';
 
 jest.mock('node:dns/promises', () => ({
-  lookup: jest
-    .fn()
-    .mockResolvedValue([{ address: '104.26.10.233', family: 4 }]),
+  lookup: jest.fn().mockResolvedValue([{ address: '2001:db8::1', family: 6 }]),
 }));
 
 function extractFetchUrl(input: string | URL | Request): string {

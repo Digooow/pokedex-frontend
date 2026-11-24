@@ -17,6 +17,7 @@
 Durante a revisão integral do monorepo (`packages/shared`, `apps/api`, `apps/web` e `docs/`), foram identificados e corrigidos os seguintes pontos críticos:
 
 ### 1.1. Bugs de Produção, Segurança e UX Corrigidos
+
 1. **Conflito de CSP em Produção (`inlineCritical` × Cloudflare Pages `_headers`):**
    - O otimizador crítico do Angular (`inlineCritical: true`) transformava o CSS global em `media="print"` e injetava um `<script>` inline para reativá-lo. Em produção (`https://pokeverse.pages.dev`), a política estrita `script-src 'self'` de [apps/web/public/_headers](../apps/web/public/_headers) bloqueava esse script inline, mantendo todo o CSS da Pokédex e dos cenários desativado.
    - **Correção:** configurado `"optimization": { "styles": { "inlineCritical": false } }` em [apps/web/angular.json](../apps/web/angular.json), gerando `<link rel="stylesheet">` direto sem abrir brechas no CSP, e adicionado o cabeçalho real de `_headers` ao servidor de QA headless local.
@@ -115,7 +116,7 @@ flowchart LR
    - Implementados [`UpstreamCircuitBreaker`](../apps/api/src/modules/pokedex/upstream-circuit-breaker.ts) (isolado por host `pokeapi.co` / `graphql.pokeapi.co`) e [`PokedexCatalogService`](../apps/api/src/modules/pokedex/pokedex-catalog.service.ts) servindo `GET /api/v1/pokedex/catalog/enriched` (1 query na PokéAPI GraphQL v1beta2 `24h`/`7d` + fallback degradado REST sem envenenar o cache enriquecido) e `GET /api/v1/pokedex/meta/filters` (`7d`/`14d` + fallback paralelo REST), elevando o BFF para **`12/51` ativos**.
 3. **Sprint 2A.3 (Próximo no Back-end — Enciclopédia Paginada & Busca Reversa):**
    - Listagem paginada (`limit`/`offset`) + detalhe `/:idOrName` (busca reversa) para `/moves`, `/abilities`, `/items`, `/berries`, `/regions`, `/pokedexes`, `/locations`, `/egg-groups`, `/growth-rates` e `/natures`/`/types` cacheados `7d`, reutilizando o subpath `@pokeverse/shared/pokedex-encyclopedia`.
-3. **Sprint 2B (Front-end 5 Abas LCD, Enciclopédia & Áudio/Holocron):**
+4. **Sprint 2B (Front-end 5 Abas LCD, Enciclopédia & Áudio/Holocron):**
    - Implementar as **5 abas internas no Visor LCD** sem alterar a silhueta física da carcaça, filtros de consulta avançada em `PokedexSearchPanelComponent`, Comparador 1v1, rota `/enciclopedia`, Museu expandido, espectrograma Web Audio em Canvas 2D para os *Cries* e modo Holocron Three.js em `@defer`.
-4. **Sprint Laboratório & Back-end de Jogo (Fase 5):**
+5. **Sprint Laboratório & Back-end de Jogo (Fase 5):**
    - Criar tabelas Prisma para espécimes do treinador (`TrainerCapturedSpecimen`, `SpeciesAscensionProgress`, `CloningJob`), expor os endpoints `POST /api/v1/lab/*` reutilizando integralmente os cálculos já validados em `pokemon-lab.ts` e conectar a aba **Laboratório / Simulador** no sistema.
