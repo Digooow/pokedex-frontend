@@ -22,7 +22,7 @@ Cada camada do **PokéVerse OS** utiliza a linguagem mais adequada à natureza d
 1. **JavaScript (`ECMAScript / ES2022`):**
    - **O que é:** linguagem de programação padrão da Web, interpretada e compilada em tempo real (*Just-In-Time* — JIT) pelo motor V8 nos navegadores baseados em Chromium e no ambiente servidor Node.js.
    - **O que faz:** controla interatividade, manipulação da árvore DOM, requisições assíncronas (`fetch`, `Promise`, `async/await`) e execução de automações em linha de comando. Possui **tipagem dinâmica**, o que significa que o tipo de uma variável só é verificado enquanto o programa está em execução.
-   - **Onde atua:** na versão estática preservada da Fase 0 ([`js/app.js`](../../js/app.js)), nos scripts de qualidade visual ([`scripts/ui-quality-gate.mjs`](../../scripts/ui-quality-gate.mjs)) e como formato final gerado pelo compilador para tudo o que roda em navegador e Node.js.
+   - **Onde atua:** originalmente na versão estática da Fase 0 (`js/app.js`, já removida por desuso após migração), nos scripts de qualidade visual ([`scripts/ui-quality-gate.mjs`](../../scripts/ui-quality-gate.mjs)) e como formato final gerado pelo compilador para tudo o que roda em navegador e Node.js.
 
 2. **TypeScript `6.0` (Modo `strict`):**
    - **O que é:** um *superset* (extensão sintática e semântica) estaticamente tipado do JavaScript. Todo código JavaScript válido pode ser lido pelo TypeScript, mas o TypeScript acrescenta anotações de tipos (`string`, `number`, `interface`, `type`, genéricos `<T>` e uniões discriminadas).

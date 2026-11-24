@@ -77,10 +77,8 @@ jobs:
           S3_ENABLED: 'false'
         run: npm run test:e2e --workspace=pokeverse-api
 
-      - name: Build all workspaces & verify legacy root script
-        run: |
-          npm run build
-          node --check js/app.js
+      - name: Build all workspaces
+        run: npm run build
 
       - name: Run UI Quality Gate (Contrast, Text Fit & Typography)
         run: npm run audit:ui

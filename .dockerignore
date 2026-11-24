@@ -11,9 +11,6 @@ apps/web/*
 !apps/web/package.json
 docs
 assets
-css
-js
-index.html
 *.md
 *.log
 *.tsbuildinfo

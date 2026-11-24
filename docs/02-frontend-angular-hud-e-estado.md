@@ -98,7 +98,7 @@ export class AuthStore {
 
 ## 5. Design System, Estados Obrigatórios de UI e Acessibilidade
 
-- **Tokens Semânticos (`oklch`) sem valores mágicos:** evolução direta dos tokens de [css/style.css](../css/style.css) (`--bg-surface`, `--fg-primary`, `--border-subtle`, `--accent`, espaçamento em escala `4px/8px`).
+- **Tokens Semânticos (`oklch`) sem valores mágicos:** evolução direta dos tokens da antiga `css/style.css` (Fase 0 já portada para `apps/web/src/styles/_tokens.scss` e removida por desuso) (`--bg-surface`, `--fg-primary`, `--border-subtle`, `--accent`, espaçamento em escala `4px/8px`).
 - **Os 5 Estados Obrigatórios em toda tela assíncrona:**
   1. `loading`: *Skeleton screens* com proporções fiéis ao conteúdo (evitando *CLS*);
   2. `empty`: ilustração/estado semântico claro + CTA contextual;

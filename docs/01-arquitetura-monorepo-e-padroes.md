@@ -47,23 +47,22 @@ pokedex-frontend/ (Monorepo PokéVerse OS)
 ├── docs/                                  # Documentação arquitetural (00+), Capítulo Zero e Guias de Estudos
 ├── infra/
 │   └── docker/                            # docker-compose.yml, init buckets S3 e api.Dockerfile multi-stage não-root
-├── assets/                                # Assets originais preservados
-├── css/                                   # Pokédex Vanilla preservada para referência/legado
-├── js/                                    # Lógica Vanilla preservada para referência/legado
-├── index.html                             # Ponto de entrada Vanilla preservado no GitHub Pages (Fase 0)
+├── assets/                                # Cenários WebP e texturas usados na documentação/galeria
 └── README.md
 ```
+
+> **Nota sobre a Fase 0 (`index.html`, `css/style.css`, `js/app.js`):** os arquivos estáticos originais em HTML, CSS e JavaScript puro foram integralmente portados para `apps/web` e `@pokeverse/shared` e **apagados da raiz por não serem mais utilizados** (permanecendo acessíveis via histórico Git e documentados no [Capítulo 00](capitulo-00-como-tudo-comecou.md)).
 
 ---
 
 ## 2. Estratégia de Integração da Pokédex 3D Atual
 
-A transição da Pokédex pura atual para dentro de `apps/web/src/app/features/pokedex-device/` seguirá 3 regras para garantir **zero regressão visual e funcional**:
+A transição da Pokédex pura original para dentro de `apps/web/src/app/features/pokedex-device/` seguiu 3 regras para garantir **zero regressão visual e funcional**:
 
 1. **Preservação do Acabamento Skeuomórfico:**
    - Os tokens `oklch` metálicos, microtexturas SVG inline (`--textura-metal-floco`, `--textura-plastico-grao`), câmera de safira, flashes LED, tela LCD em camadas, botões inferiores de plástico transparente iluminados por baixo (`.btn-slot-azul`, `.mini-visor-amarelo`) e a animação de giro 3D sem borrão (`1260ms` alternando para plano 2D) serão encapsulados no componente Angular sem perder fidelidade visual.
 2. **Reaproveitamento da Lógica Pura de Domínio:**
-   - As funções puras já testadas em [js/app.js](../js/app.js) — como normalização Unicode (`limparTextoComparacao`), chave fonética (`gerarChaveFonetica`), distância de Damerau-Levenshtein (`calcularDistanciaDamerau`) e cálculo de cursor RPG — serão convertidas para TypeScript estrito dentro de `packages/shared` ou `pokedex-device/domain/`, tornando-as unitariamente testáveis com Vitest/Jest.
+   - As funções puras originalmente implementadas em `js/app.js` (Fase 0, já removida por desuso) — como normalização Unicode (`limparTextoComparacao`), chave fonética (`gerarChaveFonetica`), distância de Damerau-Levenshtein (`calcularDistanciaDamerau`) e cálculo de cursor RPG — foram convertidas para TypeScript estrito dentro de `packages/shared` e `pokedex-device/`, tornando-as unitariamente testáveis com Vitest/Jest.
 3. **Abstração de Armazenamento (`SlotStorageAdapter`):**
    - **Modo Visitante:** slots são bloqueados para edição (exibe cadeado visual e convite de login), mantendo apenas pesquisa, catálogo e abertura da ficha no visor.
    - **Modo Treinador Logado:** os 10 botões inferiores leem e gravam diretamente via `PokedexApiService` (`GET/PUT/DELETE /api/v1/pokedex/slots/:index`), sincronizados com PostgreSQL e atualizados reativamente via Signals.

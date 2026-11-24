@@ -20,7 +20,7 @@ flowchart LR
 ```
 
 ### 2.1. Integração da Pokédex Clássica 3D Existente (e Evolução para Pokédex 2.0)
-A Pokédex construída inicialmente ([index.html](../index.html), [css/style.css](../css/style.css) e [js/app.js](../js/app.js)) continua sendo a peça central de consulta rápida — expandindo seus dados via abas internas e controles contextuais **sem adicionar novos botões na carcaça** conforme detalhado em [doc 12 — Pokédex 2.0 e Catálogo PokéAPI v2](12-pokedex-2-0-pokeapi-e-controles.md):
+A Pokédex construída inicialmente na Fase 0 (`index.html`, `css/style.css` e `js/app.js` — posteriormente portada integralmente para Angular/Shared e removida da raiz por desuso) continua sendo a peça central de consulta rápida em `apps/web` — expandindo seus dados via abas internas e controles contextuais **sem adicionar novos botões na carcaça** conforme detalhado em [doc 12 — Pokédex 2.0 e Catálogo PokéAPI v2](12-pokedex-2-0-pokeapi-e-controles.md):
 - **Preservação Integral:** abertura 3D com transição para modo plano nítido (`1260ms`), carcaça metálica semi-opaca com iluminação dinâmica no ponteiro, busca tolerante a erros de digitação (normalização `NFD`, chave fonética e distância Damerau-Levenshtein), navegação estilo RPG por D-Pad/teclado e as duas fileiras inferiores de botões iluminados sob tampa transparente.
 - **Comportamento por Permissão:**
   - **Visitante:** navega livremente pelo catálogo, pesquisa qualquer Pokémon via PokéAPI cacheada no Redis e abre a ficha completa; os 10 botões inferiores exibem estado bloqueado (ao clicar, abre o modal amigável de Login/Cadastro).

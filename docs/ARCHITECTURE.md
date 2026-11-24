@@ -342,8 +342,8 @@ Todo agente de IA ou contribuidor atuando neste repositório deve seguir um ritm
 2. **Zero Boilerplate Desnecessário (Pragmatismo Declarativo):**
    - Não gere interfaces espelho sem polimorfismo real, getters/setters triviais, comentários óbvios descrevendo *o quê* o código faz, `// TODO` ou placeholders.
    - Prefira composição simples, funções puras, tabelas declarativas (`Record<Key, Handler>`) e validação explícita por schema Zod.
-3. **Preservação Integral da Fase 0 e Regra Zero de UI:**
-   - Nunca altere `index.html`, `css/style.css`, `js/app.js` ou `assets/` da raiz sem solicitação explícita, e nunca simplifique componentes 3D/visuais de `apps/web`.
+3. **Preservação da Regra Zero de UI e Legado da Fase 0 Removido:**
+   - Os arquivos estáticos da Fase 0 (`index.html`, `css/style.css`, `js/app.js`) foram integralmente migrados para `apps/web`/`@pokeverse/shared` e removidos da raiz por desuso (referências preservadas em `docs/` e no histórico Git). Nunca simplifique os componentes 3D/visuais de `apps/web` nem remova `assets/` da raiz sem solicitação explícita.
 4. **Portão Obrigatório Pré-Commit & Documentação Sincronizada:**
    - Antes de declarar uma entrega pronta para `git commit`, execute na raiz:
      ```bash

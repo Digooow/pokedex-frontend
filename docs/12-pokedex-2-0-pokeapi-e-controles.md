@@ -6,7 +6,7 @@ Atualmente, a Pokédex consome apenas `https://pokeapi.co/api/v2/pokemon/{nomeOu
 
 ### Restrição Absoluta de Hardware (Aparência Física Preservada)
 A evolução para a **Pokédex 2.0** deve comportar todos esses novos dados **sem adicionar nenhum botão físico novo à carcaça**:
-- A silhueta skeuomórfica atual em [index.html](../index.html) e [style.css](../css/style.css) permanece **100% intacta** (`4` setas do D-Pad, `2` botões em fenda vermelho/azul, `1` botão circular `A`, `10` teclas iluminadas inferiores e `1` botão amarelo compacto).
+- A silhueta skeuomórfica original da Fase 0 (`index.html` e `css/style.css`, já portada para `apps/web` e removida da raiz por desuso) permanece **100% intacta** (`4` setas do D-Pad, `2` botões em fenda vermelho/azul, `1` botão circular `A`, `10` teclas iluminadas inferiores e `1` botão amarelo compacto).
 - Toda a expansão acontece **por software dentro dos visores LCD existentes** (abas paginadas no visor direito, filtros internos no terminal de busca) e **pelo comportamento contextual dos botões físicos existentes**, exatamente como ocorre em sistemas de consoles portáteis.
 
 ---
@@ -145,7 +145,7 @@ Consultar múltiplos endpoints sem critério derrubaria a performance mobile (e 
 Após a publicação oficial da infraestrutura (saindo do GitHub Pages), a **prioridade máxima do produto** passa a ser transformar a Pokédex na enciclopédia definitiva — antes de avançar para o desenvolvimento do jogo completo:
 
 ### 6.1. Foco da Interface & Upgrade Visual/Motor Gráfico
-- **Restauração Fiel no Angular:** aplicar a Regra Zero do [AGENTS.md](../AGENTS.md) portando integralmente a anatomia 3D skeuomórfica, iluminação `--luz-x/--luz-y`, materiais OKLCH, dobradiça e os 10 botões iluminados do [index.html](../index.html) + [css/style.css](../css/style.css) para dentro de `apps/web/src/app/features/pokedex-device/`.
+- **Restauração Fiel no Angular:** aplicar a Regra Zero do [AGENTS.md](../AGENTS.md) mantendo integralmente a anatomia 3D skeuomórfica, iluminação `--luz-x/--luz-y`, materiais OKLCH, dobradiça e os 10 botões iluminados originalmente criados em `index.html` + `css/style.css` (Fase 0, já removida por desuso após migração) dentro de `apps/web/src/app/features/pokedex-device/`.
 - **Evolução Gráfica & Animações:** integrar **Three.js + WebGL2/Shaders + GSAP + Web Audio API** para adicionar animações fluidas, efeitos de câmera/visor holográfico elemental, partículas temáticas e espectro sonoro dos *cries*, respeitando sempre a detecção de hardware e o fallback `LITE`.
 - **Shell Focada no Produto:** enquanto o foco principal estiver na Enciclopédia/Pokédex, as rotas futuras de jogo (Vila Central, Arcade, Battle Frontier) permanecem visíveis no Dock com cadeado `[pvRequiresTrainer]` e tela *Em Construção* (`UnderConstructionComponent`) até sua entrega dedicada na Fase 6.
 

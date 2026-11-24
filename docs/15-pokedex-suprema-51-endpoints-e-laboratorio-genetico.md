@@ -25,7 +25,7 @@ Durante a revisão integral do monorepo (`packages/shared`, `apps/api`, `apps/we
 6. **Higiene Estética e de Código (Zero Comentários, Zero Emojis e Arquivo Morto Removido):**
    - Removido arquivo CSS vazio `pokedex-device.component.scss`.
    - Substituídos os `4` emojis remanescentes na UI Angular por ícones `<svg aria-hidden="true">` vetoriais nítidos.
-   - Removidos todos os comentários de código-fonte nos pacotes de trabalho (`packages/shared`, `apps/api`, `apps/web`, `apps/web/functions`), mantendo `index.html`, `css/style.css`, `js/app.js` e `assets/` intactos na Fase 0.
+   - Removidos todos os comentários de código-fonte nos pacotes de trabalho (`packages/shared`, `apps/api`, `apps/web`, `apps/web/functions`); durante a Fase 4A, os arquivos estáticos originais (`index.html`, `css/style.css`, `js/app.js`) haviam sido mantidos intactos até a validação da migração, sendo posteriormente removidos da raiz por desuso após substituição completa pelo motor Angular + `@pokeverse/shared` + NestJS.
 
 ---
 

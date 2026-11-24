@@ -15,7 +15,7 @@
 - [ ] `npm run format:check` aprovado
 - [ ] `npm run test` (unitários + caos) e `npm run test:e2e --workspace=pokeverse-api` aprovados
 - [ ] `npm run build` aprovado (bundle inicial dentro do budget)
-- [ ] Limites SRP respeitados (`<= 300` linhas Services/Stores, `<= 200` linhas Componentes UI, sem comentários nem emojis fora da Fase 0)
+- [ ] Limites SRP respeitados (`<= 300` linhas Services/Stores, `<= 200` linhas Componentes UI, sem comentários nem emojis)
 
 ---
 
@@ -29,7 +29,7 @@
 
 ## Regra Zero de UI e Fidelidade Visual (quando houver alteracao em `apps/web`)
 
-- [ ] Fase 0 estática (`index.html`, `css/`, `js/`, `assets/`) intacta
+- [ ] Regra Zero de UI preservada: fidelidade visual da Pokédex 3D e `assets/` intactos sem simplificação
 - [ ] `npm run audit:ui` aprovado sem violações
 - [ ] Conferência visual real em Desktop (`1440x900`) e Mobile (`375x812`) sem erros de console, falhas de rede ou overflow horizontal
 

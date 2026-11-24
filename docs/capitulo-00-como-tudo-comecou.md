@@ -35,15 +35,15 @@ Eu cumpri o que a matéria pedia. Mesmo assim, durante o desenvolvimento, passei
 
 Então tomei uma decisão **por conta própria**: tratar a atividade como ponto de partida e continuar o projeto fora da sala de aula, sem nota e sem prazo, só por interesse.
 
-A Fase 0 continua intacta na raiz do repositório e funciona como **referência visual canônica**:
+Após a migração completa para o motor **Angular 22 + `@pokeverse/shared` + NestJS 11**, os arquivos estáticos da **Fase 0** foram **apagados da raiz por não serem mais utilizados** (permanecem acessíveis apenas via histórico do Git e preservados aqui como referência documental):
 
-- [`index.html`](../index.html)
-- [`css/style.css`](../css/style.css)
-- [`js/app.js`](../js/app.js)
-- [`assets/`](../assets/)
+- `index.html` *(removido da raiz por desuso)*
+- `css/style.css` *(removido da raiz por desuso)*
+- `js/app.js` *(removido da raiz por desuso)*
+- [`assets/`](../assets/) *(mantido na raiz para a galeria; o runtime web utiliza `apps/web/public/assets/`)*
 - [`capitulo-00-guia-de-estudos-pokedex.md`](capitulo-00-guia-de-estudos-pokedex.md), o manual técnico e "colinha" dessa versão feito para a apresentação no Senac (movido para `docs/` e continuado pelo [Capítulo 1](capitulo-01-guia-de-estudos-pokedex.md))
 
-> A regra do repositório é não alterar esses arquivos sem pedido explícito. Eles são a memória do projeto.
+> A memória técnica da Fase 0 segue preservada na documentação abaixo e no histórico Git, enquanto o código em produção evolui exclusivamente sobre `apps/web`, `apps/api` e `packages/shared`.
 
 ---
 

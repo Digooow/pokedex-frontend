@@ -20,7 +20,7 @@
 
 ## 1. Evolução Arquitetural: da Aplicação Estática (Fase 0) à Plataforma Full-Stack
 
-Na **Fase 0** (preservada na raiz em [`index.html`](../index.html), [`css/style.css`](../css/style.css) e [`js/app.js`](../js/app.js)), a Pokédex foi construída sem frameworks nem etapa de compilação, executando inteiramente no navegador sobre APIs nativas da plataforma Web. Embora atendesse ao escopo estático, essa arquitetura impunha limites estruturais claros:
+Na **Fase 0** (originalmente implementada na raiz em `index.html`, `css/style.css` e `js/app.js` — já migrada para `apps/web` e **removida do repositório por desuso**), a Pokédex foi construída sem frameworks nem etapa de compilação, executando inteiramente no navegador sobre APIs nativas da plataforma Web. Embora atendesse ao escopo estático, essa arquitetura impunha limites estruturais claros:
 
 - **Persistência restrita ao dispositivo:** os 10 slots gravados em `localStorage` ficavam limitados ao navegador local, sem sincronização entre aparelhos ou contas de usuário.
 - **Ausência de identidade e controle de acesso:** não havia autenticação, proteção contra abuso automatizado (*rate limiting*) nem comunicação em tempo real entre usuários.

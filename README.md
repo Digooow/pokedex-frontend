@@ -227,7 +227,7 @@ flowchart TD
 
   infra["infra/docker<br/>Postgres, Redis, Redpanda,<br/>MinIO/S3, Mailpit"]
   gate["scripts/ui-quality-gate.mjs<br/>Chrome headless + CDP"]
-  legacy["raiz: index.html, css/, js/<br/>Fase 0 preservada"]
+  legacy["Fase 0 (index.html, css/, js/)<br/>removida por desuso (histórico Git)"]
 
   root --- packages
   root --- apps
@@ -634,7 +634,7 @@ flowchart LR
 
 | Etapa | Nome | Estado | Entregas |
 | :--- | :--- | :---: | :--- |
-| Fase 0 | Pokédex 3D estática (vanilla) | Concluída | [`index.html`](index.html), [`css/`](css), [`js/`](js) preservados |
+| Fase 0 | Pokédex 3D estática (vanilla) | Concluída *(legado removido por desuso)* | `index.html`, `css/style.css` e `js/app.js` portados integralmente para `apps/web`/`@pokeverse/shared` e **apagados da raiz** (referências preservadas em [`docs/`](docs/capitulo-00-como-tudo-comecou.md) e no histórico Git) |
 | Fase 1 | Fundação do monorepo e shell Angular | Concluída | Workspaces, `docker-compose` saudável |
 | Fase 2 | API, Prisma, Redis, Outbox e WebSocket | Concluída | Cache PokéAPI, 10 slots em ACID, ticker ao vivo |
 | 2A e 2B | IAM Enterprise BFF e hardening | Concluída | MFA, Passkeys, OAuth PKCE, OTP, SonarCloud |
@@ -746,9 +746,9 @@ Todas as chaves estão em [`.env.example`](.env.example) e são validadas **na i
 
 > Nunca faça commit de `.env` ou `.env.cloud`. Eles estão no `.gitignore`.
 
-### Versão estática (Fase 0)
+### Versão estática anterior (Fase 0 — removida por desuso)
 
-Para ver o projeto original, **sem build e sem dependências**, abra [`index.html`](index.html) em um servidor estático (por exemplo, a extensão Live Server).
+Os arquivos estáticos da Fase 0 (`index.html`, `css/style.css` e `js/app.js`, que iniciaram o projeto em HTML, CSS e JavaScript puro) foram integralmente portados para o motor **Angular 22 + `@pokeverse/shared` + NestJS** e **removidos da raiz por não serem mais utilizados**. O histórico completo e as referências técnicas continuam preservados no Git e nos documentos [`Capítulo 00`](docs/capitulo-00-como-tudo-comecou.md) e [`Guia 00`](docs/capitulo-00-guia-de-estudos-pokedex.md).
 
 ---
 
@@ -779,9 +779,8 @@ pokedex-frontend/
 │   └── observability/             # otel-collector, prometheus (+ alerts.yml), loki, promtail, tempo e grafana
 ├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
 ├── .github/                       # CODEOWNERS, pull_request_template.md e workflows (ci.yml, deploy.yml)
-├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas
+├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas da galeria
 ├── docs/                          # Documentação (00 a 19), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
-├── index.html · css/ · js/        # Fase 0 preservada intacta (referência visual canônica)
 ├── eslint.base.mjs                # Base compartilhada do ESLint v9 para os 3 workspaces
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
@@ -825,9 +824,9 @@ pokedex-frontend/
 
 As regras completas e o Contrato de Qualidade estão em [`AGENTS.md`](AGENTS.md) e [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), valendo para qualquer pessoa ou agente que contribua.
 
-1. **Regra Zero de UI.** Nenhum componente, animação 3D, textura ou fluxo visual é substituído ou simplificado sem validação explícita. A referência canônica é a Fase 0.
+1. **Regra Zero de UI.** Nenhum componente, animação 3D, textura ou fluxo visual é substituído ou simplificado sem validação explícita. A referência canônica originada na Fase 0 foi portada integralmente para `apps/web`.
 2. **Conferência visual real.** Nenhuma mudança de interface é "pronta" antes de ser comparada no navegador, em Desktop `1440×900` e Mobile `375×812`, com zero erros no console, zero falhas de rede inesperadas e zero overflow horizontal.
-3. **Preservar o que já funciona.** Os arquivos estáticos da raiz não são alterados sem pedido explícito. Nada testado é degradado.
+3. **Preservar o que já funciona.** `assets/` e o código ativo em `apps/web`, `apps/api` e `@pokeverse/shared` não têm funcionalidades degradadas; os arquivos legados da Fase 0 (`index.html`, `css/style.css` e `js/app.js`) foram removidos da raiz por desuso. Nada testado é degradado.
 4. **Shift-Left, SoC e Repositórios isolados.** A infraestrutura obedece ao domínio; contratos Zod vivem em `@pokeverse/shared` (DRY real); Controllers apenas recebem payloads validados e retornam HTTP status codes; consultas Prisma ficam isoladas em Repositórios sem poluir Services.
 5. **Estado Stateless, MinIO/S3 e Kafka idempotente.** Sessões e dados transitórios vivem no Redis (Lua atômico anti-TOCTOU, zero efeito externo antes da constraint); arquivos pesados vão para MinIO/S3 via URLs geradas (nunca no PostgreSQL); Outbox usa *atomic lease* e consumidores liberam idempotência no `catch`.
 6. **Zero N+1 e paginação desde a v1.** Buscas relacionais usam joins nativos do Prisma em uma única ida ao banco com projeção estrita (`select`), índices definidos e paginação obrigatória (`limit`/`offset` ou cursor) em todo endpoint de lista.

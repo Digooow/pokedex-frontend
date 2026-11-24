@@ -8,7 +8,7 @@
 
 # Capítulo Zero — Guia de Estudos da Pokédex (Fase 0)
 
-> **Nota de arquivo.** Este documento preserva na íntegra o antigo `GUIA-DE-ESTUDOS-POKEDEX.md` que ficava na raiz do repositório. Ele documenta a **Fase 0** (HTML5, CSS3 e JavaScript puro) e foi mantido aqui como registro histórico e material de referência. O guia equivalente para o estado atual da plataforma está estruturado no **[Capítulo 1 — Guia de Estudos Full-Stack](capitulo-01-guia-de-estudos-pokedex.md)** (com volumes detalhados em `docs/capitulo-01-guia-de-estudos/`), e a história da origem do projeto está em **[Capítulo Zero — Como Tudo Começou](capitulo-00-como-tudo-comecou.md)**.
+> **Nota de arquivo.** Este documento preserva na íntegra o antigo `GUIA-DE-ESTUDOS-POKEDEX.md` que ficava na raiz do repositório. Ele documenta a **Fase 0** (`index.html`, `css/style.css` e `js/app.js` — HTML5, CSS3 e JavaScript puro). **Nota de atualização:** após serem integralmente substituídos pelo motor **Angular 22 + `@pokeverse/shared` + NestJS 11**, os três arquivos estáticos originais (`index.html`, `css/style.css` e `js/app.js`) foram **apagados do repositório por não serem mais utilizados**, permanecendo aqui suas referências históricas e técnicas (e o código completo no histórico Git). O guia equivalente para o estado atual da plataforma está estruturado no **[Capítulo 1 — Guia de Estudos Full-Stack](capitulo-01-guia-de-estudos-pokedex.md)** (com volumes detalhados em `docs/capitulo-01-guia-de-estudos/`), e a história da origem do projeto está em **[Capítulo Zero — Como Tudo Começou](capitulo-00-como-tudo-comecou.md)**.
 
 ---
 
@@ -54,15 +54,15 @@ flowchart LR
 
 ## 3. O Guia de Estudos original (preservado sem alterações)
 
-O conteúdo abaixo é a cópia integral do `GUIA-DE-ESTUDOS-POKEDEX.md` original da Fase 0. A única adaptação feita ao movê-lo da raiz para `docs/` foi adicionar o prefixo `../` nos destinos de links relativos (como `index.html`, `css/style.css`, `js/app.js`, `assets/` e `README.md`) para que todos continuem clicáveis.
+O conteúdo abaixo é a cópia integral do `GUIA-DE-ESTUDOS-POKEDEX.md` original da Fase 0. Os arquivos estáticos daquela fase (`index.html`, `css/style.css` e `js/app.js`) foram posteriormente removidos da raiz após substituição completa pelo motor Angular + `@pokeverse/shared` + NestJS, portanto suas menções abaixo permanecem como registro histórico em texto (código completo acessível no histórico Git), enquanto os links para `assets/` e `README.md` continuam ativos.
 
 <!-- INÍCIO DO GUIA DE ESTUDOS ORIGINAL (FASE 0) -->
 
 # Manual Técnico e Estudo de Caso — Pokédex Interativa 3D em JavaScript Vanilla
 
-> **Plataforma publicada atualmente (PokéVerse OS — Cloudflare Pages + Azure):** [https://pokeverse.pages.dev/](https://pokeverse.pages.dev/) *(este manual documenta a base estática da Fase 0 preservada na raiz em [index.html](../index.html), [css/style.css](../css/style.css) e [js/app.js](../js/app.js))*
+> **Plataforma publicada atualmente (PokéVerse OS — Cloudflare Pages + Azure):** [https://pokeverse.pages.dev/](https://pokeverse.pages.dev/) *(este manual documenta a base estática histórica da Fase 0: `index.html`, `css/style.css` e `js/app.js`, já removida da raiz por desuso após migração para o monorepo)*
 
-Este documento é um manual técnico completo de tudo o que foi implementado em [index.html](../index.html), [css/style.css](../css/style.css) e [js/app.js](../js/app.js). O projeto foi concebido como um **estudo de caso prático do limite alcançável usando exclusivamente HTML5, CSS3 e JavaScript puro (Vanilla JS)** — respeitando a restrição intencional de **não utilizar frameworks, bibliotecas de UI, gerenciadores de estado, clientes HTTP externos ou ferramentas de build**. O objetivo deste guia é permitir que qualquer pessoa desenvolvedora compreenda, linha por linha, os recursos nativos da plataforma Web moderna e o poder do JavaScript puro em cenários complexos.
+Este documento é um manual técnico completo de tudo o que foi implementado em `index.html`, `css/style.css` e `js/app.js`. O projeto foi concebido como um **estudo de caso prático do limite alcançável usando exclusivamente HTML5, CSS3 e JavaScript puro (Vanilla JS)** — respeitando a restrição intencional de **não utilizar frameworks, bibliotecas de UI, gerenciadores de estado, clientes HTTP externos ou ferramentas de build**. O objetivo deste guia é permitir que qualquer pessoa desenvolvedora compreenda, linha por linha, os recursos nativos da plataforma Web moderna e o poder do JavaScript puro em cenários complexos.
 
 ---
 
@@ -87,9 +87,9 @@ Este documento é um manual técnico completo de tudo o que foi implementado em 
 Com a premissa rígida de abrir o `index.html` diretamente no navegador sem depender de compiladores, *bundlers* (Vite/Webpack) ou bibliotecas de terceiros (React, Tailwind, Axios, Lodash), toda a engenharia — de shaders procedurais em SVG inline e cinemática 3D até fila de requisições abortáveis, busca fuzzy e máquina de estados por teclado — foi construída diretamente sobre APIs nativas dos navegadores modernos.
 
 ### Estrutura de pastas
-- [index.html](../index.html): define toda a marcação semântica, os elementos da Pokédex (tampa frontal, ala esquerda de busca/controles e ala direita de resultados/slots), os cenários de fundo e o rodapé.
-- [css/style.css](../css/style.css): define os tokens visuais (`oklch` e paletas semânticas), propriedades animáveis `@property --luz-x` e `--luz-y`, referências às microtexturas pré-assadas em `.webp`, camadas CSS (`@layer`), animações 3D/2D em compositor GPU, perfis adaptativos (`data-perf-tier`), Flexbox, Container Queries, estados visuais e acessibilidade.
-- [js/app.js](../js/app.js): contém toda a lógica da aplicação em modo estrito (`"use strict"`): detecção automática de hardware (`detectarHardwareTier`), *watchdog* adaptativo de quadros (`iniciarWatchdogAnimacao`), giro 3D/Plano (`executarGiroPokedex`), iluminação sutil guiada pelo ponteiro (`inicializarIluminacaoDinamica`), carga sob demanda de cenários, consumo assíncrono da PokéAPI, filtro tolerante a erros de digitação, máquina de estados RPG dos controles e gravação em `localStorage`.
+- `index.html` *(Fase 0, removida da raiz por desuso)*: definia toda a marcação semântica, os elementos da Pokédex (tampa frontal, ala esquerda de busca/controles e ala direita de resultados/slots), os cenários de fundo e o rodapé.
+- `css/style.css` *(Fase 0, removida da raiz por desuso)*: definia os tokens visuais (`oklch` e paletas semânticas), propriedades animáveis `@property --luz-x` e `--luz-y`, referências às microtexturas pré-assadas em `.webp`, camadas CSS (`@layer`), animações 3D/2D em compositor GPU, perfis adaptativos (`data-perf-tier`), Flexbox, Container Queries, estados visuais e acessibilidade.
+- `js/app.js` *(Fase 0, removida da raiz por desuso)*: continha toda a lógica da aplicação em modo estrito (`"use strict"`): detecção automática de hardware (`detectarHardwareTier`), *watchdog* adaptativo de quadros (`iniciarWatchdogAnimacao`), giro 3D/Plano (`executarGiroPokedex`), iluminação sutil guiada pelo ponteiro (`inicializarIluminacaoDinamica`), carga sob demanda de cenários, consumo assíncrono da PokéAPI, filtro tolerante a erros de digitação, máquina de estados RPG dos controles e gravação em `localStorage`.
 - `assets/backgrounds/`: guarda as versões responsivas em WebP dos 4 cenários (`*-desktop.webp` em `1920px` e `*-mobile.webp` em `820px`), reduzindo o carregamento inicial mobile de `9,34 MB` para `~51 KB`.
 - `assets/textures/`: armazena `metal-floco.webp` (`5,88 KB`) e `plastico-grao.webp` (`5,93 KB`), texturas `128×128` sem emenda pré-assadas para evitar o custo de CPU de filtros SVG em runtime no celular.
 - `assets/favicon.svg`: ícone vetorial da Pokébola exibido na aba do navegador via `<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">`.
@@ -98,16 +98,16 @@ Com a premissa rígida de abrir o `index.html` diretamente no navegador sem depe
 
 Apesar de um front-end em escala de equipe frequentemente fragmentar componentes em múltiplas pastas, manter a aplicação em **um HTML, um CSS e um JS** é uma escolha intencional alinhada à premissa de rodar **sem etapa de *build* ou *bundlers***:
 
-1. **Por que [index.html](../index.html) tem ~387 linhas em arquivo único:** em HTML5 puro sem motor de templates (como JSX ou renderização no servidor), toda a carcaça estrutural da Pokédex (tampa, duas alas, botões físicos, cenários e atributos ARIA/`inert`) precisa existir no documento inicial. Os blocos dinâmicos (ficha do Pokémon, catálogo de mais de 1.300 itens e editor de slots) não incham o HTML porque são criados sob demanda pelo JavaScript.
-2. **Por que [css/style.css](../css/style.css) fica unificado mesmo sendo extenso:** todo o visual realista (tokens `oklch`, microtexturas SVG inline, câmera, dobradiça 3D/2D, visores em camadas e modos de alto contraste) é servido em uma única requisição HTTP e organizado internamente por `@layer reset, base, components, utilities;`. Isso evita a latência sequencial do `@import` em CSS puro e dispensa ferramentas de empacotamento para juntar parciais antes de publicar.
-3. **Por que [js/app.js](../js/app.js) não foi quebrado em vários arquivos JS:**
+1. **Por que `index.html` tinha ~387 linhas em arquivo único:** em HTML5 puro sem motor de templates (como JSX ou renderização no servidor), toda a carcaça estrutural da Pokédex (tampa, duas alas, botões físicos, cenários e atributos ARIA/`inert`) precisa existir no documento inicial. Os blocos dinâmicos (ficha do Pokémon, catálogo de mais de 1.300 itens e editor de slots) não incham o HTML porque são criados sob demanda pelo JavaScript.
+2. **Por que `css/style.css` ficava unificado mesmo sendo extenso:** todo o visual realista (tokens `oklch`, microtexturas SVG inline, câmera, dobradiça 3D/2D, visores em camadas e modos de alto contraste) é servido em uma única requisição HTTP e organizado internamente por `@layer reset, base, components, utilities;`. Isso evita a latência sequencial do `@import` em CSS puro e dispensa ferramentas de empacotamento para juntar parciais antes de publicar.
+3. **Por que `js/app.js` não foi quebrado em vários arquivos JS:**
    - **Bloqueio de *ES Modules* via `file://`:** a modularização nativa moderna (`<script type="module">` com `import`/`export`) é bloqueada pela política **CORS** dos navegadores se alguém abrir `index.html` diretamente do sistema de arquivos sem um servidor HTTP local/remoto.
    - **Limitação de múltiplos `<script defer>` clássicos:** dividir em vários scripts tradicionais obrigaria expor funções e estados compartilhados no escopo global (`globalThis`), piorando o encapsulamento. Em um único `js/app.js`, todas as funções e estados permanecem protegidos por `"use strict"` e organizados em blocos lógicos claros (cenários, giro 3D, catálogo e busca *fuzzy*, persistência em `localStorage`, cliente da PokéAPI, renderização segura do visor, navegação estilo RPG e iluminação reativa).
 
 > **Em resumo:** caso o projeto adotasse a exigência de rodar exclusivamente sobre servidor HTTP/Vite, `css/style.css` e `js/app.js` poderiam ser separados em diretórios por domínio (`css/tokens.css`, `js/services/pokeapi.js`, `js/domain/busca.js`, etc.) sem alterar a lógica; mantendo arquivo único por camada, ganha-se **execução imediata tanto por duplo clique (`file://`) quanto em servidor HTTP**, zero configuração e apenas 2 requisições extras de página.
 
 ### Por que o `<script>` está no `<head>` com `defer`?
-No [index.html](../index.html), temos:
+No `index.html` original, tínhamos:
 ```html
 <script src="js/app.js" defer></script>
 ```
@@ -250,7 +250,7 @@ Dentro de `.pokedex-palco-3d` (`perspective: 1800px`) existe `.pokedex-livro` (`
 ### Como foi garantido que a ala esquerda ficasse 100% nítida (sem desfoque!)
 Se `.pokedex-aba-giratoria` permanecesse para sempre com `perspective: 1800px`, `transform-style: preserve-3d` e `rotateY(-180deg) translateZ(6px)`, os navegadores baseados em Chromium (Chrome, Edge, Opera, Brave) continuariam rasterizando toda a ala esquerda como uma textura 3D projetada na GPU, aplicando subpixel interpolation (`1800 / 1806`) e deixando os textos da esquerda levemente borrados comparados aos da direita!
 
-**A solução técnica em `executarGiroPokedex()` ([js/app.js](../js/app.js)) e [css/style.css](../css/style.css):**
+**A solução técnica em `executarGiroPokedex()` (`js/app.js`) e `css/style.css` (Fase 0):**
 1. Antes de iniciar o movimento, o JS adiciona `.is-animando`, chama `pokedexAparelho.getBoundingClientRect()` (isso força um *reflow* para o navegador registrar a posição inicial 3D sem pular direto ao fim) e adiciona `.is-transicionando`.
 2. Durante os `1260ms` (`DURACAO_GIRO_POKEDEX_MS`), a animação 3D roda normalmente.
 3. Assim que o `setTimeout` de `1260ms` termina (ou imediatamente se `prefers-reduced-motion` estiver ativo), o JS **remove** `.is-animando` e `.is-transicionando`.
