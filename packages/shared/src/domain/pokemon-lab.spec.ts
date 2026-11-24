@@ -23,14 +23,24 @@ describe('PokéAPI v2 51-endpoint catalog and Advanced Query Engine', () => {
       (entry) => entry.key,
     );
     expect(bffKeys).toEqual([
+      'ability',
+      'berry',
+      'egg-group',
       'evolution-chain',
       'generation',
+      'growth-rate',
+      'item',
+      'location',
+      'move',
+      'nature',
+      'pokedex',
       'pokemon',
       'pokemon-color',
       'pokemon-form',
       'pokemon-habitat',
       'pokemon-shape',
       'pokemon-species',
+      'region',
       'type',
       'pokemon-encounters',
       'pokemon-cries',
@@ -41,7 +51,7 @@ describe('PokéAPI v2 51-endpoint catalog and Advanced Query Engine', () => {
       pathTemplate: '/api/v2/ability/{idOrName}',
       category: 'combat-mechanics',
       cachePolicy: 'lazy-tab-24h',
-      implementedInBff: false,
+      implementedInBff: true,
       targetFeature: 'Pokedex Visor & Battle Engine',
     });
     expect(POKEAPI_V2_ENDPOINTS[50]).toEqual({

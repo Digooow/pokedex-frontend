@@ -27,14 +27,14 @@ export interface PokeApiEndpointSpec {
 }
 
 const POKEAPI_ENDPOINT_CATALOG_TABLE = `
-ability|/api/v2/ability/{idOrName}|combat-mechanics|lazy-tab-24h|false|Pokedex Visor & Battle Engine
-berry|/api/v2/berry/{idOrName}|items-berries|lazy-tab-24h|false|Inventory & Held Consumables
+ability|/api/v2/ability/{idOrName}|combat-mechanics|lazy-tab-24h|true|Pokedex Visor & Battle Engine
+berry|/api/v2/berry/{idOrName}|items-berries|lazy-tab-24h|true|Inventory & Held Consumables
 berry-firmness|/api/v2/berry-firmness/{idOrName}|items-berries|static-lookup-7d|false|Berry Lab & Crafting
 berry-flavor|/api/v2/berry-flavor/{idOrName}|items-berries|static-lookup-7d|false|Nature Affinity & Confusion
 characteristic|/api/v2/characteristic/{id}|evolution-genetics|static-lookup-7d|false|Genetic Lab IV Inspector
 contest-effect|/api/v2/contest-effect/{id}|contests-meta|static-lookup-7d|false|Pokedex Contest Archive
 contest-type|/api/v2/contest-type/{idOrName}|contests-meta|static-lookup-7d|false|Move Appeal Metadata
-egg-group|/api/v2/egg-group/{idOrName}|evolution-genetics|static-lookup-7d|false|Replication & Egg Compatibility
+egg-group|/api/v2/egg-group/{idOrName}|evolution-genetics|static-lookup-7d|true|Replication & Egg Compatibility
 encounter-condition|/api/v2/encounter-condition/{idOrName}|world-encounters|static-lookup-7d|false|Spawn Probability Engine
 encounter-condition-value|/api/v2/encounter-condition-value/{idOrName}|world-encounters|static-lookup-7d|false|Day/Night & Weather Encounters
 encounter-method|/api/v2/encounter-method/{idOrName}|world-encounters|static-lookup-7d|false|Habitat Map & Fishing
@@ -42,34 +42,34 @@ evolution-chain|/api/v2/evolution-chain/{id}|evolution-genetics|hot-redis-24h|tr
 evolution-trigger|/api/v2/evolution-trigger/{idOrName}|evolution-genetics|static-lookup-7d|false|Catalyst & Evolution Conditions
 gender|/api/v2/gender/{idOrName}|evolution-genetics|static-lookup-7d|false|Dimorphism & Cloning Fidelity
 generation|/api/v2/generation/{idOrName}|world-encounters|static-lookup-7d|true|Advanced Catalog Filter (I-IX)
-growth-rate|/api/v2/growth-rate/{idOrName}|evolution-genetics|static-lookup-7d|false|XP Curve & Level Stat Simulator
-item|/api/v2/item/{idOrName}|items-berries|lazy-tab-24h|false|Stones, Held Items & Lab Gear
+growth-rate|/api/v2/growth-rate/{idOrName}|evolution-genetics|static-lookup-7d|true|XP Curve & Level Stat Simulator
+item|/api/v2/item/{idOrName}|items-berries|lazy-tab-24h|true|Stones, Held Items & Lab Gear
 item-attribute|/api/v2/item-attribute/{idOrName}|items-berries|static-lookup-7d|false|Item Filtering
 item-category|/api/v2/item-category/{idOrName}|items-berries|static-lookup-7d|false|Catalog & Shop Grouping
 item-fling-effect|/api/v2/item-fling-effect/{idOrName}|items-berries|static-lookup-7d|false|Move Fling Resolution
 item-pocket|/api/v2/item-pocket/{idOrName}|items-berries|static-lookup-7d|false|Trainer Bag UI
 language|/api/v2/language/{idOrName}|contests-meta|static-lookup-7d|false|Multilingual Localization
-location|/api/v2/location/{idOrName}|world-encounters|lazy-tab-24h|false|Regions Museum & Radar
+location|/api/v2/location/{idOrName}|world-encounters|lazy-tab-24h|true|Regions Museum & Radar
 location-area|/api/v2/location-area/{idOrName}|world-encounters|lazy-tab-24h|false|Zone Encounter Tables
 machine|/api/v2/machine/{id}|combat-mechanics|static-lookup-7d|false|TM/HM Move Acquisition
-move|/api/v2/move/{idOrName}|combat-mechanics|lazy-tab-24h|false|Moveset Inspector & Damage Calc
+move|/api/v2/move/{idOrName}|combat-mechanics|lazy-tab-24h|true|Moveset Inspector & Damage Calc
 move-ailment|/api/v2/move-ailment/{idOrName}|combat-mechanics|static-lookup-7d|false|Status Effects Engine
 move-battle-style|/api/v2/move-battle-style/{idOrName}|combat-mechanics|static-lookup-7d|false|AI Bot Tactical Behavior
 move-category|/api/v2/move-category/{idOrName}|combat-mechanics|static-lookup-7d|false|Skill Categorization
 move-damage-class|/api/v2/move-damage-class/{idOrName}|combat-mechanics|static-lookup-7d|false|Physical/Special/Status Split
 move-learn-method|/api/v2/move-learn-method/{idOrName}|combat-mechanics|static-lookup-7d|false|Learnset Filter Tabs
 move-target|/api/v2/move-target/{idOrName}|combat-mechanics|static-lookup-7d|false|Singles/Doubles Target Rules
-nature|/api/v2/nature/{idOrName}|combat-mechanics|static-lookup-7d|false|Stat Simulator & Team Builder
+nature|/api/v2/nature/{idOrName}|combat-mechanics|static-lookup-7d|true|Stat Simulator & Team Builder
 pal-park-area|/api/v2/pal-park-area/{idOrName}|world-encounters|static-lookup-7d|false|Legacy Biome Metadata
 pokeathlon-stat|/api/v2/pokeathlon-stat/{idOrName}|contests-meta|static-lookup-7d|false|Mini-Game Performance Metrics
-pokedex|/api/v2/pokedex/{idOrName}|core-pokemon|static-lookup-7d|false|Regional Pokedex Switching
+pokedex|/api/v2/pokedex/{idOrName}|core-pokemon|static-lookup-7d|true|Regional Pokedex Switching
 pokemon|/api/v2/pokemon/{idOrName}|core-pokemon|stale-snapshot|true|Core Pokedex Sheet & Catalog
 pokemon-color|/api/v2/pokemon-color/{idOrName}|core-pokemon|static-lookup-7d|true|Visual Color Search Filter
 pokemon-form|/api/v2/pokemon-form/{idOrName}|core-pokemon|lazy-tab-24h|true|Forms & Regional Variants UI
 pokemon-habitat|/api/v2/pokemon-habitat/{idOrName}|world-encounters|static-lookup-7d|true|Biome Search Filter & Radar
 pokemon-shape|/api/v2/pokemon-shape/{idOrName}|core-pokemon|static-lookup-7d|true|Silhouette Filter & Minigame
 pokemon-species|/api/v2/pokemon-species/{idOrName}|core-pokemon|stale-snapshot|true|Lore, Capture Rate & Breeding
-region|/api/v2/region/{idOrName}|world-encounters|static-lookup-7d|false|Regions Atlas & Kanto-Paldea
+region|/api/v2/region/{idOrName}|world-encounters|static-lookup-7d|true|Regions Atlas & Kanto-Paldea
 stat|/api/v2/stat/{idOrName}|combat-mechanics|static-lookup-7d|false|Base Stats & Nature Matrix
 super-contest-effect|/api/v2/super-contest-effect/{id}|contests-meta|static-lookup-7d|false|Contest Archive
 type|/api/v2/type/{idOrName}|combat-mechanics|static-lookup-7d|true|0x-4x Weakness Matrix & STAB

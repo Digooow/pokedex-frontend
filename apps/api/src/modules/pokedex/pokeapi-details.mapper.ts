@@ -117,6 +117,10 @@ function selectFlavorTexts(
   return result;
 }
 
+export function buildPokemonArtworkUrl(pokemonId: number): string {
+  return `${ARTWORK_CDN_BASE}/${pokemonId}.png`;
+}
+
 export function mapSpeciesVarieties(
   rawVarieties: RawPokeApiSpecies['varieties'],
 ): PokemonVarietyRef[] {
@@ -130,7 +134,7 @@ export function mapSpeciesVarieties(
       isDefault: entry.is_default,
       pokemonId,
       pokemonName: entry.pokemon.name,
-      artworkUrl: `${ARTWORK_CDN_BASE}/${pokemonId}.png`,
+      artworkUrl: buildPokemonArtworkUrl(pokemonId),
     });
   }
   return varieties;
