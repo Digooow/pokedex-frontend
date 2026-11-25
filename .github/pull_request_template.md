@@ -11,8 +11,9 @@
 ## Checklist de Engenharia (SOLID, Clean Code e Contratos)
 
 - [ ] `npm run typecheck` sem erros nos 3 workspaces
-- [ ] `npm run lint` (`--max-warnings=0`, `complexity <= 15`, `max-depth <= 3`, `max-lines`, `max-lines-per-function`) aprovado
-- [ ] `npm run format:check` aprovado
+- [ ] `npm run lint` (`--max-warnings=0`, `eslint-plugin-sonarjs`, `no-await-in-loop`, `complexity <= 15`, `max-depth <= 3`, `max-lines`, `max-lines-per-function`) aprovado
+- [ ] `npm run format:check` e `npm run audit:duplication` (`0` duplicações CPD) aprovados antes do push
+- [ ] `npm run audit:sonar` aprovado no SonarQube Cloud (`Quality Gate OK`, `0` issues de qualquer severidade, `0` security hotspots e `0` linhas/blocos duplicados)
 - [ ] `npm run test` (unitários + caos) e `npm run test:e2e --workspace=pokeverse-api` aprovados
 - [ ] `npm run build` aprovado (bundle inicial dentro do budget)
 - [ ] Limites SRP respeitados (`<= 300` linhas Services/Stores, `<= 200` linhas Componentes UI, sem comentários nem emojis)

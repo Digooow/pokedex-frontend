@@ -2,6 +2,7 @@
 import eslint from "@eslint/js";
 import { defineConfig } from "eslint/config";
 import eslintPluginPrettierRecommended from "eslint-plugin-prettier/recommended";
+import sonarjs from "eslint-plugin-sonarjs";
 import tseslint from "typescript-eslint";
 
 export const maxLinesRule = (max) => [
@@ -26,12 +27,14 @@ export function createWorkspaceEslintConfig({
     { ignores },
     eslint.configs.recommended,
     ...tsConfigs,
+    sonarjs.configs.recommended,
     eslintPluginPrettierRecommended,
     {
       languageOptions,
       rules: {
         "@typescript-eslint/no-explicit-any": "error",
         "prettier/prettier": ["error", { endOfLine: "auto" }],
+        "no-await-in-loop": "error",
         complexity: ["error", 15],
         "max-depth": ["error", 3],
         "max-lines": maxLinesRule(300),
@@ -47,6 +50,14 @@ export function createWorkspaceEslintConfig({
       rules: {
         "max-lines": maxLinesRule(specMaxLines),
         "max-lines-per-function": "off",
+        "no-await-in-loop": "off",
+        "sonarjs/assertions-in-tests": "off",
+        "sonarjs/function-return-type": "off",
+        "sonarjs/no-alphabetical-sort": "off",
+        "sonarjs/no-clear-text-protocols": "off",
+        "sonarjs/no-hardcoded-ip": "off",
+        "sonarjs/no-hardcoded-passwords": "off",
+        "sonarjs/no-nested-conditional": "off",
       },
     },
     ...extraConfigs,

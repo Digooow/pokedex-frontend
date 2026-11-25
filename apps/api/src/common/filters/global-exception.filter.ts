@@ -137,7 +137,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     if (typeof body === 'string') {
       return body;
     }
-    if (typeof body === 'object' && body !== null && 'message' in body) {
+    if (Boolean(body) && typeof body === 'object' && 'message' in body) {
       const msg = (body as { message?: unknown }).message;
       if (typeof msg === 'string') {
         return msg;

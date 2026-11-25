@@ -190,7 +190,7 @@ Cada onda foi dimensionada para caber integralmente em **1 sessão curta (até 5
 
 Ao finalizar cada onda em um novo chat:
 
-1. **Validar os portões:** executar `npm run typecheck && npm run lint && npm run test && npm run build` (mais `npm run test:e2e --workspace=pokeverse-api` em ondas de API e `npm run audit:ui` + inspeção em `1440×900` e `375×812` em ondas de UI).
+1. **Validar os portões:** executar `npm run typecheck && npm run audit:sonar:local && npm run format:check && npm run test && npm run build` e conferir `npm run audit:sonar` antes do `git push` (`0` issues, `0` hotspots, `0` duplicação CPD; mais `npm run test:e2e --workspace=pokeverse-api` em ondas de API e `npm run audit:ui` + inspeção em `1440×900` e `375×812` em ondas de UI).
 2. **Atualizar este documento (`doc 18`):** marcar a onda como `Concluída`, baixar os itens resolvidos em `DT-01..DT-06` e registrar a nova nota na tabela **Histórico de Evolução das Notas**.
 3. **Sincronizar a documentação:** atualizar [`14-status-e-changelog-implementacao.md`](14-status-e-changelog-implementacao.md), [`README.md`](../README.md) e quaisquer guias temáticos impactados na mesma entrega.
 4. **Consolidar o checkpoint:** executar `git commit` seguindo *Conventional Commits* antes de abrir o próximo chat para a onda seguinte.

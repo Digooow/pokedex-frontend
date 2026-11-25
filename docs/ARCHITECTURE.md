@@ -344,11 +344,12 @@ Todo agente de IA ou contribuidor atuando neste repositório deve seguir um ritm
    - Prefira composição simples, funções puras, tabelas declarativas (`Record<Key, Handler>`) e validação explícita por schema Zod.
 3. **Preservação da Regra Zero de UI e Legado da Fase 0 Removido:**
    - Os arquivos estáticos da Fase 0 (`index.html`, `css/style.css`, `js/app.js`) foram integralmente migrados para `apps/web`/`@pokeverse/shared` e removidos da raiz por desuso (referências preservadas em `docs/` e no histórico Git). Nunca simplifique os componentes 3D/visuais de `apps/web` nem remova `assets/` da raiz sem solicitação explícita.
-4. **Portão Obrigatório Pré-Commit & Documentação Sincronizada:**
-   - Antes de declarar uma entrega pronta para `git commit`, execute na raiz:
+4. **Portão Obrigatório Pré-Commit/Pré-Push & Documentação Sincronizada:**
+   - Antes de declarar uma entrega pronta para `git commit` ou `git push`, execute na raiz:
      ```bash
-     npm run typecheck && npm run lint && npm run test && npm run build
+     npm run typecheck && npm run audit:sonar:local && npm run format:check && npm run test && npm run build
      ```
+   - Antes do `git push`, verifique também o estado remoto do SonarQube Cloud com `npm run audit:sonar` — o projeto opera sob **tolerância zero** (`Quality Gate OK`, **`0` issues de qualquer severidade**, **`0` Security Hotspots** e **`0` linhas/blocos duplicados**). Qualquer apontamento local ou remoto deve ser corrigido antes do push.
    - Para qualquer mudança de UI, rode também `npm run audit:ui` e realize conferência visual real em Desktop (`1440×900`) e Mobile (`375×812`).
    - Toda criação, alteração estrutural ou remoção exige atualização simultânea do [`README.md`](../README.md) e dos guias impactados em `docs/` (especialmente [`14 — Status Real`](14-status-e-changelog-implementacao.md)).
 

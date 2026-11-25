@@ -27,12 +27,17 @@
     "lint:web": "npm run lint --workspace=pokeverse-web",
     "lint": "npm run lint:shared && npm run lint:api && npm run lint:web",
     "format:check": "prettier --check \"packages/shared/src/**/*.ts\" \"apps/api/{src,test}/**/*.ts\" \"apps/web/{src,cloudflare,e2e}/**/*.ts\" \"apps/web/playwright.config.ts\"",
+    "audit:duplication": "node scripts/sonar-quality-gate.mjs --mode=local",
+    "audit:sonar:local": "npm run lint && npm run audit:duplication",
+    "audit:sonar": "node scripts/sonar-quality-gate.mjs --mode=remote",
     "audit:ui": "node scripts/ui-quality-gate.mjs"
   },
   "devDependencies": {
     "@neon/config": "^1.14.4",
     "@neon/env": "^2.1.7",
-    "@prisma/config": "^6.19.3"
+    "@prisma/config": "^6.19.3",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "jscpd": "^5.4.3"
   },
   "overrides": {
     "deepmerge-ts": "^8.0.2",

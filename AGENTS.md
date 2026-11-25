@@ -22,6 +22,9 @@ Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (preced�
    - Antes de escrever novo código, verifique o que já existe em `packages/shared`, `apps/api` e `apps/web`.
    - Contratos Zod, schemas de eventos e regras de domínio ficam em `@pokeverse/shared` — nunca duplique schemas, tipos, constantes ou componentes entre front-end e back-end.
    - Nunca remova ou degrade comportamento já testado ao implementar uma nova etapa; valide com lint, `typecheck`, testes unitários, E2E e build após a última edição.
+3. **Portão SonarQube & Zero Duplicação Pré-Push:**
+   - Antes de qualquer `git push`, execute `npm run audit:sonar:local` (`npm run lint` com `eslint-plugin-sonarjs` + `no-await-in-loop` e `npm run audit:duplication` com `jscpd` a `0%` de tolerância) e `npm run audit:sonar` (consulta ao SonarQube Cloud).
+   - **Tolerância zero:** qualquer issue (de qualquer severidade, inclusive `MINOR`/`INFO`), qualquer Security Hotspot `TO_REVIEW` e qualquer linha/bloco duplicado reprovam a entrega e devem ser corrigidos antes do push.
 
 ---
 

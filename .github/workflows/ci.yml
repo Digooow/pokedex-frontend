@@ -50,6 +50,9 @@ jobs:
       - name: Verify Prettier formatting across all workspaces
         run: npm run format:check
 
+      - name: Check code duplication gate (0% CPD tolerance)
+        run: npm run audit:duplication
+
       - name: Run unit tests across all workspaces
         run: npm run test
 
@@ -113,6 +116,67 @@ jobs:
           name: pokeverse-sbom-cyclonedx
           path: sbom-cyclonedx.json
           retention-days: 30
+
+  sonarqube:
+    name: SonarQube Cloud Quality Gate (Zero Issues & Zero Duplication)
+    needs: [verify]
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies (for Sonar gate CLI)
+        run: npm ci
+
+      - name: Check Sonar CI scan configuration
+        id: sonar-scan-cfg
+        if: vars.SONAR_CI_SCAN == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ -z "${SONAR_TOKEN}" ]; then
+            echo "::error::SONAR_CI_SCAN=true exige o secret SONAR_TOKEN configurado."
+            exit 1
+          fi
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Run SonarSource CI scan (optional when SONAR_CI_SCAN=true)
+        if: steps.sonar-scan-cfg.outputs.enabled == 'true'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
+        with:
+          args: >
+            -Dproject.settings=.sonarcloud.properties
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION || 'digooow' }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY || 'Digooow_pokedex-frontend' }}
+            -Dsonar.qualitygate.wait=true
+
+      - name: Enforce SonarQube zero-issue and zero-duplication gate
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL }}
+        run: |
+          ARGS="--mode=remote --sha=${{ github.event.pull_request.head.sha || github.sha }}"
+          if [ -n "${{ github.event.pull_request.number }}" ]; then
+            ARGS="$ARGS --pr=${{ github.event.pull_request.number }}"
+          fi
+          if [ "${{ vars.SONAR_CI_SCAN }}" != "true" ]; then
+            ARGS="$ARGS --wait --timeout-sec=420 --poll-sec=15"
+          fi
+          node scripts/sonar-quality-gate.mjs $ARGS
 
   sast:
     name: SAST Security Scan (CodeQL)

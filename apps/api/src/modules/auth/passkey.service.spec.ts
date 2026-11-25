@@ -156,6 +156,7 @@ describe('PasskeyService (WebAuthn FIDO2 registration & login assertions)', () =
       120,
       options.challenge,
     );
+    expect(redisStore.get(`webauthn_reg:${trainerId}`)).toBe(options.challenge);
 
     await expect(
       service.verifyLoginAssertion({

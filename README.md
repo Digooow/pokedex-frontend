@@ -487,14 +487,16 @@ flowchart LR
 
   subgraph v["CI Verification (ci.yml: verify)"]
     direction LR
-    s0["Gitleaks<br/>+ npm audit critical"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck<br/>+ Lint + Prettier"]
-    s2 --> s4["Testes unitários<br/>194 Vitest + Jest"]
+    s0["Gitleaks<br/>+ npm audit high"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck + Lint (SonarJS)<br/>+ Prettier + Zero CPD"]
+    s2 --> s4["Testes unitários<br/>195 Vitest + Jest"]
     s4 --> s5["E2E HTTP Edge<br/>22 testes (infra mockada)"]
     s5 --> s6["Build<br/>+ legado da raiz"]
     s6 --> s7["UI Quality Gate"]
     s7 --> s7b["Playwright E2E Web<br/>3 jornadas reais"]
-    s7b --> s8["Docker build<br/>+ Trivy CRITICAL"]
+    s7b --> s8["Docker build + Trivy<br/>+ SBOM CycloneDX"]
   end
+
+  v --> sq["SonarQube Gate (ci.yml: sonarqube)<br/>0 issues + 0 hotspots + 0 duplicação"]
 
   subgraph integ["Backing Services (ci.yml: integration-e2e)"]
     direction LR
@@ -672,7 +674,7 @@ Aqui está o estado atualizado das dívidas mapeadas após a execução do [doc 
 | Item | Situação |
 | :--- | :--- |
 | Adequação ao Contrato de Qualidade (`ARCHITECTURE.md` — Ondas 1–4) | **Concluída no [doc 18](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) (Nota `10,0 / 10` — Ondas 1, 2, 3 e 4 concluídas):** 100% de `@pokeverse/shared`, `apps/api` e `apps/web` atendem ao contrato (`DT-01..DT-06` resolvidos, guardrails automáticos de `max-lines`/`complexity`/Prettier e `app.spec.ts` fatiado por domínio) |
-| Lint, formatação e SonarCloud no CI | **Concluída (Onda 4 + Remediação SonarCloud + Fechamento Doc 17):** `npm run lint` (`--max-warnings=0`, `eslint-plugin-prettier/recommended`, `@typescript-eslint/no-explicit-any: error`, `complexity: ['error', 15]`, `max-depth: ['error', 3]`, `max-lines` `300`/`200` no web e `max-lines-per-function: 65` em código de produção) via base compartilhada [`eslint.base.mjs`](eslint.base.mjs) e `npm run format:check` ativos nos 3 workspaces e no `ci.yml`, além da correção dos `18` apontamentos iniciais e dos `10` apontamentos posteriores do SonarCloud (`ensureS3BucketsExist`, `toBeUndefined()`, `export ... from` e `String.raw`), eliminação das duplicações CPD (incluindo `eslint.config.mjs` dos workspaces e `BaseIdempotentKafkaConsumer` entre os consumidores Kafka), `0` cores literais em `apps/web/src/app/**/*.scss` (tokens `--pv-*`) e governança `.github/CODEOWNERS` + template de PR |
+| Lint, formatação, Zero Duplicação e SonarCloud no CI | **Concluída (Onda 4 + Remediação SonarCloud + Fechamento Doc 17 + Sonar Gate Bloqueante):** `npm run lint` (`--max-warnings=0`, `eslint-plugin-sonarjs`, `no-await-in-loop`, `eslint-plugin-prettier/recommended`, `@typescript-eslint/no-explicit-any: error`, `complexity: ['error', 15]`, `max-depth: ['error', 3]`, `max-lines` `300`/`200` no web e `max-lines-per-function: 65` em código de produção) via base compartilhada [`eslint.base.mjs`](eslint.base.mjs), `npm run format:check`, **`npm run audit:duplication`** (`jscpd` a `0%` respeitando `.sonarcloud.properties`) e **`npm run audit:sonar`** + job bloqueante `sonarqube` no [`ci.yml`](.github/workflows/ci.yml) (`Quality Gate OK`, `0` issues de qualquer severidade, `0` hotspots `TO_REVIEW` e `0` duplicação CPD), além da correção dos apontamentos no SonarCloud, `0` cores literais em `apps/web/src/app/**/*.scss` (tokens `--pv-*`) e governança `.github/CODEOWNERS` + template de PR |
 | Decomposição SOLID, Portas DIP/LSP e IAM | **Concluída:** `AuthService` fatiado em 5 serviços especializados + 5 repositórios isolados (`TrainerAccount`, `AuthToken`, `MfaTotp`, `Passkey`, `TrainerOAuth`) + portas DIP/LSP (`EmailTransport`, `SessionRepository`, `OtpStore`, `ObjectStoragePort`, `TelemetryMetricsPort`) + `totp-crypto.util` + `TrainerSessionIssuer` + `AuthOutboxPublisher`; `GoogleOAuthService` em 3 serviços; `AuthStore` (`<= 291` linhas) com `AuthRecoveryService` + `AuthCrossTabSyncService` e validação do diálogo em `auth-dialog-validator.util.ts` (`DIALOG_VALIDATORS`) |
 | Pokédex 3D, DIP e Tokens HUD (`apps/web`) | **Concluída (Ondas 3–4 + Doc 17 + Refino HUD + Passos 2B.1–2B.2):** stores e serviços (`PokedexStore` + `PokedexApiClient`, `PokedexFiltersStore`, `PokedexCompareStore`, `PokedexVisorDetailStore`, `PokedexSlotsStore` + `PokedexLocalSlotsStorage`, `PokedexRpgNavService`, `PokedexInputShortcutsService`, `PokedexLidPhysicsService`) e componentes UI (`PokedexDevicePage`, `PokedexCover`, `PokedexSearchPanel`, `PokedexFiltersPanel`, `PokedexPhysicalControls`, `PokedexVisor` + 5 abas em `visor-tabs/`, `PokedexCompareDialog` em `@defer`, `PokedexSlotsConfig`, `PokedexSlotsGrid`, `SlotConfirmDialog`, `EncyclopediaPage` em `/enciclopedia`, `HudTopbar`, `HudModulesMenu`, `HudUserMenu`, `HudSettingsMenu`, `TitleScreen`) fatiados com `.html`/`.scss` dedicados, diretivas `[pvRpgFocusable]`, `[pvRpgAction]`, `[pvRpgEditForm]` e `[pvMainHeading]`, tokens `--pv-*`/`--pv-hud-*` em `_tokens.scss` e 7 parciais `styles/pokedex/` (com polimento visual planejado no [doc 20](docs/20-polimento-visual-e-design-system-frontend.md)) |
 | Cobertura e integração reais | **194 unitários + 25 E2E + 4 integração real (`223` verificações):** `31` shared (`8` arquivos), `112` api unit (`40` suítes com `jest-mock-extended`), `22` api E2E HTTP edge (`app.e2e-spec.ts` + `oauth-cache-storage.e2e-spec.ts` + `pokedex-enrichment.e2e-spec.ts` + `pokedex-catalog.e2e-spec.ts` + `pokedex-encyclopedia.e2e-spec.ts`), `4` integração real (`app.integration-spec.ts` com Postgres 16 + Redis 7 + Apache Kafka 3.9 + `pgsty/silo` S3 no job `integration-e2e` do CI e Testcontainers local via `test:integration:tc`), `51` web Vitest em `14` arquivos e `3` jornadas Playwright E2E em `pokeverse-journey.e2e.ts` |
@@ -738,8 +740,11 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | :--- | :--- |
 | `npm run build` | Build de `shared`, `api` e `web` |
 | `npm run typecheck` | `tsc --noEmit` nos 3 workspaces |
-| `npm run lint` | ESLint (`--max-warnings=0`, `complexity`, `max-depth`, `max-lines`, `max-lines-per-function`) nos 3 workspaces |
+| `npm run lint` | ESLint (`--max-warnings=0`, `eslint-plugin-sonarjs`, `no-await-in-loop`, `complexity`, `max-depth`, `max-lines`, `max-lines-per-function`) nos 3 workspaces |
 | `npm run format:check` | Valida formatação Prettier nos 3 workspaces (`shared`, `api`, `web`) |
+| `npm run audit:duplication` | Detector CPD local (`jscpd` a `0%` sobre `apps` e `packages`, respeitando `.sonarcloud.properties`) |
+| `npm run audit:sonar:local` | Executa `lint` (SonarJS) + `audit:duplication` antes do `git push` |
+| `npm run audit:sonar` | Consulta a API do SonarQube Cloud e reprova se houver qualquer issue, hotspot ou duplicação |
 | `npm run test` | Vitest (`shared`, `web`) e Jest (`api` unitários) |
 | `npm run test:e2e` | Suítes E2E completas (`test:e2e:api` + `test:e2e:web`) |
 | `npm run test:e2e:api` | Suítes E2E da borda HTTP (`app.e2e-spec.ts`, `oauth-cache-storage.e2e-spec.ts`, `pokedex-enrichment.e2e-spec.ts`, `pokedex-catalog.e2e-spec.ts` e `pokedex-encyclopedia.e2e-spec.ts`) |
@@ -750,7 +755,7 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | `npm run infra:up` / `infra:down` | Sobe e derruba a infraestrutura Docker (incluindo stack de observabilidade) |
 | `npm run infra:datadog:up` / `infra:datadog:down` | Sobe e derruba a stack incluindo o perfil paralelo `datadog` (`DD_API_KEY`) |
 
-> **Antes de abrir um PR**, rode a sequência: `typecheck`, `lint`, `format:check`, `test`, `build` e `audit:ui`. O CI executa exatamente esses passos.
+> **Antes de abrir um PR ou fazer `git push`**, rode: `typecheck`, `audit:sonar:local` (`lint` + `audit:duplication`), `format:check`, `test`, `build`, `audit:ui` e `audit:sonar`. Qualquer issue ou duplicação bloqueia o push e o CI.
 
 ### Variáveis de ambiente
 
@@ -791,7 +796,7 @@ pokedex-frontend/
 ├── infra/
 │   ├── docker/                    # api.Dockerfile e docker-compose.yml (dados + observabilidade + perfil datadog)
 │   └── observability/             # otel-collector, prometheus (+ alerts.yml), loki, promtail, tempo e grafana
-├── scripts/ui-quality-gate.mjs    # Auditoria de contraste, overflow e tipografia
+├── scripts/                       # ui-quality-gate.mjs (CDP) e sonar-quality-gate.mjs (Zero CPD + SonarCloud Gate)
 ├── .github/                       # CODEOWNERS, pull_request_template.md e workflows (ci.yml, deploy.yml)
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas da galeria
 ├── docs/                          # Documentação (00 a 20), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
