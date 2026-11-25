@@ -1,0 +1,138 @@
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Atributos Base</h3>
+    <span class="visor-bst-badge">BST {{ baseStatTotal() }}</span>
+  </div>
+
+  @if (statsRows().length > 0) {
+    <ul class="visor-stats-list" aria-label="Atributos base do Pokémon">
+      @for (row of statsRows(); track row.key) {
+        <li class="visor-stat-row">
+          <span class="visor-stat-label">{{ row.label }}</span>
+          <span class="visor-stat-val">{{ row.value }}</span>
+          <span class="visor-stat-track" aria-hidden="true">
+            <span
+              [class]="'visor-stat-fill visor-stat-fill--' + row.tier"
+              [style.width.%]="row.percent"
+            ></span>
+          </span>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="visor-inline-note">Atributos base indisponíveis nesta visualização.</p>
+  }
+
+  @if (evYields().length > 0) {
+    <ul class="visor-chip-list" aria-label="Pontos de esforço (EV Yield)">
+      @for (ev of evYields(); track ev.key) {
+        <li class="visor-version-tag">+{{ ev.effort }} {{ ev.label }} EV</li>
+      }
+    </ul>
+  }
+</div>
+
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Matriz Defensiva de Fraquezas</h3>
+  </div>
+  @if (effectivenessBuckets().length > 0) {
+    <div class="visor-eff-groups">
+      @for (bucket of effectivenessBuckets(); track bucket.label) {
+        <div class="visor-eff-group">
+          <span [class]="'visor-eff-badge visor-eff-badge--' + bucket.variant">
+            {{ bucket.label }}
+          </span>
+          @for (typeLabel of bucket.types; track typeLabel) {
+            <span class="tipo-badge">{{ typeLabel }}</span>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <p class="visor-inline-note">
+      Matriz completa de multiplicadores indisponível no modo offline simplificado.
+    </p>
+  }
+</div>
+
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Habilidades</h3>
+  </div>
+  @if (abilities().length > 0) {
+    <ul class="visor-accordion-list">
+      @for (ab of abilities(); track ab.slug; let idx = $index) {
+        @let expanded = expandedAbility() === ab.slug;
+        @let state = abilityState(ab.slug);
+        <li>
+          <button
+            type="button"
+            class="visor-accordion-trigger"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="20 + idx"
+            [disabled]="!ab.inspectable"
+            [attr.aria-expanded]="ab.inspectable ? expanded : null"
+            (click)="onToggleAbility(ab.slug, ab.inspectable)"
+          >
+            <span>{{ ab.displayName }}{{ ab.isHidden ? ' (Oculta)' : '' }}</span>
+            @if (ab.inspectable) {
+              <span class="visor-version-tag">{{ expanded ? 'Ocultar' : 'Detalhes' }}</span>
+            }
+          </button>
+
+          @if (expanded && state) {
+            <div class="visor-accordion-body">
+              @switch (state.status) {
+                @case ('loading') {
+                  <span>Consultando efeito na enciclopédia...</span>
+                }
+                @case ('error') {
+                  <span>{{ state.error.message }}</span>
+                  <button
+                    type="button"
+                    class="visor-retry-inline"
+                    (click)="inspectAbility.emit(ab.slug)"
+                  >
+                    Tentar novamente
+                  </button>
+                }
+                @case ('success') {
+                  <p>{{ abilityDescription(state.data) }}</p>
+                }
+              }
+            </div>
+          }
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="visor-inline-note">Nenhuma habilidade informada pela API.</p>
+  }
+</div>
+
+@if (biology(); as bio) {
+  <div class="visor-subcard">
+    <div class="visor-subcard-header">
+      <h3 class="visor-subcard-title">Biologia & Captura</h3>
+    </div>
+    <ul class="pokemon-lista-dados">
+      <li class="pokemon-dado-item">
+        <span class="dado-rotulo">Taxa de Captura:</span>
+        <span class="dado-valor numero-tabular">{{ bio.captureRate }} / 255</span>
+      </li>
+      <li class="pokemon-dado-item">
+        <span class="dado-rotulo">Felicidade Base:</span>
+        <span class="dado-valor numero-tabular">{{ bio.baseHappiness ?? 'N/D' }}</span>
+      </li>
+      <li class="pokemon-dado-item">
+        <span class="dado-rotulo">Proporção de Gênero:</span>
+        <span class="dado-valor">{{ bio.genderText }}</span>
+      </li>
+      <li class="pokemon-dado-item">
+        <span class="dado-rotulo">Ciclos de Ovo:</span>
+        <span class="dado-valor numero-tabular">{{ bio.hatchCycles ?? 'N/D' }}</span>
+      </li>
+    </ul>
+  </div>
+}

@@ -64,6 +64,22 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await pikachuItem.click();
     await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
 
+    await page.locator('#visor-tab-stats').click();
+    await expect(page.locator('.visor-bst-badge')).toContainText('BST 320');
+
+    await page.locator('#visor-tab-evolucao').click();
+    await expect(page.locator('.visor-evo-list')).toContainText('Raichu');
+
+    await page.locator('#visor-tab-golpes').click();
+    await page.locator('.visor-accordion-trigger').first().click();
+    await expect(page.locator('.visor-move-meta-grid')).toContainText('Poder: 40');
+
+    await page.locator('#visor-tab-mapa').click();
+    await expect(page.locator('#resultado-conteudo')).toContainText('Viridian Forest Area');
+
+    await page.locator('#visor-tab-resumo').click();
+    await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
+
     const slotZero = page.locator('.btn-slot-azul[data-slot-index="0"]');
     await slotZero.click();
     await expect(slotZero).toHaveClass(/is-ocupado/);

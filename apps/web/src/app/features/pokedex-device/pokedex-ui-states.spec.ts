@@ -5,7 +5,10 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
 import { VisitorLockDialogComponent } from '../../shared/hud/visitor-lock-dialog.component';
-import { createCachedPokemonFixture } from '../../testing/test-fixtures.spec-helper';
+import {
+  createCachedPokemonBundleFixture,
+  createCachedPokemonFixture,
+} from '../../testing/test-fixtures.spec-helper';
 import { PokedexVisorComponent } from './components/pokedex-visor.component';
 import { PokedexRpgNavService } from './services/pokedex-rpg-nav.service';
 import { PokedexStore } from './services/pokedex.store';
@@ -56,8 +59,8 @@ describe('Pokedex UI Async States & VisitorLockDialogComponent', () => {
     expect(hostEl.querySelector('#resultado-conteudo')?.getAttribute('aria-busy')).toBe('true');
 
     httpMock
-      .expectOne('/api/v1/pokedex/pokemon/pikachu')
-      .flush(createCachedPokemonFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
+      .expectOne('/api/v1/pokedex/pokemon/pikachu/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
     fixture.detectChanges();
 
     expect(hostEl.querySelector('.pokemon-nome')?.textContent).toContain('Pikachu');
@@ -66,6 +69,9 @@ describe('Pokedex UI Async States & VisitorLockDialogComponent', () => {
 
     store.loadPokemonDetail('bulbasaur');
     fixture.detectChanges();
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/bulbasaur/bundle')
+      .flush(null, { status: 503, statusText: 'Unavailable' });
     httpMock
       .expectOne('/api/v1/pokedex/pokemon/bulbasaur')
       .flush(null, { status: 503, statusText: 'Unavailable' });
@@ -79,6 +85,9 @@ describe('Pokedex UI Async States & VisitorLockDialogComponent', () => {
 
     store.loadPokemonDetail('mewtwo');
     fixture.detectChanges();
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/mewtwo/bundle')
+      .flush(null, { status: 503, statusText: 'Unavailable' });
     httpMock
       .expectOne('/api/v1/pokedex/pokemon/mewtwo')
       .flush(null, { status: 503, statusText: 'Unavailable' });
@@ -94,8 +103,8 @@ describe('Pokedex UI Async States & VisitorLockDialogComponent', () => {
     retryBtn.click();
     fixture.detectChanges();
     httpMock
-      .expectOne('/api/v1/pokedex/pokemon/mewtwo')
-      .flush(createCachedPokemonFixture({ id: 150, name: 'mewtwo', typeName: 'psychic' }));
+      .expectOne('/api/v1/pokedex/pokemon/mewtwo/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 150, name: 'mewtwo', typeName: 'psychic' }));
     fixture.detectChanges();
     expect(hostEl.querySelector('.pokemon-nome')?.textContent).toContain('Mewtwo');
   });

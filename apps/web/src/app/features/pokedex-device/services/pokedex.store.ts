@@ -9,17 +9,18 @@ import { Subscription, firstValueFrom } from 'rxjs';
 import { type ScenarioId, ScenarioStore } from '../../../core/stores/scenario.store';
 import { PokedexApiClient } from './pokedex-api.client';
 import {
+  type PokedexCacheSource,
   type PokemonDetailView,
   type ResolvedPokemonForSlot,
   buildPokemonFetchErrorMessage,
   mapCatalogEntriesToSearchable,
-  mapPokemonDtoToView,
+  mapResolvedPokemonToView,
   toResolvedPokemonForSlot,
 } from './pokedex-view-mapper.util';
 
 const CATALOG_BATCH_SIZE = 150;
 
-export type { PokemonDetailView, ResolvedPokemonForSlot, ScenarioId };
+export type { PokedexCacheSource, PokemonDetailView, ResolvedPokemonForSlot, ScenarioId };
 
 @Injectable({ providedIn: 'root' })
 export class PokedexStore implements OnDestroy {
@@ -41,7 +42,7 @@ export class PokedexStore implements OnDestroy {
   private readonly coverOpenSignal = signal(false);
   private readonly selectedIdSignal = signal<number | null>(null);
   private readonly lastSearchedTermSignal = signal('');
-  private readonly cacheSourceSignal = signal<'hit' | 'miss' | 'direct' | null>(null);
+  private readonly cacheSourceSignal = signal<PokedexCacheSource | null>(null);
 
   readonly catalogState = this.catalogStateSignal.asReadonly();
   readonly detailState = this.detailStateSignal.asReadonly();
@@ -250,7 +251,7 @@ export class PokedexStore implements OnDestroy {
     this.detailSub?.unsubscribe();
     this.detailStateSignal.set({ status: 'loading' });
 
-    this.detailSub = this.apiClient.fetchPokemonDto(normalized).subscribe((resolved) => {
+    this.detailSub = this.apiClient.fetchPokemonBundle(normalized).subscribe((resolved) => {
       if (!resolved.found) {
         this.cacheSourceSignal.set(null);
         this.selectedIdSignal.set(null);
@@ -265,7 +266,20 @@ export class PokedexStore implements OnDestroy {
         return;
       }
 
-      const vm = mapPokemonDtoToView(resolved.dto);
+      const vm = mapResolvedPokemonToView(resolved);
+      if (!vm) {
+        this.cacheSourceSignal.set(null);
+        this.selectedIdSignal.set(null);
+        this.detailStateSignal.set({
+          status: 'error',
+          error: {
+            code: 'POKEMON_FETCH_FAILED',
+            message: 'Resposta inválida ao carregar os dados do Pokémon.',
+            retryable: true,
+          },
+        });
+        return;
+      }
       this.selectedIdSignal.set(vm.id);
       this.cacheSourceSignal.set(resolved.source);
       this.detailStateSignal.set({ status: 'success', data: vm });
@@ -278,7 +292,7 @@ export class PokedexStore implements OnDestroy {
       return null;
     }
     const resolved = await firstValueFrom(this.apiClient.fetchPokemonDto(normalized));
-    return resolved.found ? toResolvedPokemonForSlot(resolved.dto) : null;
+    return resolved.found && resolved.dto ? toResolvedPokemonForSlot(resolved.dto) : null;
   }
 
   ngOnDestroy(): void {

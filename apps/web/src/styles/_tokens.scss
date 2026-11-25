@@ -349,6 +349,42 @@
 
   --fonte-principal: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --fonte-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  --pv-lcd-tab-bg: oklch(19% 0.025 250);
+  --pv-lcd-tab-hover-bg: oklch(25% 0.035 245);
+  --pv-lcd-tab-active-bg: oklch(30% 0.08 228);
+  --pv-lcd-tab-active-border: oklch(72% 0.14 220);
+  --pv-lcd-tab-active-ink: oklch(97% 0.015 220);
+  --pv-lcd-pill-bg: oklch(21% 0.03 250);
+  --pv-lcd-pill-active-bg: oklch(32% 0.09 84);
+  --pv-lcd-pill-active-border: oklch(80% 0.16 84);
+  --pv-lcd-pill-active-ink: oklch(96% 0.04 90);
+  --pv-lcd-rarity-legendary-bg: oklch(32% 0.09 82);
+  --pv-lcd-rarity-legendary-ink: oklch(95% 0.06 88);
+  --pv-lcd-rarity-mythical-bg: oklch(30% 0.11 315);
+  --pv-lcd-rarity-mythical-ink: oklch(95% 0.05 315);
+  --pv-lcd-rarity-baby-bg: oklch(31% 0.08 175);
+  --pv-lcd-rarity-baby-ink: oklch(95% 0.04 175);
+  --pv-stat-track-bg: oklch(15% 0.02 250);
+  --pv-stat-low: oklch(64% 0.19 25);
+  --pv-stat-mid: oklch(78% 0.16 82);
+  --pv-stat-high: oklch(70% 0.17 152);
+  --pv-stat-apex: oklch(74% 0.16 218);
+  --pv-eff-quad-weak-bg: oklch(28% 0.11 22);
+  --pv-eff-quad-weak-border: oklch(64% 0.21 24);
+  --pv-eff-quad-weak-ink: oklch(94% 0.04 24);
+  --pv-eff-weak-bg: oklch(27% 0.08 55);
+  --pv-eff-weak-border: oklch(72% 0.16 62);
+  --pv-eff-weak-ink: oklch(95% 0.04 75);
+  --pv-eff-resist-bg: oklch(25% 0.07 155);
+  --pv-eff-resist-border: oklch(66% 0.16 155);
+  --pv-eff-resist-ink: oklch(94% 0.04 155);
+  --pv-eff-quad-resist-bg: oklch(24% 0.08 195);
+  --pv-eff-quad-resist-border: oklch(68% 0.14 195);
+  --pv-eff-quad-resist-ink: oklch(94% 0.04 195);
+  --pv-eff-immune-bg: oklch(22% 0.02 255);
+  --pv-eff-immune-border: oklch(62% 0.03 255);
+  --pv-eff-immune-ink: oklch(90% 0.02 255);
 }
 
 @media (forced-colors: active) {

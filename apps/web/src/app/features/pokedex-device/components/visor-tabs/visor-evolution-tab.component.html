@@ -1,0 +1,99 @@
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Cadeia Evolutiva</h3>
+  </div>
+  @if (evolutionNodes().length > 1) {
+    <ol class="visor-evo-list" aria-label="Árvore evolutiva">
+      @for (node of evolutionNodes(); track node.speciesId; let idx = $index) {
+        @let current = isCurrentSpecies(node.speciesName);
+        <li class="visor-evo-item" [style.--evo-depth]="node.depth">
+          <button
+            type="button"
+            class="visor-evo-btn"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="30 + idx"
+            [attr.aria-current]="current ? 'true' : null"
+            (click)="onPickSpecies(node.speciesName, current)"
+          >
+            <img
+              class="visor-evo-sprite"
+              [src]="node.artworkUrl"
+              [alt]="node.displayName"
+              width="40"
+              height="40"
+              loading="lazy"
+            />
+            <span class="visor-evo-meta">
+              <span class="visor-evo-name">
+                #{{ node.speciesId }} {{ node.displayName }}
+              </span>
+              <span class="visor-evo-cond">{{ node.conditionText }}</span>
+            </span>
+          </button>
+        </li>
+      }
+    </ol>
+  } @else if (evolutionNodes().length === 1) {
+    <p class="visor-inline-note">Espécie de estágio único sem evoluções registradas.</p>
+  } @else {
+    <p class="visor-inline-note">
+      Árvore evolutiva disponível quando conectado à API do PokéVerse.
+    </p>
+  }
+</div>
+
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Variedades & Formas</h3>
+  </div>
+
+  @if (varieties().length > 0) {
+    <ul class="visor-forms-grid" aria-label="Variedades da espécie">
+      @for (item of varieties(); track item.pokemonId; let idx = $index) {
+        <li>
+          <button
+            type="button"
+            class="visor-form-card"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="60 + idx"
+            [attr.aria-current]="item.isCurrent ? 'true' : null"
+            (click)="onPickSpecies(item.pokemonName, item.isCurrent)"
+          >
+            <img
+              class="visor-evo-sprite"
+              [src]="item.artworkUrl"
+              [alt]="item.displayName"
+              width="40"
+              height="40"
+              loading="lazy"
+            />
+            <span class="visor-evo-cond">{{ item.displayName }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+  }
+
+  @switch (formsState().status) {
+    @case ('loading') {
+      <p class="visor-inline-note">Carregando formas regionais e Mega/Gmax...</p>
+    }
+    @case ('error') {
+      <p class="visor-inline-note">Não foi possível carregar os metadados de formas.</p>
+      <button type="button" class="visor-retry-inline" (click)="retryForms.emit()">
+        Tentar novamente
+      </button>
+    }
+    @case ('success') {
+      @if (forms().length > 0) {
+        <ul class="visor-chip-list" aria-label="Formas registradas">
+          @for (form of forms(); track form.id) {
+            <li class="visor-version-tag">
+              {{ form.displayName }}{{ form.isMega ? ' · Mega' : '' }}{{ form.isBattleOnly ? ' · Batalha' : '' }}
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</div>

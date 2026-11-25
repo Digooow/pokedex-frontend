@@ -1,0 +1,68 @@
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Áreas de Captura</h3>
+    @if (encounterRows().length > 0) {
+      <span class="visor-bst-badge">{{ encounterRows().length }}</span>
+    }
+  </div>
+
+  @switch (encountersState().status) {
+    @case ('loading') {
+      <p class="visor-inline-note">Consultando rotas e áreas de encontro...</p>
+    }
+    @case ('error') {
+      <p class="visor-inline-note">Não foi possível consultar os locais de captura agora.</p>
+      <button type="button" class="visor-retry-inline" (click)="retryEncounters.emit()">
+        Tentar novamente
+      </button>
+    }
+    @case ('empty') {
+      <p class="visor-inline-note">
+        Nenhum encontro selvagem registrado (obtido por evolução, troca ou evento).
+      </p>
+    }
+    @case ('success') {
+      <ul class="visor-accordion-list" aria-label="Locais de captura">
+        @for (row of visibleEncounters(); track row.areaKey) {
+          <li class="pokemon-dado-item">
+            <span class="dado-rotulo">{{ row.areaLabel }}</span>
+            <span class="dado-valor numero-tabular">
+              {{ row.levelRangeLabel }} · {{ row.method }} ({{ row.maxChance }}%)
+            </span>
+            <span class="visor-inline-note">{{ row.versionsLabel }}</span>
+          </li>
+        }
+      </ul>
+      @if (hasMoreEncounters()) {
+        <button type="button" class="visor-retry-inline" (click)="showMoreEncounters()">
+          Mostrar mais áreas ({{ encounterRows().length - visibleEncounters().length }} restantes)
+        </button>
+      }
+    }
+  }
+</div>
+
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Galeria Histórica de Sprites</h3>
+  </div>
+  @if (historicalGallery().length > 0) {
+    <ul class="visor-sprites-gallery" aria-label="Sprites históricos por geração">
+      @for (sprite of historicalGallery(); track sprite.key) {
+        <li class="visor-sprite-card">
+          <img
+            class="visor-evo-sprite"
+            [src]="sprite.url"
+            [alt]="pokemon().displayName + ' em ' + sprite.label"
+            width="40"
+            height="40"
+            loading="lazy"
+          />
+          <span class="visor-evo-cond">{{ sprite.label }}</span>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="visor-inline-note">Sem sprites históricos adicionais registrados.</p>
+  }
+</div>

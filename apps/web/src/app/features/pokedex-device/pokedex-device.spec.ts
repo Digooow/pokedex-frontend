@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { QualityStore } from '../../core/stores/quality.store';
 import {
-  createCachedPokemonFixture,
+  createCachedPokemonBundleFixture,
   flushInitialRequests,
 } from '../../testing/test-fixtures.spec-helper';
 import { PokedexDevicePageComponent } from './pokedex-device.component';
@@ -219,13 +219,13 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     fixture.detectChanges();
     expect(rpg.rpgCatalogIndex()).toBe(1);
     expect(items[1]?.classList.contains('is-cursor')).toBe(true);
-    httpMock.expectNone('/api/v1/pokedex/pokemon/charmander');
+    httpMock.expectNone('/api/v1/pokedex/pokemon/charmander/bundle');
     expect(store.detailState().status).toBe('empty');
 
     btnA.click();
     fixture.detectChanges();
-    httpMock.expectOne('/api/v1/pokedex/pokemon/charmander').flush(
-      createCachedPokemonFixture({
+    httpMock.expectOne('/api/v1/pokedex/pokemon/charmander/bundle').flush(
+      createCachedPokemonBundleFixture({
         id: 4,
         name: 'charmander',
         typeName: 'fire',
@@ -247,12 +247,12 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     updatedItems[0]?.click();
     fixture.detectChanges();
     expect(rpg.rpgCatalogIndex()).toBe(0);
-    httpMock.expectNone('/api/v1/pokedex/pokemon/bulbasaur');
+    httpMock.expectNone('/api/v1/pokedex/pokemon/bulbasaur/bundle');
 
     updatedItems[0]?.click();
     fixture.detectChanges();
-    httpMock.expectOne('/api/v1/pokedex/pokemon/bulbasaur').flush(
-      createCachedPokemonFixture({
+    httpMock.expectOne('/api/v1/pokedex/pokemon/bulbasaur/bundle').flush(
+      createCachedPokemonBundleFixture({
         id: 1,
         name: 'bulbasaur',
         typeName: 'grass',
@@ -307,8 +307,8 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     pichuItems[1]?.click();
     fixture.detectChanges();
 
-    httpMock.expectOne('/api/v1/pokedex/pokemon/pikachu-original-cap').flush(
-      createCachedPokemonFixture({
+    httpMock.expectOne('/api/v1/pokedex/pokemon/pikachu-original-cap/bundle').flush(
+      createCachedPokemonBundleFixture({
         id: 10094,
         name: 'pikachu-original-cap',
         typeName: 'electric',
@@ -385,8 +385,8 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     fixture.detectChanges();
     expect(slotsStore.pendingConfirm()).toBeNull();
     httpMock
-      .expectOne('/api/v1/pokedex/pokemon/pikachu')
-      .flush(createCachedPokemonFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
+      .expectOne('/api/v1/pokedex/pokemon/pikachu/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
     fixture.detectChanges();
     expect(store.selectedPokemon()?.name).toBe('pikachu');
 
@@ -394,8 +394,8 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     fixture.detectChanges();
     expect(slotsStore.pendingConfirm()).toBeNull();
     httpMock
-      .expectOne('/api/v1/pokedex/pokemon/pikachu')
-      .flush(createCachedPokemonFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
+      .expectOne('/api/v1/pokedex/pokemon/pikachu/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
     fixture.detectChanges();
 
     slotButtons[1]?.click();
@@ -409,8 +409,8 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     clickDialogPrimary();
     expect(slotsStore.pendingConfirm()).toBeNull();
     httpMock
-      .expectOne('/api/v1/pokedex/pokemon/bulbasaur')
-      .flush(createCachedPokemonFixture({ id: 1, name: 'bulbasaur', typeName: 'grass' }));
+      .expectOne('/api/v1/pokedex/pokemon/bulbasaur/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 1, name: 'bulbasaur', typeName: 'grass' }));
     fixture.detectChanges();
     expect(store.selectedPokemon()?.name).toBe('bulbasaur');
   });
@@ -422,8 +422,8 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     store.loadPokemonDetail('charmander');
     fixture.detectChanges();
     httpMock
-      .expectOne('/api/v1/pokedex/pokemon/charmander')
-      .flush(createCachedPokemonFixture({ id: 4, name: 'charmander', typeName: 'fire' }));
+      .expectOne('/api/v1/pokedex/pokemon/charmander/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 4, name: 'charmander', typeName: 'fire' }));
     fixture.detectChanges();
     expect(store.selectedPokemon()?.name).toBe('charmander');
 

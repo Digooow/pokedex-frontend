@@ -44,6 +44,7 @@ export type RpgNavigationAction =
   | { readonly kind: 'screen'; readonly nextScreen: RpgScreen | null }
   | { readonly kind: 'catalog'; readonly offset: number }
   | { readonly kind: 'slot'; readonly nextSlotIndex: number }
+  | { readonly kind: 'visor-tab'; readonly step: -1 | 1 }
   | { readonly kind: 'visor-scroll'; readonly deltaY: number }
   | { readonly kind: 'control'; readonly key: 'busca' | 'visor' | 'edicao'; readonly step: number };
 
@@ -86,6 +87,24 @@ export function resolveNextScreen(
   );
 }
 
+function resolveVisorNavigationAction(
+  direction: RpgDirection,
+  controlsCount: number,
+  hasVisorTabs: boolean,
+): RpgNavigationAction {
+  if (hasVisorTabs && (direction === 'esquerda' || direction === 'direita')) {
+    return { kind: 'visor-tab', step: direction === 'esquerda' ? -1 : 1 };
+  }
+  if (controlsCount === 0) {
+    return { kind: 'visor-scroll', deltaY: VISOR_SCROLL_DELTA_BY_DIR[direction] ?? 0 };
+  }
+  return {
+    kind: 'control',
+    key: 'visor',
+    step: direction === 'cima' || direction === 'esquerda' ? -1 : 1,
+  };
+}
+
 export function resolveRpgNavigationAction(
   level: RpgLevel,
   screen: RpgScreen,
@@ -93,6 +112,7 @@ export function resolveRpgNavigationAction(
   isDesktop: boolean,
   slotFocusIndex: number,
   controlsCount: number,
+  hasVisorTabs = false,
 ): RpgNavigationAction {
   if (level === 'telas') {
     return { kind: 'screen', nextScreen: resolveNextScreen(screen, direction, isDesktop) };
@@ -103,9 +123,8 @@ export function resolveRpgNavigationAction(
   if (level === 'itens' && screen === 'slots') {
     return { kind: 'slot', nextSlotIndex: nextSlotIndexForDirection(slotFocusIndex, direction) };
   }
-  if (level === 'itens' && screen === 'visor' && controlsCount === 0) {
-    const deltaY = VISOR_SCROLL_DELTA_BY_DIR[direction] ?? 0;
-    return { kind: 'visor-scroll', deltaY };
+  if (level === 'itens' && screen === 'visor') {
+    return resolveVisorNavigationAction(direction, controlsCount, hasVisorTabs);
   }
   const step = direction === 'cima' || direction === 'esquerda' ? -1 : 1;
   return { kind: 'control', key: resolveControlGroupKey(level, screen), step };

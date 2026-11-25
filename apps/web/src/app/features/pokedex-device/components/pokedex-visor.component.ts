@@ -6,21 +6,38 @@ import {
   inject,
   input,
   output,
-  signal,
+  untracked,
 } from '@angular/core';
 import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
+import { QualityStore } from '../../../core/stores/quality.store';
 import {
   PvRpgContainerDirective,
   PvRpgFocusableDirective,
 } from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
-import type { PokemonDetailView } from '../services/pokedex.store';
+import type { PokedexCacheSource, PokemonDetailView } from '../services/pokedex-view-mapper.util';
+import { PokedexVisorDetailStore } from '../services/pokedex-visor-detail.store';
+import { VISOR_TABS, type VisorTabId } from '../services/pokedex-visor-format.util';
 import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
+import { VisorEvolutionTabComponent } from './visor-tabs/visor-evolution-tab.component';
+import { VisorMapTabComponent } from './visor-tabs/visor-map-tab.component';
+import { VisorMovesTabComponent } from './visor-tabs/visor-moves-tab.component';
+import { VisorOverviewTabComponent } from './visor-tabs/visor-overview-tab.component';
+import { VisorStatsTabComponent } from './visor-tabs/visor-stats-tab.component';
 
 @Component({
   selector: 'pv-pokedex-visor',
-  imports: [PokedexSlotsConfigComponent, PvRpgContainerDirective, PvRpgFocusableDirective],
+  imports: [
+    PokedexSlotsConfigComponent,
+    PvRpgContainerDirective,
+    PvRpgFocusableDirective,
+    VisorOverviewTabComponent,
+    VisorStatsTabComponent,
+    VisorEvolutionTabComponent,
+    VisorMovesTabComponent,
+    VisorMapTabComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pokedex-visor.component.html',
   styleUrl: './pokedex-visor.component.scss',
@@ -28,9 +45,11 @@ import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
 export class PokedexVisorComponent {
   readonly rpg = inject(PokedexRpgNavService);
   readonly slotsStore = inject(PokedexSlotsStore);
+  readonly visorDetail = inject(PokedexVisorDetailStore);
+  private readonly quality = inject(QualityStore);
 
   readonly detailState = input.required<AsyncState<PokemonDetailView>>();
-  readonly cacheSource = input<'hit' | 'miss' | 'direct' | null>(null);
+  readonly cacheSource = input<PokedexCacheSource | null>(null);
   readonly transientStatus = input<{
     readonly label: string;
     readonly variant: 'sucesso' | 'aviso';
@@ -41,17 +60,17 @@ export class PokedexVisorComponent {
   readonly selectSuggestion = output<string>();
   readonly slotOpened = output<string>();
 
-  private readonly usedFallbackSprite = signal(false);
-  readonly imageFailed = signal(false);
+  readonly tabs = VISOR_TABS;
+  readonly isLite = computed(() => this.quality.tier() === 'lite');
   readonly emptyStateTitle = 'Nenhum Pokémon no visor';
   readonly emptyStateDescription =
     'Pesquise um Pokémon no módulo de busca ao lado ou selecione um da lista para exibir os dados da PokéAPI aqui no visor.';
 
   constructor() {
     effect(() => {
-      this.detailState();
-      this.usedFallbackSprite.set(false);
-      this.imageFailed.set(false);
+      const state = this.detailState();
+      const activeName = state.status === 'success' ? state.data.name : null;
+      untracked(() => this.visorDetail.resetForPokemon(activeName));
     });
   }
 
@@ -82,7 +101,9 @@ export class PokedexVisorComponent {
         return 'Buscando...';
       case 'success': {
         const src = this.cacheSource();
-        return src === 'hit' ? 'Encontrado · Redis' : 'Encontrado';
+        if (src === 'hit') return 'Encontrado · Redis';
+        if (src === 'stale-fallback') return 'Encontrado · Reserva';
+        return 'Encontrado';
       }
       case 'error':
         return state.error.code === 'POKEMON_NOT_FOUND' ? 'Não encontrado' : 'Erro na API';
@@ -110,26 +131,44 @@ export class PokedexVisorComponent {
     return id > 0 ? String(id).padStart(4, '0') : '----';
   }
 
-  activeSpriteUrl(pokemon: PokemonDetailView): string | null {
-    if (this.imageFailed()) return null;
-    if (this.usedFallbackSprite()) return pokemon.fallbackSpriteUrl;
-    return pokemon.spriteUrl ?? pokemon.fallbackSpriteUrl;
+  onSelectTab(tabId: VisorTabId, pokemonName: string, event: Event): void {
+    event.stopPropagation();
+    this.visorDetail.selectTab(tabId, pokemonName);
   }
 
-  onSpriteError(pokemon: PokemonDetailView): void {
-    if (
-      !this.usedFallbackSprite() &&
-      pokemon.fallbackSpriteUrl &&
-      pokemon.fallbackSpriteUrl !== pokemon.spriteUrl
-    ) {
-      this.usedFallbackSprite.set(true);
+  onTabKeyDown(event: KeyboardEvent, pokemonName: string): void {
+    if (event.key === 'ArrowRight') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.visorDetail.stepTab(1, pokemonName);
       return;
     }
-    this.imageFailed.set(true);
+    if (event.key === 'ArrowLeft') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.visorDetail.stepTab(-1, pokemonName);
+      return;
+    }
+    if (event.key === 'Home' && this.tabs[0]) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.visorDetail.selectTab(this.tabs[0].id, pokemonName);
+      return;
+    }
+    const lastTab = this.tabs.at(-1);
+    if (event.key === 'End' && lastTab) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.visorDetail.selectTab(lastTab.id, pokemonName);
+    }
   }
 
   onSelectSuggestion(event: Event, name: string): void {
     event.stopPropagation();
+    this.selectSuggestion.emit(name);
+  }
+
+  onSelectSpecies(name: string): void {
     this.selectSuggestion.emit(name);
   }
 

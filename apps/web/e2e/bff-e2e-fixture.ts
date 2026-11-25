@@ -2,6 +2,14 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { test as base } from '@playwright/test';
+import {
+  SAMPLE_CATALOG,
+  SAMPLE_PIKACHU,
+  SAMPLE_PIKACHU_BUNDLE,
+  SAMPLE_PIKACHU_ENCOUNTERS,
+  SAMPLE_STATIC_ABILITY,
+  SAMPLE_THUNDER_SHOCK_MOVE,
+} from './bff-e2e-data';
 
 const DIST_DIR = path.resolve(__dirname, '..', 'dist', 'pokeverse-web', 'browser');
 
@@ -17,49 +25,6 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
   '.svg': 'image/svg+xml',
   '.woff2': 'font/woff2',
   '.ico': 'image/x-icon',
-};
-
-const SAMPLE_CATALOG = {
-  cache: 'hit',
-  catalog: {
-    count: 3,
-    results: [
-      { name: 'bulbasaur', url: 'https://pokeapi.co/api/v2/pokemon/1/' },
-      { name: 'charmander', url: 'https://pokeapi.co/api/v2/pokemon/4/' },
-      { name: 'pikachu', url: 'https://pokeapi.co/api/v2/pokemon/25/' },
-    ],
-  },
-};
-
-const SAMPLE_PIKACHU = {
-  cache: 'hit',
-  pokemon: {
-    id: 25,
-    name: 'pikachu',
-    height: 4,
-    weight: 60,
-    types: [{ slot: 1, type: { name: 'electric', url: 'https://pokeapi.co/api/v2/type/13/' } }],
-    abilities: [
-      {
-        is_hidden: false,
-        slot: 1,
-        ability: { name: 'static', url: 'https://pokeapi.co/api/v2/ability/9/' },
-      },
-    ],
-    stats: [
-      { base_stat: 35, effort: 0, stat: { name: 'hp', url: 'https://pokeapi.co/api/v2/stat/1/' } },
-    ],
-    sprites: {
-      front_default:
-        'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
-      other: {
-        'official-artwork': {
-          front_default:
-            'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
-        },
-      },
-    },
-  },
 };
 
 interface SavedSlotRecord {
@@ -183,6 +148,34 @@ async function handlePokedexRoute(
 ): Promise<boolean> {
   if (pathname === '/api/v1/pokedex/catalog') {
     writeJson(res, 200, SAMPLE_CATALOG);
+    return true;
+  }
+  if (pathname.endsWith('/bundle')) {
+    writeJson(res, 200, SAMPLE_PIKACHU_BUNDLE);
+    return true;
+  }
+  if (pathname.endsWith('/encounters')) {
+    writeJson(res, 200, SAMPLE_PIKACHU_ENCOUNTERS);
+    return true;
+  }
+  if (pathname.endsWith('/forms')) {
+    writeJson(res, 200, {
+      cache: 'hit',
+      pokemonId: 25,
+      pokemonName: 'pikachu',
+      speciesName: 'pikachu',
+      formsSwitchable: false,
+      forms: [],
+      varieties: SAMPLE_PIKACHU_BUNDLE.bundle.species.varieties,
+    });
+    return true;
+  }
+  if (pathname.startsWith('/api/v1/pokedex/moves/')) {
+    writeJson(res, 200, SAMPLE_THUNDER_SHOCK_MOVE);
+    return true;
+  }
+  if (pathname.startsWith('/api/v1/pokedex/abilities/')) {
+    writeJson(res, 200, SAMPLE_STATIC_ABILITY);
     return true;
   }
   if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {

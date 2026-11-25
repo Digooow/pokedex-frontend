@@ -57,14 +57,96 @@ const SAMPLE_PIKACHU = {
   },
 };
 
+const SAMPLE_PIKACHU_BUNDLE = {
+  cache: 'hit',
+  bundle: {
+    pokemon: {
+      id: 25,
+      name: 'pikachu',
+      order: 25,
+      isDefault: true,
+      height: 4,
+      weight: 60,
+      baseExperience: 112,
+      baseStatTotal: 320,
+      types: [{ slot: 1, type: { name: 'electric', url: 'https://pokeapi.co/api/v2/type/13/' } }],
+      abilities: [{ is_hidden: false, slot: 1, ability: { name: 'static', url: 'https://pokeapi.co/api/v2/ability/9/' } }],
+      stats: [{ base_stat: 35, effort: 0, stat: { name: 'hp', url: 'https://pokeapi.co/api/v2/stat/1/' } }],
+      sprites: {
+        officialArtwork: {
+          frontDefault: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
+          frontShiny: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/shiny/25.png',
+        },
+        home: { frontDefault: null, frontShiny: null },
+        showdown: {
+          frontDefault: null, backDefault: null, frontShiny: null, backShiny: null,
+          frontFemale: null, backFemale: null, frontShinyFemale: null, backShinyFemale: null,
+        },
+        default: {
+          frontDefault: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
+          backDefault: null, frontShiny: null, backShiny: null,
+          frontFemale: null, backFemale: null, frontShinyFemale: null, backShinyFemale: null,
+        },
+        dreamWorld: { frontDefault: null, frontFemale: null },
+      },
+      historicalSprites: [],
+      cries: { latest: null, legacy: null },
+      moves: [],
+      heldItems: [],
+      pastTypes: [],
+      pastAbilities: [],
+      pastStats: [],
+    },
+    species: {
+      id: 25,
+      name: 'pikachu',
+      genus: 'Mouse Pokémon',
+      genera: [{ language: 'en', genus: 'Mouse Pokémon' }],
+      flavorTexts: [{ version: 'red', language: 'en', text: 'Stores electricity in its cheeks.' }],
+      captureRate: 190,
+      baseHappiness: 70,
+      genderRate: 4,
+      hasGenderDifferences: true,
+      hatchCounter: 10,
+      growthRate: 'medium',
+      color: 'yellow',
+      shape: 'quadruped',
+      habitat: 'forest',
+      generation: 'generation-i',
+      generationNumber: 1,
+      isBaby: false,
+      isLegendary: false,
+      isMythical: false,
+      formsSwitchable: false,
+      eggGroups: ['field', 'fairy'],
+      pokedexNumbers: [{ pokedex: 'kanto', entryNumber: 25 }],
+      evolvesFromSpecies: null,
+      varieties: [],
+    },
+    evolutionChain: null,
+    typeEffectiveness: {
+      multipliers: Object.fromEntries(
+        ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'ground', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy']
+          .map((t) => [t, t === 'ground' ? 2 : 1]),
+      ),
+      quadWeak: [],
+      weak: ['ground'],
+      neutral: ['normal', 'fire', 'water', 'electric', 'grass', 'ice', 'fighting', 'poison', 'flying', 'psychic', 'bug', 'rock', 'ghost', 'dragon', 'dark', 'steel', 'fairy'],
+      resistant: [],
+      quadResistant: [],
+      immune: [],
+    },
+  },
+};
+
 function findBrowserExecutable() {
   const envBin = process.env['CHROME_BIN']?.trim();
   const candidates = [
     ...(envBin ? [envBin] : []),
-    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    String.raw`C:\Program Files\Google\Chrome\Application\chrome.exe`,
+    String.raw`C:\Program Files (x86)\Google\Chrome\Application\chrome.exe`,
+    String.raw`C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`,
+    String.raw`C:\Program Files\Microsoft\Edge\Application\msedge.exe`,
     '/usr/bin/google-chrome',
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',
@@ -96,6 +178,98 @@ function allocateFreePort() {
   });
 }
 
+function sendJson(res, payload) {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify(payload));
+}
+
+function buildAuthSessionPayload(authenticated) {
+  if (!authenticated) {
+    return { authenticated: false, canRefresh: false };
+  }
+  return {
+    authenticated: true,
+    sessionState: 'AUTHENTICATED',
+    mfaMethods: [],
+    expiresInSec: 900,
+    trainer: {
+      id: '550e8400-e29b-41d4-a716-446655440000',
+      username: 'AuditTrainer',
+      email: 'audit@pokeverse.dev',
+      emailVerifiedAt: new Date().toISOString(),
+      mfaEnabled: false,
+      hasPassword: true,
+      badgesCount: 0,
+      eloRating: 1000,
+      lastMapId: 'pokeverse-town',
+      lastX: 400,
+      lastY: 320,
+      createdAt: new Date().toISOString(),
+    },
+  };
+}
+
+const EXACT_API_MOCKS = {
+  '/health/ready': { status: 'ok', checks: { database: 'ok', redis: 'ok', kafka: 'ok' } },
+  '/api/v1/system/bootstrap': { onlineCount: 1, latestEvent: null },
+  '/api/v1/auth/providers': { googleEnabled: false, webauthnEnabled: true },
+  '/api/v1/pokedex/catalog': SAMPLE_CATALOG,
+  '/api/v1/pokedex/slots': { slots: [] },
+};
+
+function resolveApiMockPayload(pathname, state) {
+  if (pathname === '/api/v1/auth/session') {
+    return buildAuthSessionPayload(state.authenticated);
+  }
+  if (Object.hasOwn(EXACT_API_MOCKS, pathname)) {
+    return EXACT_API_MOCKS[pathname];
+  }
+  if (pathname.endsWith('/bundle')) {
+    return SAMPLE_PIKACHU_BUNDLE;
+  }
+  if (pathname.endsWith('/encounters')) {
+    return { cache: 'hit', pokemonId: 25, pokemonName: 'pikachu', encounters: [] };
+  }
+  if (pathname.endsWith('/forms')) {
+    return {
+      cache: 'hit',
+      pokemonId: 25,
+      pokemonName: 'pikachu',
+      speciesName: 'pikachu',
+      formsSwitchable: false,
+      forms: [],
+      varieties: [],
+    };
+  }
+  if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {
+    return SAMPLE_PIKACHU;
+  }
+  return null;
+}
+
+function serveDistAsset(pathname, res) {
+  const relPath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
+  let targetPath = path.resolve(DIST_BROWSER_DIR, relPath);
+  if (!targetPath.startsWith(DIST_BROWSER_DIR)) {
+    res.writeHead(403);
+    res.end('Forbidden');
+    return;
+  }
+
+  if (!fs.existsSync(targetPath) || fs.statSync(targetPath).isDirectory()) {
+    if (path.extname(relPath)) {
+      res.writeHead(404);
+      res.end('Not Found');
+      return;
+    }
+    targetPath = path.join(DIST_BROWSER_DIR, 'index.html');
+  }
+
+  const ext = path.extname(targetPath);
+  res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+  fs.createReadStream(targetPath).pipe(res);
+}
+
 function startDistServer(state) {
   return new Promise((resolve, reject) => {
     if (!fs.existsSync(path.join(DIST_BROWSER_DIR, 'index.html'))) {
@@ -105,89 +279,12 @@ function startDistServer(state) {
 
     const server = http.createServer((req, res) => {
       const reqUrl = new URL(req.url || '/', 'http://127.0.0.1');
-      const pathname = reqUrl.pathname;
-
-      if (pathname === '/health/ready') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ status: 'ok', checks: { database: 'ok', redis: 'ok', kafka: 'ok' } }));
+      const mockPayload = resolveApiMockPayload(reqUrl.pathname, state);
+      if (mockPayload !== null) {
+        sendJson(res, mockPayload);
         return;
       }
-      if (pathname === '/api/v1/system/bootstrap') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ onlineCount: 1, latestEvent: null }));
-        return;
-      }
-      if (pathname === '/api/v1/auth/providers') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ googleEnabled: false, webauthnEnabled: true }));
-        return;
-      }
-      if (pathname === '/api/v1/auth/session') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        if (state.authenticated) {
-          res.end(
-            JSON.stringify({
-              authenticated: true,
-              sessionState: 'AUTHENTICATED',
-              mfaMethods: [],
-              expiresInSec: 900,
-              trainer: {
-                id: '550e8400-e29b-41d4-a716-446655440000',
-                username: 'AuditTrainer',
-                email: 'audit@pokeverse.dev',
-                emailVerifiedAt: new Date().toISOString(),
-                mfaEnabled: false,
-                hasPassword: true,
-                badgesCount: 0,
-                eloRating: 1000,
-                lastMapId: 'pokeverse-town',
-                lastX: 400,
-                lastY: 320,
-                createdAt: new Date().toISOString(),
-              },
-            }),
-          );
-        } else {
-          res.end(JSON.stringify({ authenticated: false, canRefresh: false }));
-        }
-        return;
-      }
-      if (pathname === '/api/v1/pokedex/catalog') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(SAMPLE_CATALOG));
-        return;
-      }
-      if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify(SAMPLE_PIKACHU));
-        return;
-      }
-      if (pathname === '/api/v1/pokedex/slots') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ slots: [] }));
-        return;
-      }
-
-      const relPath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
-      let targetPath = path.resolve(DIST_BROWSER_DIR, relPath);
-      if (!targetPath.startsWith(DIST_BROWSER_DIR)) {
-        res.writeHead(403);
-        res.end('Forbidden');
-        return;
-      }
-
-      if (!fs.existsSync(targetPath) || fs.statSync(targetPath).isDirectory()) {
-        if (path.extname(relPath)) {
-          res.writeHead(404);
-          res.end('Not Found');
-          return;
-        }
-        targetPath = path.join(DIST_BROWSER_DIR, 'index.html');
-      }
-
-      const ext = path.extname(targetPath);
-      res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
-      fs.createReadStream(targetPath).pipe(res);
+      serveDistAsset(reqUrl.pathname, res);
     });
 
     server.listen(0, '127.0.0.1', () => {
@@ -197,64 +294,71 @@ function startDistServer(state) {
   });
 }
 
-async function createPageTarget(port) {
-  for (const method of ['PUT', 'GET']) {
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, {
-        method,
-        signal: AbortSignal.timeout(2000),
-      });
-      if (response.ok) {
-        const created = await response.json();
-        if (created?.webSocketDebuggerUrl) {
-          return created.webSocketDebuggerUrl;
-        }
-      }
-    } catch {
-    }
-  }
-  return null;
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function waitForPageTarget(port, browserProc, getStderr) {
-  let emptyListCount = 0;
+function formatBrowserError(prefix, getStderr) {
+  const stderr = getStderr().trim();
+  return stderr ? `${prefix} stderr: ${stderr}` : prefix;
+}
 
-  for (let i = 0; i < 120; i++) {
-    if (browserProc.exitCode !== null) {
-      const stderr = getStderr().trim();
-      throw new Error(
-        `Headless browser exited prematurely with code ${browserProc.exitCode}.${stderr ? ` stderr: ${stderr}` : ''}`,
-      );
+async function tryCreatePageTarget(port, method) {
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/json/new?about:blank`, {
+      method,
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!response.ok) return null;
+    const created = await response.json();
+    return created?.webSocketDebuggerUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function createPageTarget(port) {
+  return (await tryCreatePageTarget(port, 'PUT')) ?? (await tryCreatePageTarget(port, 'GET'));
+}
+
+async function probePageTarget(port, emptyListCount) {
+  try {
+    const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
+      signal: AbortSignal.timeout(2000),
+    });
+    if (!response.ok) return { wsUrl: null, emptyListCount };
+
+    const list = await response.json();
+    const pageTarget = list.find((entry) => entry.type === 'page' && entry.webSocketDebuggerUrl);
+    if (pageTarget) {
+      return { wsUrl: pageTarget.webSocketDebuggerUrl, emptyListCount };
     }
 
-    try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
-        signal: AbortSignal.timeout(2000),
-      });
-      if (response.ok) {
-        const list = await response.json();
-        const pageTarget = list.find((entry) => entry.type === 'page' && entry.webSocketDebuggerUrl);
-        if (pageTarget) {
-          return pageTarget.webSocketDebuggerUrl;
-        }
+    const nextEmptyCount = emptyListCount + 1;
+    const createdWsUrl = nextEmptyCount >= 5 ? await createPageTarget(port) : null;
+    return { wsUrl: createdWsUrl, emptyListCount: nextEmptyCount };
+  } catch {
+    return { wsUrl: null, emptyListCount };
+  }
+}
 
-        emptyListCount += 1;
-        if (emptyListCount >= 5) {
-          const createdWsUrl = await createPageTarget(port);
-          if (createdWsUrl) {
-            return createdWsUrl;
-          }
-        }
-      }
-    } catch {
-    }
-    await new Promise((r) => setTimeout(r, 200));
+async function waitForPageTarget(port, browserProc, getStderr, attempt = 0, emptyListCount = 0) {
+  if (browserProc.exitCode !== null) {
+    throw new Error(
+      formatBrowserError(`Headless browser exited prematurely with code ${browserProc.exitCode}.`, getStderr),
+    );
+  }
+  if (attempt >= 120) {
+    throw new Error(formatBrowserError('Timed out waiting for headless browser DevTools endpoint.', getStderr));
   }
 
-  const stderr = getStderr().trim();
-  throw new Error(
-    `Timed out waiting for headless browser DevTools endpoint.${stderr ? ` stderr: ${stderr}` : ''}`,
-  );
+  const probe = await probePageTarget(port, emptyListCount);
+  if (probe.wsUrl) {
+    return probe.wsUrl;
+  }
+
+  await delay(200);
+  return waitForPageTarget(port, browserProc, getStderr, attempt + 1, probe.emptyListCount);
 }
 
 class CdpSession {
@@ -358,7 +462,7 @@ class CdpSession {
   }
 }
 
-const AUDIT_PAGE_FN = `(() => {
+const AUDIT_PAGE_FN = String.raw`(() => {
   const probeCanvas = document.createElement('canvas');
   probeCanvas.width = 1;
   probeCanvas.height = 1;
@@ -380,7 +484,7 @@ const AUDIT_PAGE_FN = `(() => {
     if (!bgImage || bgImage === 'none' || !bgImage.includes('gradient')) {
       return null;
     }
-    const tokens = bgImage.match(/(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\\([^()]+(?:\\([^()]*\\)[^()]*)*\\)|#[0-9a-fA-F]{3,8}/g);
+    const tokens = bgImage.match(/(?:rgba?|hsla?|oklch|oklab|lab|lch|color)\([^()]+(?:\([^()]*\)[^()]*)*\)|#[0-9a-fA-F]{3,8}/g);
     if (!tokens || tokens.length === 0) {
       return null;
     }
@@ -657,7 +761,7 @@ async function cleanupBrowserAttempt(cdp, browserProc, userDataDir) {
   } catch {
   }
   try {
-    if (browserProc && browserProc.exitCode === null) {
+    if (browserProc?.exitCode === null) {
       browserProc.kill();
     }
   } catch {
@@ -671,42 +775,64 @@ async function cleanupBrowserAttempt(cdp, browserProc, userDataDir) {
   }
 }
 
-async function launchBrowserWithRetry(browserPath, maxAttempts = 3) {
-  let lastError = null;
+async function launchBrowserWithRetry(browserPath, maxAttempts = 3, attempt = 1) {
+  const debugPort = await allocateFreePort();
+  const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pv-audit-'));
+  let stderrBuffer = '';
+  let cdp = null;
 
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const debugPort = await allocateFreePort();
-    const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pv-audit-'));
-    let stderrBuffer = '';
-    let cdp = null;
+  const browserProc = spawn(browserPath, buildBrowserArgs(debugPort, userDataDir), {
+    stdio: ['ignore', 'ignore', 'pipe'],
+  });
 
-    const browserProc = spawn(browserPath, buildBrowserArgs(debugPort, userDataDir), {
-      stdio: ['ignore', 'ignore', 'pipe'],
-    });
+  browserProc.on('error', (err) => {
+    stderrBuffer = `${stderrBuffer}\n[spawn error] ${err.message}`.slice(-8192);
+  });
+  browserProc.stderr?.on('data', (chunk) => {
+    stderrBuffer = `${stderrBuffer}${chunk.toString('utf8')}`.slice(-8192);
+  });
 
-    browserProc.on('error', (err) => {
-      stderrBuffer = `${stderrBuffer}\n[spawn error] ${err.message}`.slice(-8192);
-    });
-    browserProc.stderr?.on('data', (chunk) => {
-      stderrBuffer = `${stderrBuffer}${chunk.toString('utf8')}`.slice(-8192);
-    });
-
-    try {
-      const wsUrl = await waitForPageTarget(debugPort, browserProc, () => stderrBuffer);
-      cdp = new CdpSession(wsUrl);
-      await cdp.connect();
-      return { cdp, browserProc, userDataDir };
-    } catch (error) {
-      lastError = error;
-      await cleanupBrowserAttempt(cdp, browserProc, userDataDir);
-      if (attempt < maxAttempts) {
-        const msg = error instanceof Error ? error.message : String(error);
-        console.warn(`Browser launch attempt ${attempt}/${maxAttempts} failed (${msg}); retrying...`);
-      }
+  try {
+    const wsUrl = await waitForPageTarget(debugPort, browserProc, () => stderrBuffer);
+    cdp = new CdpSession(wsUrl);
+    await cdp.connect();
+    return { cdp, browserProc, userDataDir };
+  } catch (error) {
+    await cleanupBrowserAttempt(cdp, browserProc, userDataDir);
+    if (attempt >= maxAttempts) {
+      throw error instanceof Error ? error : new Error(String(error));
     }
+    const msg = error instanceof Error ? error.message : String(error);
+    console.warn(`Browser launch attempt ${attempt}/${maxAttempts} failed (${msg}); retrying...`);
+    return launchBrowserWithRetry(browserPath, maxAttempts, attempt + 1);
+  }
+}
+
+async function runSingleAudit(cdp, baseUrl, serverState, scenario, viewport) {
+  serverState.authenticated = scenario.auth;
+  await cdp.setViewport(viewport.width, viewport.height);
+  await cdp.navigateAndWait(`${baseUrl}${scenario.route}`);
+
+  if (scenario.openPokedex) {
+    await cdp.evaluate('new Promise((r) => setTimeout(r, 1400))');
   }
 
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  const label = `${scenario.name}@${viewport.name}`;
+  const pageFailures = await cdp.evaluate(AUDIT_PAGE_FN);
+  const consoleFailures = cdp.consoleErrors.map((errMsg) => ({
+    scenario: label,
+    rule: 'CONSOLE_ERROR',
+    detail: errMsg,
+  }));
+  const domFailures = (pageFailures || []).map((f) => ({ scenario: label, ...f }));
+  return [...consoleFailures, ...domFailures];
+}
+
+async function runAuditRuns(cdp, baseUrl, serverState, runs, index = 0, acc = []) {
+  if (index >= runs.length) return acc;
+  const { scenario, viewport } = runs[index];
+  const failures = await runSingleAudit(cdp, baseUrl, serverState, scenario, viewport);
+  return runAuditRuns(cdp, baseUrl, serverState, runs, index + 1, [...acc, ...failures]);
 }
 
 async function runAudit() {
@@ -714,7 +840,7 @@ async function runAudit() {
   const serverState = { authenticated: false };
   const { server, baseUrl } = await startDistServer(serverState);
 
-  const allFailures = [];
+  let allFailures = [];
   let browserSession = null;
 
   try {
@@ -733,34 +859,8 @@ async function runAudit() {
       { name: 'mobile', width: 375, height: 812 },
     ];
 
-    for (const scenario of scenarios) {
-      serverState.authenticated = scenario.auth;
-      for (const vp of viewports) {
-        await cdp.setViewport(vp.width, vp.height);
-        await cdp.navigateAndWait(`${baseUrl}${scenario.route}`);
-
-        if (scenario.openPokedex) {
-          await cdp.evaluate('new Promise((r) => setTimeout(r, 1400))');
-        }
-
-        const pageFailures = await cdp.evaluate(AUDIT_PAGE_FN);
-        if (cdp.consoleErrors.length > 0) {
-          for (const errMsg of cdp.consoleErrors) {
-            allFailures.push({
-              scenario: `${scenario.name}@${vp.name}`,
-              rule: 'CONSOLE_ERROR',
-              detail: errMsg,
-            });
-          }
-        }
-        for (const f of pageFailures || []) {
-          allFailures.push({
-            scenario: `${scenario.name}@${vp.name}`,
-            ...f,
-          });
-        }
-      }
-    }
+    const runs = scenarios.flatMap((scenario) => viewports.map((viewport) => ({ scenario, viewport })));
+    allFailures = await runAuditRuns(cdp, baseUrl, serverState, runs);
   } finally {
     if (browserSession) {
       await cleanupBrowserAttempt(

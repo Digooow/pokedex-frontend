@@ -1,0 +1,198 @@
+<article class="pokemon-ficha">
+  @let pk = pokemon();
+  <div class="pokemon-cabecalho">
+    <div class="pokemon-imagem-box">
+      @if (activeSpriteUrl(); as imgUrl) {
+        <img
+          class="pokemon-imagem"
+          [src]="imgUrl"
+          [alt]="'Ilustração oficial de ' + pk.displayName"
+          width="124"
+          height="124"
+          fetchpriority="high"
+          (error)="onSpriteError()"
+        />
+      } @else {
+        <p class="pokemon-imagem-fallback">
+          {{ imageFailed() ? 'Não foi possível carregar a imagem' : 'Imagem indisponível na API' }}
+        </p>
+      }
+    </div>
+
+    <div class="pokemon-resumo">
+      <span class="pokemon-id-destaque">{{ pk.paddedId }}</span>
+      <h3 class="pokemon-nome">{{ pk.displayName }}</h3>
+      @if (species()?.genus; as genus) {
+        <p class="pokemon-genus">{{ genus }}</p>
+      }
+      @if (pk.types.length > 0) {
+        <ul class="pokemon-tipos" aria-label="Tipos do Pokémon">
+          @for (tipo of pk.types; track tipo) {
+            <li class="tipo-badge">{{ tipo }}</li>
+          }
+        </ul>
+      }
+      @if (species(); as sp) {
+        @if (sp.isLegendary || sp.isMythical || sp.isBaby) {
+          <div class="visor-rarity-chips">
+            @if (sp.isLegendary) {
+              <span class="visor-rarity-chip visor-rarity-chip--legendary">Lendário</span>
+            }
+            @if (sp.isMythical) {
+              <span class="visor-rarity-chip visor-rarity-chip--mythical">Mítico</span>
+            }
+            @if (sp.isBaby) {
+              <span class="visor-rarity-chip visor-rarity-chip--baby">Bebê</span>
+            }
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  @if (pk.bundle) {
+    <div class="visor-media-bar" aria-label="Controles visuais e de áudio">
+      <fieldset class="visor-media-group">
+        <legend class="visually-hidden">Modo de imagem</legend>
+        <button
+          type="button"
+          class="visor-media-btn"
+          [pvRpgFocusable]="'visor'"
+          [pvRpgOrder]="10"
+          [attr.aria-pressed]="spriteMode() === 'artwork'"
+          (click)="selectSpriteMode.emit('artwork')"
+        >
+          Arte
+        </button>
+        @if (canHome()) {
+          <button
+            type="button"
+            class="visor-media-btn"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="11"
+            [attr.aria-pressed]="spriteMode() === 'home'"
+            (click)="selectSpriteMode.emit('home')"
+          >
+            Home
+          </button>
+        }
+        @if (canShowdown() || isLite()) {
+          <button
+            type="button"
+            class="visor-media-btn"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="12"
+            [disabled]="!canShowdown()"
+            [attr.aria-pressed]="spriteMode() === 'showdown'"
+            [attr.title]="isLite() ? 'Desativado no modo Lite' : 'Sprite animado'"
+            (click)="selectSpriteMode.emit('showdown')"
+          >
+            Animado
+          </button>
+        }
+      </fieldset>
+
+      <fieldset class="visor-media-group">
+        <legend class="visually-hidden">Variação cromática e grito</legend>
+        <button
+          type="button"
+          class="visor-media-btn"
+          [pvRpgFocusable]="'visor'"
+          [pvRpgOrder]="13"
+          [disabled]="!canShiny()"
+          [attr.aria-pressed]="shiny()"
+          (click)="toggleShiny.emit()"
+        >
+          Shiny
+        </button>
+        @if (cries()?.latest) {
+          <button
+            type="button"
+            class="visor-media-btn"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="14"
+            [attr.aria-pressed]="playingCry() === 'latest'"
+            (click)="playCry.emit('latest')"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+              <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+              <path d="M18.5 5.5a9 9 0 0 1 0 13" />
+            </svg>
+            {{ playingCry() === 'latest' ? 'Tocando...' : 'Ouvir Grito' }}
+          </button>
+        }
+        @if (cries()?.legacy) {
+          <button
+            type="button"
+            class="visor-media-btn"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="15"
+            [attr.aria-pressed]="playingCry() === 'legacy'"
+            (click)="playCry.emit('legacy')"
+          >
+            Retrô
+          </button>
+        }
+      </fieldset>
+    </div>
+    @if (cryError(); as err) {
+      <output class="visor-cry-error">{{ err }}</output>
+    }
+  }
+
+  @if (flavorEntry(); as flavor) {
+    <div class="visor-lore-card">
+      <div class="visor-subcard-header">
+        <span class="visor-subcard-title">Registro de Campo</span>
+        <span class="visor-version-tag">{{ flavor.version }}</span>
+      </div>
+      <p class="visor-lore-text">{{ flavor.text }}</p>
+    </div>
+  }
+
+  <ul id="pokemon-dados" class="pokemon-lista-dados" aria-label="Dados do Pokémon">
+    <li class="pokemon-dado-item">
+      <span class="dado-rotulo">Nome:</span>
+      <span class="dado-valor">{{ pk.displayName }}</span>
+    </li>
+    <li class="pokemon-dado-item">
+      <span class="dado-rotulo">Número de identificação (ID):</span>
+      <span class="dado-valor numero-tabular">{{ pk.paddedId }} ({{ pk.id }})</span>
+    </li>
+    <li class="pokemon-dado-item">
+      <span class="dado-rotulo">Altura:</span>
+      <span class="dado-valor numero-tabular">{{ pk.heightMeters }} ({{ pk.heightRawDm }} dm)</span>
+    </li>
+    <li class="pokemon-dado-item">
+      <span class="dado-rotulo">Peso:</span>
+      <span class="dado-valor numero-tabular">{{ pk.weightKg }} ({{ pk.weightRawHg }} hg)</span>
+    </li>
+    @if (species(); as sp) {
+      <li class="pokemon-dado-item">
+        <span class="dado-rotulo">Geração / Habitat:</span>
+        <span class="dado-valor">
+          {{ formatLabel(sp.generation) }} · {{ formatLabel(sp.habitat) }}
+        </span>
+      </li>
+      <li class="pokemon-dado-item">
+        <span class="dado-rotulo">Grupos de Ovo:</span>
+        <span class="dado-valor">
+          {{ sp.eggGroups.length > 0 ? sp.eggGroups.map(formatLabel).join(', ') : 'Desconhecido' }}
+        </span>
+      </li>
+    }
+    <li class="pokemon-dado-item pokemon-dado-item--habilidades">
+      <span class="dado-rotulo">Habilidades (abilities):</span>
+      @if (pk.abilities.length > 0) {
+        <ul class="lista-habilidades">
+          @for (ability of pk.abilities; track ability) {
+            <li class="habilidade-item">{{ ability }}</li>
+          }
+        </ul>
+      } @else {
+        <span class="dado-valor">Nenhuma habilidade informada pela API.</span>
+      }
+    </li>
+  </ul>
+</article>

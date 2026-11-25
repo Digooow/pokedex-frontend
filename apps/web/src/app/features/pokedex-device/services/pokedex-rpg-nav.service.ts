@@ -6,6 +6,7 @@ import { PokedexLidPhysicsService } from './pokedex-lid-physics.service';
 import * as rpgNav from './pokedex-rpg-nav.util';
 import type { RpgDirection, RpgLevel, RpgScreen } from './pokedex-rpg-nav.util';
 import { PokedexSlotsStore } from './pokedex-slots.store';
+import { PokedexVisorDetailStore } from './pokedex-visor-detail.store';
 import { PokedexStore } from './pokedex.store';
 
 export {
@@ -21,6 +22,7 @@ export class PokedexRpgNavService {
   private readonly quality = inject(QualityStore);
   private readonly pokedex = inject(PokedexStore);
   private readonly slotsStore = inject(PokedexSlotsStore);
+  private readonly visorDetail = inject(PokedexVisorDetailStore);
   private readonly lidPhysics = inject(PokedexLidPhysicsService);
   private readonly focusRegistry = inject(PokedexRpgFocusRegistry);
   private hostEl: HTMLElement | null = null;
@@ -104,6 +106,7 @@ export class PokedexRpgNavService {
     if (!this.pokedex.coverOpen()) return;
     const isDesktop = !this.isBrowser || window.innerWidth >= rpgNav.DESKTOP_MIN_WIDTH_PX;
     const controlsCount = this.collectScreenControls(this.activeFocusGroup()).length;
+    const hasVisorTabs = !this.slotsStore.editMode() && this.pokedex.selectedPokemon() !== null;
     const action = rpgNav.resolveRpgNavigationAction(
       this.rpgLevel(),
       this.rpgScreen(),
@@ -111,23 +114,24 @@ export class PokedexRpgNavService {
       isDesktop,
       this.rpgSlotFocusIndex(),
       controlsCount,
+      hasVisorTabs,
     );
     if (action.kind === 'screen') {
       if (action.nextScreen) this.rpgScreen.set(action.nextScreen);
-      this.syncFocusVisuals(false);
-      return;
+      return this.syncFocusVisuals(false);
     }
-    if (action.kind === 'catalog') {
-      this.moveCatalogCursor(action.offset);
-      return;
+    if (action.kind === 'catalog') return this.moveCatalogCursor(action.offset);
+    if (action.kind === 'visor-tab') {
+      this.visorDetail.stepTab(action.step, this.pokedex.selectedPokemon()?.name ?? null);
+      this.setControlIndex('visor', 0);
+      return this.focusRegistry.scrollGroupToTopAfterTick('visor');
     }
     if (action.kind === 'visor-scroll') {
       if (action.deltaY !== 0) this.focusRegistry.scrollGroupBy('visor', action.deltaY);
       return;
     }
-    if (action.kind === 'slot') {
-      this.rpgSlotFocusIndex.set(action.nextSlotIndex);
-    } else {
+    if (action.kind === 'slot') this.rpgSlotFocusIndex.set(action.nextSlotIndex);
+    else {
       const idx = this.rpgControlIndices()[action.key] ?? 0;
       this.setControlIndex(action.key, rpgNav.clampIndexInRange(idx, action.step, controlsCount));
     }
@@ -163,23 +167,14 @@ export class PokedexRpgNavService {
     onClearVisor: () => void,
     onToggleConfig: (moveFocus: boolean) => void,
   ): void {
-    if (this.rpgLevel() === 'telas') {
-      this.enterScreen(this.rpgScreen());
-      return;
-    }
-    if (this.willBlueButtonEnterSubmenu()) {
-      this.confirmCurrentSelection(onToggleConfig);
-      return;
-    }
+    if (this.rpgLevel() === 'telas') return this.enterScreen(this.rpgScreen());
+    if (this.willBlueButtonEnterSubmenu()) return this.confirmCurrentSelection(onToggleConfig);
     onClearVisor();
     this.syncFocusVisuals(false);
   }
 
   confirmCurrentSelection(onToggleConfig: (moveFocus: boolean) => void): void {
-    if (this.rpgLevel() === 'telas') {
-      this.enterScreen(this.rpgScreen());
-      return;
-    }
+    if (this.rpgLevel() === 'telas') return this.enterScreen(this.rpgScreen());
     if (this.rpgLevel() === 'itens' && this.rpgScreen() === 'lista') {
       const picked = this.pokedex.filteredCatalog().items[this.rpgCatalogIndex()];
       if (picked) this.pokedex.selectFromCatalog(picked.name);
@@ -188,13 +183,9 @@ export class PokedexRpgNavService {
     const { controls, target } = this.resolveCurrentControl(false);
     if (!target) return;
     if (this.rpgLevel() === 'edicao' && target !== controls[3]) {
-      this.focusRegistry.submitEditForm();
-      return;
+      return this.focusRegistry.submitEditForm();
     }
-    if (target.id === 'btn-config-slots') {
-      onToggleConfig(true);
-      return;
-    }
+    if (target.id === 'btn-config-slots') return onToggleConfig(true);
     target.click();
   }
 

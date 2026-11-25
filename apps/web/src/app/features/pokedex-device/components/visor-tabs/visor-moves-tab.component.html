@@ -1,0 +1,107 @@
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Golpes Aprendíveis</h3>
+    <span class="visor-bst-badge">{{ activeMoves().length }}</span>
+  </div>
+
+  @if (pokemon().bundle) {
+    <fieldset class="visor-media-group">
+      <legend class="visually-hidden">Filtrar golpes por método</legend>
+      @for (tab of methodTabs; track tab.id; let idx = $index) {
+        <button
+          type="button"
+          class="visor-media-btn"
+          [pvRpgFocusable]="'visor'"
+          [pvRpgOrder]="40 + idx"
+          [attr.aria-pressed]="selectedMethod() === tab.id"
+          (click)="selectMethod(tab.id)"
+        >
+          {{ tab.label }} ({{ groupedMoves()[tab.id].length }})
+        </button>
+      }
+    </fieldset>
+
+    @if (visibleMoves().length > 0) {
+      <ul class="visor-accordion-list" aria-label="Lista de golpes">
+        @for (move of visibleMoves(); track move.name; let idx = $index) {
+          @let expanded = expandedMove() === move.name;
+          @let state = moveState(move.name);
+          <li>
+            <button
+              type="button"
+              class="visor-accordion-trigger"
+              [pvRpgFocusable]="'visor'"
+              [pvRpgOrder]="50 + idx"
+              [attr.aria-expanded]="expanded"
+              (click)="toggleMove(move.name)"
+            >
+              <span>{{ move.displayName }}</span>
+              <span class="visor-version-tag">
+                {{ selectedMethod() === 'level-up' && move.levelLearnedAt > 0 ? 'Nv. ' + move.levelLearnedAt : 'Ver' }}
+              </span>
+            </button>
+
+            @if (expanded && state) {
+              <div class="visor-accordion-body">
+                @switch (state.status) {
+                  @case ('loading') {
+                    <span>Carregando ficha do golpe...</span>
+                  }
+                  @case ('error') {
+                    <span>{{ state.error.message }}</span>
+                    <button
+                      type="button"
+                      class="visor-retry-inline"
+                      (click)="inspectMove.emit(move.name)"
+                    >
+                      Tentar novamente
+                    </button>
+                  }
+                  @case ('success') {
+                    <div class="visor-move-meta-grid">
+                      <span>Tipo: {{ formatType(state.data.type) }}</span>
+                      <span>Classe: {{ formatType(state.data.damageClass) }}</span>
+                      <span>Poder: {{ state.data.power ?? '—' }}</span>
+                      <span>Precisão: {{ state.data.accuracy !== null ? state.data.accuracy + '%' : '—' }}</span>
+                      <span>PP: {{ state.data.pp ?? '—' }}</span>
+                    </div>
+                    @if (state.data.shortEffect) {
+                      <p>{{ state.data.shortEffect }}</p>
+                    }
+                  }
+                }
+              </div>
+            }
+          </li>
+        }
+      </ul>
+
+      @if (hasMoreMoves()) {
+        <button type="button" class="visor-retry-inline" (click)="showMoreMoves()">
+          Carregar mais golpes ({{ activeMoves().length - visibleMoves().length }} restantes)
+        </button>
+      }
+    } @else {
+      <p class="visor-inline-note">Nenhum golpe registrado para este método.</p>
+    }
+  } @else {
+    <p class="visor-inline-note">
+      Lista completa de golpes disponível quando conectado à API do PokéVerse.
+    </p>
+  }
+</div>
+
+<div class="visor-subcard">
+  <div class="visor-subcard-header">
+    <h3 class="visor-subcard-title">Itens Segurados Selvagens</h3>
+  </div>
+  @if (heldItems().length > 0) {
+    <ul class="visor-chip-list">
+      @for (item of heldItems(); track item.name) {
+        <li class="visor-version-tag">{{ item.displayName }} ({{ item.maxRarity }}%)</li>
+      }
+    </ul>
+  } @else {
+    <p class="visor-inline-note">Nenhum item segurado selvagem registrado.</p>
+  }
+</div>

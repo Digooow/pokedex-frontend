@@ -1,0 +1,513 @@
+@layer components {
+  .visor-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: var(--espaco-1);
+    flex-shrink: 0;
+  }
+
+  .visor-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 44px;
+    padding: var(--espaco-1) var(--espaco-1);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 800;
+    line-height: 1.15;
+    text-align: center;
+    color: var(--texto-lcd-secundario);
+    background-color: var(--pv-lcd-tab-bg);
+    border: 1px solid var(--borda-lcd-suave);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease,
+      transform 110ms var(--pv-motion-ease-out);
+  }
+
+  .visor-tab-btn:hover:not(.is-active) {
+    background-color: var(--pv-lcd-tab-hover-bg);
+    color: var(--texto-lcd-principal);
+  }
+
+  .visor-tab-btn.is-active {
+    background-color: var(--pv-lcd-tab-active-bg);
+    border-color: var(--pv-lcd-tab-active-border);
+    color: var(--pv-lcd-tab-active-ink);
+    box-shadow: inset 0 1px 0 var(--borda-visor-acento);
+  }
+
+  .visor-tab-btn:active {
+    transform: translateY(1px) scale(0.985);
+  }
+
+  .visor-tabpanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-3);
+    flex: 1 0 auto;
+    min-width: 0;
+  }
+
+  .visor-rarity-chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--espaco-1);
+  }
+
+  .visor-rarity-chip {
+    padding: 0.15rem 0.5rem;
+    border-radius: var(--pv-radius-pill);
+    font-family: var(--fonte-mono);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    border: 1px solid var(--borda-lcd-suave);
+  }
+
+  .visor-rarity-chip--legendary {
+    background-color: var(--pv-lcd-rarity-legendary-bg);
+    color: var(--pv-lcd-rarity-legendary-ink);
+    border-color: var(--borda-hud-aviso);
+  }
+
+  .visor-rarity-chip--mythical {
+    background-color: var(--pv-lcd-rarity-mythical-bg);
+    color: var(--pv-lcd-rarity-mythical-ink);
+    border-color: var(--borda-visor-acento);
+  }
+
+  .visor-rarity-chip--baby {
+    background-color: var(--pv-lcd-rarity-baby-bg);
+    color: var(--pv-lcd-rarity-baby-ink);
+  }
+
+  .pokemon-genus {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--texto-lcd-secundario);
+  }
+
+  .visor-media-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-2);
+  }
+
+  .visor-media-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-1);
+  }
+
+  .visor-media-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--espaco-1);
+    min-height: 44px;
+    padding: var(--espaco-1) var(--espaco-2);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--texto-lcd-principal);
+    background-color: var(--pv-lcd-pill-bg);
+    border: 1px solid var(--borda-lcd-suave);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      transform 110ms var(--pv-motion-ease-out);
+  }
+
+  .visor-media-btn:hover:not(:disabled) {
+    background-color: var(--pv-lcd-tab-hover-bg);
+  }
+
+  .visor-media-btn[aria-pressed='true'] {
+    background-color: var(--pv-lcd-pill-active-bg);
+    border-color: var(--pv-lcd-pill-active-border);
+    color: var(--pv-lcd-pill-active-ink);
+  }
+
+  .visor-media-btn:disabled {
+    opacity: 0.48;
+    cursor: not-allowed;
+  }
+
+  .visor-media-btn:active:not(:disabled) {
+    transform: translateY(1px) scale(0.98);
+  }
+
+  .visor-cry-error {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--cor-hud-aviso);
+  }
+
+  .visor-lore-card,
+  .visor-subcard {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+    padding: var(--espaco-3);
+    background-color: var(--bg-dado-celula);
+    border: 1px solid var(--borda-lcd-suave);
+    border-radius: var(--raio-pequeno);
+    min-width: 0;
+  }
+
+  .visor-subcard-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-2);
+  }
+
+  .visor-subcard-title {
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: var(--texto-lcd-principal);
+  }
+
+  .visor-version-tag,
+  .visor-bst-badge {
+    padding: 0.15rem 0.55rem;
+    border-radius: var(--pv-radius-pill);
+    font-family: var(--fonte-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background-color: var(--bg-cartao-interno);
+    border: 1px solid var(--borda-visor-acento);
+    color: var(--texto-lcd-destaque);
+  }
+
+  .visor-lore-text {
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--texto-lcd-secundario);
+  }
+
+  .visor-stats-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+    list-style: none;
+  }
+
+  .visor-stat-row {
+    display: grid;
+    grid-template-columns: 2.75rem 2.5rem 1fr;
+    align-items: center;
+    gap: var(--espaco-2);
+  }
+
+  .visor-stat-label {
+    font-family: var(--fonte-mono);
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--texto-lcd-destaque);
+  }
+
+  .visor-stat-val {
+    font-family: var(--fonte-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.8125rem;
+    font-weight: 800;
+    text-align: right;
+    color: var(--texto-lcd-principal);
+  }
+
+  .visor-stat-track {
+    height: 0.55rem;
+    border-radius: var(--pv-radius-pill);
+    background-color: var(--pv-stat-track-bg);
+    border: 1px solid var(--borda-lcd-suave);
+    overflow: hidden;
+  }
+
+  .visor-stat-fill {
+    display: block;
+    height: 100%;
+    border-radius: var(--pv-radius-pill);
+  }
+
+  .visor-stat-fill--low {
+    background-color: var(--pv-stat-low);
+  }
+
+  .visor-stat-fill--mid {
+    background-color: var(--pv-stat-mid);
+  }
+
+  .visor-stat-fill--high {
+    background-color: var(--pv-stat-high);
+  }
+
+  .visor-stat-fill--apex {
+    background-color: var(--pv-stat-apex);
+  }
+
+  .visor-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-1);
+    list-style: none;
+  }
+
+  .visor-eff-groups {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+  }
+
+  .visor-eff-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-1);
+  }
+
+  .visor-eff-badge {
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--pv-radius-pill);
+    font-family: var(--fonte-mono);
+    font-size: 0.75rem;
+    font-weight: 800;
+    border: 1px solid var(--borda-lcd-suave);
+  }
+
+  .visor-eff-badge--quad-weak {
+    background-color: var(--pv-eff-quad-weak-bg);
+    border-color: var(--pv-eff-quad-weak-border);
+    color: var(--pv-eff-quad-weak-ink);
+  }
+
+  .visor-eff-badge--weak {
+    background-color: var(--pv-eff-weak-bg);
+    border-color: var(--pv-eff-weak-border);
+    color: var(--pv-eff-weak-ink);
+  }
+
+  .visor-eff-badge--resist {
+    background-color: var(--pv-eff-resist-bg);
+    border-color: var(--pv-eff-resist-border);
+    color: var(--pv-eff-resist-ink);
+  }
+
+  .visor-eff-badge--quad-resist {
+    background-color: var(--pv-eff-quad-resist-bg);
+    border-color: var(--pv-eff-quad-resist-border);
+    color: var(--pv-eff-quad-resist-ink);
+  }
+
+  .visor-eff-badge--immune {
+    background-color: var(--pv-eff-immune-bg);
+    border-color: var(--pv-eff-immune-border);
+    color: var(--pv-eff-immune-ink);
+  }
+
+  .visor-accordion-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+    list-style: none;
+  }
+
+  .visor-accordion-trigger {
+    width: 100%;
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-2);
+    padding: var(--espaco-2) var(--espaco-3);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-align: left;
+    color: var(--texto-lcd-principal);
+    background-color: var(--bg-cartao-interno);
+    border: 1px solid var(--borda-lcd-suave);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+  }
+
+  .visor-accordion-trigger:hover {
+    background-color: var(--pv-lcd-tab-hover-bg);
+  }
+
+  .visor-accordion-body {
+    padding: var(--espaco-2) var(--espaco-3);
+    margin-top: var(--espaco-1);
+    background-color: var(--bg-imagem-visor);
+    border-left: 3px solid var(--borda-visor-acento);
+    border-radius: var(--raio-pequeno);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--texto-lcd-secundario);
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+  }
+
+  .visor-evo-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+    list-style: none;
+  }
+
+  .visor-evo-item {
+    padding-left: calc(var(--evo-depth, 0) * 0.75rem);
+  }
+
+  .visor-evo-btn {
+    width: 100%;
+    min-height: 48px;
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-2);
+    padding: var(--espaco-2);
+    font: inherit;
+    text-align: left;
+    color: var(--texto-lcd-principal);
+    background-color: var(--bg-cartao-interno);
+    border: 1px solid var(--borda-lcd-suave);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+  }
+
+  .visor-evo-btn[aria-current='true'] {
+    background-color: var(--pv-lcd-tab-active-bg);
+    border-color: var(--pv-lcd-tab-active-border);
+  }
+
+  .visor-evo-btn:hover:not([aria-current='true']) {
+    background-color: var(--pv-lcd-tab-hover-bg);
+  }
+
+  .visor-evo-sprite {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .visor-evo-meta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.15rem;
+  }
+
+  .visor-evo-name {
+    font-size: 0.875rem;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+  }
+
+  .visor-evo-cond {
+    font-size: 0.75rem;
+    color: var(--texto-lcd-secundario);
+    overflow-wrap: anywhere;
+  }
+
+  .visor-forms-grid,
+  .visor-sprites-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: var(--espaco-2);
+    list-style: none;
+  }
+
+  .visor-form-card,
+  .visor-sprite-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--espaco-1);
+    padding: var(--espaco-2);
+    background-color: var(--bg-cartao-interno);
+    border: 1px solid var(--borda-lcd-suave);
+    border-radius: var(--raio-pequeno);
+    text-align: center;
+    font: inherit;
+    color: var(--texto-lcd-principal);
+  }
+
+  .visor-form-card {
+    width: 100%;
+    min-height: 44px;
+    cursor: pointer;
+  }
+
+  .visor-form-card[aria-current='true'] {
+    border-color: var(--pv-lcd-tab-active-border);
+    background-color: var(--pv-lcd-tab-active-bg);
+  }
+
+  .visor-move-meta-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-2);
+    font-family: var(--fonte-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.75rem;
+    color: var(--texto-lcd-destaque);
+  }
+
+  .visor-inline-note {
+    font-size: 0.8125rem;
+    color: var(--texto-lcd-secundario);
+    line-height: 1.45;
+  }
+
+  .visor-retry-inline {
+    align-self: flex-start;
+    min-height: 44px;
+    padding: var(--espaco-1) var(--espaco-3);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--texto-lcd-principal);
+    background-color: var(--pv-lcd-tab-bg);
+    border: 1px solid var(--borda-visor-acento);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+  }
+
+  @container visor (min-width: 340px) {
+    .visor-rarity-chips {
+      justify-content: flex-start;
+    }
+
+    .visor-tab-btn {
+      font-size: 0.8125rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .visor-tab-btn,
+    .visor-media-btn {
+      transition: none;
+    }
+
+    .visor-tab-btn:active,
+    .visor-media-btn:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}

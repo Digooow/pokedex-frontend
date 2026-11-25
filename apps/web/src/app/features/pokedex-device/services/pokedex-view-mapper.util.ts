@@ -1,11 +1,14 @@
 import {
   type PokeApiCatalogResponse,
+  type PokemonBundle,
   type PokemonDetailDto,
   type SearchablePokemonItem,
   buildSearchableCatalogItem,
   extractPokemonIdFromUrl,
   formatPokeApiText,
 } from '@pokeverse/shared';
+
+export type PokedexCacheSource = 'hit' | 'miss' | 'stale-fallback' | 'direct';
 
 export interface PokemonDetailView {
   readonly id: number;
@@ -21,6 +24,7 @@ export interface PokemonDetailView {
   readonly types: readonly string[];
   readonly abilities: readonly string[];
   readonly stats: readonly { readonly label: string; readonly value: number }[];
+  readonly bundle: PokemonBundle | null;
 }
 
 export interface ResolvedPokemonForSlot {
@@ -33,8 +37,9 @@ export interface ResolvedPokemonForSlot {
 export type ResolvedPokemonResult =
   | {
       readonly found: true;
-      readonly dto: PokemonDetailDto;
-      readonly source: 'hit' | 'miss' | 'direct';
+      readonly dto: PokemonDetailDto | null;
+      readonly bundle: PokemonBundle | null;
+      readonly source: PokedexCacheSource;
     }
   | { readonly found: false; readonly notFound: boolean; readonly statusCode: number | null };
 
@@ -44,6 +49,19 @@ export function mapCatalogEntriesToSearchable(
   return catalog.results
     .map((entry) => buildSearchableCatalogItem(extractPokemonIdFromUrl(entry.url), entry.name))
     .filter((item) => item.id > 0);
+}
+
+function formatMetricLabel(rawTenths: number, unit: 'm' | 'kg'): string {
+  const formatted = (rawTenths / 10).toLocaleString('pt-BR', {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  });
+  return `${formatted} ${unit}`;
+}
+
+function formatAbilityLabel(name: string, isHidden: boolean): string {
+  const formatted = formatPokeApiText(name);
+  return isHidden ? `${formatted} (oculta)` : formatted;
 }
 
 export function mapPokemonDtoToView(dto: PokemonDetailDto): PokemonDetailView {
@@ -56,21 +74,53 @@ export function mapPokemonDtoToView(dto: PokemonDetailDto): PokemonDetailView {
     displayName: formatPokeApiText(dto.name),
     spriteUrl: artwork ?? defaultSprite,
     fallbackSpriteUrl: defaultSprite,
-    heightMeters: `${(dto.height / 10).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} m`,
-    weightKg: `${(dto.weight / 10).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} kg`,
+    heightMeters: formatMetricLabel(dto.height, 'm'),
+    weightKg: formatMetricLabel(dto.weight, 'kg'),
     heightRawDm: dto.height,
     weightRawHg: dto.weight,
     types: dto.types.map((slot) => formatPokeApiText(slot.type.name)),
-    abilities: dto.abilities.map((slot) =>
-      slot.is_hidden
-        ? `${formatPokeApiText(slot.ability.name)} (oculta)`
-        : formatPokeApiText(slot.ability.name),
-    ),
+    abilities: dto.abilities.map((slot) => formatAbilityLabel(slot.ability.name, slot.is_hidden)),
     stats: dto.stats.map((entry) => ({
       label: formatPokeApiText(entry.stat.name),
       value: entry.base_stat,
     })),
+    bundle: null,
   };
+}
+
+export function mapPokemonBundleToView(bundle: PokemonBundle): PokemonDetailView {
+  const pokemon = bundle.pokemon;
+  const artwork = pokemon.sprites.officialArtwork.frontDefault;
+  const defaultSprite = pokemon.sprites.default.frontDefault;
+  return {
+    id: pokemon.id,
+    name: pokemon.name.toLowerCase(),
+    paddedId: `#${String(pokemon.id).padStart(4, '0')}`,
+    displayName: formatPokeApiText(pokemon.name),
+    spriteUrl: artwork ?? defaultSprite,
+    fallbackSpriteUrl: defaultSprite,
+    heightMeters: formatMetricLabel(pokemon.height, 'm'),
+    weightKg: formatMetricLabel(pokemon.weight, 'kg'),
+    heightRawDm: pokemon.height,
+    weightRawHg: pokemon.weight,
+    types: pokemon.types.map((slot) => formatPokeApiText(slot.type.name)),
+    abilities: pokemon.abilities.map((slot) =>
+      formatAbilityLabel(slot.ability.name, slot.is_hidden),
+    ),
+    stats: pokemon.stats.map((entry) => ({
+      label: formatPokeApiText(entry.stat.name),
+      value: entry.base_stat,
+    })),
+    bundle,
+  };
+}
+
+export function mapResolvedPokemonToView(
+  resolved: Extract<ResolvedPokemonResult, { readonly found: true }>,
+): PokemonDetailView | null {
+  if (resolved.bundle) return mapPokemonBundleToView(resolved.bundle);
+  if (resolved.dto) return mapPokemonDtoToView(resolved.dto);
+  return null;
 }
 
 export function toResolvedPokemonForSlot(dto: PokemonDetailDto): ResolvedPokemonForSlot {
