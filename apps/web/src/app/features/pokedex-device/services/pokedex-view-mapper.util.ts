@@ -1,10 +1,14 @@
 import {
+  type CatalogFilterResult,
+  type EnrichedCatalogItem,
   type PokeApiCatalogResponse,
+  type PokedexAdvancedQuery,
   type PokemonBundle,
   type PokemonDetailDto,
   type SearchablePokemonItem,
   buildSearchableCatalogItem,
   extractPokemonIdFromUrl,
+  filterCatalogWithAdvancedQuery,
   formatPokeApiText,
 } from '@pokeverse/shared';
 
@@ -144,4 +148,54 @@ export function buildPokemonFetchErrorMessage(
     return `Não foi possível concluir a comunicação com a PokéAPI no momento (código HTTP ${err.statusCode}).`;
   }
   return 'A PokéAPI não respondeu a tempo. Verifique sua conexão com a internet e tente novamente.';
+}
+
+export function buildAdvancedCatalogResult(
+  enriched: readonly EnrichedCatalogItem[],
+  queryPayload: PokedexAdvancedQuery,
+  hasTerm: boolean,
+  batchLimit: number,
+): { readonly totalMatches: number; readonly result: CatalogFilterResult } {
+  const matches = filterCatalogWithAdvancedQuery(enriched, queryPayload);
+  const sliced = hasTerm ? matches : matches.slice(0, batchLimit);
+  return {
+    totalMatches: matches.length,
+    result: {
+      mode: 'exact',
+      items: sliced.map((item) => ({
+        id: item.id,
+        name: item.name,
+        displayName: item.displayName,
+        compactName: item.compactName,
+        phoneticName: item.phoneticName,
+        score: 0,
+        approximate: false,
+      })),
+    },
+  };
+}
+
+export function resolveCatalogStatusLabel(params: {
+  readonly hasActiveFilters: boolean;
+  readonly enrichedStatus: string;
+  readonly catalogStatus: string;
+  readonly totalCount: number;
+  readonly term: string;
+  readonly filteredCount: number;
+  readonly filterMode: string;
+}): string {
+  if (params.hasActiveFilters) {
+    if (params.enrichedStatus === 'loading') return 'Aplicando filtros avançados...';
+    if (params.enrichedStatus === 'error') return 'Filtros avançados indisponíveis.';
+    return params.totalCount === 0
+      ? 'Nenhum Pokémon com os filtros ativos'
+      : `${params.totalCount} Pokémon com filtros ativos`;
+  }
+  if (params.catalogStatus === 'loading') return 'Carregando lista da PokéAPI...';
+  if (params.catalogStatus === 'error') return 'Não foi possível carregar a lista completa agora.';
+  if (params.catalogStatus !== 'success') return 'Aguardando abertura do módulo...';
+  if (!params.term) return `Todos os Pokémon (${params.totalCount})`;
+  if (params.filteredCount === 0) return `Nenhum match para "${params.term}"`;
+  if (params.filterMode === 'approximate') return `Sugestões aproximadas (${params.filteredCount})`;
+  return `${params.filteredCount} Pokémon encontrados`;
 }

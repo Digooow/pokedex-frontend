@@ -91,4 +91,42 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(hasOverflow).toBe(false);
     expect(bff.consoleErrors).toEqual([]);
   });
+
+  test('applies combined Pokedex filters, runs 1v1 comparison, and navigates Encyclopedia reverse lookup', async ({
+    page,
+    bff,
+  }) => {
+    await page.goto(`${bff.baseUrl}/`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#btn-abrir-pokedex').click();
+
+    await page.locator('#btn-filtros-catalogo').click();
+    await expect(page.locator('#pokedex-filtros-painel')).toBeVisible();
+    await page.locator('.filtro-chip', { hasText: 'Electric' }).click();
+    await expect(page.locator('#catalogo-status')).toContainText('1 Pokémon com filtros ativos');
+
+    const pikachuItem = page.locator('.catalogo-item', { hasText: 'Pikachu' }).first();
+    await pikachuItem.click();
+    await pikachuItem.click();
+    await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
+
+    await page.locator('#btn-comparar-1v1').click();
+    const compareDialog = page.locator('dialog.compare-dialog');
+    await expect(compareDialog).toBeVisible();
+    await compareDialog.locator('.compare-chip', { hasText: 'Pikachu' }).nth(1).click();
+    await expect(compareDialog.locator('.compare-stats')).toBeVisible();
+    await compareDialog.getByRole('button', { name: 'Fechar' }).click();
+
+    await page.goto(`${bff.baseUrl}/enciclopedia`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1#main-heading')).toContainText('Enciclopédia PokéVerse');
+    await page.locator('.ency-cat-btn', { hasText: 'Tipos' }).click();
+    await page.locator('.ency-list-item', { hasText: 'Electric' }).click();
+    await expect(page.locator('.ency-reverse-link', { hasText: 'Pikachu' })).toBeVisible();
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+    expect(bff.consoleErrors).toEqual([]);
+  });
 });

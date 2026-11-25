@@ -8,10 +8,12 @@ import {
 import { Subscription, firstValueFrom } from 'rxjs';
 import { type ScenarioId, ScenarioStore } from '../../../core/stores/scenario.store';
 import { PokedexApiClient } from './pokedex-api.client';
+import { PokedexFiltersStore } from './pokedex-filters.store';
 import {
   type PokedexCacheSource,
   type PokemonDetailView,
   type ResolvedPokemonForSlot,
+  buildAdvancedCatalogResult,
   buildPokemonFetchErrorMessage,
   mapCatalogEntriesToSearchable,
   mapResolvedPokemonToView,
@@ -25,6 +27,7 @@ export type { PokedexCacheSource, PokemonDetailView, ResolvedPokemonForSlot, Sce
 @Injectable({ providedIn: 'root' })
 export class PokedexStore implements OnDestroy {
   private readonly apiClient = inject(PokedexApiClient);
+  private readonly filtersStore = inject(PokedexFiltersStore);
   private readonly scenarioStore = inject(ScenarioStore);
   private catalogSub: Subscription | null = null;
   private detailSub: Subscription | null = null;
@@ -60,12 +63,32 @@ export class PokedexStore implements OnDestroy {
     return state.status === 'success' ? state.data : null;
   });
 
+  private readonly advancedCatalogView = computed(() => {
+    if (!this.filtersStore.hasActiveFilters()) {
+      return null;
+    }
+    const enriched = this.filtersStore.enrichedState();
+    if (enriched.status !== 'success') {
+      return { totalMatches: 0, result: { mode: 'exact' as const, items: [] } };
+    }
+    return buildAdvancedCatalogResult(
+      enriched.data,
+      this.filtersStore.buildQueryPayload(this.querySignal()),
+      Boolean(this.querySignal().trim()),
+      this.batchLimitSignal(),
+    );
+  });
+
   readonly catalogTotalCount = computed<number>(() => {
+    const adv = this.advancedCatalogView();
+    if (adv) return adv.totalMatches;
     const state = this.catalogStateSignal();
     return state.status === 'success' ? state.data.length : 0;
   });
 
   readonly filteredCatalog = computed(() => {
+    const adv = this.advancedCatalogView();
+    if (adv) return adv.result;
     const state = this.catalogStateSignal();
     const list = state.status === 'success' ? state.data : [];
     const maxResults = this.querySignal().trim() ? undefined : this.batchLimitSignal();
@@ -162,7 +185,7 @@ export class PokedexStore implements OnDestroy {
       return -1;
     }
     const numericId = Number.parseInt(target.replace(/^#/, ''), 10);
-    if (this.querySignal().trim()) {
+    if (this.querySignal().trim() || this.filtersStore.hasActiveFilters()) {
       const filtered = this.filteredCatalog().items;
       return filtered.findIndex(
         (item) =>

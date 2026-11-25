@@ -45,6 +45,14 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./features/regions-museum/museum-page.component').then((m) => m.MuseumPageComponent),
   },
+  {
+    path: 'enciclopedia',
+    title: 'Enciclopédia Global — PokéVerse OS',
+    loadComponent: () =>
+      import('./features/encyclopedia/encyclopedia-page.component').then(
+        (m) => m.EncyclopediaPageComponent,
+      ),
+  },
   trainerModuleRoute('mundo', 'Vila Central — PokéVerse OS', 'overworld'),
   trainerModuleRoute('arcade', 'Arcade Retrô 3D — PokéVerse OS', 'arcade'),
   trainerModuleRoute('arena', 'Battle Frontier — PokéVerse OS', 'arena'),

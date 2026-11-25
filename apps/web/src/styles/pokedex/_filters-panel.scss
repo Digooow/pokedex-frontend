@@ -1,0 +1,186 @@
+@layer components {
+  .catalogo-cabecalho-acoes {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--espaco-2);
+    flex-shrink: 0;
+  }
+
+  .btn-catalogo-filtros {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--espaco-1);
+    min-height: 32px;
+    padding: 0.25rem 0.625rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--pv-filter-btn-ink);
+    background-color: var(--pv-filter-btn-bg);
+    border: 1px solid var(--pv-filter-panel-border);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      transform 110ms var(--pv-motion-ease-out);
+  }
+
+  .btn-catalogo-filtros[aria-expanded='true'],
+  .btn-catalogo-filtros.has-active {
+    background-color: var(--pv-filter-btn-active-bg);
+    border-color: var(--pv-filter-btn-active-border);
+    color: var(--pv-filter-btn-active-ink);
+  }
+
+  .btn-catalogo-filtros:active {
+    transform: translateY(1px) scale(0.98);
+  }
+
+  .filtros-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.2rem;
+    padding: 0 0.3rem;
+    border-radius: var(--pv-radius-pill);
+    background-color: var(--pv-filter-select-bg);
+    color: var(--pv-filter-btn-active-ink);
+    font-family: var(--fonte-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.6875rem;
+  }
+
+  .filtros-painel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-2);
+    max-height: 15rem;
+    overflow-y: auto;
+    padding: var(--espaco-3);
+    background-color: var(--pv-filter-panel-bg);
+    color: var(--pv-ink-primary);
+    border: 1px solid var(--pv-filter-panel-border);
+    border-radius: var(--raio-pequeno);
+    flex-shrink: 0;
+  }
+
+  .filtros-aviso-degradado,
+  .filtros-estado {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--pv-ink-muted);
+  }
+
+  .filtros-estado--erro {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-2);
+    color: var(--pv-hud-warn-ink);
+  }
+
+  .filtros-bloco-titulo {
+    display: block;
+    margin-bottom: var(--espaco-1);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--pv-ink-muted);
+  }
+
+  .filtros-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--espaco-1);
+  }
+
+  .filtro-chip {
+    min-height: 32px;
+    padding: 0.2rem 0.55rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--pv-filter-chip-ink);
+    background-color: var(--pv-filter-chip-bg);
+    border: 1px solid var(--pv-border-subtle);
+    border-radius: var(--pv-radius-pill);
+    cursor: pointer;
+  }
+
+  .filtro-chip[aria-pressed='true'] {
+    background-color: var(--pv-filter-chip-active-bg);
+    border-color: var(--pv-filter-chip-active-border);
+    color: var(--pv-filter-chip-active-ink);
+  }
+
+  .filtros-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    gap: var(--espaco-2);
+  }
+
+  .filtro-campo {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--pv-ink-muted);
+  }
+
+  .filtro-select,
+  .filtro-input {
+    width: 100%;
+    min-height: 36px;
+    padding: 0.3rem 0.5rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    color: var(--pv-filter-select-ink);
+    background-color: var(--pv-filter-select-bg);
+    border: 1px solid var(--pv-border-subtle);
+    border-radius: var(--raio-pequeno);
+  }
+
+  .filtros-rodape {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-2);
+    padding-top: var(--espaco-1);
+    border-top: 1px solid var(--pv-border-subtle);
+  }
+
+  .filtro-acao-btn {
+    min-height: 36px;
+    padding: 0.3rem 0.75rem;
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--pv-ink-primary);
+    background-color: var(--pv-filter-chip-bg);
+    border: 1px solid var(--pv-border-strong);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+  }
+
+  .filtro-acao-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .btn-catalogo-filtros {
+      transition: none;
+    }
+
+    .btn-catalogo-filtros:active {
+      transform: none;
+    }
+  }
+}

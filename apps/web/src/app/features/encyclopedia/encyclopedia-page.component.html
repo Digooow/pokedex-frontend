@@ -1,0 +1,120 @@
+<section class="ency-page" aria-labelledby="main-heading">
+  <header class="ency-header">
+    <div class="ency-header__copy">
+      <span class="ency-header__tag">ACESSO PÚBLICO · 11 RECURSOS BFF</span>
+      <h1 id="main-heading" tabindex="-1" pvMainHeading class="ency-header__title">
+        Enciclopédia PokéVerse
+      </h1>
+      <p class="ency-header__subtitle">
+        {{ store.categoryConfig().description }}
+      </p>
+    </div>
+    <a routerLink="/pokedex" class="ency-header__back">Voltar à Pokédex 3D →</a>
+  </header>
+
+  <nav class="ency-categories" aria-label="Categorias da Enciclopédia">
+    @for (cat of categories; track cat.key) {
+      <button
+        type="button"
+        class="ency-cat-btn"
+        [attr.aria-pressed]="store.activeCategory() === cat.key"
+        (click)="store.selectCategory(cat.key)"
+      >
+        {{ cat.label }}
+      </button>
+    }
+  </nav>
+
+  <div class="ency-layout">
+    <aside class="ency-sidebar" aria-label="Lista de registros">
+      <form class="ency-search" (submit)="onSearchSubmit($event)">
+        <label for="ency-search-input" class="visually-hidden">
+          Filtrar {{ store.categoryConfig().label }}
+        </label>
+        <input
+          id="ency-search-input"
+          type="search"
+          class="ency-search__input"
+          [value]="store.searchQuery()"
+          [placeholder]="'Buscar em ' + store.categoryConfig().label + '...'"
+          (input)="onSearchInput($event)"
+        />
+        <button type="submit" class="ency-btn ency-btn--primary">Buscar</button>
+        @if (store.committedQuery()) {
+          <button type="button" class="ency-btn" (click)="store.clearSearch()">Limpar</button>
+        }
+      </form>
+
+      @switch (store.listState().status) {
+        @case ('loading') {
+          <p class="ency-list-state">Carregando {{ store.categoryConfig().label }}...</p>
+        }
+        @case ('error') {
+          @let err = $any(store.listState());
+          <div class="ency-list-state ency-list-state--error" role="alert">
+            <p>{{ err.error.message }}</p>
+            <button type="button" class="ency-btn" (click)="store.retryList()">
+              Tentar novamente
+            </button>
+          </div>
+        }
+        @case ('empty') {
+          <p class="ency-list-state">Nenhum registro encontrado nesta categoria.</p>
+        }
+        @case ('success') {
+          @let listData = $any(store.listState()).data;
+          <div class="ency-list-meta">
+            <span class="tabular-nums">{{ listData.total }} registros</span>
+            <span class="tabular-nums">
+              Página {{ store.currentPage() }} / {{ store.totalPages() }}
+            </span>
+          </div>
+
+          <ul class="ency-list">
+            @for (item of listData.items; track item.id + ':' + item.name) {
+              <li>
+                <button
+                  type="button"
+                  class="ency-list-item"
+                  [class.is-active]="store.selectedName() === item.name"
+                  [attr.aria-current]="store.selectedName() === item.name ? 'true' : null"
+                  (click)="store.selectItem(item.name)"
+                >
+                  <span class="ency-list-item__title">{{ item.displayName }}</span>
+                  @if (item.subtitle) {
+                    <span class="ency-list-item__sub">{{ item.subtitle }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+
+          <div class="ency-pagination">
+            <button
+              type="button"
+              class="ency-btn"
+              [disabled]="store.offset() === 0"
+              (click)="store.prevPage()"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="ency-btn"
+              [disabled]="!listData.hasMore"
+              (click)="store.nextPage()"
+            >
+              Próxima
+            </button>
+          </div>
+        }
+      }
+    </aside>
+
+    <pv-encyclopedia-detail-panel
+      [detailState]="store.detailState()"
+      (retry)="store.retryDetail()"
+      (navigateRelated)="store.navigateRelated($event.category, $event.name)"
+    />
+  </div>
+</section>

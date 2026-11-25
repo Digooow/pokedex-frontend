@@ -1,0 +1,121 @@
+<section class="ency-detail" aria-live="polite">
+  @switch (detailState().status) {
+    @case ('loading') {
+      <div class="ency-detail__state">
+        <p>Carregando ficha enciclopédica...</p>
+      </div>
+    }
+    @case ('error') {
+      @let err = $any(detailState());
+      <div class="ency-detail__state ency-detail__state--error" role="alert">
+        <p>{{ err.error.message }}</p>
+        <button type="button" class="ency-btn" (click)="retry.emit()">Tentar novamente</button>
+      </div>
+    }
+    @case ('success') {
+      @if (presented(); as view) {
+        <article class="ency-card">
+          <header class="ency-card__header">
+            @if (view.spriteUrl) {
+              <img
+                class="ency-card__sprite"
+                [src]="view.spriteUrl"
+                [alt]="view.title"
+                width="48"
+                height="48"
+              />
+            }
+            <div class="ency-card__titles">
+              <span class="ency-card__id tabular-nums">#{{ view.id }}</span>
+              <h2 class="ency-card__title">{{ view.title }}</h2>
+              <p class="ency-card__subtitle">{{ view.subtitle }}</p>
+            </div>
+          </header>
+
+          @if (view.badges.length > 0) {
+            <ul class="ency-badges">
+              @for (badge of view.badges; track badge) {
+                <li class="ency-badge">{{ badge }}</li>
+              }
+            </ul>
+          }
+
+          @if (view.metrics.length > 0) {
+            <dl class="ency-metrics">
+              @for (metric of view.metrics; track metric.label) {
+                <div class="ency-metric">
+                  <dt>{{ metric.label }}</dt>
+                  <dd class="tabular-nums">{{ metric.value }}</dd>
+                </div>
+              }
+            </dl>
+          }
+
+          @if (view.description) {
+            <p class="ency-card__desc">{{ view.description }}</p>
+          }
+
+          @if (view.relatedLinks.length > 0) {
+            <div class="ency-section">
+              <h3 class="ency-section__title">{{ view.relatedTitle }}</h3>
+              <div class="ency-related-list">
+                @for (rel of view.relatedLinks; track rel.category + ':' + rel.name) {
+                  <button
+                    type="button"
+                    class="ency-related-btn"
+                    (click)="navigateRelated.emit({ category: rel.category, name: rel.name })"
+                  >
+                    {{ rel.label }}
+                  </button>
+                }
+              </div>
+            </div>
+          }
+
+          @if (view.reversePokemon.length > 0) {
+            <div class="ency-section">
+              <h3 class="ency-section__title">
+                {{ view.reversePokemonTitle }} ({{ view.reversePokemon.length }})
+              </h3>
+              <ul class="ency-reverse-grid">
+                @for (ref of visibleReversePokemon(); track ref.pokemonName + ':' + ref.pokemonId) {
+                  <li>
+                    <a
+                      [routerLink]="['/pokedex']"
+                      [queryParams]="{ q: ref.pokemonName }"
+                      class="ency-reverse-link"
+                    >
+                      <img
+                        [src]="ref.artworkUrl"
+                        [alt]="ref.displayName"
+                        width="36"
+                        height="36"
+                        loading="lazy"
+                      />
+                      <span class="ency-reverse-link__text">
+                        <strong>{{ ref.displayName }}</strong>
+                        @if (ref.tag) {
+                          <small>{{ ref.tag }}</small>
+                        }
+                      </span>
+                    </a>
+                  </li>
+                }
+              </ul>
+              @if (remainingPokemonCount() > 0) {
+                <button type="button" class="ency-btn" (click)="showAllPokemon.set(true)">
+                  Mostrar mais {{ remainingPokemonCount() }} Pokémon
+                </button>
+              }
+            </div>
+          }
+        </article>
+      }
+    }
+    @default {
+      <div class="ency-detail__state">
+        <p>Selecione um registro da lista ao lado para inspecionar sua ficha e abrir a busca reversa na Pokédex.</p>
+      </div>
+    }
+  }
+</section>

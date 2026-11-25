@@ -19,6 +19,13 @@ import { PvMainHeadingDirective } from '../../shared/directives/main-heading.dir
             Base de entrada para o Atlas de Kanto a Paldea (o globo interativo 3D em Three.js entra
             na Fase 4).
           </p>
+          <a
+            [routerLink]="['/enciclopedia']"
+            [queryParams]="{ cat: 'region' }"
+            class="region-card__cta"
+          >
+            Explorar Enciclopédia &amp; Regiões →
+          </a>
         </div>
       </header>
 

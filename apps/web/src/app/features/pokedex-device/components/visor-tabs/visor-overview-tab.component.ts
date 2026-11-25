@@ -37,6 +37,7 @@ export class VisorOverviewTabComponent {
   readonly toggleShiny = output<void>();
   readonly selectSpriteMode = output<VisorSpriteMode>();
   readonly playCry = output<'latest' | 'legacy'>();
+  readonly compareRequested = output<void>();
 
   private readonly usedFallbackSprite = signal(false);
   readonly imageFailed = signal(false);

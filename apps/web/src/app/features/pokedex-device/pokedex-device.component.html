@@ -44,6 +44,7 @@
             (retry)="store.retryLastSearch()"
             (selectSuggestion)="onSelectFromVisor($event)"
             (slotOpened)="onSelectFromVisor($event)"
+            (compareRequested)="compareStore.openWithPokemon($event)"
           />
 
           <pv-pokedex-slots-grid
@@ -75,4 +76,8 @@
     (openExistingRequested)="onOpenExistingFromDialog($event)"
     (overwrittenFromClick)="onOverwrittenFromDialog($event)"
   />
+
+  @defer (when compareStore.dialogOpen()) {
+    <pv-pokedex-compare-dialog (openInPokedex)="onSelectFromVisor($event)" />
+  }
 </main>

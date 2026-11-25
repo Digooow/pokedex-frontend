@@ -10,6 +10,13 @@ import {
   SAMPLE_STATIC_ABILITY,
   SAMPLE_THUNDER_SHOCK_MOVE,
 } from './bff-e2e-data';
+import {
+  SAMPLE_ELECTRIC_TYPE,
+  SAMPLE_ENRICHED_CATALOG,
+  SAMPLE_META_FILTERS,
+  SAMPLE_MOVES_LIST,
+  SAMPLE_TYPES_LIST,
+} from './bff-e2e-encyclopedia.data';
 
 const DIST_DIR = path.resolve(__dirname, '..', 'dist', 'pokeverse-web', 'browser');
 
@@ -140,14 +147,23 @@ function handleAuthRoute(
   return false;
 }
 
+const EXACT_POKEDEX_MOCKS: Readonly<Record<string, unknown>> = {
+  '/api/v1/pokedex/catalog': SAMPLE_CATALOG,
+  '/api/v1/pokedex/catalog/enriched': SAMPLE_ENRICHED_CATALOG,
+  '/api/v1/pokedex/meta/filters': SAMPLE_META_FILTERS,
+  '/api/v1/pokedex/moves': SAMPLE_MOVES_LIST,
+  '/api/v1/pokedex/types': SAMPLE_TYPES_LIST,
+  '/api/v1/pokedex/types/electric': SAMPLE_ELECTRIC_TYPE,
+};
+
 async function handlePokedexRoute(
   req: http.IncomingMessage,
   res: http.ServerResponse,
   pathname: string,
   slots: Map<number, SavedSlotRecord>,
 ): Promise<boolean> {
-  if (pathname === '/api/v1/pokedex/catalog') {
-    writeJson(res, 200, SAMPLE_CATALOG);
+  if (Object.hasOwn(EXACT_POKEDEX_MOCKS, pathname)) {
+    writeJson(res, 200, EXACT_POKEDEX_MOCKS[pathname]);
     return true;
   }
   if (pathname.endsWith('/bundle')) {

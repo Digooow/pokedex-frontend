@@ -13,29 +13,32 @@ import {
   PvRpgContainerDirective,
   PvRpgFocusableDirective,
 } from '../directives/rpg-focusable.directive';
+import { PokedexFiltersStore } from '../services/pokedex-filters.store';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import {
   type RpgDirection,
   resolveStepBackTargetIdentifier,
 } from '../services/pokedex-rpg-nav.util';
+import { resolveCatalogStatusLabel } from '../services/pokedex-view-mapper.util';
 import { PokedexStore } from '../services/pokedex.store';
+import { PokedexFiltersPanelComponent } from './pokedex-filters-panel.component';
 import { PokedexPhysicalControlsComponent } from './pokedex-physical-controls.component';
 
 @Component({
   selector: 'pv-pokedex-search-panel',
-  imports: [PvRpgFocusableDirective, PvRpgContainerDirective, PokedexPhysicalControlsComponent],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [
-    `
-      :host {
-        display: contents;
-      }
-    `,
+  imports: [
+    PvRpgFocusableDirective,
+    PvRpgContainerDirective,
+    PokedexPhysicalControlsComponent,
+    PokedexFiltersPanelComponent,
   ],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  styles: [':host { display: contents; }'],
   templateUrl: './pokedex-search-panel.component.html',
 })
 export class PokedexSearchPanelComponent {
   readonly store = inject(PokedexStore);
+  readonly filters = inject(PokedexFiltersStore);
   readonly rpg = inject(PokedexRpgNavService);
   private readonly searchInputEl = viewChild<ElementRef<HTMLInputElement>>('searchInputEl');
 
@@ -54,19 +57,17 @@ export class PokedexSearchPanelComponent {
     Math.max(0, this.store.catalogTotalCount() - this.store.filteredCatalog().items.length),
   );
 
-  readonly catalogStatusText = computed(() => {
-    const state = this.store.catalogState();
-    if (state.status === 'loading') return 'Carregando lista da PokéAPI...';
-    if (state.status === 'error') return 'Não foi possível carregar a lista completa agora.';
-    if (state.status !== 'success') return 'Aguardando abertura do módulo...';
-
-    const term = this.store.query().trim();
-    const filtered = this.store.filteredCatalog();
-    if (!term) return `Todos os Pokémon (${this.store.catalogTotalCount()})`;
-    if (filtered.items.length === 0) return `Nenhum match para "${term}"`;
-    if (filtered.mode === 'approximate') return `Sugestões aproximadas (${filtered.items.length})`;
-    return `${filtered.items.length} Pokémon encontrados`;
-  });
+  readonly catalogStatusText = computed(() =>
+    resolveCatalogStatusLabel({
+      hasActiveFilters: this.filters.hasActiveFilters(),
+      enrichedStatus: this.filters.enrichedState().status,
+      catalogStatus: this.store.catalogState().status,
+      totalCount: this.store.catalogTotalCount(),
+      term: this.store.query().trim(),
+      filteredCount: this.store.filteredCatalog().items.length,
+      filterMode: this.store.filteredCatalog().mode,
+    }),
+  );
 
   focusInput = () => this.searchInputEl()?.nativeElement.focus();
 
@@ -93,9 +94,7 @@ export class PokedexSearchPanelComponent {
       if (fullIdx >= 0) {
         this.store.ensureCatalogIndexVisible(fullIdx);
         this.rpg.scrollCatalogIndexIntoView(fullIdx);
-      } else {
-        this.rpg.scrollCatalogToTop();
-      }
+      } else this.rpg.scrollCatalogToTop();
       return;
     }
 
@@ -180,15 +179,18 @@ export class PokedexSearchPanelComponent {
   }
 
   onLoadMore(event: Event): void {
-    event.stopPropagation();
-    this.rpg.deactivateKeyboardMode();
+    this.stopAndResetKeyboard(event);
     this.store.loadMoreCatalog();
   }
 
   onReloadCatalog(event: Event): void {
-    event.stopPropagation();
-    this.rpg.deactivateKeyboardMode();
+    this.stopAndResetKeyboard(event);
     this.store.ensureCatalogLoaded(true);
+  }
+
+  onToggleFilters(event: Event): void {
+    this.stopAndResetKeyboard(event);
+    this.filters.togglePanel();
   }
 
   onDpadClick(direction: RpgDirection): void {
@@ -210,6 +212,11 @@ export class PokedexSearchPanelComponent {
   onAButtonClick(): void {
     this.rpg.deactivateKeyboardMode();
     this.aConfirm.emit();
+  }
+
+  private stopAndResetKeyboard(event: Event): void {
+    event.stopPropagation();
+    this.rpg.deactivateKeyboardMode();
   }
 
   private resetFormValidation(): void {

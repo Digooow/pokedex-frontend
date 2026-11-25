@@ -1,0 +1,159 @@
+<div
+  id="pokedex-filtros-painel"
+  class="filtros-painel"
+  (click)="$event.stopPropagation()"
+  (keydown)="onPanelKeyDown($event)"
+>
+  @if (filters.enrichedState().status === 'loading') {
+    <p class="filtros-estado">Carregando índice enriquecido e metadados...</p>
+  } @else if (filters.enrichedState().status === 'error') {
+    <div class="filtros-estado filtros-estado--erro" role="alert">
+      <span>Não foi possível carregar os filtros avançados.</span>
+      <button type="button" class="filtro-acao-btn" (click)="onRetry($event)">
+        Tentar novamente
+      </button>
+    </div>
+  } @else {
+    @if (filters.degradedCatalog()) {
+      <p class="filtros-aviso-degradado">
+        Catálogo em modo reduzido: alguns filtros taxonômicos podem estar indisponíveis.
+      </p>
+    }
+
+    <div>
+      <span class="filtros-bloco-titulo">Tipos (até 2)</span>
+      <div class="filtros-chips">
+        @for (type of availableTypes(); track type) {
+          <button
+            type="button"
+            class="filtro-chip"
+            [attr.aria-pressed]="isTypeSelected(type)"
+            (click)="filters.toggleType(type)"
+          >
+            {{ formatLabel(type) }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="filtros-grid">
+      <label class="filtro-campo">
+        Geração
+        <select
+          class="filtro-select"
+          [value]="filters.generation() ?? ''"
+          (change)="onGenerationChange($event)"
+        >
+          <option value="">Todas</option>
+          @for (gen of generationOptions(); track gen.id) {
+            <option [value]="gen.id">
+              Gen {{ gen.id }}{{ gen.regionName ? ' · ' + formatLabel(gen.regionName) : '' }}
+            </option>
+          }
+        </select>
+      </label>
+
+      <label class="filtro-campo">
+        Ordenação
+        <select class="filtro-select" [value]="filters.sortBy()" (change)="onSortChange($event)">
+          <option value="id-asc"># Crescente</option>
+          <option value="id-desc"># Decrescente</option>
+          <option value="name-asc">Nome A–Z</option>
+          <option value="bst-desc">Maior BST</option>
+        </select>
+      </label>
+
+      <label class="filtro-campo">
+        BST mínimo
+        <input
+          type="number"
+          min="0"
+          max="1200"
+          step="10"
+          class="filtro-input"
+          [value]="filters.minBst() > 0 ? filters.minBst() : ''"
+          placeholder="Ex.: 500"
+          (input)="onMinBstInput($event)"
+        />
+      </label>
+
+      @if (habitatOptions().length > 0) {
+        <label class="filtro-campo">
+          Habitat
+          <select
+            class="filtro-select"
+            [value]="filters.habitat() ?? ''"
+            (change)="onHabitatChange($event)"
+          >
+            <option value="">Todos</option>
+            @for (item of habitatOptions(); track item.id) {
+              <option [value]="item.name">{{ formatLabel(item.name) }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      @if (colorOptions().length > 0) {
+        <label class="filtro-campo">
+          Cor
+          <select
+            class="filtro-select"
+            [value]="filters.color() ?? ''"
+            (change)="onColorChange($event)"
+          >
+            <option value="">Todas</option>
+            @for (item of colorOptions(); track item.id) {
+              <option [value]="item.name">{{ formatLabel(item.name) }}</option>
+            }
+          </select>
+        </label>
+      }
+
+      @if (shapeOptions().length > 0) {
+        <label class="filtro-campo">
+          Formato
+          <select
+            class="filtro-select"
+            [value]="filters.shape() ?? ''"
+            (change)="onShapeChange($event)"
+          >
+            <option value="">Todos</option>
+            @for (item of shapeOptions(); track item.id) {
+              <option [value]="item.name">{{ formatLabel(item.name) }}</option>
+            }
+          </select>
+        </label>
+      }
+    </div>
+
+    <div>
+      <span class="filtros-bloco-titulo">Raridade e Forma</span>
+      <div class="filtros-chips">
+        @for (flag of flagToggles; track flag.key) {
+          <button
+            type="button"
+            class="filtro-chip"
+            [attr.aria-pressed]="isFlagActive(flag.key)"
+            (click)="filters.toggleFlag(flag.key)"
+          >
+            {{ flag.label }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="filtros-rodape">
+      <button
+        type="button"
+        class="filtro-acao-btn"
+        [disabled]="!filters.hasActiveFilters()"
+        (click)="filters.resetFilters()"
+      >
+        Limpar filtros
+      </button>
+      <button type="button" class="filtro-acao-btn" (click)="filters.closePanel()">
+        Fechar
+      </button>
+    </div>
+  }
+</div>

@@ -35,6 +35,16 @@ export class HudModulesMenuComponent {
 
   readonly activeModule = computed<PlatformModuleMeta>(() => {
     const cleanUrl = this.currentUrl().split('?')[0] ?? '/';
+    if (cleanUrl === '/enciclopedia') {
+      return {
+        id: 'museum',
+        label: 'Enciclopédia',
+        route: '/enciclopedia',
+        shortcut: '3',
+        requiresTrainer: false,
+        summary: '',
+      };
+    }
     const matched = this.modules.find((mod) =>
       mod.id === 'pokedex' ? cleanUrl === '/' || cleanUrl === '/pokedex' : cleanUrl === mod.route,
     );

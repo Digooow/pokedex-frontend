@@ -276,7 +276,13 @@ export const SAMPLE_THUNDER_SHOCK_MOVE = {
     shortEffect: 'Inflicts regular damage with a 10% chance to paralyze.',
     effect: 'Inflicts regular damage.',
     flavorTexts: [],
-    learnedByPokemon: [],
+    learnedByPokemon: [
+      {
+        pokemonId: 25,
+        pokemonName: 'pikachu',
+        artworkUrl: `${SPRITE_BASE}/other/official-artwork/25.png`,
+      },
+    ],
   },
 };
 

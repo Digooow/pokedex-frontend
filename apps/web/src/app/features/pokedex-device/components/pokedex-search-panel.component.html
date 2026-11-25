@@ -99,16 +99,36 @@
     >
       <div class="catalogo-cabecalho">
         <span id="catalogo-status" class="catalogo-status">{{ catalogStatusText() }}</span>
-        <button
-          type="button"
-          id="btn-recarregar-catalogo"
-          class="btn-catalogo-recarregar"
-          [hidden]="store.catalogState().status !== 'error'"
-          (click)="onReloadCatalog($event)"
-        >
-          Recarregar
-        </button>
+        <div class="catalogo-cabecalho-acoes">
+          <button
+            type="button"
+            id="btn-filtros-catalogo"
+            class="btn-catalogo-filtros"
+            [class.has-active]="filters.hasActiveFilters()"
+            [attr.aria-expanded]="filters.panelOpen()"
+            aria-controls="pokedex-filtros-painel"
+            (click)="onToggleFilters($event)"
+          >
+            <span>Filtros</span>
+            @if (filters.activeFilterCount() > 0) {
+              <span class="filtros-badge">{{ filters.activeFilterCount() }}</span>
+            }
+          </button>
+          <button
+            type="button"
+            id="btn-recarregar-catalogo"
+            class="btn-catalogo-recarregar"
+            [hidden]="store.catalogState().status !== 'error'"
+            (click)="onReloadCatalog($event)"
+          >
+            Recarregar
+          </button>
+        </div>
       </div>
+
+      @if (filters.panelOpen()) {
+        <pv-pokedex-filters-panel />
+      }
 
       <ul
         id="pokemon-catalogo"

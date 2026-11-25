@@ -23,7 +23,9 @@ import {
   type SlotFeedbackNotice,
 } from './components/pokedex-slots-grid.component';
 import { PokedexVisorComponent } from './components/pokedex-visor.component';
+import { PokedexCompareDialogComponent } from './components/pokedex-compare-dialog.component';
 import { SlotConfirmDialogComponent } from './components/slot-confirm-dialog.component';
+import { PokedexCompareStore } from './services/pokedex-compare.store';
 import { PokedexInputShortcutsService } from './services/pokedex-input-shortcuts.service';
 import { PokedexRpgNavService } from './services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './services/pokedex-slots.store';
@@ -36,6 +38,7 @@ import { PokedexStore } from './services/pokedex.store';
     PokedexSearchPanelComponent,
     PokedexSlotsGridComponent,
     PokedexVisorComponent,
+    PokedexCompareDialogComponent,
     SlotConfirmDialogComponent,
     PvMainHeadingDirective,
   ],
@@ -46,6 +49,7 @@ import { PokedexStore } from './services/pokedex.store';
 export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   readonly store = inject(PokedexStore);
   readonly slotsStore = inject(PokedexSlotsStore);
+  readonly compareStore = inject(PokedexCompareStore);
   readonly rpg = inject(PokedexRpgNavService);
   private readonly shortcuts = inject(PokedexInputShortcutsService);
   private readonly route = inject(ActivatedRoute);

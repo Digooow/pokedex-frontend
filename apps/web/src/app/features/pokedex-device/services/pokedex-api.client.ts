@@ -15,13 +15,19 @@ import {
 import {
   type AbilityDetail,
   CachedAbilityDetailResponseSchema,
+  type CachedEnrichedCatalogResponse,
+  CachedEnrichedCatalogResponseSchema,
   CachedMoveDetailResponseSchema,
+  type CachedPokedexMetaFiltersResponse,
+  CachedPokedexMetaFiltersResponseSchema,
   type MoveDetail,
 } from '@pokeverse/shared/pokedex-encyclopedia';
 import { Observable, catchError, map, of, timeout } from 'rxjs';
 import type { ResolvedPokemonResult } from './pokedex-view-mapper.util';
 
 const API_CATALOG_URL = '/api/v1/pokedex/catalog';
+const API_ENRICHED_CATALOG_URL = '/api/v1/pokedex/catalog/enriched';
+const API_META_FILTERS_URL = '/api/v1/pokedex/meta/filters';
 const API_POKEMON_BASE = '/api/v1/pokedex/pokemon/';
 const API_MOVES_BASE = '/api/v1/pokedex/moves/';
 const API_ABILITIES_BASE = '/api/v1/pokedex/abilities/';
@@ -145,6 +151,28 @@ export class PokedexApiClient {
       map((raw) => {
         const parsed = CachedAbilityDetailResponseSchema.safeParse(raw);
         return parsed.success ? parsed.data.ability : null;
+      }),
+      catchError(() => of(null)),
+    );
+  }
+
+  fetchEnrichedCatalog(): Observable<CachedEnrichedCatalogResponse | null> {
+    return this.http.get<unknown>(API_ENRICHED_CATALOG_URL).pipe(
+      timeout(REQUEST_TIMEOUT_MS),
+      map((raw) => {
+        const parsed = CachedEnrichedCatalogResponseSchema.safeParse(raw);
+        return parsed.success ? parsed.data : null;
+      }),
+      catchError(() => of(null)),
+    );
+  }
+
+  fetchMetaFilters(): Observable<CachedPokedexMetaFiltersResponse | null> {
+    return this.http.get<unknown>(API_META_FILTERS_URL).pipe(
+      timeout(REQUEST_TIMEOUT_MS),
+      map((raw) => {
+        const parsed = CachedPokedexMetaFiltersResponseSchema.safeParse(raw);
+        return parsed.success ? parsed.data : null;
       }),
       catchError(() => of(null)),
     );

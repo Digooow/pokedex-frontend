@@ -385,6 +385,35 @@
   --pv-eff-immune-bg: oklch(22% 0.02 255);
   --pv-eff-immune-border: oklch(62% 0.03 255);
   --pv-eff-immune-ink: oklch(90% 0.02 255);
+
+  --pv-filter-panel-bg: oklch(18% 0.026 255 / 0.94);
+  --pv-filter-panel-border: oklch(52% 0.04 250 / 0.65);
+  --pv-filter-chip-bg: oklch(24% 0.03 255);
+  --pv-filter-chip-ink: oklch(92% 0.015 250);
+  --pv-filter-chip-active-bg: oklch(34% 0.11 232);
+  --pv-filter-chip-active-border: oklch(76% 0.15 225);
+  --pv-filter-chip-active-ink: oklch(98% 0.01 230);
+  --pv-filter-btn-bg: oklch(24% 0.03 255);
+  --pv-filter-btn-ink: oklch(95% 0.01 250);
+  --pv-filter-btn-active-bg: oklch(34% 0.11 84);
+  --pv-filter-btn-active-border: oklch(82% 0.16 84);
+  --pv-filter-btn-active-ink: oklch(98% 0.02 90);
+  --pv-filter-select-bg: oklch(14% 0.022 255);
+  --pv-filter-select-ink: oklch(95% 0.01 250);
+
+  --pv-compare-win-bg: oklch(28% 0.09 152 / 0.72);
+  --pv-compare-win-border: oklch(69% 0.17 152);
+  --pv-compare-win-ink: oklch(94% 0.05 152);
+  --pv-compare-lose-bg: oklch(26% 0.08 25 / 0.55);
+  --pv-compare-lose-ink: oklch(92% 0.05 25);
+  --pv-compare-bar-left: oklch(68% 0.17 232);
+  --pv-compare-bar-right: oklch(78% 0.16 82);
+
+  --pv-encyclopedia-card-bg: oklch(17% 0.026 255 / 0.9);
+  --pv-encyclopedia-card-bg-blur: oklch(17% 0.026 255 / 0.8);
+  --pv-encyclopedia-card-bg-lite: oklch(18% 0.024 255 / 0.96);
+  --pv-encyclopedia-item-bg: oklch(21% 0.028 255 / 0.86);
+  --pv-encyclopedia-item-active-bg: oklch(28% 0.07 232 / 0.9);
 }
 
 @media (forced-colors: active) {

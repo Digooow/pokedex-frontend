@@ -214,6 +214,41 @@ const EXACT_API_MOCKS = {
   '/api/v1/system/bootstrap': { onlineCount: 1, latestEvent: null },
   '/api/v1/auth/providers': { googleEnabled: false, webauthnEnabled: true },
   '/api/v1/pokedex/catalog': SAMPLE_CATALOG,
+  '/api/v1/pokedex/catalog/enriched': {
+    cache: 'hit',
+    source: 'graphql',
+    degraded: false,
+    count: 1,
+    items: [
+      {
+        id: 25,
+        name: 'pikachu',
+        isDefault: true,
+        types: ['electric'],
+        generation: 1,
+        habitat: 'forest',
+        color: 'yellow',
+        shape: 'quadruped',
+        isLegendary: false,
+        isMythical: false,
+        isBaby: false,
+        baseStatTotal: 320,
+      },
+    ],
+  },
+  '/api/v1/pokedex/meta/filters': {
+    cache: 'hit',
+    filters: {
+      types: [{ id: 13, name: 'electric' }],
+      generations: [{ id: 1, name: 'generation-i', regionName: 'kanto' }],
+      habitats: [{ id: 2, name: 'forest' }],
+      colors: [{ id: 10, name: 'yellow' }],
+      shapes: [{ id: 8, name: 'quadruped' }],
+      eggGroups: [{ id: 5, name: 'field' }],
+      growthRates: [{ id: 2, name: 'medium' }],
+      regions: [{ id: 1, name: 'kanto' }],
+    },
+  },
   '/api/v1/pokedex/slots': { slots: [] },
 };
 

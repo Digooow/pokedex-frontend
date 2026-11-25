@@ -50,8 +50,8 @@
     </div>
   </div>
 
-  @if (pk.bundle) {
-    <div class="visor-media-bar" aria-label="Controles visuais e de áudio">
+  <div class="visor-media-bar" aria-label="Controles visuais, áudio e comparação">
+    @if (pk.bundle) {
       <fieldset class="visor-media-group">
         <legend class="visually-hidden">Modo de imagem</legend>
         <button
@@ -135,10 +135,23 @@
           </button>
         }
       </fieldset>
-    </div>
-    @if (cryError(); as err) {
-      <output class="visor-cry-error">{{ err }}</output>
     }
+
+    <div class="visor-media-group">
+      <button
+        type="button"
+        id="btn-comparar-1v1"
+        class="visor-media-btn"
+        [pvRpgFocusable]="'visor'"
+        [pvRpgOrder]="16"
+        (click)="compareRequested.emit()"
+      >
+        Comparar 1v1
+      </button>
+    </div>
+  </div>
+  @if (cryError(); as err) {
+    <output class="visor-cry-error">{{ err }}</output>
   }
 
   @if (flavorEntry(); as flavor) {

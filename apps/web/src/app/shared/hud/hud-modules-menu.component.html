@@ -110,5 +110,21 @@
         </li>
       }
     </ul>
+
+    <div class="hud-popover__footer">
+      <a
+        routerLink="/enciclopedia"
+        class="hud-menu-utility"
+        [class.is-active]="isModuleActive('/enciclopedia', 'encyclopedia')"
+        [attr.aria-current]="isModuleActive('/enciclopedia', 'encyclopedia') ? 'page' : null"
+        (click)="closed.emit()"
+      >
+        <span class="hud-menu-item__key" aria-hidden="true">E</span>
+        <span class="hud-menu-item__body">
+          <span class="hud-menu-item__title">Enciclopédia Global</span>
+          <span class="hud-menu-item__desc">Golpes, habilidades, itens, tipos e busca reversa.</span>
+        </span>
+      </a>
+    </div>
   </nav>
 </div>
