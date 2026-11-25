@@ -4,7 +4,6 @@
   <pv-hud-topbar />
 
   <main id="main-content" class="app-main" tabindex="-1" pvMainLandmark>
-    <pv-cenarios-bar />
     <router-outlet />
   </main>
 
@@ -12,22 +11,17 @@
     <pv-privacy-notice-banner />
   }
 
-  <pv-hud-quick-dock />
-
-  <footer class="rodape app-credits-bar" aria-label="Créditos de APIs de terceiros e aviso legal">
-    <p class="app-credits-bar__text">
-      Dados, sprites e áudios fornecidos pela API de terceiros
-      <a href="https://pokeapi.co/" target="_blank" rel="noopener noreferrer">PokéAPI v2</a>
-      (<a href="https://github.com/PokeAPI/sprites" target="_blank" rel="noopener noreferrer"
-        >PokeAPI/sprites</a
-      >
-      e
-      <a href="https://github.com/PokeAPI/cries" target="_blank" rel="noopener noreferrer"
-        >PokeAPI/cries</a
-      >). Projeto educacional de fã sem vínculo com Nintendo, Game Freak ou The Pokémon Company.
-    </p>
-    <button type="button" class="app-credits-bar__btn" (click)="apiCredits.openDialog()">
-      Ver créditos completos
+  <footer class="app-footer" aria-label="Créditos, cookies e aviso legal">
+    <span class="app-footer__copy">
+      Dados via PokéAPI v2 · Pokémon © Nintendo / Game Freak / TPC
+    </span>
+    <span class="app-footer__sep" aria-hidden="true">·</span>
+    <button type="button" class="app-footer__link" (click)="apiCredits.openDialog()">
+      Créditos &amp; APIs
+    </button>
+    <span class="app-footer__sep" aria-hidden="true">·</span>
+    <button type="button" class="app-footer__link" (click)="privacy.openDialog()">
+      Cookies &amp; LGPD
     </button>
   </footer>
 </div>

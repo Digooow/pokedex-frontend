@@ -1,0 +1,199 @@
+.hud-user-wrap {
+  position: relative;
+}
+
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-block-size: 2rem;
+  padding: 0.22rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--pv-hud-border);
+  background-color: var(--pv-hud-pill-bg);
+  color: var(--pv-ink-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--pv-hud-pill-shadow);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 80ms ease;
+}
+
+.hud-pill:hover,
+.hud-pill[aria-expanded='true'] {
+  background-color: var(--pv-hud-pill-bg-hover);
+  border-color: var(--pv-cyan);
+  color: var(--pv-ink-on-accent);
+}
+
+.hud-pill:active {
+  transform: translateY(1px);
+  box-shadow: var(--pv-hud-pill-shadow-active);
+}
+
+.hud-pill--visitor {
+  border-color: var(--pv-hud-visitor-border);
+  color: var(--pv-hud-visitor-ink);
+}
+
+.hud-pill--trainer {
+  border-color: var(--pv-hud-trainer-border);
+  background: var(--pv-hud-trainer-bg);
+  color: var(--pv-hud-trainer-ink);
+}
+
+.hud-user-alert-dot {
+  inline-size: 0.45rem;
+  block-size: 0.45rem;
+  border-radius: 50%;
+  background-color: var(--pv-amber);
+}
+
+.hud-menu-chevron {
+  transition: transform 150ms ease;
+}
+
+.hud-menu-chevron.is-open {
+  transform: rotate(180deg);
+}
+
+.hud-popover {
+  position: absolute;
+  inset-block-start: calc(100% + 0.45rem);
+  inset-inline-end: 0;
+  z-index: var(--pv-z-modal);
+  inline-size: min(20rem, calc(100vw - 1.5rem));
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-hud-border);
+  background-color: var(--pv-hud-popover-bg);
+  box-shadow: var(--pv-hud-popover-shadow);
+  display: grid;
+  gap: var(--pv-space-2);
+}
+
+.hud-user-card {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding-block-end: var(--pv-space-2);
+  border-block-end: 1px solid var(--pv-hud-divider);
+}
+
+.hud-user-card__identity {
+  display: grid;
+  gap: 0.1rem;
+  min-inline-size: 0;
+}
+
+.hud-user-card__name {
+  font-size: 0.9rem;
+  color: var(--pv-ink-primary);
+}
+
+.hud-user-card__email {
+  font-size: 0.72rem;
+  color: var(--pv-ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.hud-user-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.hud-user-chip {
+  padding: 0.15rem 0.45rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-hud-border);
+  background-color: var(--pv-hud-pill-bg);
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--pv-ink-primary);
+}
+
+.hud-user-chip.is-ok {
+  border-color: var(--pv-hud-ok-border);
+  color: var(--pv-hud-ok-ink);
+}
+
+.hud-user-chip.is-warn {
+  border-color: var(--pv-hud-visitor-border);
+  color: var(--pv-hud-visitor-ink);
+}
+
+.hud-user-actions {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.hud-user-action {
+  inline-size: 100%;
+  min-block-size: 2.25rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-hud-divider);
+  background-color: var(--pv-hud-pill-bg);
+  color: var(--pv-ink-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: start;
+  cursor: pointer;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease;
+}
+
+.hud-user-action:hover {
+  background-color: var(--pv-hud-item-hover);
+  border-color: var(--pv-cyan);
+}
+
+.hud-user-action--warn {
+  border-color: var(--pv-amber);
+  background-color: var(--pv-hud-warn-bg);
+  color: var(--pv-hud-warn-ink);
+}
+
+.hud-user-action--danger {
+  border-color: var(--pv-hud-danger-border);
+  background-color: var(--pv-hud-danger-bg);
+  color: var(--pv-hud-error-ink);
+}
+
+.hud-user-divider {
+  inline-size: 100%;
+  block-size: 1px;
+  border: 0;
+  background-color: var(--pv-hud-divider);
+  margin-block: 0.1rem;
+  margin-inline: 0;
+}
+
+@media (max-width: 639px) {
+  .hud-user-wrap {
+    position: static;
+  }
+
+  .hud-popover {
+    inset-block-start: calc(100% + 0.25rem);
+    inset-inline: 0.75rem;
+    inline-size: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-pill,
+  .hud-menu-chevron,
+  .hud-user-action {
+    transition: none;
+  }
+
+  .hud-pill:active {
+    transform: none;
+  }
+}

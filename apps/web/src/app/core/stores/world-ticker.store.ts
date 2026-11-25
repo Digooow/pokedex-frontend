@@ -8,6 +8,8 @@ import {
 import type { Socket } from 'socket.io-client';
 
 const MAX_TICKER_HISTORY = 12;
+export const TICKER_NOTIFICATION_TTL_MS = 6_000;
+const RECENT_EVENT_MAX_AGE_MS = 30_000;
 
 @Injectable({ providedIn: 'root' })
 export class WorldTickerStore implements OnDestroy {
@@ -15,13 +17,16 @@ export class WorldTickerStore implements OnDestroy {
   private socket: Socket | null = null;
   private connecting = false;
   private destroyed = false;
+  private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly eventsSignal = signal<readonly WorldTickerEvent[]>([]);
+  private readonly activeNotificationSignal = signal<WorldTickerEvent | null>(null);
   private readonly connectedSignal = signal(false);
 
   readonly events = this.eventsSignal.asReadonly();
   readonly connected = this.connectedSignal.asReadonly();
   readonly latestEvent = computed<WorldTickerEvent | null>(() => this.eventsSignal()[0] ?? null);
+  readonly activeNotification = this.activeNotificationSignal.asReadonly();
 
   connect(): void {
     if (!this.isBrowser || this.socket || this.connecting || this.destroyed) {
@@ -53,21 +58,11 @@ export class WorldTickerStore implements OnDestroy {
       });
 
       socket.on('world:recent-events', (raw: unknown) => {
-        const parsed = WorldTickerEventListSchema.safeParse(raw);
-        if (parsed.success) {
-          this.eventsSignal.set(parsed.data.slice(0, MAX_TICKER_HISTORY));
-        }
+        this.handleRecentEvents(raw);
       });
 
       socket.on('world:global-event', (raw: unknown) => {
-        const parsed = WorldTickerEventSchema.safeParse(raw);
-        if (!parsed.success) {
-          return;
-        }
-        this.eventsSignal.update((prev) => {
-          const deduped = prev.filter((item) => item.eventId !== parsed.data.eventId);
-          return [parsed.data, ...deduped].slice(0, MAX_TICKER_HISTORY);
-        });
+        this.handleGlobalEvent(raw);
       });
 
       this.socket = socket;
@@ -76,8 +71,71 @@ export class WorldTickerStore implements OnDestroy {
     }
   }
 
+  handleRecentEvents(raw: unknown): void {
+    const parsed = WorldTickerEventListSchema.safeParse(raw);
+    if (!parsed.success) {
+      return;
+    }
+
+    const history = parsed.data.slice(0, MAX_TICKER_HISTORY);
+    this.eventsSignal.set(history);
+
+    const newest = history[0];
+    if (newest && this.isFreshEvent(newest)) {
+      this.showTemporaryNotification(newest);
+    }
+  }
+
+  handleGlobalEvent(raw: unknown): void {
+    const parsed = WorldTickerEventSchema.safeParse(raw);
+    if (!parsed.success) {
+      return;
+    }
+
+    this.eventsSignal.update((prev) => {
+      const deduped = prev.filter((item) => item.eventId !== parsed.data.eventId);
+      return [parsed.data, ...deduped].slice(0, MAX_TICKER_HISTORY);
+    });
+    this.showTemporaryNotification(parsed.data);
+  }
+
+  dismissNotification(): void {
+    this.clearHideTimer();
+    this.activeNotificationSignal.set(null);
+  }
+
+  private isFreshEvent(event: WorldTickerEvent): boolean {
+    const occurredAtMs = Date.parse(event.occurredAt);
+    if (Number.isNaN(occurredAtMs)) {
+      return false;
+    }
+    return Date.now() - occurredAtMs <= RECENT_EVENT_MAX_AGE_MS;
+  }
+
+  private showTemporaryNotification(event: WorldTickerEvent): void {
+    this.clearHideTimer();
+    this.activeNotificationSignal.set(event);
+
+    if (!this.isBrowser || this.destroyed) {
+      return;
+    }
+
+    this.hideTimer = setTimeout(() => {
+      this.hideTimer = null;
+      this.activeNotificationSignal.set(null);
+    }, TICKER_NOTIFICATION_TTL_MS);
+  }
+
+  private clearHideTimer(): void {
+    if (this.hideTimer !== null) {
+      clearTimeout(this.hideTimer);
+      this.hideTimer = null;
+    }
+  }
+
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.clearHideTimer();
     this.socket?.disconnect();
     this.socket = null;
   }

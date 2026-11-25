@@ -10,51 +10,19 @@
 
   <div class="hud-topbar__inner">
     <div class="hud-topbar__left">
-      <a routerLink="/" class="hud-brand">
+      <a routerLink="/" class="hud-brand" (click)="closeMenus()">
         <span class="hud-brand__lens" aria-hidden="true"></span>
         <span class="hud-brand__name">PokéVerse OS</span>
       </a>
 
-      @if (auth.trainer(); as trainer) {
-        <span class="hud-pill hud-pill--trainer tabular-nums">
-          {{ trainer.username }} • ELO {{ trainer.eloRating }}
-        </span>
-        @if (auth.isMfaPending()) {
-          <button
-            type="button"
-            class="hud-pill hud-pill--warn"
-            (click)="auth.openMfaChallengePrompt()"
-          >
-            Concluir 2FA
-          </button>
-        } @else {
-          @if (!trainer.emailVerifiedAt) {
-            <button
-              type="button"
-              class="hud-pill hud-pill--warn"
-              (click)="openVerifyEmail(trainer.email)"
-            >
-              Verificar E-mail (OTP)
-            </button>
-          }
-          <button
-            type="button"
-            class="hud-pill"
-            [attr.aria-pressed]="auth.securityModalOpen()"
-            (click)="auth.openSecuritySettings()"
-          >
-            {{ trainer.mfaEnabled ? '2FA: Ativo' : 'Segurança / 2FA' }}
-          </button>
-        }
-        <button type="button" class="hud-pill" (click)="auth.logout()">Sair</button>
-      } @else {
-        <button type="button" class="hud-pill hud-pill--visitor" (click)="openVisitorInfo()">
-          Modo Visitante • Entrar
-        </button>
-      }
+      <pv-hud-modules-menu
+        [open]="activeMenu() === 'modules'"
+        (toggled)="toggleMenu('modules')"
+        (closed)="closeMenus()"
+      />
     </div>
 
-    @if (ticker.latestEvent(); as liveEvent) {
+    @if (ticker.activeNotification(); as liveEvent) {
       <p class="hud-ticker" aria-live="polite">
         <span class="hud-ticker__dot" aria-hidden="true"></span>
         <span class="hud-ticker__text">{{ liveEvent.summary }}</span>
@@ -62,31 +30,28 @@
     }
 
     <div class="hud-topbar__right">
+      <pv-hud-user-menu
+        [open]="activeMenu() === 'user'"
+        (toggled)="toggleMenu('user')"
+        (closed)="closeMenus()"
+      />
+
+      <pv-hud-settings-menu
+        [open]="activeMenu() === 'settings'"
+        (toggled)="toggleMenu('settings')"
+        (closed)="closeMenus()"
+      />
+
       <button
         type="button"
-        class="hud-pill"
-        [attr.aria-pressed]="apiCredits.dialogOpen()"
-        (click)="apiCredits.openDialog()"
-      >
-        Créditos &amp; APIs
-      </button>
-      <button
-        type="button"
-        class="hud-pill"
-        [attr.aria-pressed]="privacy.dialogOpen()"
-        (click)="privacy.openDialog()"
-      >
-        Cookies &amp; LGPD
-      </button>
-      <button
-        type="button"
-        class="hud-pill"
+        class="hud-pill hud-pill--cloud"
         [class.is-ok]="statusBadge().tone === 'ok'"
         [class.is-error]="statusBadge().tone === 'warn'"
         (click)="systemStatus.refresh()"
         [title]="statusBadge().title"
       >
-        {{ statusBadge().label }}
+        <span class="hud-cloud-dot" aria-hidden="true"></span>
+        <span>{{ statusBadge().label }}</span>
       </button>
     </div>
   </div>

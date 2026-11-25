@@ -1,26 +1,36 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  HostListener,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { ApiCreditsStore } from '../../core/stores/api-credits.store';
-import { AuthStore } from '../../core/stores/auth.store';
-import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { SystemStatusStore } from '../../core/stores/system-status.store';
 import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 import { MainLandmarkFocusService } from '../directives/main-heading.directive';
+import { HudModulesMenuComponent } from './hud-modules-menu.component';
+import { HudSettingsMenuComponent } from './hud-settings-menu.component';
+import { HudUserMenuComponent } from './hud-user-menu.component';
+
+export type HudTopbarMenuId = 'modules' | 'user' | 'settings';
 
 @Component({
   selector: 'pv-hud-topbar',
-  imports: [RouterLink],
+  imports: [RouterLink, HudModulesMenuComponent, HudUserMenuComponent, HudSettingsMenuComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hud-topbar.component.html',
   styleUrl: './hud-topbar.component.scss',
 })
 export class HudTopbarComponent {
-  readonly apiCredits = inject(ApiCreditsStore);
-  readonly auth = inject(AuthStore);
-  readonly privacy = inject(PrivacyConsentStore);
   readonly systemStatus = inject(SystemStatusStore);
   readonly ticker = inject(WorldTickerStore);
+  private readonly hostRef = inject(ElementRef<HTMLElement>);
   private readonly mainLandmark = inject(MainLandmarkFocusService);
+
+  readonly activeMenu = signal<HudTopbarMenuId | null>(null);
 
   readonly statusBadge = computed(() => {
     const state = this.systemStatus.state();
@@ -43,24 +53,35 @@ export class HudTopbarComponent {
     }
   });
 
-  openVisitorInfo(): void {
-    this.auth.requestTrainerAccess(
-      'Modo Visitante Ativo',
-      'Explore Pokédex e Museu livremente. Entre ou cadastre sua conta de Treinador para sincronizar os 10 slots e salvar progresso na nuvem.',
-    );
+  toggleMenu(menu: HudTopbarMenuId): void {
+    this.activeMenu.update((current) => (current === menu ? null : menu));
   }
 
-  openVerifyEmail(email: string): void {
-    this.auth.requestTrainerAccess(
-      'Confirmar E-mail do Treinador',
-      `Enviamos um código OTP de 6 dígitos para ${email}.`,
-      undefined,
-      'verify-email',
-    );
+  closeMenus(): void {
+    this.activeMenu.set(null);
   }
 
   jumpToMainContent(event: Event): void {
     event.preventDefault();
+    this.closeMenus();
     this.mainLandmark.focusMainHeading();
+  }
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    if (this.activeMenu() === null) {
+      return;
+    }
+    const target = event.target;
+    if (target instanceof Node && !this.hostRef.nativeElement.contains(target)) {
+      this.closeMenus();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscapeKey(): void {
+    if (this.activeMenu() !== null) {
+      this.closeMenus();
+    }
   }
 }

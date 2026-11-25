@@ -94,6 +94,12 @@
   --pv-hud-warn-bg: oklch(34% 0.09 80 / 0.72);
   --pv-hud-warn-ink: oklch(96.2% 0.059 95.6);
   --pv-hud-error-ink: oklch(88.5% 0.062 18.3);
+  --pv-hud-popover-bg: oklch(14% 0.025 255 / 0.96);
+  --pv-hud-popover-shadow: 0 18px 40px oklch(0% 0 0 / 0.55);
+  --pv-hud-item-hover: oklch(25% 0.032 255 / 0.95);
+  --pv-hud-divider: rgba(148, 163, 184, 0.22);
+  --pv-hud-danger-bg: oklch(26% 0.09 25 / 0.65);
+  --pv-hud-danger-border: rgba(248, 113, 113, 0.45);
 
   --pv-shadow-dialog: 0 24px 60px oklch(0% 0 0 / 0.65);
   --pv-shadow-dialog-strong: 0 24px 60px oklch(0% 0 0 / 0.7);

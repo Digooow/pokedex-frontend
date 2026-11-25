@@ -31,6 +31,7 @@ flowchart TD
 ```
 
 ### Implementação dos Guards e Diretivas de Bloqueio
+
 - **`authGuard` (`CanActivateFn` em `apps/web/src/app/core/guards/auth.guard.ts`):** verifica `AuthStore.isAuthenticated()`. Se o usuário for visitante, bloqueia o acesso direto via URL às rotas `/mundo`, `/arcade` e `/arena` (atualmente apontando temporariamente para `TitleScreenComponent` até a entrega das Fases 3–6), abre o diálogo de autenticação com contexto do módulo (`targetRoute`) e mantém o usuário na rota pública com segurança.
 - **`RequiresTrainerDirective` (`[pvRequiresTrainer]` em `apps/web/src/app/shared/directives/requires-trainer.directive.ts`):** diretiva de atributo aplicada a controles protegidos dentro de módulos mistos (por exemplo, os botões de slots na Pokédex quando em modo visitante e os atalhos bloqueados do dock). Mantém a focabilidade por teclado usando `aria-disabled="true"` e classe `.is-trainer-locked`, interceptando o clique para abrir o `<dialog>` de Login/Criar Conta (`VisitorLockDialogComponent`).
 
@@ -40,17 +41,20 @@ flowchart TD
 
 O HUD envolve o canvas sem bloquear cliques nos momentos de exploração e segue estética tática consistente com a paleta semântica em `oklch` e superfícies translúcidas com alto contraste (`WCAG 2.2 AA`):
 
-1. **Top Bar Tática (`.hud-topbar`):**
-   - À esquerda: emblema de status (**Modo Visitante** com botão *Entrar / Criar Conta*, ou **Cartão do Treinador** com avatar pixel/3D, nível/insígnias, pontuação global e indicador de conexão WebSocket ao vivo).
-   - Ao centro-direita: **Ticker de Eventos Globais** alimentado pelo Kafka -> WebSocket (ex.: *"Treinador_Ash venceu Líder Brock na Battle Frontier"* ou *"Novo recorde no Quem é esse Pokémon?"*), com controle de silenciar/expandir.
-   - À direita: controles globais de **Áudio Mestre** (Mudo/Volume), alternância de ambiente/tema e botão de saída/logout.
-2. **Dock Inferior de Viagem Rápida & Inventário (`.hud-quick-dock`):**
-   - Botões rápidos com atalho de teclado (`1` a `5`) e ícone de cadeado visível quando visitante:
+1. **Top Bar Tática Unificada (`.hud-topbar`):**
+   - À esquerda: emblema **PokéVerse OS** e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 5 módulos com atalhos `1` a `5` e ícone de cadeado `[pvRequiresTrainer]` quando visitante:
      1. **Overworld (Vila Central)** — *cadeado se visitante*;
      2. **Pokédex 3D & Holocron** — *sempre liberado*;
      3. **Museu das Regiões & Jogos** — *sempre liberado*;
      4. **Arcade Retrô 3D** — *cadeado se visitante*;
      5. **Battle Frontier (Team Builder / Arena / Mini-Games)** — *cadeado se visitante*.
+   - Ao centro: **Ticker de Eventos Globais** alimentado pelo Kafka -> WebSocket (ex.: *"Treinador_Ash venceu Líder Brock na Battle Frontier"*), exibido temporariamente por `6s` (`activeNotification`) sem exibir eventos antigos (`> 30s`) em reconexões, mantendo o histórico recente no `WorldTickerStore`.
+   - À direita (ordem fixa):
+     - **Painel do Jogador (`HudUserMenuComponent`):** botão de visitante (*Modo Visitante • Entrar*) ou emblema do Treinador (`username • ELO`) que abre o painel da conta (insígnias, status 2FA/e-mail, `Segurança, 2FA & Dados da Conta`, verificação OTP e `Sair da conta`);
+     - **Configurações (`HudSettingsMenuComponent`):** menu único com seleção de cenário de fundo (Hoenn, Cidade, Vila, Floresta), rotação automática (`ON`/`OFF`) e perfil de desempenho gráfico do navegador (`Auto`, `Ultra`, `Equil.`, `Lite`);
+     - **Status da Nuvem:** pílula no canto direito (`Nuvem Online` / `Modo Offline`) que reconsulta `/health/ready`.
+2. **Rodapé Discreto (`.app-footer`):**
+   - Barra compacta centralizada na base da tela exibindo atribuição resumida (`PokéAPI v2 · Pokémon © Nintendo / Game Freak / TPC`) e links diretos para os modais **Créditos & APIs** e **Cookies & LGPD**, sem duplicação no cabeçalho, no visor da Pokédex ou no Museu.
 3. **Overlay Dinâmico de Módulos (`.hud-stage-overlay`):**
    - Quando o treinador entra em um prédio no Overworld ou clica na Viagem Rápida, o Phaser pausa seu loop de física/renderização enquanto o módulo Angular/Three.js abre suavemente sobre o palco (e retoma instantaneamente ao fechar com `Escape` ou botão *Voltar ao Mapa*).
 
@@ -85,7 +89,7 @@ export class AuthStore {
 | **`AuthStore`** *(e `AuthSessionStore`)* | **Implementada + Refatorada SOLID** | Estado reativo da sessão BFF opaca (zero JWT no JS), login/registro/refresh, delegando OTP/recuperação a `AuthRecoveryService` e multi-aba a `AuthCrossTabSyncService` | NestJS `/api/v1/auth/*` + Cookies `HttpOnly` + `BroadcastChannel` |
 | **`SecurityIamStore`** | **Implementada (2B + LGPD)** | Visão geral IAM, setup/ativação/desativação TOTP, registro/exclusão de Passkeys WebAuthn, vínculo Google PKCE, revogação de sessões, exportação JSON e exclusão definitiva (`deleteAccount`) | NestJS `/api/v1/auth/security/*`, `/passkeys/*`, `/me/export`, `DELETE /me` |
 | **`PrivacyConsentStore`** | **Implementada (LGPD)** | Cookie versionado `pokeverse_consent`, registro extensível de chaves opcionais (`registerNonEssentialStorageKey`) e limpeza automática sem opt-in explícito | Cookie first-party `pokeverse_consent` + `BroadcastChannel` |
-| **`WorldTickerStore`** | **Implementada (Fase 2)** | Ticker global em tempo real no HUD com importação dinâmica lazy de `socket.io-client` | WebSocket `/ws/world` (`world:recent-events` / `world:global-event`) |
+| **`WorldTickerStore`** | **Implementada (Fase 2)** | Ticker global em tempo real no HUD com importação dinâmica lazy de `socket.io-client` e notificação temporária (`6s` via `activeNotification` + histórico recente) | WebSocket `/ws/world` (`world:recent-events` / `world:global-event`) |
 | **`PokedexStore`, `PokedexSlotsStore`, `PokedexApiClient`, `PokedexLocalSlotsStorage`, `PokedexRpgNavService` & `PokedexInputShortcutsService`** | **Implementadas + Decompostas SRP (Onda 3)** | Catálogo/detalhes via `PokedexApiClient` + `pokedex-view-mapper.util.ts` (`/api/v1/pokedex/*` + fallback direto PokéAPI), CRUD dos 10 slots via `PokedexLocalSlotsStorage`, cinemática em `PokedexLidPhysicsService`, atalhos de documento em `PokedexInputShortcutsService` e foco declarativo via `[pvRpgFocusable]` / `[pvRpgEditForm]` + `styles/pokedex/` | NestJS `/api/v1/pokedex/*` + PokéAPI fallback + `localStorage` (visitante) |
 | **`QualityStore` & `ScenarioStore`** | **Implementadas (Fases 1–4A)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com `FpsWatchdog` e rotação de cenários WebP (`-desktop`/`-mobile`) com opt-in LGPD | Hardware probe + preferências opcionais via `PrivacyConsentStore` |
 | **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar + fase dinâmica (`POKEVERSE_PHASE`) | NestJS `/health/ready` e `/api/v1/system/bootstrap` |

@@ -36,7 +36,7 @@ export const KEY_TO_DIRECTION: Readonly<Record<string, RpgDirection>> = {
 };
 
 export const PRESERVED_OUTSIDE_SELECTOR =
-  '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo, .barra-cenarios, .hud-topbar, .hud-dock, .rodape, dialog, dialog[open]';
+  '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo, .hud-topbar, .app-footer, dialog, dialog[open]';
 export const INTERNAL_INTERACTIVE_SELECTOR =
   '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo';
 

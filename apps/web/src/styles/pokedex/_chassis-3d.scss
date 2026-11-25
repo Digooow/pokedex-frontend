@@ -15,8 +15,6 @@
   .pokedex-palco *,
   .pokedex-palco *::before,
   .pokedex-palco *::after,
-  .barra-cenarios,
-  .barra-cenarios *,
   .cenarios-fundo,
   .cenarios-fundo * {
     box-sizing: border-box;
@@ -32,8 +30,7 @@
     min-inline-size: 0;
   }
 
-  .pokedex-palco :where(a:any-link, button, input, [tabindex="-1"]):focus-visible,
-  .barra-cenarios button:focus-visible {
+  .pokedex-palco :where(a:any-link, button, input, [tabindex="-1"]):focus-visible {
     outline: 2px solid var(--cor-foco-escuro);
     outline-offset: 1px;
   }
@@ -112,104 +109,6 @@
     position: fixed;
     top: var(--espaco-3);
     left: var(--espaco-3);
-  }
-
-  .barra-cenarios {
-    position: relative;
-    z-index: var(--z-hud);
-    align-self: center;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    width: fit-content;
-    max-width: 100%;
-    padding: 0.25rem;
-    background-color: rgba(9, 17, 30, 0.88);
-    border: 1px solid var(--borda-barra-externa);
-    border-radius: var(--raio-medio);
-  }
-
-  .barra-cenarios-botoes {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.25rem;
-    min-width: 0;
-  }
-
-  .btn-cenario,
-  .btn-cenario-auto,
-  .btn-cenario-perf {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 1.9rem;
-    padding: 0.2rem 0.5rem;
-    font: inherit;
-    font-size: 0.72rem;
-    font-weight: 700;
-    white-space: nowrap;
-    color: var(--texto-lcd-secundario);
-    background-color: var(--bg-botao-cenario);
-    border: 1px solid var(--borda-barra-externa);
-    border-radius: 0.375rem;
-    cursor: pointer;
-    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease;
-  }
-
-  .btn-cenario-auto,
-  .btn-cenario-perf {
-    font-family: var(--fonte-mono);
-    border-color: rgba(56, 189, 248, 0.45);
-    color: var(--texto-lcd-destaque);
-  }
-
-  .btn-cenario-perf[data-perf-mode="lite"] {
-    border-color: var(--palette-amber-400);
-    color: var(--palette-amber-200);
-  }
-
-  .btn-cenario:hover,
-  .btn-cenario-auto:hover,
-  .btn-cenario-perf:hover {
-    background-color: var(--bg-botao-cenario-hover);
-    color: var(--texto-lcd-principal);
-    border-color: var(--palette-cyan-300);
-  }
-
-  .btn-cenario.is-active {
-    background-color: var(--cor-destaque);
-    color: var(--texto-sobre-destaque);
-    border-color: var(--borda-cenario-ativo);
-  }
-
-  .btn-cenario-auto[aria-pressed="true"] {
-    background-color: var(--bg-hud-sucesso);
-    color: var(--cor-hud-sucesso);
-    border-color: var(--palette-emerald-500);
-  }
-
-  @media (min-width: 880px) {
-    .barra-cenarios {
-      align-self: flex-end;
-      justify-content: flex-end;
-      background-color: var(--bg-barra-externa);
-      backdrop-filter: blur(6px);
-    }
-
-    .barra-cenarios-botoes {
-      justify-content: flex-end;
-    }
-
-    .btn-cenario,
-    .btn-cenario-auto,
-    .btn-cenario-perf {
-      min-height: 2rem;
-      padding: 0.2rem 0.6rem;
-      font-size: 0.75rem;
-    }
   }
 
   .pokedex-palco {

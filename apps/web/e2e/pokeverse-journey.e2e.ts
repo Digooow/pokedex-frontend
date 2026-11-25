@@ -10,12 +10,14 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
 
     await page.getByRole('button', { name: 'Apenas essenciais' }).click();
 
-    const lockedArcadeBtn = page.locator('button.hud-dock__link--locked', {
+    await page.locator('.hud-modules-trigger').click();
+    const lockedArcadeBtn = page.locator('button.hud-menu-item--locked', {
       hasText: 'Arcade',
     });
     await expect(lockedArcadeBtn).toBeVisible();
     await expect(lockedArcadeBtn).toHaveAttribute('aria-disabled', 'true');
-    await lockedArcadeBtn.click({ force: true });
+    await lockedArcadeBtn.focus();
+    await page.keyboard.press('Enter');
 
     const dialog = page.locator('dialog.visitor-dialog');
     await expect(dialog).toBeVisible();

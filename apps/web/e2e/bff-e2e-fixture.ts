@@ -301,7 +301,8 @@ export const test = base.extend<{ bff: BffE2eHarness }>({
       consoleErrors,
     });
 
-    await new Promise<void>((resolve) => server.close(() => resolve()));
+    server.close();
+    server.closeAllConnections();
   },
 });
 

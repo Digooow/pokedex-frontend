@@ -6,11 +6,11 @@ import { App } from './app';
 import { routes } from './app.routes';
 import { ApiCreditsStore } from './core/stores/api-credits.store';
 import { AuthStore } from './core/stores/auth.store';
+import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
 import { MuseumPageComponent } from './features/regions-museum/museum-page.component';
 import { UnderConstructionComponent } from './features/under-construction/under-construction.component';
-import { CenariosBarComponent } from './shared/hud/cenarios-bar.component';
 import { createTrainerFixture, flushInitialRequests } from './testing/test-fixtures.spec-helper';
 
 describe('PokéVerse OS Shell', () => {
@@ -21,17 +21,35 @@ describe('PokéVerse OS Shell', () => {
     }).compileComponents();
   });
 
-  it('mounts HUD topbar, quick dock, and renders locked modules as focusable buttons', async () => {
+  it('mounts compact HUD topbar with unified Modules, User, Settings, and Cloud controls', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitialRequests(TestBed.inject(HttpTestingController));
 
     await fixture.whenStable();
+    fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('.hud-brand__name')?.textContent).toContain('PokéVerse OS');
-    expect(compiled.querySelectorAll('.hud-dock__item')).toHaveLength(5);
 
-    const lockedButtons = compiled.querySelectorAll('button.hud-dock__link--locked');
+    expect(compiled.querySelector('.hud-brand__name')?.textContent).toContain('PokéVerse OS');
+    expect(compiled.querySelector('pv-hud-quick-dock')).toBeNull();
+    expect(compiled.querySelector('pv-cenarios-bar')).toBeNull();
+
+    const topbarText = compiled.querySelector('.hud-topbar')?.textContent ?? '';
+    expect(topbarText).not.toContain('Créditos & APIs');
+    expect(topbarText).not.toContain('Cookies & LGPD');
+    const cloudBtn = compiled.querySelector('.hud-topbar__right .hud-pill--cloud');
+    expect(cloudBtn).not.toBeNull();
+    expect(cloudBtn?.textContent).toMatch(/Nuvem|Modo Offline/);
+
+    const modulesTrigger = compiled.querySelector('.hud-modules-trigger') as HTMLButtonElement;
+    expect(modulesTrigger).not.toBeNull();
+    modulesTrigger.click();
+    fixture.detectChanges();
+
+    const moduleItems = compiled.querySelectorAll('#pv-modules-popover .hud-menu-item');
+    expect(moduleItems).toHaveLength(5);
+
+    const lockedButtons = compiled.querySelectorAll('button.hud-menu-item--locked');
     expect(lockedButtons).toHaveLength(3);
     expect(lockedButtons[0]?.getAttribute('aria-disabled')).toBe('true');
 
@@ -61,43 +79,45 @@ describe('PokéVerse OS Shell', () => {
     expect(focusSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('cycles hardware quality preferences safely', () => {
-    const quality = TestBed.inject(QualityStore);
-    quality.setPreference('lite');
-    expect(quality.tier()).toBe('lite');
-    quality.cyclePreference();
-    expect(quality.preference()).toBe('auto');
-  });
+  it('manages scenarios, auto-rotation, and hardware quality from the topbar Settings menu', async () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    flushInitialRequests(TestBed.inject(HttpTestingController));
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-  it('manages scenario selection and auto-rotation toggle cleanly in ScenarioStore', () => {
+    const compiled = fixture.nativeElement as HTMLElement;
     const scenarioStore = TestBed.inject(ScenarioStore);
-    expect(scenarioStore.activeScenario()).toBe('hoenn');
+    const quality = TestBed.inject(QualityStore);
 
-    scenarioStore.selectScenario('cidade', true);
-    expect(scenarioStore.activeScenario()).toBe('cidade');
-    expect(scenarioStore.autoEnabled()).toBe(false);
+    const settingsTrigger = compiled.querySelector('.hud-settings-trigger') as HTMLButtonElement;
+    expect(settingsTrigger).not.toBeNull();
+    settingsTrigger.click();
+    fixture.detectChanges();
 
-    scenarioStore.toggleAuto();
-    expect(scenarioStore.autoEnabled()).toBe(true);
-    expect(scenarioStore.activeScenario()).toBe('vila');
-
-    scenarioStore.cycleScenario();
-    expect(scenarioStore.autoEnabled()).toBe(false);
+    const scenarioButtons = Array.from(
+      compiled.querySelectorAll('#pv-settings-popover .hud-settings-option'),
+    ) as HTMLButtonElement[];
+    const florestaBtn = scenarioButtons.find((btn) => btn.textContent?.trim() === 'Floresta');
+    expect(florestaBtn).toBeDefined();
+    florestaBtn?.click();
+    fixture.detectChanges();
     expect(scenarioStore.activeScenario()).toBe('floresta');
-    expect(scenarioStore.activeScenarioLabel()).toBe('Floresta');
+    expect(scenarioStore.autoEnabled()).toBe(false);
 
-    const barFixture = TestBed.createComponent(CenariosBarComponent);
-    barFixture.detectChanges();
-    const scenarioButtons = barFixture.nativeElement.querySelectorAll('.btn-cenario');
-    expect(scenarioButtons).toHaveLength(1);
-    expect(scenarioButtons[0]?.textContent).toContain('Cenário: Floresta');
-    (scenarioButtons[0] as HTMLButtonElement).click();
-    barFixture.detectChanges();
-    expect(scenarioStore.activeScenario()).toBe('hoenn');
-    expect(scenarioButtons[0]?.textContent).toContain('Cenário: Hoenn');
+    const autoBtn = compiled.querySelector('.hud-settings-toggle') as HTMLButtonElement;
+    autoBtn.click();
+    fixture.detectChanges();
+    expect(scenarioStore.autoEnabled()).toBe(true);
+
+    const liteBtn = scenarioButtons.find((btn) => btn.textContent?.trim() === 'Lite');
+    expect(liteBtn).toBeDefined();
+    liteBtn?.click();
+    fixture.detectChanges();
+    expect(quality.tier()).toBe('lite');
   });
 
-  it('renders Museum header card + handcrafted UnderConstruction screen and syncs dock & redirect', async () => {
+  it('keeps trainer panel and security/logout actions inside the right-side User menu', async () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const router = TestBed.inject(Router);
     router.resetConfig(routes);
@@ -111,26 +131,32 @@ describe('PokéVerse OS Shell', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const activeLinks = compiled.querySelectorAll('.hud-dock__link.is-active');
-    expect(activeLinks).toHaveLength(1);
-    expect(activeLinks[0]?.textContent).toContain('Museu');
     expect(compiled.querySelector('h1#main-heading')?.textContent).toContain(
       'Museu das Regiões & História',
     );
     expect(compiled.querySelector('.museum-page__header')).not.toBeNull();
+    expect(compiled.querySelector('.museum-page__footer')).toBeNull();
     expect(compiled.querySelectorAll('.region-card')).toHaveLength(6);
 
     const museumFixture = TestBed.createComponent(MuseumPageComponent);
     museumFixture.detectChanges();
-    expect(museumFixture.nativeElement.querySelector('.museum-page__header')).not.toBeNull();
+    expect(museumFixture.nativeElement.querySelector('.museum-page__footer')).toBeNull();
 
     const ucFixture = TestBed.createComponent(UnderConstructionComponent);
     ucFixture.detectChanges();
     expect(ucFixture.nativeElement.querySelector('.uc-pokeball')).not.toBeNull();
 
+    const modulesTrigger = compiled.querySelector('.hud-modules-trigger') as HTMLButtonElement;
+    modulesTrigger.click();
+    fixture.detectChanges();
+
+    const activeLinks = compiled.querySelectorAll('#pv-modules-popover .hud-menu-item.is-active');
+    expect(activeLinks).toHaveLength(1);
+    expect(activeLinks[0]?.textContent).toContain('Museu');
+
     const auth = TestBed.inject(AuthStore);
     const lockedArcade = compiled.querySelectorAll(
-      'button.hud-dock__link--locked',
+      'button.hud-menu-item--locked',
     )[1] as HTMLButtonElement;
     lockedArcade.click();
     expect(auth.visitorPrompt()?.targetRoute).toBe('/arcade');
@@ -151,9 +177,21 @@ describe('PokéVerse OS Shell', () => {
       'ainda não implementada',
     );
     expect(compiled.querySelector('.uc-pokemon-img')?.getAttribute('alt')).toContain('Porygon');
+
+    const rightControls = compiled.querySelector('.hud-topbar__right');
+    const userTrigger = rightControls?.querySelector('.hud-pill--trainer') as HTMLButtonElement;
+    expect(userTrigger).not.toBeNull();
+    expect(userTrigger.textContent).toContain('Red_Kanto • ELO 1000');
+
+    userTrigger.click();
+    fixture.detectChanges();
+
+    const userPopover = compiled.querySelector('#pv-user-popover');
+    expect(userPopover?.textContent).toContain('Segurança, 2FA & Dados da Conta');
+    expect(userPopover?.textContent).toContain('Sair da conta');
   });
 
-  it('renders explicit PokéAPI third-party attribution and opens ApiCreditsDialogComponent', async () => {
+  it('renders compact footer with Credits & APIs and Cookies & LGPD dialogs', async () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitialRequests(TestBed.inject(HttpTestingController));
@@ -161,17 +199,21 @@ describe('PokéVerse OS Shell', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    const footerText = compiled.querySelector('.app-credits-bar')?.textContent ?? '';
+    const footer = compiled.querySelector('.app-footer');
+    expect(footer).not.toBeNull();
+    const footerText = footer?.textContent ?? '';
     expect(footerText).toContain('PokéAPI v2');
-    expect(footerText).toContain('PokeAPI/sprites');
-    expect(footerText).toContain('PokeAPI/cries');
     expect(footerText).toContain('Nintendo');
 
-    const topbarCreditsBtn = Array.from(compiled.querySelectorAll('.hud-topbar .hud-pill')).find(
-      (btn) => btn.textContent?.includes('Créditos & APIs'),
-    ) as HTMLButtonElement | undefined;
-    expect(topbarCreditsBtn).toBeDefined();
-    topbarCreditsBtn?.click();
+    const footerButtons = Array.from(
+      compiled.querySelectorAll('.app-footer__link'),
+    ) as HTMLButtonElement[];
+    const creditsBtn = footerButtons.find((btn) => btn.textContent?.includes('Créditos & APIs'));
+    const cookiesBtn = footerButtons.find((btn) => btn.textContent?.includes('Cookies & LGPD'));
+    expect(creditsBtn).toBeDefined();
+    expect(cookiesBtn).toBeDefined();
+
+    creditsBtn?.click();
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
@@ -182,5 +224,14 @@ describe('PokéVerse OS Shell', () => {
     expect(dialogText).toContain('Paul Hallett');
     expect(dialogText).toContain('PokéAPI Fair Use Policy');
     expect(dialogText).toContain('The Pokémon Company International');
+
+    apiCredits.closeDialog();
+    cookiesBtn?.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const privacy = TestBed.inject(PrivacyConsentStore);
+    expect(privacy.dialogOpen()).toBe(true);
   });
 });

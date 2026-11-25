@@ -62,10 +62,7 @@ describe('Pokedex UI Async States & VisitorLockDialogComponent', () => {
 
     expect(hostEl.querySelector('.pokemon-nome')?.textContent).toContain('Pikachu');
     expect(hostEl.querySelector('#status-badge')?.textContent).toContain('Encontrado · Redis');
-    expect(hostEl.querySelector('.pokemon-fonte-creditos')?.textContent).toContain('PokéAPI v2');
-    expect(hostEl.querySelector('.pokemon-fonte-creditos')?.textContent).toContain(
-      'PokeAPI/sprites',
-    );
+    expect(hostEl.querySelector('.pokemon-fonte-creditos')).toBeNull();
 
     store.loadPokemonDetail('bulbasaur');
     fixture.detectChanges();

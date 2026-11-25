@@ -8,8 +8,6 @@ import { WorldTickerStore } from './core/stores/world-ticker.store';
 import { PvMainLandmarkDirective } from './shared/directives/main-heading.directive';
 import { ApiCreditsDialogComponent } from './shared/hud/api-credits-dialog.component';
 import { CenariosBackdropComponent } from './shared/hud/cenarios-backdrop.component';
-import { CenariosBarComponent } from './shared/hud/cenarios-bar.component';
-import { HudQuickDockComponent } from './shared/hud/hud-quick-dock.component';
 import { HudTopbarComponent } from './shared/hud/hud-topbar.component';
 import { PrivacyConsentDialogComponent } from './shared/hud/privacy-consent-dialog.component';
 import { PrivacyNoticeBannerComponent } from './shared/hud/privacy-notice-banner.component';
@@ -22,9 +20,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
     RouterOutlet,
     ApiCreditsDialogComponent,
     CenariosBackdropComponent,
-    CenariosBarComponent,
     HudTopbarComponent,
-    HudQuickDockComponent,
     PrivacyNoticeBannerComponent,
     PrivacyConsentDialogComponent,
     VisitorLockDialogComponent,
