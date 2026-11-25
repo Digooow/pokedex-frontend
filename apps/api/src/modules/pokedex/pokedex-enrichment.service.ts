@@ -161,19 +161,7 @@ export class PokedexEnrichmentService {
     }
 
     const slugs = Array.from(candidateSlugs).slice(0, MAX_FORMS_PER_POKEMON);
-    const forms: PokemonFormItem[] = [];
-
-    for (let i = 0; i < slugs.length; i += FORM_FETCH_BATCH_SIZE) {
-      const batch = slugs.slice(i, i + FORM_FETCH_BATCH_SIZE);
-      const resolved = await Promise.all(
-        batch.map((slug) => this.fetcher.tryFetchRawForm(slug)),
-      );
-      for (const item of resolved) {
-        if (item) {
-          forms.push(mapRawForm(item));
-        }
-      }
-    }
+    const forms = await this.fetchFormsInBatches(slugs);
 
     forms.sort((a, b) => a.formOrder - b.formOrder || a.id - b.id);
 
@@ -185,6 +173,26 @@ export class PokedexEnrichmentService {
       forms,
       varieties: mapSpeciesVarieties(rawSpecies.varieties),
     };
+  }
+
+  private async fetchFormsInBatches(
+    slugs: readonly string[],
+    offset = 0,
+    acc: PokemonFormItem[] = [],
+  ): Promise<PokemonFormItem[]> {
+    if (offset >= slugs.length) {
+      return acc;
+    }
+    const batch = slugs.slice(offset, offset + FORM_FETCH_BATCH_SIZE);
+    const resolved = await Promise.all(
+      batch.map((slug) => this.fetcher.tryFetchRawForm(slug)),
+    );
+    for (const item of resolved) {
+      if (item) {
+        acc.push(mapRawForm(item));
+      }
+    }
+    return this.fetchFormsInBatches(slugs, offset + FORM_FETCH_BATCH_SIZE, acc);
   }
 
   private async fetchEvolutionChainIfPresent(

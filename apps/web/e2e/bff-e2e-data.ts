@@ -1,6 +1,7 @@
-import { computeDefensiveTypeEffectiveness } from '@pokeverse/shared';
-
-const SPRITE_BASE = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
+import {
+  POKEAPI_SPRITE_BASE,
+  createCachedPokemonBundleFixture,
+} from '../src/app/testing/pokemon-bundle-fixture.spec-helper';
 
 export const SAMPLE_CATALOG = {
   cache: 'hit',
@@ -37,203 +38,22 @@ export const SAMPLE_PIKACHU = {
       },
     ],
     sprites: {
-      front_default: `${SPRITE_BASE}/25.png`,
+      front_default: `${POKEAPI_SPRITE_BASE}/25.png`,
       other: {
         'official-artwork': {
-          front_default: `${SPRITE_BASE}/other/official-artwork/25.png`,
+          front_default: `${POKEAPI_SPRITE_BASE}/other/official-artwork/25.png`,
         },
       },
     },
   },
 };
 
-export const SAMPLE_PIKACHU_BUNDLE = {
-  cache: 'hit',
-  bundle: {
-    pokemon: {
-      id: 25,
-      name: 'pikachu',
-      order: 25,
-      isDefault: true,
-      height: 4,
-      weight: 60,
-      baseExperience: 112,
-      baseStatTotal: 320,
-      types: [{ slot: 1, type: { name: 'electric', url: 'https://pokeapi.co/api/v2/type/13/' } }],
-      abilities: [
-        {
-          is_hidden: false,
-          slot: 1,
-          ability: { name: 'static', url: 'https://pokeapi.co/api/v2/ability/9/' },
-        },
-      ],
-      stats: [
-        {
-          base_stat: 35,
-          effort: 0,
-          stat: { name: 'hp', url: 'https://pokeapi.co/api/v2/stat/1/' },
-        },
-        {
-          base_stat: 55,
-          effort: 0,
-          stat: { name: 'attack', url: 'https://pokeapi.co/api/v2/stat/2/' },
-        },
-        {
-          base_stat: 40,
-          effort: 0,
-          stat: { name: 'defense', url: 'https://pokeapi.co/api/v2/stat/3/' },
-        },
-        {
-          base_stat: 50,
-          effort: 0,
-          stat: { name: 'special-attack', url: 'https://pokeapi.co/api/v2/stat/4/' },
-        },
-        {
-          base_stat: 50,
-          effort: 0,
-          stat: { name: 'special-defense', url: 'https://pokeapi.co/api/v2/stat/5/' },
-        },
-        {
-          base_stat: 90,
-          effort: 2,
-          stat: { name: 'speed', url: 'https://pokeapi.co/api/v2/stat/6/' },
-        },
-      ],
-      sprites: {
-        officialArtwork: {
-          frontDefault: `${SPRITE_BASE}/other/official-artwork/25.png`,
-          frontShiny: `${SPRITE_BASE}/other/official-artwork/shiny/25.png`,
-        },
-        home: { frontDefault: `${SPRITE_BASE}/other/home/25.png`, frontShiny: null },
-        showdown: {
-          frontDefault: null,
-          backDefault: null,
-          frontShiny: null,
-          backShiny: null,
-          frontFemale: null,
-          backFemale: null,
-          frontShinyFemale: null,
-          backShinyFemale: null,
-        },
-        default: {
-          frontDefault: `${SPRITE_BASE}/25.png`,
-          backDefault: null,
-          frontShiny: `${SPRITE_BASE}/shiny/25.png`,
-          backShiny: null,
-          frontFemale: null,
-          backFemale: null,
-          frontShinyFemale: null,
-          backShinyFemale: null,
-        },
-        dreamWorld: { frontDefault: null, frontFemale: null },
-      },
-      historicalSprites: [
-        {
-          generation: 'generation-i',
-          game: 'red-blue',
-          frontDefault: `${SPRITE_BASE}/25.png`,
-          frontShiny: null,
-          animatedFrontDefault: null,
-          animatedFrontShiny: null,
-        },
-      ],
-      cries: { latest: null, legacy: null },
-      moves: [
-        {
-          name: 'thunder-shock',
-          versionGroupDetails: [
-            { levelLearnedAt: 1, learnMethod: 'level-up', versionGroup: 'scarlet-violet' },
-          ],
-        },
-      ],
-      heldItems: [{ itemName: 'light-ball', versionDetails: [{ version: 'scarlet', rarity: 5 }] }],
-      pastTypes: [],
-      pastAbilities: [],
-      pastStats: [],
-    },
-    species: {
-      id: 25,
-      name: 'pikachu',
-      genus: 'Mouse Pokémon',
-      genera: [{ language: 'en', genus: 'Mouse Pokémon' }],
-      flavorTexts: [{ version: 'red', language: 'en', text: 'Stores electricity in its cheeks.' }],
-      captureRate: 190,
-      baseHappiness: 70,
-      genderRate: 4,
-      hasGenderDifferences: true,
-      hatchCounter: 10,
-      growthRate: 'medium',
-      color: 'yellow',
-      shape: 'quadruped',
-      habitat: 'forest',
-      generation: 'generation-i',
-      generationNumber: 1,
-      isBaby: false,
-      isLegendary: false,
-      isMythical: false,
-      formsSwitchable: false,
-      eggGroups: ['field', 'fairy'],
-      pokedexNumbers: [{ pokedex: 'kanto', entryNumber: 25 }],
-      evolvesFromSpecies: null,
-      varieties: [
-        {
-          isDefault: true,
-          pokemonId: 25,
-          pokemonName: 'pikachu',
-          artworkUrl: `${SPRITE_BASE}/other/official-artwork/25.png`,
-        },
-      ],
-    },
-    evolutionChain: {
-      id: 10,
-      babyTriggerItem: null,
-      root: {
-        speciesId: 25,
-        speciesName: 'pikachu',
-        isBaby: false,
-        evolutionDetails: [],
-        evolvesTo: [
-          {
-            speciesId: 26,
-            speciesName: 'raichu',
-            isBaby: false,
-            evolutionDetails: [
-              {
-                trigger: 'use-item',
-                minLevel: null,
-                item: 'thunder-stone',
-                heldItem: null,
-                knownMove: null,
-                knownMoveType: null,
-                location: null,
-                minHappiness: null,
-                minBeauty: null,
-                minAffection: null,
-                needsOverworldRain: false,
-                timeOfDay: '',
-                gender: null,
-                relativePhysicalStats: null,
-                tradeSpecies: null,
-                partySpecies: null,
-                partyType: null,
-                turnUpsideDown: false,
-              },
-            ],
-            evolvesTo: [],
-          },
-        ],
-      },
-    },
-    typeEffectiveness: computeDefensiveTypeEffectiveness([
-      {
-        typeName: 'electric',
-        doubleDamageFrom: ['ground'],
-        halfDamageFrom: ['electric', 'flying', 'steel'],
-        noDamageFrom: [],
-      },
-    ]),
-  },
-};
+export const SAMPLE_PIKACHU_BUNDLE = createCachedPokemonBundleFixture({
+  id: 25,
+  name: 'pikachu',
+  typeName: 'electric',
+  minimalMedia: true,
+});
 
 export const SAMPLE_PIKACHU_ENCOUNTERS = {
   cache: 'hit',
@@ -280,7 +100,7 @@ export const SAMPLE_THUNDER_SHOCK_MOVE = {
       {
         pokemonId: 25,
         pokemonName: 'pikachu',
-        artworkUrl: `${SPRITE_BASE}/other/official-artwork/25.png`,
+        artworkUrl: `${POKEAPI_SPRITE_BASE}/other/official-artwork/25.png`,
       },
     ],
   },

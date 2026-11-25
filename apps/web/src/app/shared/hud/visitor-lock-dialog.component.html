@@ -3,9 +3,8 @@
   class="visitor-dialog"
   aria-labelledby="pv-visitor-title"
   closedby="any"
+  pvDialogLightDismiss
   (close)="onNativeClose()"
-  (pointerdown)="onPointerDown($event)"
-  (pointerup)="onPointerUp($event)"
 >
   @if (auth.visitorPrompt(); as prompt) {
     <div class="visitor-dialog__card">

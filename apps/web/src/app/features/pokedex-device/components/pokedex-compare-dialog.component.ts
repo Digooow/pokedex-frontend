@@ -10,11 +10,13 @@ import {
   viewChild,
 } from '@angular/core';
 import { filterPokemonCatalog } from '@pokeverse/shared';
+import { DialogLightDismissDirective } from '../../../shared/directives/dialog-light-dismiss.directive';
 import { type CompareSide, PokedexCompareStore } from '../services/pokedex-compare.store';
 import { PokedexStore } from '../services/pokedex.store';
 
 @Component({
   selector: 'pv-pokedex-compare-dialog',
+  imports: [DialogLightDismissDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pokedex-compare-dialog.component.html',
   styleUrl: './pokedex-compare-dialog.component.scss',
@@ -23,7 +25,6 @@ export class PokedexCompareDialogComponent {
   readonly compare = inject(PokedexCompareStore);
   readonly pokedex = inject(PokedexStore);
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialogEl');
-  private pressedOutside = false;
 
   readonly openInPokedex = output<string>();
 
@@ -81,34 +82,11 @@ export class PokedexCompareDialogComponent {
     this.compare.close();
   }
 
-  onPointerDown(event: PointerEvent): void {
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    const dialog = this.dialogRef()?.nativeElement;
-    this.pressedOutside = dialog ? this.isOutsideBoundingBox(event, dialog) : false;
-  }
-
-  onPointerUp(event: PointerEvent): void {
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    const dialog = this.dialogRef()?.nativeElement;
-    if (this.pressedOutside && dialog && this.isOutsideBoundingBox(event, dialog)) dialog.close();
-    this.pressedOutside = false;
-  }
-
   private buildQuickSuggestions(rawTerm: string) {
     const state = this.pokedex.catalogState();
     if (state.status !== 'success') return [];
     const term = rawTerm.trim();
     if (!term) return state.data.slice(0, 6);
     return filterPokemonCatalog(state.data, term, 6).items;
-  }
-
-  private isOutsideBoundingBox(event: PointerEvent, dialog: HTMLDialogElement): boolean {
-    const rect = dialog.getBoundingClientRect();
-    return (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    );
   }
 }

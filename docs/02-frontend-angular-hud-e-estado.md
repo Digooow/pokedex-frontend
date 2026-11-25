@@ -34,6 +34,7 @@ flowchart TD
 
 - **`authGuard` (`CanActivateFn` em `apps/web/src/app/core/guards/auth.guard.ts`):** verifica `AuthStore.isAuthenticated()`. Se o usuário for visitante, bloqueia o acesso direto via URL às rotas `/mundo`, `/arcade` e `/arena` (atualmente apontando temporariamente para `TitleScreenComponent` até a entrega das Fases 3–6), abre o diálogo de autenticação com contexto do módulo (`targetRoute`) e mantém o usuário na rota pública com segurança.
 - **`RequiresTrainerDirective` (`[pvRequiresTrainer]` em `apps/web/src/app/shared/directives/requires-trainer.directive.ts`):** diretiva de atributo aplicada a controles protegidos dentro de módulos mistos (por exemplo, os botões de slots na Pokédex quando em modo visitante e os atalhos bloqueados do dock). Mantém a focabilidade por teclado usando `aria-disabled="true"` e classe `.is-trainer-locked`, interceptando o clique para abrir o `<dialog>` de Login/Criar Conta (`VisitorLockDialogComponent`).
+- **`DialogLightDismissDirective` (`dialog[pvDialogLightDismiss]` em `apps/web/src/app/shared/directives/dialog-light-dismiss.directive.ts`):** diretiva compartilhada por diálogos nativos com `closedby="any"` (`VisitorLockDialogComponent` e `PokedexCompareDialogComponent`) que garante fallback determinístico de fechamento ao clicar fora do bounding box quando o navegador ainda não suporta `HTMLDialogElement.prototype.closedBy`.
 
 ---
 

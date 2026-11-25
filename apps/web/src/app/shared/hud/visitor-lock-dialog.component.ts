@@ -9,6 +9,7 @@ import {
   viewChild,
 } from '@angular/core';
 import { type AuthDialogMode, AuthStore } from '../../core/stores/auth.store';
+import { DialogLightDismissDirective } from '../directives/dialog-light-dismiss.directive';
 import {
   validateAuthDialogSubmission,
   validateForgotPasswordEmail,
@@ -17,6 +18,7 @@ import {
 
 @Component({
   selector: 'pv-visitor-lock-dialog',
+  imports: [DialogLightDismissDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './visitor-lock-dialog.component.html',
   styleUrl: './visitor-lock-dialog.component.scss',
@@ -24,7 +26,6 @@ import {
 export class VisitorLockDialogComponent {
   readonly auth = inject(AuthStore);
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialogEl');
-  private pressedOutside = false;
 
   readonly mode = signal<AuthDialogMode>('login');
   readonly username = signal('');
@@ -157,28 +158,5 @@ export class VisitorLockDialogComponent {
     this.password.set('');
     this.otpCode.set('');
     this.auth.dismissVisitorPrompt();
-  }
-
-  onPointerDown(event: PointerEvent): void {
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    const dialog = this.dialogRef()?.nativeElement;
-    this.pressedOutside = dialog ? this.isOutsideBoundingBox(event, dialog) : false;
-  }
-
-  onPointerUp(event: PointerEvent): void {
-    if ('closedBy' in HTMLDialogElement.prototype) return;
-    const dialog = this.dialogRef()?.nativeElement;
-    if (this.pressedOutside && dialog && this.isOutsideBoundingBox(event, dialog)) dialog.close();
-    this.pressedOutside = false;
-  }
-
-  private isOutsideBoundingBox(event: PointerEvent, dialog: HTMLDialogElement): boolean {
-    const rect = dialog.getBoundingClientRect();
-    return (
-      event.clientX < rect.left ||
-      event.clientX > rect.right ||
-      event.clientY < rect.top ||
-      event.clientY > rect.bottom
-    );
   }
 }

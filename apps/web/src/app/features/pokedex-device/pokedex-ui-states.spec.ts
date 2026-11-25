@@ -170,5 +170,17 @@ describe('Pokedex UI Async States & VisitorLockDialogComponent', () => {
 
     expect(fixture.componentInstance.mode()).toBe('mfa-challenge');
     expect(hostEl.querySelector('#pv-auth-otp')).not.toBeNull();
+
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+      dialogEl.getBoundingClientRect = () =>
+        ({ left: 100, right: 400, top: 100, bottom: 400 }) as DOMRect;
+      dialogEl.dispatchEvent(new MouseEvent('pointerdown', { clientX: 200, clientY: 200 }));
+      dialogEl.dispatchEvent(new MouseEvent('pointerup', { clientX: 200, clientY: 200 }));
+      expect(dialogEl.close).not.toHaveBeenCalled();
+
+      dialogEl.dispatchEvent(new MouseEvent('pointerdown', { clientX: 10, clientY: 10 }));
+      dialogEl.dispatchEvent(new MouseEvent('pointerup', { clientX: 10, clientY: 10 }));
+      expect(dialogEl.close).toHaveBeenCalled();
+    }
   });
 });

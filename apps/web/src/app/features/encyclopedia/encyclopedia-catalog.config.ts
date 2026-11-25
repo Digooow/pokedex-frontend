@@ -21,84 +21,75 @@ export interface EncyclopediaCategoryConfig {
   readonly description: string;
 }
 
+function createCategory(
+  key: EncyclopediaResourceKey,
+  label: string,
+  description: string,
+  options?: {
+    readonly endpointPath?: string;
+    readonly mode?: 'paginated' | 'full-list';
+  },
+): EncyclopediaCategoryConfig {
+  return {
+    key,
+    label,
+    endpointPath: options?.endpointPath ?? `${key}s`,
+    mode: options?.mode ?? 'paginated',
+    description,
+  };
+}
+
 export const ENCYCLOPEDIA_CATEGORIES: readonly EncyclopediaCategoryConfig[] = [
-  {
-    key: 'move',
-    label: 'Golpes',
-    endpointPath: 'moves',
-    mode: 'paginated',
-    description: 'Poder, precisão, efeitos de combate e Pokémon que aprendem cada golpe.',
-  },
-  {
-    key: 'ability',
-    label: 'Habilidades',
-    endpointPath: 'abilities',
-    mode: 'paginated',
-    description: 'Efeitos passivos em batalha/campo e espécies portadoras.',
-  },
-  {
-    key: 'item',
-    label: 'Itens',
-    endpointPath: 'items',
-    mode: 'paginated',
-    description: 'Pedras evolutivas, held items, pokébolas e raridade em selvagens.',
-  },
-  {
-    key: 'berry',
-    label: 'Berries',
-    endpointPath: 'berries',
-    mode: 'paginated',
-    description: 'Tempo de crescimento, firmeza, sabores e poder de Natural Gift.',
-  },
-  {
-    key: 'type',
-    label: 'Tipos',
-    endpointPath: 'types',
+  createCategory(
+    'move',
+    'Golpes',
+    'Poder, precisão, efeitos de combate e Pokémon que aprendem cada golpe.',
+  ),
+  createCategory(
+    'ability',
+    'Habilidades',
+    'Efeitos passivos em batalha/campo e espécies portadoras.',
+    { endpointPath: 'abilities' },
+  ),
+  createCategory(
+    'item',
+    'Itens',
+    'Pedras evolutivas, held items, pokébolas e raridade em selvagens.',
+  ),
+  createCategory(
+    'berry',
+    'Berries',
+    'Tempo de crescimento, firmeza, sabores e poder de Natural Gift.',
+    { endpointPath: 'berries' },
+  ),
+  createCategory('type', 'Tipos', 'Matriz elemental de vantagens, fraquezas e elenco por tipo.', {
     mode: 'full-list',
-    description: 'Matriz elemental de vantagens, fraquezas e elenco por tipo.',
-  },
-  {
-    key: 'nature',
-    label: 'Naturezas',
-    endpointPath: 'natures',
-    mode: 'full-list',
-    description: 'Modificadores de atributos (+10% / -10%) e preferência de sabor.',
-  },
-  {
-    key: 'region',
-    label: 'Regiões',
-    endpointPath: 'regions',
-    mode: 'paginated',
-    description: 'Regiões oficiais, Pokédexes associadas e localidades exploráveis.',
-  },
-  {
-    key: 'pokedex',
-    label: 'Pokédexes',
+  }),
+  createCategory(
+    'nature',
+    'Naturezas',
+    'Modificadores de atributos (+10% / -10%) e preferência de sabor.',
+    { mode: 'full-list' },
+  ),
+  createCategory(
+    'region',
+    'Regiões',
+    'Regiões oficiais, Pokédexes associadas e localidades exploráveis.',
+  ),
+  createCategory('pokedex', 'Pokédexes', 'Listagens regionais numeradas e espécies catalogadas.', {
     endpointPath: 'pokedexes',
-    mode: 'paginated',
-    description: 'Listagens regionais numeradas e espécies catalogadas.',
-  },
-  {
-    key: 'location',
-    label: 'Locais',
-    endpointPath: 'locations',
-    mode: 'paginated',
-    description: 'Rotas, cidades, cavernas e áreas de encontro por região.',
-  },
-  {
-    key: 'egg-group',
-    label: 'Grupos de Ovo',
-    endpointPath: 'egg-groups',
-    mode: 'paginated',
-    description: 'Compatibilidade genética para cruzamento e replicação.',
-  },
-  {
-    key: 'growth-rate',
-    label: 'Curvas de XP',
-    endpointPath: 'growth-rates',
-    mode: 'paginated',
-    description: 'Progressão de experiência por nível e espécies por curva.',
-  },
+  }),
+  createCategory('location', 'Locais', 'Rotas, cidades, cavernas e áreas de encontro por região.'),
+  createCategory(
+    'egg-group',
+    'Grupos de Ovo',
+    'Compatibilidade genética para cruzamento e replicação.',
+  ),
+  createCategory(
+    'growth-rate',
+    'Curvas de XP',
+    'Progressão de experiência por nível e espécies por curva.',
+  ),
 ];
 
 export const ENCYCLOPEDIA_CATEGORY_MAP: Readonly<

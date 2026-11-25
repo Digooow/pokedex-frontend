@@ -202,4 +202,83 @@ describe('PokedexEnrichmentService', () => {
     expect(forms.forms).toHaveLength(1);
     expect(forms.varieties).toHaveLength(2);
   });
+
+  it('fetches and sorts more than one batch of forms in deterministic formOrder', async () => {
+    const { service } = createServiceHarness();
+    const formSlugs = Array.from(
+      { length: 8 },
+      (_, idx) => `alcremie-${idx + 1}`,
+    );
+    const multiFormPokemon = {
+      ...RAW_CHARIZARD,
+      id: 869,
+      name: 'alcremie',
+      species: {
+        name: 'alcremie',
+        url: 'https://pokeapi.co/api/v2/pokemon-species/869/',
+      },
+      forms: formSlugs.map((name, idx) => ({
+        name,
+        url: `https://pokeapi.co/api/v2/pokemon-form/${869 + idx}/`,
+      })),
+    };
+    const multiFormSpecies = {
+      ...RAW_CHARIZARD_SPECIES,
+      id: 869,
+      name: 'alcremie',
+      forms_switchable: true,
+      varieties: [
+        {
+          is_default: true,
+          pokemon: {
+            name: 'alcremie',
+            url: 'https://pokeapi.co/api/v2/pokemon/869/',
+          },
+        },
+      ],
+    };
+
+    jest.spyOn(globalThis, 'fetch').mockImplementation((input) => {
+      const url = resolveFetchUrl(input);
+      if (url.endsWith('/pokemon/alcremie')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(multiFormPokemon), { status: 200 }),
+        );
+      }
+      if (url.endsWith('/pokemon-species/alcremie')) {
+        return Promise.resolve(
+          new Response(JSON.stringify(multiFormSpecies), { status: 200 }),
+        );
+      }
+      const match = /\/pokemon-form\/(alcremie-(\d+))$/.exec(url);
+      if (match) {
+        const index = Number(match[2]);
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: 900 + index,
+              name: match[1],
+              form_name: `form-${index}`,
+              form_order: 20 - index,
+              is_default: index === 1,
+              is_battle_only: false,
+              is_mega: false,
+              version_group: {
+                name: 'sword-shield',
+                url: 'https://pokeapi.co/api/v2/version-group/20/',
+              },
+              types: RAW_CHARIZARD.types,
+              sprites: { front_default: `${POKEAPI_SPRITE_BASE}/869.png` },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response('Not found', { status: 404 }));
+    });
+
+    const result = await service.getPokemonForms('alcremie');
+    expect(result.forms).toHaveLength(8);
+    expect(result.forms.map((f) => f.name)).toEqual([...formSlugs].reverse());
+  });
 });
