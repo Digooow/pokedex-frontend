@@ -43,67 +43,72 @@
     </svg>
   </button>
 
-  @if (open()) {
-    <nav id="pv-modules-popover" class="hud-popover hud-popover--start" aria-label="Funcionalidades do PokéVerse">
-      <div class="hud-popover__head">
-        <span class="hud-popover__title">Módulos do PokéVerse</span>
-        <span class="hud-popover__hint">Teclas 1–5</span>
-      </div>
+  <nav
+    id="pv-modules-popover"
+    class="hud-popover hud-popover--start"
+    [class.is-open]="open()"
+    [attr.aria-hidden]="!open()"
+    [attr.inert]="!open() ? '' : null"
+    aria-label="Funcionalidades do PokéVerse"
+  >
+    <div class="hud-popover__head">
+      <span class="hud-popover__title">Módulos do PokéVerse</span>
+      <span class="hud-popover__hint">Teclas 1–5</span>
+    </div>
 
-      <ul class="hud-menu-list">
-        @for (mod of modules; track mod.id) {
-          <li>
-            @if (mod.requiresTrainer && !auth.isAuthenticated()) {
-              <button
-                type="button"
-                class="hud-menu-item hud-menu-item--locked"
-                [pvRequiresTrainer]="mod.label"
-                [lockedDescription]="mod.summary"
-                [lockedRoute]="mod.route"
-                (click)="onLockedModuleSelected()"
-              >
-                <span class="hud-menu-item__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
-                <span class="hud-menu-item__body">
-                  <span class="hud-menu-item__title">{{ mod.label }}</span>
-                  <span class="hud-menu-item__desc">{{ mod.summary }}</span>
-                </span>
-                <span class="hud-menu-item__lock" aria-hidden="true">
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 16 16"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.6"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <rect x="3" y="7" width="10" height="7" rx="1.5" />
-                    <path d="M5 7V5a3 3 0 0 1 6 0v2" />
-                  </svg>
-                </span>
-              </button>
-            } @else {
-              <a
-                [routerLink]="mod.id === 'pokedex' ? '/' : mod.route"
-                class="hud-menu-item"
-                [class.is-active]="isModuleActive(mod.route, mod.id)"
-                [attr.aria-current]="isModuleActive(mod.route, mod.id) ? 'page' : null"
-                (click)="closed.emit()"
-              >
-                <span class="hud-menu-item__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
-                <span class="hud-menu-item__body">
-                  <span class="hud-menu-item__title">{{ mod.label }}</span>
-                  <span class="hud-menu-item__desc">{{ mod.summary }}</span>
-                </span>
-                @if (isModuleActive(mod.route, mod.id)) {
-                  <span class="hud-menu-item__badge">Ativo</span>
-                }
-              </a>
-            }
-          </li>
-        }
-      </ul>
-    </nav>
-  }
+    <ul class="hud-menu-list">
+      @for (mod of modules; track mod.id) {
+        <li>
+          @if (mod.requiresTrainer && !auth.isAuthenticated()) {
+            <button
+              type="button"
+              class="hud-menu-item hud-menu-item--locked"
+              [pvRequiresTrainer]="mod.label"
+              [lockedDescription]="mod.summary"
+              [lockedRoute]="mod.route"
+              (click)="onLockedModuleSelected()"
+            >
+              <span class="hud-menu-item__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
+              <span class="hud-menu-item__body">
+                <span class="hud-menu-item__title">{{ mod.label }}</span>
+                <span class="hud-menu-item__desc">{{ mod.summary }}</span>
+              </span>
+              <span class="hud-menu-item__lock" aria-hidden="true">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <rect x="3" y="7" width="10" height="7" rx="1.5" />
+                  <path d="M5 7V5a3 3 0 0 1 6 0v2" />
+                </svg>
+              </span>
+            </button>
+          } @else {
+            <a
+              [routerLink]="mod.id === 'pokedex' ? '/' : mod.route"
+              class="hud-menu-item"
+              [class.is-active]="isModuleActive(mod.route, mod.id)"
+              [attr.aria-current]="isModuleActive(mod.route, mod.id) ? 'page' : null"
+              (click)="closed.emit()"
+            >
+              <span class="hud-menu-item__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
+              <span class="hud-menu-item__body">
+                <span class="hud-menu-item__title">{{ mod.label }}</span>
+                <span class="hud-menu-item__desc">{{ mod.summary }}</span>
+              </span>
+              @if (isModuleActive(mod.route, mod.id)) {
+                <span class="hud-menu-item__badge">Ativo</span>
+              }
+            </a>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
 </div>

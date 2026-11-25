@@ -6,6 +6,23 @@
   color: var(--pv-ink-primary);
   inline-size: min(28rem, calc(100vw - 2rem));
   box-shadow: var(--pv-shadow-dialog-strong);
+  opacity: 0;
+  transform: translateY(-0.5rem) scale(0.96);
+  transition:
+    opacity 220ms var(--pv-motion-ease-out),
+    transform 220ms var(--pv-motion-ease-out);
+}
+
+.slot-dialog[open] {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+@starting-style {
+  .slot-dialog[open] {
+    opacity: 0;
+    transform: translateY(-0.5rem) scale(0.96);
+  }
 }
 
 .slot-dialog:not([open]) {
@@ -59,15 +76,21 @@
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  transition: filter 120ms ease, transform 80ms ease;
+  box-shadow: var(--pv-hud-item-shadow);
+  transition:
+    filter 140ms ease,
+    transform var(--pv-motion-tactile-ms) var(--pv-motion-ease-out),
+    box-shadow var(--pv-motion-tactile-ms) ease;
 }
 
 .slot-dialog__btn:hover {
   filter: brightness(1.12);
+  transform: translateY(-0.5px);
 }
 
 .slot-dialog__btn:active {
-  transform: translateY(1px);
+  transform: translateY(2px) scale(0.985);
+  box-shadow: var(--pv-hud-item-shadow-active);
 }
 
 .slot-dialog__btn--primary {
@@ -83,10 +106,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .slot-dialog,
   .slot-dialog__btn {
     transition: none;
   }
 
+  .slot-dialog[open],
+  .slot-dialog__btn:hover,
   .slot-dialog__btn:active {
     transform: none;
   }

@@ -66,8 +66,25 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
+  transition:
+    color 140ms ease,
+    transform var(--pv-motion-tactile-ms) var(--pv-motion-ease-out);
 }
 
 .app-footer__link:hover {
   color: var(--pv-ink-primary);
+}
+
+.app-footer__link:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-footer__link {
+    transition: none;
+  }
+
+  .app-footer__link:active {
+    transform: none;
+  }
 }

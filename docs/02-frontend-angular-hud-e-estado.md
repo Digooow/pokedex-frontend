@@ -42,17 +42,19 @@ flowchart TD
 O HUD envolve o canvas sem bloquear cliques nos momentos de exploração e segue estética tática consistente com a paleta semântica em `oklch` e superfícies translúcidas com alto contraste (`WCAG 2.2 AA`):
 
 1. **Top Bar Tática Unificada (`.hud-topbar`):**
-   - À esquerda: emblema **PokéVerse OS** e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 5 módulos com atalhos `1` a `5` e ícone de cadeado `[pvRequiresTrainer]` quando visitante:
+   - Ocupa `100%` da largura da tela (`grade` de 3 colunas no desktop `>= 960px` para ancorar os controles esquerdo e direito nas extremidades e manter o ticker centralizado sem deslocar os botões).
+   - À esquerda: emblema **PokéVerse OS** com ícone de Pokébola SVG semântico (`--pv-hud-pokeball-*`) e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 5 módulos com atalhos `1` a `5` e ícone de cadeado `[pvRequiresTrainer]` quando visitante:
      1. **Overworld (Vila Central)** — *cadeado se visitante*;
      2. **Pokédex 3D & Holocron** — *sempre liberado*;
      3. **Museu das Regiões & Jogos** — *sempre liberado*;
      4. **Arcade Retrô 3D** — *cadeado se visitante*;
      5. **Battle Frontier (Team Builder / Arena / Mini-Games)** — *cadeado se visitante*.
-   - Ao centro: **Ticker de Eventos Globais** alimentado pelo Kafka -> WebSocket (ex.: *"Treinador_Ash venceu Líder Brock na Battle Frontier"*), exibido temporariamente por `6s` (`activeNotification`) sem exibir eventos antigos (`> 30s`) em reconexões, mantendo o histórico recente no `WorldTickerStore`.
+   - Ao centro: **Ticker de Eventos Globais** alimentado pelo Kafka -> WebSocket (ex.: *"Treinador_Ash venceu Líder Brock na Battle Frontier"*), exibido temporariamente por `6s` (`activeNotification`) com animação suave de entrada e saída (`280ms`, classe `.is-exiting`) sem exibir eventos antigos (`> 30s`) em reconexões, mantendo o histórico recente no `WorldTickerStore`.
    - À direita (ordem fixa):
      - **Painel do Jogador (`HudUserMenuComponent`):** botão de visitante (*Modo Visitante • Entrar*) ou emblema do Treinador (`username • ELO`) que abre o painel da conta (insígnias, status 2FA/e-mail, `Segurança, 2FA & Dados da Conta`, verificação OTP e `Sair da conta`);
      - **Configurações (`HudSettingsMenuComponent`):** menu único com seleção de cenário de fundo (Hoenn, Cidade, Vila, Floresta), rotação automática (`ON`/`OFF`) e perfil de desempenho gráfico do navegador (`Auto`, `Ultra`, `Equil.`, `Lite`);
      - **Status da Nuvem:** pílula no canto direito (`Nuvem Online` / `Modo Offline`) que reconsulta `/health/ready`.
+   - **Tato e abertura dos menus:** todos os botões do HUD e da Pokédex compartilham mixins táteis (`_hud-controls.scss`) com resposta física ao pressionar (`:active` afundando suavemente) e os popovers permanecem montados com `[inert]` abrindo em dobra suave estilo Pokédex (com fallback simplificado em `data-perf-tier="lite"` e `prefers-reduced-motion: reduce`), assim como a badge `#status-badge` ao salvar slots.
 2. **Rodapé Discreto (`.app-footer`):**
    - Barra compacta centralizada na base da tela exibindo atribuição resumida (`PokéAPI v2 · Pokémon © Nintendo / Game Freak / TPC`) e links diretos para os modais **Créditos & APIs** e **Cookies & LGPD**, sem duplicação no cabeçalho, no visor da Pokédex ou no Museu.
 3. **Overlay Dinâmico de Módulos (`.hud-stage-overlay`):**

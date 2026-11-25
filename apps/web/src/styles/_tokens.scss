@@ -62,19 +62,38 @@
   --pv-hud-brand-bg: rgba(15, 23, 42, 0.55);
   --pv-hud-brand-bg-hover: rgba(30, 41, 59, 0.78);
   --pv-hud-brand-border: rgba(148, 163, 184, 0.24);
-  --pv-hud-lens-bg: radial-gradient(
-    circle at 30% 28%,
-    oklch(88% 0.1 215),
-    oklch(55% 0.18 242) 60%,
-    oklch(28% 0.11 248)
-  );
-  --pv-hud-lens-glow: 0 0 8px rgba(56, 189, 248, 0.45);
+  --pv-hud-pokeball-top: oklch(55% 0.21 25);
+  --pv-hud-pokeball-top-hi: oklch(72% 0.16 25);
+  --pv-hud-pokeball-bottom: oklch(96% 0.01 250);
+  --pv-hud-pokeball-band: oklch(18% 0.025 255);
+  --pv-hud-pokeball-core: oklch(76% 0.14 220);
+  --pv-hud-pokeball-ring: oklch(92% 0.01 250);
   --pv-hud-pill-bg: rgba(30, 41, 59, 0.85);
   --pv-hud-pill-bg-hover: #334155;
   --pv-hud-pill-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 1px 2px rgba(2, 6, 23, 0.35);
-  --pv-hud-pill-shadow-active: inset 0 2px 4px rgba(0, 0, 0, 0.55);
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 0 rgba(2, 6, 23, 0.35),
+    0 2px 0 rgba(2, 6, 23, 0.78),
+    0 4px 10px rgba(2, 6, 23, 0.35);
+  --pv-hud-pill-shadow-hover:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -1px 0 rgba(2, 6, 23, 0.3),
+    0 2px 0 rgba(2, 6, 23, 0.78),
+    0 6px 14px rgba(2, 6, 23, 0.42);
+  --pv-hud-pill-shadow-active:
+    inset 0 2px 5px rgba(0, 0, 0, 0.68),
+    0 0 0 rgba(2, 6, 23, 0.78);
+  --pv-hud-item-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 2px 0 rgba(2, 6, 23, 0.55);
+  --pv-hud-item-shadow-active:
+    inset 0 2px 4px rgba(0, 0, 0, 0.62),
+    0 0 0 rgba(2, 6, 23, 0.55);
+  --pv-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --pv-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --pv-motion-tactile-ms: 110ms;
+  --pv-motion-hinge-open-ms: 280ms;
+  --pv-motion-hinge-close-ms: 210ms;
   --pv-hud-dock-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
   --pv-hud-dock-active-border: rgba(255, 255, 255, 0.85);
   --pv-hud-dock-active-bg: linear-gradient(180deg, oklch(54% 0.19 25), oklch(42% 0.19 25));

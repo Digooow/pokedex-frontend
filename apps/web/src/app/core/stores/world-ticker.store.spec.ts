@@ -5,7 +5,11 @@ import { provideRouter } from '@angular/router';
 import type { WorldTickerEvent } from '@pokeverse/shared';
 import { HudTopbarComponent } from '../../shared/hud/hud-topbar.component';
 import { flushInitialRequests } from '../../testing/test-fixtures.spec-helper';
-import { TICKER_NOTIFICATION_TTL_MS, WorldTickerStore } from './world-ticker.store';
+import {
+  TICKER_EXIT_ANIMATION_MS,
+  TICKER_NOTIFICATION_TTL_MS,
+  WorldTickerStore,
+} from './world-ticker.store';
 
 function createTickerEvent(overrides?: Partial<WorldTickerEvent>): WorldTickerEvent {
   return {
@@ -130,11 +134,18 @@ describe('WorldTickerStore', () => {
 
     const tickerEl = fixture.nativeElement.querySelector('.hud-ticker') as HTMLElement | null;
     expect(tickerEl).not.toBeNull();
+    expect(tickerEl?.classList.contains('is-exiting')).toBe(false);
     expect(tickerEl?.textContent).toContain('Digooow gravou Jigglypuff (#0039) no Slot 3.');
 
-    vi.advanceTimersByTime(TICKER_NOTIFICATION_TTL_MS);
+    vi.advanceTimersByTime(TICKER_NOTIFICATION_TTL_MS - TICKER_EXIT_ANIMATION_MS);
+    fixture.detectChanges();
+    expect(store.notificationExiting()).toBe(true);
+    expect(tickerEl?.classList.contains('is-exiting')).toBe(true);
+
+    vi.advanceTimersByTime(TICKER_EXIT_ANIMATION_MS);
     fixture.detectChanges();
 
+    expect(store.notificationExiting()).toBe(false);
     expect(fixture.nativeElement.querySelector('.hud-ticker')).toBeNull();
   });
 });

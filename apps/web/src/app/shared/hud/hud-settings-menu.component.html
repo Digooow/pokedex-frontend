@@ -42,72 +42,73 @@
     </svg>
   </button>
 
-  @if (open()) {
-    <section
-      id="pv-settings-popover"
-      class="hud-popover hud-popover--end"
-      aria-label="Configurações de ambiente e navegador"
-    >
-      <div class="hud-popover__head">
-        <span class="hud-popover__title">Configurações</span>
-        <span class="hud-popover__hint">{{ quality.badgeLabel() }}</span>
-      </div>
+  <section
+    id="pv-settings-popover"
+    class="hud-popover hud-popover--end"
+    [class.is-open]="open()"
+    [attr.aria-hidden]="!open()"
+    [attr.inert]="!open() ? '' : null"
+    aria-label="Configurações de ambiente e navegador"
+  >
+    <div class="hud-popover__head">
+      <span class="hud-popover__title">Configurações</span>
+      <span class="hud-popover__hint">{{ quality.badgeLabel() }}</span>
+    </div>
 
-      <section class="hud-settings-section" aria-labelledby="pv-settings-scenario-heading">
-        <h3 id="pv-settings-scenario-heading" class="hud-settings-section__title">
-          Cenário de Fundo
-        </h3>
-        <div class="hud-settings-grid">
-          @for (item of scenarioStore.scenarios; track item.id) {
-            <button
-              type="button"
-              class="hud-settings-option"
-              [class.is-active]="scenarioStore.activeScenario() === item.id"
-              [attr.aria-pressed]="scenarioStore.activeScenario() === item.id"
-              (click)="scenarioStore.selectScenario(item.id)"
-            >
-              {{ item.label }}
-            </button>
-          }
-        </div>
-      </section>
-
-      <section class="hud-settings-section" aria-label="Rotação automática de cenários">
-        <button
-          type="button"
-          class="hud-settings-toggle"
-          [class.is-active]="scenarioStore.autoEnabled()"
-          [attr.aria-pressed]="scenarioStore.autoEnabled()"
-          (click)="scenarioStore.toggleAuto()"
-        >
-          <span>Rotação automática</span>
-          <span class="hud-settings-toggle__state">
-            {{ scenarioStore.autoEnabled() ? 'ON' : 'OFF' }}
-          </span>
-        </button>
-      </section>
-
-      <section class="hud-settings-section" aria-labelledby="pv-settings-perf-heading">
-        <h3 id="pv-settings-perf-heading" class="hud-settings-section__title">
-          Desempenho Gráfico (Navegador)
-        </h3>
-        <div class="hud-settings-grid">
-          @for (opt of perfOptions; track opt.id) {
-            <button
-              type="button"
-              class="hud-settings-option"
-              [class.is-active]="quality.preference() === opt.id"
-              [attr.aria-pressed]="quality.preference() === opt.id"
-              (click)="quality.setPreference(opt.id)"
-            >
-              {{ opt.label }}
-            </button>
-          }
-        </div>
-        @if (quality.reducedMotion()) {
-          <p class="hud-settings-note">Preferência de movimento reduzido detectada no sistema.</p>
+    <section class="hud-settings-section" aria-labelledby="pv-settings-scenario-heading">
+      <h3 id="pv-settings-scenario-heading" class="hud-settings-section__title">
+        Cenário de Fundo
+      </h3>
+      <div class="hud-settings-grid">
+        @for (item of scenarioStore.scenarios; track item.id) {
+          <button
+            type="button"
+            class="hud-settings-option"
+            [class.is-active]="scenarioStore.activeScenario() === item.id"
+            [attr.aria-pressed]="scenarioStore.activeScenario() === item.id"
+            (click)="scenarioStore.selectScenario(item.id)"
+          >
+            {{ item.label }}
+          </button>
         }
-      </section>
+      </div>
     </section>
-  }
+
+    <section class="hud-settings-section" aria-label="Rotação automática de cenários">
+      <button
+        type="button"
+        class="hud-settings-toggle"
+        [class.is-active]="scenarioStore.autoEnabled()"
+        [attr.aria-pressed]="scenarioStore.autoEnabled()"
+        (click)="scenarioStore.toggleAuto()"
+      >
+        <span>Rotação automática</span>
+        <span class="hud-settings-toggle__state">
+          {{ scenarioStore.autoEnabled() ? 'ON' : 'OFF' }}
+        </span>
+      </button>
+    </section>
+
+    <section class="hud-settings-section" aria-labelledby="pv-settings-perf-heading">
+      <h3 id="pv-settings-perf-heading" class="hud-settings-section__title">
+        Desempenho Gráfico (Navegador)
+      </h3>
+      <div class="hud-settings-grid">
+        @for (opt of perfOptions; track opt.id) {
+          <button
+            type="button"
+            class="hud-settings-option"
+            [class.is-active]="quality.preference() === opt.id"
+            [attr.aria-pressed]="quality.preference() === opt.id"
+            (click)="quality.setPreference(opt.id)"
+          >
+            {{ opt.label }}
+          </button>
+        }
+      </div>
+      @if (quality.reducedMotion()) {
+        <p class="hud-settings-note">Preferência de movimento reduzido detectada no sistema.</p>
+      }
+    </section>
+  </section>
 </div>

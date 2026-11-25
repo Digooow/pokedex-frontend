@@ -1,38 +1,11 @@
+@use './hud-controls' as hud;
+
 .hud-menu-wrap {
-  position: relative;
+  @include hud.popover-wrap;
 }
 
 .hud-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-block-size: 2rem;
-  padding: 0.22rem 0.65rem;
-  border-radius: 0.45rem;
-  border: 1px solid var(--pv-hud-border);
-  background-color: var(--pv-hud-pill-bg);
-  color: var(--pv-ink-primary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--pv-hud-pill-shadow);
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease,
-    transform 80ms ease;
-}
-
-.hud-pill:hover,
-.hud-pill[aria-expanded='true'] {
-  background-color: var(--pv-hud-pill-bg-hover);
-  border-color: var(--pv-cyan);
-  color: var(--pv-ink-on-accent);
-}
-
-.hud-pill:active {
-  transform: translateY(1px);
-  box-shadow: var(--pv-hud-pill-shadow-active);
+  @include hud.pill-button;
 }
 
 .hud-menu-key {
@@ -52,25 +25,11 @@
 }
 
 .hud-menu-chevron {
-  transition: transform 150ms ease;
-}
-
-.hud-menu-chevron.is-open {
-  transform: rotate(180deg);
+  @include hud.menu-chevron;
 }
 
 .hud-popover {
-  position: absolute;
-  inset-block-start: calc(100% + 0.45rem);
-  inset-inline-start: 0;
-  z-index: var(--pv-z-modal);
-  inline-size: min(23rem, calc(100vw - 1.5rem));
-  padding: var(--pv-space-3);
-  border-radius: var(--pv-radius-md);
-  border: 1px solid var(--pv-hud-border);
-  background-color: var(--pv-hud-popover-bg);
-  box-shadow: var(--pv-hud-popover-shadow);
-  display: grid;
+  @include hud.popover-panel(min(23rem, calc(100vw - 1.5rem)), 'start');
   gap: var(--pv-space-2);
 }
 
@@ -104,6 +63,7 @@
 }
 
 .hud-menu-item {
+  @include hud.tactile-item;
   inline-size: 100%;
   display: flex;
   align-items: center;
@@ -116,9 +76,6 @@
   text-decoration: none;
   text-align: start;
   cursor: pointer;
-  transition:
-    background-color 140ms ease,
-    border-color 140ms ease;
 }
 
 .hud-menu-item:hover {
@@ -186,28 +143,4 @@
   flex: 0 0 auto;
   display: inline-flex;
   color: var(--pv-ink-muted);
-}
-
-@media (max-width: 639px) {
-  .hud-menu-wrap {
-    position: static;
-  }
-
-  .hud-popover {
-    inset-block-start: calc(100% + 0.25rem);
-    inset-inline: 0.75rem;
-    inline-size: auto;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hud-pill,
-  .hud-menu-chevron,
-  .hud-menu-item {
-    transition: none;
-  }
-
-  .hud-pill:active {
-    transform: none;
-  }
 }

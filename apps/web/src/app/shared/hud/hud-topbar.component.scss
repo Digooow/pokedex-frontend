@@ -1,3 +1,5 @@
+@use './hud-controls' as hud;
+
 .hud-topbar {
   position: sticky;
   inset-block-start: 0;
@@ -24,10 +26,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--pv-space-2);
-  inline-size: min(76rem, 100%);
+  inline-size: 100%;
   min-inline-size: 0;
-  margin-inline: auto;
-  padding: 0.42rem var(--pv-space-3);
+  padding: 0.42rem clamp(0.75rem, 1.8vw, 1.5rem);
 }
 
 .hud-topbar__left,
@@ -37,6 +38,46 @@
   align-items: center;
   gap: 0.375rem;
   min-inline-size: 0;
+}
+
+.hud-topbar__center {
+  order: 3;
+  flex: 1 0 100%;
+  display: flex;
+  justify-content: center;
+  min-inline-size: 0;
+}
+
+@media (max-width: 959px) {
+  .hud-topbar__center:empty {
+    display: none;
+  }
+}
+
+@media (min-width: 960px) {
+  .hud-topbar__inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    column-gap: var(--pv-space-3);
+  }
+
+  .hud-topbar__left {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .hud-topbar__center {
+    grid-column: 2;
+    order: 0;
+    flex: initial;
+    justify-self: center;
+  }
+
+  .hud-topbar__right {
+    grid-column: 3;
+    justify-self: end;
+  }
 }
 
 .hud-brand {
@@ -53,60 +94,42 @@
   letter-spacing: -0.015em;
   background: var(--pv-hud-brand-bg);
   border: 1px solid var(--pv-hud-brand-border);
+  box-shadow: var(--pv-hud-pill-shadow);
   transition:
     border-color 150ms ease,
     background-color 150ms ease,
-    transform 90ms ease;
+    transform var(--pv-motion-tactile-ms) var(--pv-motion-ease-out),
+    box-shadow var(--pv-motion-tactile-ms) ease;
+
+  &:hover {
+    border-color: var(--pv-cyan);
+    background: var(--pv-hud-brand-bg-hover);
+    transform: translateY(-0.5px);
+    box-shadow: var(--pv-hud-pill-shadow-hover);
+  }
+
+  &:active {
+    transform: translateY(2px) scale(0.985);
+    box-shadow: var(--pv-hud-pill-shadow-active);
+  }
 }
 
-.hud-brand:hover {
-  border-color: var(--pv-cyan);
-  background: var(--pv-hud-brand-bg-hover);
+.hud-brand__pokeball {
+  flex: 0 0 auto;
+  display: block;
+  transition: transform 220ms var(--pv-motion-ease-out);
 }
 
-.hud-brand:active {
-  transform: translateY(1px);
+.hud-brand:hover .hud-brand__pokeball {
+  transform: rotate(-18deg) scale(1.06);
 }
 
-.hud-brand__lens {
-  inline-size: 0.85rem;
-  block-size: 0.85rem;
-  border-radius: 50%;
-  border: 2px solid var(--pv-ink-primary);
-  background: var(--pv-hud-lens-bg);
-  box-shadow: var(--pv-hud-lens-glow);
+.hud-brand:active .hud-brand__pokeball {
+  transform: rotate(8deg) scale(0.94);
 }
 
 .hud-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  min-block-size: 2rem;
-  padding: 0.22rem 0.65rem;
-  border-radius: 0.45rem;
-  border: 1px solid var(--pv-hud-border);
-  background-color: var(--pv-hud-pill-bg);
-  color: var(--pv-ink-primary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: var(--pv-hud-pill-shadow);
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease,
-    transform 80ms ease;
-}
-
-button.hud-pill:hover {
-  background-color: var(--pv-hud-pill-bg-hover);
-  border-color: var(--pv-cyan);
-  color: var(--pv-ink-on-accent);
-}
-
-button.hud-pill:active {
-  transform: translateY(1px);
-  box-shadow: var(--pv-hud-pill-shadow-active);
+  @include hud.pill-button;
 }
 
 .hud-cloud-dot {
@@ -121,7 +144,7 @@ button.hud-pill:active {
   align-items: center;
   gap: var(--pv-space-2);
   min-inline-size: 0;
-  max-inline-size: 22rem;
+  max-inline-size: min(24rem, 100%);
   margin: 0;
   padding: 0.2rem 0.65rem;
   border-radius: var(--pv-radius-pill);
@@ -130,12 +153,26 @@ button.hud-pill:active {
   font-size: 0.72rem;
   font-weight: 600;
   color: var(--pv-ink-primary);
-  transition: opacity 220ms ease;
+  animation: hud-ticker-enter 280ms var(--pv-motion-ease-out) both;
+  transition:
+    opacity 260ms var(--pv-motion-ease-in),
+    transform 260ms var(--pv-motion-ease-in);
 }
 
-@starting-style {
-  .hud-ticker {
+.hud-ticker.is-exiting {
+  opacity: 0;
+  transform: translateY(-0.45rem) scale(0.95);
+}
+
+@keyframes hud-ticker-enter {
+  from {
     opacity: 0;
+    transform: translateY(-0.55rem) scale(0.94);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -178,13 +215,17 @@ button.hud-pill:active {
 
 @media (prefers-reduced-motion: reduce) {
   .hud-brand,
-  .hud-pill,
+  .hud-brand__pokeball,
   .hud-ticker {
+    animation: none;
     transition: none;
   }
 
+  .hud-brand:hover,
   .hud-brand:active,
-  button.hud-pill:active {
+  .hud-brand:hover .hud-brand__pokeball,
+  .hud-brand:active .hud-brand__pokeball,
+  .hud-ticker.is-exiting {
     transform: none;
   }
 }

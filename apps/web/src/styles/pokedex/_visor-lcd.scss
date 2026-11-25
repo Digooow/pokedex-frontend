@@ -166,10 +166,20 @@
     border: 1px solid var(--palette-amber-400);
     border-radius: var(--raio-pequeno);
     cursor: pointer;
+    box-shadow: 0 2px 0 rgba(2, 6, 23, 0.55);
+    transition:
+      background-color 140ms ease,
+      transform 110ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 110ms ease;
   }
 
   .btn-sugestao:hover {
     background-color: var(--bg-botao-cenario-hover);
+  }
+
+  .btn-sugestao:active {
+    transform: translateY(1.5px) scale(0.985);
+    box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.5);
   }
 
   .skeleton-card {
@@ -584,9 +594,28 @@
     .pokedex-palco .pokedex-aba-giratoria,
     .pokedex-palco .luz,
     .pokedex-palco .camera-vidro-safira,
-    .pokedex-palco .skeleton-bloco {
+    .pokedex-palco .skeleton-bloco,
+    .pokedex-palco .status-badge,
+    .pokedex-palco .status-badge--transient,
+    .pokedex-palco .btn-primario,
+    .pokedex-palco .btn-secundario,
+    .pokedex-palco .btn-catalogo-recarregar,
+    .pokedex-palco .btn-catalogo-mais,
+    .pokedex-palco .catalogo-item,
+    .pokedex-palco .btn-sugestao,
+    .pokedex-palco .btn-slot-acao {
       animation: none;
       transition: none;
+    }
+
+    .pokedex-palco .btn-primario:active,
+    .pokedex-palco .btn-secundario:active,
+    .pokedex-palco .btn-catalogo-recarregar:active,
+    .pokedex-palco .btn-catalogo-mais:active,
+    .pokedex-palco .catalogo-item:active,
+    .pokedex-palco .btn-sugestao:active,
+    .pokedex-palco .btn-slot-acao:active {
+      transform: none;
     }
   }
 }

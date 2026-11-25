@@ -29,58 +29,59 @@
       </svg>
     </button>
 
-    @if (open()) {
-      <section
-        id="pv-user-popover"
-        class="hud-popover hud-popover--end"
-        aria-label="Painel do Treinador"
-      >
-        <div class="hud-user-card">
-          <div class="hud-user-card__identity">
-            <strong class="hud-user-card__name">{{ trainer.username }}</strong>
-            <span class="hud-user-card__email">{{ trainer.email }}</span>
-          </div>
-          <div class="hud-user-card__stats">
-            <span class="hud-user-chip tabular-nums">ELO {{ trainer.eloRating }}</span>
-            <span class="hud-user-chip tabular-nums">{{ trainer.badgesCount }} insígnias</span>
-            <span
-              class="hud-user-chip"
-              [class.is-ok]="trainer.mfaEnabled"
-              [class.is-warn]="!trainer.mfaEnabled"
-            >
-              {{ trainer.mfaEnabled ? '2FA: Ativo' : '2FA: Inativo' }}
-            </span>
-          </div>
+    <section
+      id="pv-user-popover"
+      class="hud-popover hud-popover--end"
+      [class.is-open]="open()"
+      [attr.aria-hidden]="!open()"
+      [attr.inert]="!open() ? '' : null"
+      aria-label="Painel do Treinador"
+    >
+      <div class="hud-user-card">
+        <div class="hud-user-card__identity">
+          <strong class="hud-user-card__name">{{ trainer.username }}</strong>
+          <span class="hud-user-card__email">{{ trainer.email }}</span>
         </div>
+        <div class="hud-user-card__stats">
+          <span class="hud-user-chip tabular-nums">ELO {{ trainer.eloRating }}</span>
+          <span class="hud-user-chip tabular-nums">{{ trainer.badgesCount }} insígnias</span>
+          <span
+            class="hud-user-chip"
+            [class.is-ok]="trainer.mfaEnabled"
+            [class.is-warn]="!trainer.mfaEnabled"
+          >
+            {{ trainer.mfaEnabled ? '2FA: Ativo' : '2FA: Inativo' }}
+          </span>
+        </div>
+      </div>
 
-        <div class="hud-user-actions">
-          @if (auth.isMfaPending()) {
-            <button type="button" class="hud-user-action hud-user-action--warn" (click)="openMfaChallenge()">
-              Concluir verificação 2FA
-            </button>
-          } @else {
-            @if (!trainer.emailVerifiedAt) {
-              <button
-                type="button"
-                class="hud-user-action hud-user-action--warn"
-                (click)="openVerifyEmail(trainer.email)"
-              >
-                Verificar E-mail (OTP)
-              </button>
-            }
-            <button type="button" class="hud-user-action" (click)="openSecuritySettings()">
-              Segurança, 2FA &amp; Dados da Conta
+      <div class="hud-user-actions">
+        @if (auth.isMfaPending()) {
+          <button type="button" class="hud-user-action hud-user-action--warn" (click)="openMfaChallenge()">
+            Concluir verificação 2FA
+          </button>
+        } @else {
+          @if (!trainer.emailVerifiedAt) {
+            <button
+              type="button"
+              class="hud-user-action hud-user-action--warn"
+              (click)="openVerifyEmail(trainer.email)"
+            >
+              Verificar E-mail (OTP)
             </button>
           }
-
-          <hr class="hud-user-divider" />
-
-          <button type="button" class="hud-user-action hud-user-action--danger" (click)="logout()">
-            Sair da conta
+          <button type="button" class="hud-user-action" (click)="openSecuritySettings()">
+            Segurança, 2FA &amp; Dados da Conta
           </button>
-        </div>
-      </section>
-    }
+        }
+
+        <hr class="hud-user-divider" />
+
+        <button type="button" class="hud-user-action hud-user-action--danger" (click)="logout()">
+          Sair da conta
+        </button>
+      </div>
+    </section>
   } @else {
     <button type="button" class="hud-pill hud-pill--visitor" (click)="openVisitorInfo()">
       Modo Visitante • Entrar

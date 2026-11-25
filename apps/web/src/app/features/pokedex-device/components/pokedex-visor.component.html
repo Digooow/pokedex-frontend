@@ -9,7 +9,11 @@
 >
   <div class="painel-cabecalho">
     <h2 id="titulo-resultado" class="painel-titulo">Visor de Resultados</h2>
-    <span id="status-badge" [class]="'status-badge status-badge--' + badgeVariant()">
+    <span
+      id="status-badge"
+      [class]="'status-badge status-badge--' + badgeVariant()"
+      [class.status-badge--transient]="transientStatus() !== null"
+    >
       {{ badgeLabel() }}
     </span>
   </div>

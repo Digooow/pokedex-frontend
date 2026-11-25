@@ -340,58 +340,109 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     expect(rpg.rpgCatalogIndex()).toBe(0);
   });
 
-  it('opens the Pokémon stored in another blue slot directly on click without opening overwrite confirmation modal', () => {
+  function setupOpenDeviceWithSlots() {
     const httpMock = TestBed.inject(HttpTestingController);
     const store = TestBed.inject(PokedexStore);
     const slotsStore = TestBed.inject(PokedexSlotsStore);
-
+    const baseSprite = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon';
     slotsStore.saveSlot(0, {
       id: 25,
       name: 'pikachu',
       displayName: 'Pikachu',
-      spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png',
+      spriteUrl: `${baseSprite}/25.png`,
     });
     slotsStore.saveSlot(1, {
       id: 1,
       name: 'bulbasaur',
       displayName: 'Bulbasaur',
-      spriteUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png',
+      spriteUrl: `${baseSprite}/1.png`,
     });
-
     const fixture = TestBed.createComponent(PokedexDevicePageComponent);
     fixture.detectChanges();
     flushInitialRequests(httpMock);
-
-    const openBtn = fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement;
-    openBtn.click();
+    (fixture.nativeElement.querySelector('#btn-abrir-pokedex') as HTMLButtonElement).click();
     fixture.detectChanges();
     httpMock
       .match('/api/v1/pokedex/catalog')
       .forEach((req) => req.flush({ cache: 'hit', catalog: { count: 0, results: [] } }));
-
     const slotButtons = fixture.nativeElement.querySelectorAll(
       '.btn-slot-azul',
     ) as NodeListOf<HTMLButtonElement>;
+    const clickDialogPrimary = () => {
+      (
+        fixture.nativeElement.querySelector('.slot-dialog__btn--primary') as HTMLButtonElement
+      ).click();
+      fixture.detectChanges();
+    };
+    return { httpMock, store, slotsStore, fixture, slotButtons, clickDialogPrimary };
+  }
+
+  it('opens occupied slot directly when visor is empty or same Pokémon, and flags duplicate when already saved elsewhere', () => {
+    const { httpMock, store, slotsStore, fixture, slotButtons, clickDialogPrimary } =
+      setupOpenDeviceWithSlots();
+
     slotButtons[0]?.click();
     fixture.detectChanges();
+    expect(slotsStore.pendingConfirm()).toBeNull();
     httpMock
       .expectOne('/api/v1/pokedex/pokemon/pikachu')
       .flush(createCachedPokemonFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
+    fixture.detectChanges();
     expect(store.selectedPokemon()?.name).toBe('pikachu');
+
+    slotButtons[0]?.click();
+    fixture.detectChanges();
+    expect(slotsStore.pendingConfirm()).toBeNull();
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/pikachu')
+      .flush(createCachedPokemonFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
+    fixture.detectChanges();
 
     slotButtons[1]?.click();
     fixture.detectChanges();
+    const duplicatePrompt = slotsStore.pendingConfirm();
+    expect(duplicatePrompt?.kind).toBe('overwrite-click');
+    if (duplicatePrompt?.kind === 'overwrite-click') {
+      expect(duplicatePrompt.duplicateSlotIndex).toBe(0);
+    }
+
+    clickDialogPrimary();
     expect(slotsStore.pendingConfirm()).toBeNull();
-    httpMock.expectOne('/api/v1/pokedex/pokemon/bulbasaur').flush(
-      createCachedPokemonFixture({
-        id: 1,
-        name: 'bulbasaur',
-        typeName: 'grass',
-        typeId: 12,
-        height: 7,
-        weight: 69,
-      }),
-    );
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/bulbasaur')
+      .flush(createCachedPokemonFixture({ id: 1, name: 'bulbasaur', typeName: 'grass' }));
+    fixture.detectChanges();
     expect(store.selectedPokemon()?.name).toBe('bulbasaur');
+  });
+
+  it('opens overwrite-click confirmation modal when clicking an occupied slot with a different non-duplicate Pokémon in visor', () => {
+    const { httpMock, store, slotsStore, fixture, slotButtons, clickDialogPrimary } =
+      setupOpenDeviceWithSlots();
+
+    store.loadPokemonDetail('charmander');
+    fixture.detectChanges();
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/charmander')
+      .flush(createCachedPokemonFixture({ id: 4, name: 'charmander', typeName: 'fire' }));
+    fixture.detectChanges();
+    expect(store.selectedPokemon()?.name).toBe('charmander');
+
+    slotButtons[0]?.click();
+    fixture.detectChanges();
+
+    const overwritePrompt = slotsStore.pendingConfirm();
+    expect(overwritePrompt?.kind).toBe('overwrite-click');
+    if (overwritePrompt?.kind === 'overwrite-click') {
+      expect(overwritePrompt.duplicateSlotIndex).toBeNull();
+      expect(overwritePrompt.existingName).toBe('pikachu');
+      expect(overwritePrompt.candidate.name).toBe('charmander');
+    }
+
+    clickDialogPrimary();
+    expect(slotsStore.pendingConfirm()).toBeNull();
+    expect(slotsStore.slotsMap().get(0)?.pokemonName).toBe('charmander');
+    expect(fixture.nativeElement.querySelector('#status-badge')?.textContent).toContain(
+      'Slot 01 atualizado',
+    );
   });
 });

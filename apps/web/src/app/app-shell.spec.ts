@@ -31,8 +31,17 @@ describe('PokéVerse OS Shell', () => {
     const compiled = fixture.nativeElement as HTMLElement;
 
     expect(compiled.querySelector('.hud-brand__name')?.textContent).toContain('PokéVerse OS');
+    expect(compiled.querySelector('.hud-brand__pokeball')).not.toBeNull();
+    expect(compiled.querySelector('.hud-brand__lens')).toBeNull();
     expect(compiled.querySelector('pv-hud-quick-dock')).toBeNull();
     expect(compiled.querySelector('pv-cenarios-bar')).toBeNull();
+
+    const modulesPopover = compiled.querySelector('#pv-modules-popover') as HTMLElement;
+    const settingsPopover = compiled.querySelector('#pv-settings-popover') as HTMLElement;
+    expect(modulesPopover.classList.contains('is-open')).toBe(false);
+    expect(modulesPopover.hasAttribute('inert')).toBe(true);
+    expect(settingsPopover.classList.contains('is-open')).toBe(false);
+    expect(settingsPopover.hasAttribute('inert')).toBe(true);
 
     const topbarText = compiled.querySelector('.hud-topbar')?.textContent ?? '';
     expect(topbarText).not.toContain('Créditos & APIs');
@@ -45,6 +54,9 @@ describe('PokéVerse OS Shell', () => {
     expect(modulesTrigger).not.toBeNull();
     modulesTrigger.click();
     fixture.detectChanges();
+
+    expect(modulesPopover.classList.contains('is-open')).toBe(true);
+    expect(modulesPopover.hasAttribute('inert')).toBe(false);
 
     const moduleItems = compiled.querySelectorAll('#pv-modules-popover .hud-menu-item');
     expect(moduleItems).toHaveLength(5);

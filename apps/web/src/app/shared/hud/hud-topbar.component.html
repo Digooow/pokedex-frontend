@@ -11,7 +11,28 @@
   <div class="hud-topbar__inner">
     <div class="hud-topbar__left">
       <a routerLink="/" class="hud-brand" (click)="closeMenus()">
-        <span class="hud-brand__lens" aria-hidden="true"></span>
+        <svg
+          class="hud-brand__pokeball"
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="11" fill="var(--pv-hud-pokeball-band)" />
+          <path d="M 2 12 A 10 10 0 0 1 22 12 Z" fill="var(--pv-hud-pokeball-top)" />
+          <path d="M 2 12 A 10 10 0 0 0 22 12 Z" fill="var(--pv-hud-pokeball-bottom)" />
+          <path
+            d="M 5.4 7.5 C 7 5.2 9.8 4 12.6 4.2"
+            fill="none"
+            stroke="var(--pv-hud-pokeball-top-hi)"
+            stroke-width="1.6"
+            stroke-linecap="round"
+          />
+          <rect x="1.5" y="10.7" width="21" height="2.6" fill="var(--pv-hud-pokeball-band)" />
+          <circle cx="12" cy="12" r="4.2" fill="var(--pv-hud-pokeball-band)" />
+          <circle cx="12" cy="12" r="2.8" fill="var(--pv-hud-pokeball-ring)" />
+          <circle cx="12" cy="12" r="1.5" fill="var(--pv-hud-pokeball-core)" />
+        </svg>
         <span class="hud-brand__name">PokéVerse OS</span>
       </a>
 
@@ -22,12 +43,18 @@
       />
     </div>
 
-    @if (ticker.activeNotification(); as liveEvent) {
-      <p class="hud-ticker" aria-live="polite">
-        <span class="hud-ticker__dot" aria-hidden="true"></span>
-        <span class="hud-ticker__text">{{ liveEvent.summary }}</span>
-      </p>
-    }
+    <div class="hud-topbar__center">
+      @if (ticker.activeNotification(); as liveEvent) {
+        <p
+          class="hud-ticker"
+          [class.is-exiting]="ticker.notificationExiting()"
+          aria-live="polite"
+        >
+          <span class="hud-ticker__dot" aria-hidden="true"></span>
+          <span class="hud-ticker__text">{{ liveEvent.summary }}</span>
+        </p>
+      }
+    </div>
 
     <div class="hud-topbar__right">
       <pv-hud-user-menu

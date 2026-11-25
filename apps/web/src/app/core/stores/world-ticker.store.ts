@@ -9,6 +9,7 @@ import type { Socket } from 'socket.io-client';
 
 const MAX_TICKER_HISTORY = 12;
 export const TICKER_NOTIFICATION_TTL_MS = 6_000;
+export const TICKER_EXIT_ANIMATION_MS = 280;
 const RECENT_EVENT_MAX_AGE_MS = 30_000;
 
 @Injectable({ providedIn: 'root' })
@@ -17,16 +18,19 @@ export class WorldTickerStore implements OnDestroy {
   private socket: Socket | null = null;
   private connecting = false;
   private destroyed = false;
+  private exitTimer: ReturnType<typeof setTimeout> | null = null;
   private hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   private readonly eventsSignal = signal<readonly WorldTickerEvent[]>([]);
   private readonly activeNotificationSignal = signal<WorldTickerEvent | null>(null);
+  private readonly notificationExitingSignal = signal(false);
   private readonly connectedSignal = signal(false);
 
   readonly events = this.eventsSignal.asReadonly();
   readonly connected = this.connectedSignal.asReadonly();
   readonly latestEvent = computed<WorldTickerEvent | null>(() => this.eventsSignal()[0] ?? null);
   readonly activeNotification = this.activeNotificationSignal.asReadonly();
+  readonly notificationExiting = this.notificationExitingSignal.asReadonly();
 
   connect(): void {
     if (!this.isBrowser || this.socket || this.connecting || this.destroyed) {
@@ -101,6 +105,7 @@ export class WorldTickerStore implements OnDestroy {
 
   dismissNotification(): void {
     this.clearHideTimer();
+    this.notificationExitingSignal.set(false);
     this.activeNotificationSignal.set(null);
   }
 
@@ -114,19 +119,31 @@ export class WorldTickerStore implements OnDestroy {
 
   private showTemporaryNotification(event: WorldTickerEvent): void {
     this.clearHideTimer();
+    this.notificationExitingSignal.set(false);
     this.activeNotificationSignal.set(event);
 
     if (!this.isBrowser || this.destroyed) {
       return;
     }
 
+    const exitDelay = Math.max(0, TICKER_NOTIFICATION_TTL_MS - TICKER_EXIT_ANIMATION_MS);
+    this.exitTimer = setTimeout(() => {
+      this.exitTimer = null;
+      this.notificationExitingSignal.set(true);
+    }, exitDelay);
+
     this.hideTimer = setTimeout(() => {
       this.hideTimer = null;
+      this.notificationExitingSignal.set(false);
       this.activeNotificationSignal.set(null);
     }, TICKER_NOTIFICATION_TTL_MS);
   }
 
   private clearHideTimer(): void {
+    if (this.exitTimer !== null) {
+      clearTimeout(this.exitTimer);
+      this.exitTimer = null;
+    }
     if (this.hideTimer !== null) {
       clearTimeout(this.hideTimer);
       this.hideTimer = null;
