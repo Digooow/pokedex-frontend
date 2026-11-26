@@ -132,6 +132,31 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await expect(page.locator('.calc-panel')).toBeVisible();
     await expect(page.locator('.calc-footer__total')).toBeVisible();
 
+    await page.locator('#btn-visor-expand').click();
+    await expect(page.locator('#btn-visor-expand')).toHaveAttribute('aria-expanded', 'true');
+    await expect(page.locator('#resultado-area')).toHaveClass(/is-visor-expanded/);
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#btn-visor-expand')).toHaveAttribute('aria-expanded', 'false');
+    await expect(page.locator('#pokedex-aparelho')).toHaveAttribute('data-aberta', 'true');
+
+    await page.locator('#calc-competitive-preset').selectOption('vgc-fast-special');
+    await expect(page.locator('.calc-head__title')).toContainText('Nv. 50');
+
+    await page.locator('#calc-tab-damage').click();
+    await page.locator('.dmg-chips .dmg-chip', { hasText: 'Pikachu' }).first().click();
+    await expect(page.locator('.dmg-result__range')).toBeVisible();
+    await expect(page.locator('.dmg-eff-badge')).toContainText('Eficácia');
+
+    await page.locator('#calc-tab-io').click();
+    await expect(page.locator('#calc-spread-export')).toHaveValue(/Timid Nature/);
+    await page
+      .locator('#calc-spread-import')
+      .fill('Pikachu\nLevel: 100\nEVs: 252 Atk / 4 Def / 252 Spe\nJolly Nature');
+    await page.locator('#btn-import-spread').click();
+    await expect(page.locator('.io-feedback--ok')).toBeVisible();
+    await page.locator('#calc-tab-stats').click();
+    await expect(page.locator('.calc-head__title')).toContainText('Nv. 100');
+
     await page.locator('#visor-mode-enciclopedia').click();
     await expect(page.locator('.ency-embed')).toBeVisible();
     await page.locator('.ency-cat-btn', { hasText: 'Tipos' }).click();

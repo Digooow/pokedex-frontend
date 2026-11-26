@@ -36,9 +36,9 @@ export const KEY_TO_DIRECTION: Readonly<Record<string, RpgDirection>> = {
 };
 
 export const PRESERVED_OUTSIDE_SELECTOR =
-  '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo, .hud-topbar, .app-footer, dialog, dialog[open]';
+  '.painel-busca, .painel-resultado, .visor-expand-backdrop, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo, .hud-topbar, .app-footer, dialog, dialog[open]';
 export const INTERNAL_INTERACTIVE_SELECTOR =
-  '.painel-busca, .painel-resultado, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo';
+  '.painel-busca, .painel-resultado, .visor-expand-backdrop, .pokedex-controles-fisicos, .pokedex-rodape-direito, .controle-interativo';
 
 export type RpgNavigationAction =
   | { readonly kind: 'screen'; readonly nextScreen: RpgScreen | null }

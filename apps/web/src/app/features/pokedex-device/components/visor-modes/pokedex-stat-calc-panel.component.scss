@@ -30,6 +30,35 @@
   color: var(--texto-lcd-secundario);
 }
 
+.calc-subtabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 2px;
+  padding: 2px;
+  background: var(--pv-lcd-segmented-bg);
+  border: 1px solid var(--pv-lcd-segmented-border);
+  border-radius: var(--pv-radius-sm);
+}
+
+.calc-subtab {
+  min-block-size: 2.25rem;
+  padding: 0.2rem 0.35rem;
+  border: 1px solid transparent;
+  border-radius: calc(var(--pv-radius-sm) - 2px);
+  background: transparent;
+  color: var(--texto-lcd-secundario);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.calc-subtab[aria-selected='true'] {
+  background: var(--pv-lcd-tab-active-bg);
+  border-color: var(--pv-lcd-tab-active-border);
+  color: var(--pv-lcd-tab-active-ink);
+}
+
 .calc-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));

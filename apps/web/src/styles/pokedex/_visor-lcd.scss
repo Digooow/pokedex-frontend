@@ -28,6 +28,68 @@
     border-color: var(--borda-visor-acento);
   }
 
+  .pokedex-palco.is-visor-expanded {
+    z-index: var(--pv-z-modal);
+  }
+
+  .visor-expand-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--pv-z-modal) - 1);
+    background-color: var(--pv-backdrop-scrim);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+  }
+
+  .painel-resultado.is-visor-expanded {
+    position: fixed;
+    inset: clamp(0.6rem, 2.2vh, 1.5rem) clamp(0.6rem, 3vw, 2.5rem);
+    z-index: var(--pv-z-modal);
+    width: auto;
+    height: auto;
+    max-width: 72rem;
+    max-height: calc(100dvh - 1.2rem);
+    margin: auto;
+    border-color: var(--pv-border-gold);
+    box-shadow:
+      var(--pv-shadow-dialog-strong),
+      inset 0 3px 12px rgba(0, 0, 0, 0.72);
+  }
+
+  .visor-header-actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espaco-2);
+  }
+
+  .visor-expand-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 44px;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--pv-radius-pill);
+    border: 1px solid var(--borda-visor-acento);
+    background-color: var(--pv-lcd-pill-bg);
+    color: var(--texto-lcd-principal);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color var(--pv-motion-fast-ms) ease, border-color var(--pv-motion-fast-ms) ease;
+  }
+
+  .visor-expand-btn:hover {
+    background-color: var(--pv-lcd-tab-hover-bg);
+  }
+
+  .visor-expand-btn[aria-expanded='true'] {
+    background-color: var(--pv-lcd-action-bg);
+    border-color: var(--pv-lcd-action-border);
+    color: var(--pv-lcd-action-ink);
+  }
+
   .resultado-conteudo {
     position: relative;
     display: flex;
@@ -543,6 +605,18 @@
       flex: 1 1 100%;
     }
   }
+
+  @container visor (min-width: 680px) {
+    .painel-resultado.is-visor-expanded .pokemon-ficha {
+      padding: var(--espaco-4);
+      gap: var(--espaco-4);
+    }
+
+    .painel-resultado.is-visor-expanded .pokemon-imagem-box {
+      width: 152px;
+      height: 152px;
+    }
+  }
 }
 
 @layer components {
@@ -583,6 +657,10 @@
   html[data-perf-tier="lite"] .pokemon-imagem-box[data-pokemon-type] {
     box-shadow: none;
   }
+
+  html[data-perf-tier="lite"] .visor-expand-backdrop {
+    backdrop-filter: none;
+  }
 }
 
 @layer utilities {
@@ -617,7 +695,8 @@
     .pokedex-palco .btn-catalogo-mais,
     .pokedex-palco .catalogo-item,
     .pokedex-palco .btn-sugestao,
-    .pokedex-palco .btn-slot-acao {
+    .pokedex-palco .btn-slot-acao,
+    .pokedex-palco .visor-expand-btn {
       animation: none;
       transition: none;
     }

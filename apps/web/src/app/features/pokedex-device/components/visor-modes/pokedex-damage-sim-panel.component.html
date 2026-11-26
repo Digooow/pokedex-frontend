@@ -1,0 +1,263 @@
+<section class="dmg-panel" aria-label="Simulador de Dano Competitivo">
+  <form class="dmg-search" (submit)="onDefenderSubmit($event)">
+    <label class="dmg-field dmg-field--grow">
+      <span class="dmg-label">Defensor (Alvo)</span>
+      <div class="dmg-inline">
+        <input
+          id="dmg-defender-input"
+          type="search"
+          class="dmg-input"
+          placeholder="Ex.: garchomp, pikachu, 1"
+          [value]="defenderQuery()"
+          (input)="onDefenderInput($event)"
+        />
+        <button type="submit" id="btn-dmg-load" class="dmg-btn">Carregar</button>
+      </div>
+    </label>
+  </form>
+
+  @if (defenderSuggestions().length > 0) {
+    <div class="dmg-chips" aria-label="Sugestões de defensor">
+      @for (item of defenderSuggestions(); track item.id) {
+        <button
+          type="button"
+          class="dmg-chip"
+          (click)="loadDefender(item.name)"
+        >
+          {{ item.displayName }}
+        </button>
+      }
+    </div>
+  }
+
+  <div class="dmg-grid">
+    @if (learnedMoves().length > 0) {
+      <label class="dmg-field dmg-field--full">
+        <span class="dmg-label">
+          Golpe do {{ attacker().displayName }}
+          @if (loadingMove()) {
+            (carregando...)
+          }
+        </span>
+        <select
+          id="dmg-learned-move"
+          class="dmg-select"
+          [value]="selectedMoveName()"
+          (change)="onLearnedMoveSelect($event)"
+        >
+          <option value="">Personalizado (manual)</option>
+          @for (mv of learnedMoves(); track mv.name) {
+            <option [value]="mv.name">{{ mv.label }}</option>
+          }
+        </select>
+      </label>
+    }
+
+    <label class="dmg-field">
+      <span class="dmg-label">Tipo do Golpe</span>
+        <select
+          id="dmg-move-type"
+          class="dmg-select"
+          [value]="moveType()"
+          (change)="onSelectField('moveType', $event)"
+        >
+        @for (t of pokemonTypes; track t) {
+          <option [value]="t">{{ formatLabel(t) }}</option>
+        }
+      </select>
+    </label>
+
+    <label class="dmg-field">
+      <span class="dmg-label">Categoria</span>
+      <select
+        id="dmg-move-category"
+        class="dmg-select"
+        [value]="moveCategory()"
+        (change)="onSelectField('moveCategory', $event)"
+      >
+        <option value="physical">Físico (Atk/Def)</option>
+        <option value="special">Especial (SpA/SpD)</option>
+      </select>
+    </label>
+
+    <label class="dmg-field">
+      <span class="dmg-label">Poder (1–250)</span>
+      <input
+        id="dmg-move-power"
+        type="number"
+        min="1"
+        max="250"
+        class="dmg-input"
+        [value]="movePower()"
+        (input)="onNumericField('power', $event)"
+      />
+    </label>
+
+    <label class="dmg-field">
+      <span class="dmg-label">Clima</span>
+      <select
+        id="dmg-weather"
+        class="dmg-select"
+        [value]="weather()"
+        (change)="onSelectField('weather', $event)"
+      >
+        <option value="none">Nenhum</option>
+        <option value="sun">Sol (Fire 1.5x / Water 0.5x)</option>
+        <option value="rain">Chuva (Water 1.5x / Fire 0.5x)</option>
+        <option value="sand">Areia (Rock +50% SpD)</option>
+        <option value="snow">Neve (Ice +50% Def)</option>
+      </select>
+    </label>
+
+    <label class="dmg-field">
+      <span class="dmg-label">Item Atacante</span>
+      <select
+        id="dmg-item"
+        class="dmg-select"
+        [value]="itemMultiplier()"
+        (change)="onNumericField('item', $event)"
+      >
+        <option value="1">Sem multiplicador (1.0x)</option>
+        <option value="1.1">Muscle / Wise (1.1x)</option>
+        <option value="1.2">Item de Tipo (1.2x)</option>
+        <option value="1.3">Life Orb (1.3x)</option>
+        <option value="1.5">Choice Band/Specs (1.5x)</option>
+      </select>
+    </label>
+
+    <label class="dmg-field">
+      <span class="dmg-label">Estágio Atacante</span>
+      <select
+        id="dmg-atk-stage"
+        class="dmg-select"
+        [value]="attackerStage()"
+        (change)="onNumericField('atkStage', $event)"
+      >
+        @for (s of stageOptions; track s) {
+          <option [value]="s">{{ s > 0 ? '+' + s : s }}</option>
+        }
+      </select>
+    </label>
+  </div>
+
+  <div class="dmg-toggles">
+    <button
+      type="button"
+      class="dmg-chip"
+      [attr.aria-pressed]="isCritical()"
+      (click)="isCritical.update((v) => !v)"
+    >
+      Crítico (1.5x)
+    </button>
+    <button
+      type="button"
+      class="dmg-chip"
+      [attr.aria-pressed]="isBurned()"
+      (click)="isBurned.update((v) => !v)"
+    >
+      Queimado (-50% Fís.)
+    </button>
+    <button
+      type="button"
+      class="dmg-chip"
+      [attr.aria-pressed]="isDoublesSpread()"
+      (click)="isDoublesSpread.update((v) => !v)"
+    >
+      VGC Spread (0.75x)
+    </button>
+  </div>
+
+  @switch (defenderState().status) {
+    @case ('loading') {
+      <p class="dmg-state">Carregando defensor na PokéAPI...</p>
+    }
+    @case ('error') {
+      <div class="dmg-state dmg-state--error" role="alert">
+        <span>Não foi possível carregar o defensor.</span>
+        <button type="button" class="dmg-btn" (click)="retryDefender()">Tentar novamente</button>
+      </div>
+    }
+    @case ('success') {
+      @if (defenderPokemon(); as def) {
+      @let defStats = defenderCalculatedStats();
+      @if (damageResult(); as res) {
+        <div class="dmg-defender-bar">
+          <div class="dmg-defender-id">
+            <strong>{{ def.displayName }}</strong>
+            <span class="dmg-types">
+              @for (type of def.types; track type) {
+                <span class="tipo-badge" [attr.data-pokemon-type]="typeSlug(type)">{{ type }}</span>
+              }
+            </span>
+          </div>
+          <div class="dmg-inline">
+            <label class="dmg-mini-field">
+              <span>Nv.</span>
+              <input
+                id="dmg-def-level"
+                type="number"
+                min="1"
+                max="100"
+                class="dmg-mini-input"
+                [value]="defenderLevel()"
+                (input)="onNumericField('defLevel', $event)"
+              />
+            </label>
+            <select
+              id="dmg-def-preset"
+              aria-label="Perfil defensivo do alvo"
+              class="dmg-select dmg-select--compact"
+              [value]="defenderPreset()"
+              (change)="onSelectField('defenderPreset', $event)"
+            >
+              @for (preset of defenderPresets; track preset.id) {
+                <option [value]="preset.id">{{ preset.label }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <article class="dmg-result" aria-live="polite">
+          <div class="dmg-result__head">
+            <strong class="dmg-result__range tabular-nums">
+              {{ res.minDamage }}–{{ res.maxDamage }} HP ({{ res.minPercent }}%–{{ res.maxPercent }}%)
+            </strong>
+            <span class="dmg-ko-badge">{{ res.koChanceLabel }}</span>
+          </div>
+
+          @if (defStats) {
+            <div class="dmg-hp-track" aria-hidden="true">
+              <span class="dmg-hp-remain" [style.width.%]="hpRemainPct(res.minPercent)"></span>
+              <span class="dmg-hp-safe" [style.width.%]="hpRemainPct(res.maxPercent)"></span>
+            </div>
+            <p class="dmg-meta tabular-nums">
+              HP Alvo: {{ defStats.hp }} ·
+              {{ moveCategory() === 'physical' ? 'Def' : 'SpD' }} Alvo:
+              {{ moveCategory() === 'physical' ? defStats.defense : defStats.specialDefense }}
+            </p>
+          }
+
+          <div class="dmg-badges">
+            <span
+              class="dmg-eff-badge"
+              [attr.data-eff]="effectivenessVariant(res.typeEffectiveness)"
+            >
+              Eficácia {{ res.typeEffectiveness }}x
+            </span>
+            @if (res.stabApplied) {
+              <span class="dmg-stab-badge">STAB 1.5x</span>
+            }
+          </div>
+
+          <p class="dmg-rolls tabular-nums">
+            Rolls (16): {{ res.rolls.join(', ') }}
+          </p>
+        </article>
+      }
+      }
+    }
+    @default {
+      <p class="dmg-state">Selecione um defensor acima para calcular o dano contra o build atual.</p>
+    }
+  }
+</section>

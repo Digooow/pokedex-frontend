@@ -1,0 +1,226 @@
+.dmg-panel {
+  display: grid;
+  gap: var(--pv-space-2);
+}
+
+.dmg-search,
+.dmg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--pv-space-2);
+}
+
+.dmg-field {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.dmg-field--full,
+.dmg-field--grow {
+  grid-column: 1 / -1;
+}
+
+.dmg-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--texto-lcd-secundario);
+}
+
+.dmg-inline,
+.dmg-chips,
+.dmg-toggles,
+.dmg-badges,
+.dmg-types {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pv-space-1);
+}
+
+.dmg-input,
+.dmg-select,
+.dmg-mini-input {
+  min-block-size: 2.25rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: var(--pv-radius-xs);
+  border: 1px solid var(--borda-visor-acento);
+  background: var(--pv-visor-paper);
+  color: var(--pv-ink-on-light);
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  min-inline-size: 0;
+}
+
+.dmg-input {
+  flex: 1 1 8rem;
+}
+
+.dmg-select {
+  inline-size: 100%;
+}
+
+.dmg-select--compact {
+  inline-size: auto;
+  max-inline-size: 100%;
+}
+
+.dmg-mini-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.dmg-mini-input {
+  inline-size: 3.4rem;
+  text-align: center;
+}
+
+.dmg-btn,
+.dmg-chip {
+  min-block-size: 2.25rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--pv-radius-xs);
+  border: 1px solid var(--borda-lcd-suave);
+  background: var(--pv-lcd-pill-bg);
+  color: var(--texto-lcd-principal);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dmg-chip[aria-pressed='true'] {
+  background: var(--pv-lcd-pill-active-bg);
+  border-color: var(--pv-lcd-pill-active-border);
+  color: var(--pv-lcd-pill-active-ink);
+}
+
+.dmg-defender-bar,
+.dmg-result,
+.dmg-state {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-2);
+  border-radius: var(--pv-radius-xs);
+  border: 1px solid var(--pv-lcd-hairline);
+  background: var(--bg-dado-celula);
+}
+
+.dmg-defender-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dmg-defender-id {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pv-space-2);
+}
+
+.dmg-result__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pv-space-1);
+}
+
+.dmg-result__range {
+  font-family: var(--pv-font-mono);
+  font-size: 0.875rem;
+  color: var(--pv-border-gold);
+}
+
+.dmg-ko-badge,
+.dmg-eff-badge,
+.dmg-stab-badge {
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--pv-radius-pill);
+  font-family: var(--pv-font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  border: 1px solid var(--borda-lcd-suave);
+}
+
+.dmg-ko-badge,
+.dmg-stab-badge {
+  background: var(--pv-lcd-action-bg);
+  border-color: var(--pv-lcd-action-border);
+  color: var(--pv-lcd-action-ink);
+}
+
+.dmg-eff-badge[data-eff='quad-weak'] {
+  background: var(--pv-eff-quad-weak-bg);
+  border-color: var(--pv-eff-quad-weak-border);
+  color: var(--pv-eff-quad-weak-ink);
+}
+
+.dmg-eff-badge[data-eff='weak'] {
+  background: var(--pv-eff-weak-bg);
+  border-color: var(--pv-eff-weak-border);
+  color: var(--pv-eff-weak-ink);
+}
+
+.dmg-eff-badge[data-eff='resist'] {
+  background: var(--pv-eff-resist-bg);
+  border-color: var(--pv-eff-resist-border);
+  color: var(--pv-eff-resist-ink);
+}
+
+.dmg-eff-badge[data-eff='quad-resist'] {
+  background: var(--pv-eff-quad-resist-bg);
+  border-color: var(--pv-eff-quad-resist-border);
+  color: var(--pv-eff-quad-resist-ink);
+}
+
+.dmg-eff-badge[data-eff='immune'] {
+  background: var(--pv-eff-immune-bg);
+  border-color: var(--pv-eff-immune-border);
+  color: var(--pv-eff-immune-ink);
+}
+
+.dmg-hp-track {
+  position: relative;
+  block-size: 0.55rem;
+  border-radius: var(--pv-radius-pill);
+  background: var(--pv-stat-track-bg);
+  overflow: hidden;
+}
+
+.dmg-hp-remain,
+.dmg-hp-safe {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  display: block;
+}
+
+.dmg-hp-remain {
+  background: var(--pv-stat-mid);
+  opacity: 0.48;
+}
+
+.dmg-hp-safe {
+  background: var(--pv-stat-high);
+}
+
+.dmg-meta,
+.dmg-rolls,
+.dmg-state {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--texto-lcd-secundario);
+  overflow-wrap: anywhere;
+}
+
+.dmg-state--error {
+  border-color: var(--borda-hud-erro);
+  background: var(--bg-hud-erro);
+  color: var(--cor-hud-erro);
+}

@@ -2,8 +2,6 @@ import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { PrivacyConsentStore } from '../../../core/stores/privacy-consent.store';
-import { HolocronStore } from '../../holocron/holocron.store';
-import { PokedexCompareStore } from './pokedex-compare.store';
 import { PokedexRpgNavService } from './pokedex-rpg-nav.service';
 import {
   INTERNAL_INTERACTIVE_SELECTOR,
@@ -13,6 +11,7 @@ import {
   belongsToSelector,
 } from './pokedex-rpg-nav.util';
 import { PokedexSlotsStore } from './pokedex-slots.store';
+import { PokedexVisorDetailStore } from './pokedex-visor-detail.store';
 import { PokedexStore } from './pokedex.store';
 
 export interface PokedexShortcutCallbacks {
@@ -27,9 +26,8 @@ export class PokedexInputShortcutsService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthStore);
   private readonly privacy = inject(PrivacyConsentStore);
-  private readonly holocron = inject(HolocronStore);
-  private readonly compare = inject(PokedexCompareStore);
   private readonly slotsStore = inject(PokedexSlotsStore);
+  private readonly visorDetail = inject(PokedexVisorDetailStore);
   private readonly store = inject(PokedexStore);
   private readonly rpg = inject(PokedexRpgNavService);
 
@@ -44,7 +42,7 @@ export class PokedexInputShortcutsService {
 
   private readonly onDocClick = (event: Event) => {
     const startedPreserved = this.consumePointerPreserved();
-    if (!this.rpg.isDesiredOpen() || this.isAnyModalOpen()) return;
+    if (!this.rpg.isDesiredOpen() || this.isAnyModalOpen() || this.visorDetail.expanded()) return;
     const target = event.target;
     if (
       startedPreserved ||
@@ -59,6 +57,10 @@ export class PokedexInputShortcutsService {
   private readonly onDocKeyDown = (event: KeyboardEvent) => {
     if (!this.store.coverOpen() || this.isAnyModalOpen()) return;
     if (event.key === 'Escape') {
+      if (this.visorDetail.collapseIfExpanded()) {
+        event.preventDefault();
+        return;
+      }
       this.callbacks?.onClose(true);
       return;
     }
@@ -97,9 +99,7 @@ export class PokedexInputShortcutsService {
     this.slotsStore.pendingConfirm() !== null ||
     this.auth.visitorPrompt() !== null ||
     this.auth.securityModalOpen() ||
-    this.privacy.dialogOpen() ||
-    this.compare.dialogOpen() ||
-    this.holocron.dialogOpen();
+    this.privacy.dialogOpen();
 
   consumePointerPreserved(): boolean {
     const startedPreserved = this.pointerStartedPreserved;

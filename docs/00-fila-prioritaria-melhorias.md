@@ -11,8 +11,6 @@
 | :--- | :---: | :--- | :--- | :--- |
 | **MEL-01** | **P0** | Holocron 3D | **Pacote de Modelos 3D Leves (`.glb` Draco):** a infraestrutura `GLTFLoader` + registro `LOCAL_POKEMON_GLB_MODELS` ja esta conectada ao projetor, mas faltam os assets `.glb` reais dos Pokemon para substituir o prisma holografico 2D dupla-face. | Disponibilizar pacote curado de `.glb` leves (ou streaming S3/CDN com fallback ao prisma 3D) para iniciais/favoritos e validar carregamento sem travar FPS. |
 | **MEL-02** | **P0** | Tela Inicial (`/inicio`) | **Definicao de Identidade e Conteudo do Hub Inicial:** a tela `/inicio` foi entregue propositalmente enxuta (nao-Pokedex) apos a tela classica `Iniciar Jogo` (`/`) aguardando ideias do dono do projeto. | Definir blocos definitivos (ex.: atalhos rapidos, destaques do dia, resumo de perfil/slots, noticias/eventos) e evoluir o layout sem poluir a tela. |
-| **MEL-03** | **P1** | Pokedex 3D (Visor) | **Modo Visor Expandido / Zoom no LCD:** como Enciclopedia, Comparador 1v1, Holocron 3D e Calculadora agora vivem dentro da Pokedex, telas menores (notebooks 13" e mobile) podem se beneficiar de um botao de expansao temporaria do visor. | Adicionar toggle de expansao controlada do visor mantendo 100% da carcaca 3D intacta quando recolhido. |
-| **MEL-04** | **P1** | Calculadora de Atributos | **Calculadora Fase 2 (Competitivo & Dano):** evoluir a calculadora embarcada com presets Smogon/VGC, simulacao basica de dano entre dois Pokemon e importacao/exportacao de spreads em texto. | Permitir simular golpes com STAB/eficacia e exportar/importar build de EVs/IVs/Natureza. |
 | **MEL-05** | **P2** | Museu das Regioes | **Museu Fase 2 (Mapas & Ginasios):** enriquecer o dossie limpo do Museu com lideres de ginasio, insignias e marcos visuais por regiao sem duplicar listas. | Exibir trilha de ginasios e insignias por regiao no inspetor sem recriar cards redundantes. |
 
 ---
@@ -29,6 +27,8 @@
 | **ENT-06** | Slots Azuis (Selecao) | Removida a modal de confirmacao ao clicar em botoes azuis ja salvos; clicar em um slot ocupado agora abre o Pokemon imediatamente sem sobrescrever. | Concluido |
 | **ENT-07** | Slots Azuis (Reordenacao) | Adicionado **clicar e arrastar** (Drag-and-Drop) e botoes `↑`/`↓` na configuracao de slots para trocar/mover posicoes (persistencia local e `PATCH /api/v1/pokedex/slots/swap` em transacao ACID). | Concluido |
 | **ENT-08** | Museu das Regioes (`/museu`) | Removida a grade duplicada de 9 cards abaixo da linha do tempo e reestruturado o dossie com foco unico, hierarquia limpa e integracao direta com Holocron e Enciclopedia dentro da Pokedex. | Concluido |
+| **ENT-09** | Pokedex 3D (Visor — `MEL-03`) | Adicionado botao **Expandir / Recolher** (`#btn-visor-expand`) no cabecalho do Visor LCD com modal expandida sobre o backdrop (`Esc`, clique no scrim ou fechamento da tampa recolhem), preservando 100% da carcaca 3D quando recolhido. | Concluido |
+| **ENT-10** | Calculadora Fase 2 (`MEL-04`) | Evoluida a calculadora com **25 naturezas oficiais**, **8 presets Smogon OU / VGC**, **Simulador de Dano 1v1** (STAB, eficacia 18 tipos Gen VI–IX, clima, critico, queimado, VGC spread, itens, golpe aprendido e 16 rolls + KO verdict) e **Import/Export Showdown** (`pokemon-battle-calc.ts` + `pokemon-showdown-spread.ts`). | Concluido |
 
 ---
 

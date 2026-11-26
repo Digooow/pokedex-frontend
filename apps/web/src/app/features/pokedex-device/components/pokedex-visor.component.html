@@ -1,21 +1,49 @@
+@if (visorDetail.expanded()) {
+  <div class="visor-expand-backdrop" aria-hidden="true" (click)="onCollapseExpand($event)"></div>
+}
+
 <section
   id="resultado-area"
   class="painel-resultado"
+  [class.is-visor-expanded]="visorDetail.expanded()"
   [class.is-rpg-tela-cursor]="rpg.isScreenHighlighted('visor')"
   [class.is-selecionando-pokemon]="rpg.isVisorSelectingList()"
+  [attr.role]="visorDetail.expanded() ? 'dialog' : null"
+  [attr.aria-modal]="visorDetail.expanded() ? 'true' : null"
   aria-labelledby="titulo-resultado"
   (click)="rpg.setScreenFocus('visor', 'itens')"
   (keydown)="onVisorKeyDown($event)"
 >
   <div class="painel-cabecalho">
     <h2 id="titulo-resultado" class="painel-titulo">Visor de Resultados</h2>
-    <span
-      id="status-badge"
-      [class]="'status-badge status-badge--' + badgeVariant()"
-      [class.status-badge--transient]="transientStatus() !== null"
-    >
-      {{ badgeLabel() }}
-    </span>
+    <div class="visor-header-actions">
+      <span
+        id="status-badge"
+        [class]="'status-badge status-badge--' + badge().variant"
+        [class.status-badge--transient]="transientStatus() !== null"
+      >
+        {{ badge().label }}
+      </span>
+      <button
+        #expandToggleBtn
+        id="btn-visor-expand"
+        type="button"
+        class="visor-expand-btn"
+        [attr.aria-expanded]="visorDetail.expanded()"
+        [attr.aria-label]="visorDetail.expanded() ? 'Recolher visor para a Pokédex 3D' : 'Expandir visor da Pokédex'"
+        [title]="visorDetail.expanded() ? 'Recolher visor (Esc)' : 'Expandir visor'"
+        (click)="onToggleExpand($event)"
+      >
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          @if (visorDetail.expanded()) {
+            <path d="M6 2v4H2M10 14v-4h4M14 2l-4 4M2 14l4-4" />
+          } @else {
+            <path d="M10 2h4v4M6 14H2v-4M14 2l-4 4M2 14l4-4" />
+          }
+        </svg>
+        <span>{{ visorDetail.expanded() ? 'Recolher' : 'Expandir' }}</span>
+      </button>
+    </div>
   </div>
 
   @if (!slotsStore.editMode()) {

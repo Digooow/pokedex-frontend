@@ -6,9 +6,9 @@ import {
   output,
   signal,
 } from '@angular/core';
-import { filterPokemonCatalog } from '@pokeverse/shared';
 import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { type CompareSide, PokedexCompareStore } from '../../services/pokedex-compare.store';
+import { buildQuickCatalogSuggestions } from '../../services/pokedex-stat-calc.util';
 import { PokedexStore } from '../../services/pokedex.store';
 
 @Component({
@@ -28,8 +28,12 @@ export class PokedexComparePanelComponent {
   readonly leftQuery = signal('');
   readonly rightQuery = signal('');
 
-  readonly leftSuggestions = computed(() => this.buildQuickSuggestions(this.leftQuery()));
-  readonly rightSuggestions = computed(() => this.buildQuickSuggestions(this.rightQuery()));
+  readonly leftSuggestions = computed(() =>
+    buildQuickCatalogSuggestions(this.pokedex.catalogState(), this.leftQuery()),
+  );
+  readonly rightSuggestions = computed(() =>
+    buildQuickCatalogSuggestions(this.pokedex.catalogState(), this.rightQuery()),
+  );
 
   readonly bothReady = computed(
     () =>
@@ -74,13 +78,5 @@ export class PokedexComparePanelComponent {
 
   onOpenInPokedex(pokemonName: string): void {
     this.openInPokedex.emit(pokemonName);
-  }
-
-  private buildQuickSuggestions(rawTerm: string) {
-    const state = this.pokedex.catalogState();
-    if (state.status !== 'success') return [];
-    const term = rawTerm.trim();
-    if (!term) return state.data.slice(0, 5);
-    return filterPokemonCatalog(state.data, term, 5).items;
   }
 }

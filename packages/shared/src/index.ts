@@ -11,4 +11,6 @@ export * from './schemas/telemetry.schemas';
 export * from './domain/pokeapi-endpoints';
 export * from './domain/pokedex-search';
 export * from './domain/pokemon-lab';
+export * from './domain/pokemon-battle-calc';
+export * from './domain/pokemon-showdown-spread';
 export * from './domain/type-effectiveness';

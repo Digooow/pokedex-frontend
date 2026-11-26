@@ -1,4 +1,9 @@
-<main id="conteudo-principal" class="pokedex-palco" tabindex="-1">
+<main
+  id="conteudo-principal"
+  class="pokedex-palco"
+  [class.is-visor-expanded]="visorDetail.expanded()"
+  tabindex="-1"
+>
   <h1 id="main-heading" tabindex="-1" pvMainHeading class="sr-only-static">
     Pokédex Interativa 3D — PokéVerse OS
   </h1>
@@ -37,6 +42,7 @@
           </header>
 
           <pv-pokedex-visor
+            [coverOpen]="store.coverOpen()"
             [detailState]="store.detailState()"
             [cacheSource]="store.cacheSource()"
             [transientStatus]="transientBadge()"

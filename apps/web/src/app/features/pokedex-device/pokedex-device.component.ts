@@ -105,6 +105,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   onDeviceEscape(event: Event): void {
     if (!this.store.coverOpen() || this.shortcuts.isAnyModalOpen()) return;
     event.stopPropagation();
+    if (this.visorDetail.collapseIfExpanded()) return;
     this.closePokedex(true);
   }
 

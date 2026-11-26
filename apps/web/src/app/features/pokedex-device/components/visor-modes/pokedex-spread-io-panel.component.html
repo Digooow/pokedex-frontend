@@ -1,0 +1,53 @@
+<section class="io-panel" aria-label="Importar e exportar spread Showdown">
+  <div class="io-block">
+    <div class="io-head">
+      <label for="calc-spread-export" class="io-label">Exportar (Formato Pokémon Showdown)</label>
+      <button type="button" id="btn-copy-spread" class="io-btn" (click)="copyExport()">
+        Copiar Spread
+      </button>
+    </div>
+    <textarea
+      id="calc-spread-export"
+      class="io-textarea"
+      rows="5"
+      readonly
+      [value]="exportedText()"
+    ></textarea>
+  </div>
+
+  <div class="io-block">
+    <div class="io-head">
+      <label for="calc-spread-import" class="io-label">Importar Spread (Showdown)</label>
+      <button type="button" id="btn-example-spread" class="io-btn" (click)="loadExample()">
+        Exemplo VGC
+      </button>
+    </div>
+    <textarea
+      id="calc-spread-import"
+      class="io-textarea"
+      rows="5"
+      placeholder="Cole aqui: Level: 50 / EVs: 4 HP / 252 Atk / 252 Spe / Jolly Nature"
+      [value]="importText()"
+      (input)="onImportInput($event)"
+    ></textarea>
+    <div class="io-actions">
+      <button type="button" id="btn-import-spread" class="io-btn io-btn--primary" (click)="applyImport()">
+        Aplicar Spread
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage(); as err) {
+    <p class="io-feedback io-feedback--error" role="alert">{{ err }}</p>
+  }
+  @if (statusMessage(); as ok) {
+    <p class="io-feedback io-feedback--ok" aria-live="polite">{{ ok }}</p>
+  }
+  @if (warnings().length > 0) {
+    <ul class="io-warnings" aria-live="polite">
+      @for (warn of warnings(); track warn) {
+        <li>{{ warn }}</li>
+      }
+    </ul>
+  }
+</section>

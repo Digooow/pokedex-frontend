@@ -230,3 +230,23 @@ export function resolveCatalogStatusLabel(params: {
   if (params.filterMode === 'approximate') return `Sugestões aproximadas (${params.filteredCount})`;
   return `${params.filteredCount} Pokémon encontrados`;
 }
+
+export function resolveVisorBadge(
+  editMode: boolean,
+  notice: { readonly label: string; readonly variant: 'sucesso' | 'aviso' } | null,
+  state: AsyncState<PokemonDetailView>,
+  src: PokedexCacheSource | null,
+): { readonly label: string; readonly variant: string } {
+  if (editMode) return { variant: 'aviso', label: 'Botões Azuis' };
+  if (notice) return notice;
+  if (state.status === 'loading') return { variant: 'carregando', label: 'Buscando...' };
+  if (state.status === 'error') {
+    return state.error.code === 'POKEMON_NOT_FOUND'
+      ? { variant: 'aviso', label: 'Não encontrado' }
+      : { variant: 'erro', label: 'Erro na API' };
+  }
+  if (state.status !== 'success') return { variant: 'aguardando', label: 'Aguardando busca' };
+  if (src === 'hit') return { variant: 'sucesso', label: 'Encontrado · Redis' };
+  if (src === 'stale-fallback') return { variant: 'sucesso', label: 'Encontrado · Reserva' };
+  return { variant: 'sucesso', label: 'Encontrado' };
+}

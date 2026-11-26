@@ -14,100 +14,169 @@
         </button>
       </header>
 
-      <div class="calc-controls">
-        <label class="calc-field">
-          <span class="calc-field__label">Nível (1–100)</span>
-          <div class="calc-inline">
-            <input
-              id="calc-level-input"
-              type="number"
-              min="1"
-              max="100"
-              class="calc-input"
-              [value]="level()"
-              (input)="onLevelInput($event)"
-            />
-            <button type="button" class="calc-chip" (click)="level.set(50)">Nv.50</button>
-            <button type="button" class="calc-chip" (click)="level.set(100)">Nv.100</button>
+      <div class="calc-subtabs" role="tablist" aria-label="Seções da Calculadora Competitiva">
+        <button
+          id="calc-tab-stats"
+          type="button"
+          role="tab"
+          class="calc-subtab"
+          [attr.aria-selected]="activeSection() === 'stats'"
+          (click)="activeSection.set('stats')"
+        >
+          Atributos & Presets
+        </button>
+        <button
+          id="calc-tab-damage"
+          type="button"
+          role="tab"
+          class="calc-subtab"
+          [attr.aria-selected]="activeSection() === 'damage'"
+          (click)="activeSection.set('damage')"
+        >
+          Dano 1v1
+        </button>
+        <button
+          id="calc-tab-io"
+          type="button"
+          role="tab"
+          class="calc-subtab"
+          [attr.aria-selected]="activeSection() === 'io'"
+          (click)="activeSection.set('io')"
+        >
+          Import / Export
+        </button>
+      </div>
+
+      @switch (activeSection()) {
+        @case ('damage') {
+          <pv-pokedex-damage-sim-panel
+            [attacker]="pk"
+            [attackerLevel]="vm.safeLevel"
+            [attackerStats]="vm.calculated"
+          />
+        }
+        @case ('io') {
+          <pv-pokedex-spread-io-panel
+            [pokemonName]="pk.displayName"
+            [level]="vm.safeLevel"
+            [natureKey]="natureKey()"
+            [ivs]="ivs()"
+            [evs]="evs()"
+            (spreadImported)="onSpreadImported($event)"
+          />
+        }
+        @default {
+          <label class="calc-field">
+            <span class="calc-field__label">Preset Competitivo (Smogon OU / VGC)</span>
+            <select
+              id="calc-competitive-preset"
+              class="calc-select"
+              [value]="selectedPresetId()"
+              (change)="onCompetitivePresetChange($event)"
+            >
+              <option value="">Personalizado (manual)</option>
+              @for (preset of competitivePresets; track preset.id) {
+                <option [value]="preset.id">{{ preset.label }}</option>
+              }
+            </select>
+          </label>
+
+          <div class="calc-controls">
+            <label class="calc-field">
+              <span class="calc-field__label">Nível (1–100)</span>
+              <div class="calc-inline">
+                <input
+                  id="calc-level-input"
+                  type="number"
+                  min="1"
+                  max="100"
+                  class="calc-input"
+                  [value]="level()"
+                  (input)="onLevelInput($event)"
+                />
+                <button type="button" class="calc-chip" (click)="level.set(50)">Nv.50</button>
+                <button type="button" class="calc-chip" (click)="level.set(100)">Nv.100</button>
+              </div>
+            </label>
+
+            <label class="calc-field">
+              <span class="calc-field__label">Natureza (25 oficiais)</span>
+              <select
+                id="calc-nature-select"
+                class="calc-select"
+                [value]="natureKey()"
+                (change)="onNatureChange($event)"
+              >
+                @for (nat of natures; track nat.key) {
+                  <option [value]="nat.key">{{ nat.label }}</option>
+                }
+              </select>
+            </label>
           </div>
-        </label>
 
-        <label class="calc-field">
-          <span class="calc-field__label">Natureza</span>
-          <select
-            id="calc-nature-select"
-            class="calc-select"
-            [value]="natureKey()"
-            (change)="onNatureChange($event)"
-          >
-            @for (nat of natures; track nat.key) {
-              <option [value]="nat.key">{{ nat.label }}</option>
-            }
-          </select>
-        </label>
-      </div>
-
-      <div class="calc-presets">
-        <span class="calc-presets__ev tabular-nums">
-          EVs: {{ vm.usedEvTotal }} / 510 (restam {{ vm.remainingEvTotal }})
-        </span>
-        <div class="calc-inline">
-          <button type="button" class="calc-chip" (click)="setAllIvs(31)">IV 31</button>
-          <button type="button" class="calc-chip" (click)="setAllIvs(0)">IV 0</button>
-          <button type="button" class="calc-chip" (click)="applyEvPreset('physical')">Atk/Spe</button>
-          <button type="button" class="calc-chip" (click)="applyEvPreset('special')">SpA/Spe</button>
-          <button type="button" class="calc-chip" (click)="applyEvPreset('tank')">Tanque</button>
-          <button type="button" class="calc-chip" (click)="applyEvPreset('zero')">Zerar EV</button>
-        </div>
-      </div>
-
-      <div class="calc-table" role="region" aria-label="Tabela de atributos calculados">
-        <div class="calc-row calc-row--head">
-          <span>Stat</span>
-          <span>Base</span>
-          <span>IV</span>
-          <span>EV</span>
-          <span>Final</span>
-        </div>
-
-        @for (field of fields; track field.key) {
-          @let baseVal = vm.baseStats[field.key];
-          @let finalVal = vm.calculated[field.key];
-          <div class="calc-row">
-            <span class="calc-row__label">{{ field.label }}</span>
-            <span class="calc-row__num tabular-nums">{{ baseVal }}</span>
-            <input
-              type="number"
-              min="0"
-              max="31"
-              class="calc-mini-input"
-              [value]="ivs()[field.key]"
-              [attr.aria-label]="'IV de ' + field.label"
-              (input)="onIvInput(field.key, $event)"
-            />
-            <input
-              type="number"
-              min="0"
-              max="252"
-              class="calc-mini-input"
-              [value]="evs()[field.key]"
-              [attr.aria-label]="'EV de ' + field.label"
-              (input)="onEvInput(field.key, $event)"
-            />
-            <div class="calc-final">
-              <strong class="calc-final__val tabular-nums">{{ finalVal }}</strong>
-              <span class="calc-final__track" aria-hidden="true">
-                <span class="calc-final__fill" [style.width.%]="statBarPercent(finalVal)"></span>
-              </span>
+          <div class="calc-presets">
+            <span class="calc-presets__ev tabular-nums">
+              EVs: {{ vm.usedEvTotal }} / 510 (restam {{ vm.remainingEvTotal }})
+            </span>
+            <div class="calc-inline">
+              <button type="button" class="calc-chip" (click)="setAllIvs(31)">IV 31</button>
+              <button type="button" class="calc-chip" (click)="setAllIvs(0)">IV 0</button>
+              <button type="button" class="calc-chip" (click)="applyEvPreset('physical')">Atk/Spe</button>
+              <button type="button" class="calc-chip" (click)="applyEvPreset('special')">SpA/Spe</button>
+              <button type="button" class="calc-chip" (click)="applyEvPreset('tank')">Tanque</button>
+              <button type="button" class="calc-chip" (click)="applyEvPreset('zero')">Zerar EV</button>
             </div>
           </div>
-        }
-      </div>
 
-      <footer class="calc-footer">
-        <span>Poder Total Calculado:</span>
-        <strong class="calc-footer__total tabular-nums">{{ vm.calculated.totalPower }}</strong>
-      </footer>
+          <div class="calc-table" role="region" aria-label="Tabela de atributos calculados">
+            <div class="calc-row calc-row--head">
+              <span>Stat</span>
+              <span>Base</span>
+              <span>IV</span>
+              <span>EV</span>
+              <span>Final</span>
+            </div>
+
+            @for (field of fields; track field.key) {
+              @let baseVal = vm.baseStats[field.key];
+              @let finalVal = vm.calculated[field.key];
+              <div class="calc-row">
+                <span class="calc-row__label">{{ field.label }}</span>
+                <span class="calc-row__num tabular-nums">{{ baseVal }}</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="31"
+                  class="calc-mini-input"
+                  [value]="ivs()[field.key]"
+                  [attr.aria-label]="'IV de ' + field.label"
+                  (input)="onIvInput(field.key, $event)"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max="252"
+                  class="calc-mini-input"
+                  [value]="evs()[field.key]"
+                  [attr.aria-label]="'EV de ' + field.label"
+                  (input)="onEvInput(field.key, $event)"
+                />
+                <div class="calc-final">
+                  <strong class="calc-final__val tabular-nums">{{ finalVal }}</strong>
+                  <span class="calc-final__track" aria-hidden="true">
+                    <span class="calc-final__fill" [style.width.%]="statBarPercent(finalVal)"></span>
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+
+          <footer class="calc-footer">
+            <span>Poder Total Calculado:</span>
+            <strong class="calc-footer__total tabular-nums">{{ vm.calculated.totalPower }}</strong>
+          </footer>
+        }
+      }
     }
   } @else {
     <div class="calc-empty">

@@ -1,15 +1,33 @@
 import {
+  type AsyncState,
   type BaseStatsSpread,
+  COMPETITIVE_SPREAD_PRESETS,
+  type CompetitiveSpreadPreset,
   type GrowthRate,
   GrowthRateSchema,
   MAX_EV_PER_STAT,
   MAX_EV_TOTAL,
+  POKEMON_NATURES,
+  POKEMON_TYPES,
+  type PokemonNatureOption,
+  type PokemonTypeName,
+  type SearchablePokemonItem,
+  type StatSpreadKey,
   calculateStatsAtLevel,
   calculateXpForLevel,
+  filterPokemonCatalog,
 } from '@pokeverse/shared';
 import type { PokemonDetailView } from './pokedex-view-mapper.util';
 
-export type StatKey = keyof BaseStatsSpread;
+export {
+  COMPETITIVE_SPREAD_PRESETS,
+  POKEMON_NATURES,
+  type CompetitiveSpreadPreset,
+  type PokemonNatureOption,
+  type StatSpreadKey,
+};
+
+export type StatKey = StatSpreadKey;
 
 export interface StatSpreadValues {
   readonly hp: number;
@@ -18,13 +36,6 @@ export interface StatSpreadValues {
   readonly specialAttack: number;
   readonly specialDefense: number;
   readonly speed: number;
-}
-
-export interface PokemonNatureOption {
-  readonly key: string;
-  readonly label: string;
-  readonly up: Exclude<StatKey, 'hp'> | null;
-  readonly down: Exclude<StatKey, 'hp'> | null;
 }
 
 export interface StatFieldMeta {
@@ -39,30 +50,6 @@ export const STAT_FIELDS: readonly StatFieldMeta[] = [
   { key: 'specialAttack', label: 'SpA' },
   { key: 'specialDefense', label: 'SpD' },
   { key: 'speed', label: 'Spe' },
-];
-
-export const POKEMON_NATURES: readonly PokemonNatureOption[] = [
-  { key: 'hardy', label: 'Hardy (Neutra)', up: null, down: null },
-  { key: 'lonely', label: 'Lonely (+Atk, -Def)', up: 'attack', down: 'defense' },
-  { key: 'brave', label: 'Brave (+Atk, -Spe)', up: 'attack', down: 'speed' },
-  { key: 'adamant', label: 'Adamant (+Atk, -SpA)', up: 'attack', down: 'specialAttack' },
-  { key: 'naughty', label: 'Naughty (+Atk, -SpD)', up: 'attack', down: 'specialDefense' },
-  { key: 'bold', label: 'Bold (+Def, -Atk)', up: 'defense', down: 'attack' },
-  { key: 'relaxed', label: 'Relaxed (+Def, -Spe)', up: 'defense', down: 'speed' },
-  { key: 'impish', label: 'Impish (+Def, -SpA)', up: 'defense', down: 'specialAttack' },
-  { key: 'lax', label: 'Lax (+Def, -SpD)', up: 'defense', down: 'specialDefense' },
-  { key: 'timid', label: 'Timid (+Spe, -Atk)', up: 'speed', down: 'attack' },
-  { key: 'hasty', label: 'Hasty (+Spe, -Def)', up: 'speed', down: 'defense' },
-  { key: 'jolly', label: 'Jolly (+Spe, -SpA)', up: 'speed', down: 'specialAttack' },
-  { key: 'naive', label: 'Naive (+Spe, -SpD)', up: 'speed', down: 'specialDefense' },
-  { key: 'modest', label: 'Modest (+SpA, -Atk)', up: 'specialAttack', down: 'attack' },
-  { key: 'mild', label: 'Mild (+SpA, -Def)', up: 'specialAttack', down: 'defense' },
-  { key: 'quiet', label: 'Quiet (+SpA, -Spe)', up: 'specialAttack', down: 'speed' },
-  { key: 'rash', label: 'Rash (+SpA, -SpD)', up: 'specialAttack', down: 'specialDefense' },
-  { key: 'calm', label: 'Calm (+SpD, -Atk)', up: 'specialDefense', down: 'attack' },
-  { key: 'gentle', label: 'Gentle (+SpD, -Def)', up: 'specialDefense', down: 'defense' },
-  { key: 'sassy', label: 'Sassy (+SpD, -Spe)', up: 'specialDefense', down: 'speed' },
-  { key: 'careful', label: 'Careful (+SpD, -SpA)', up: 'specialDefense', down: 'specialAttack' },
 ];
 
 export const DEFAULT_IV_SPREAD: StatSpreadValues = {
@@ -92,6 +79,8 @@ const API_STAT_TO_KEY: Readonly<Record<string, StatKey>> = {
   speed: 'speed',
 };
 
+const VALID_TYPE_SET: ReadonlySet<string> = new Set(POKEMON_TYPES);
+
 export function extractBaseStatsSpread(pokemon: PokemonDetailView): BaseStatsSpread {
   const result: Record<StatKey, number> = {
     hp: 50,
@@ -118,6 +107,25 @@ export function extractBaseStatsSpread(pokemon: PokemonDetailView): BaseStatsSpr
     }
   }
   return result;
+}
+
+export function extractPokemonTypeSlugs(pokemon: PokemonDetailView): PokemonTypeName[] {
+  const rawNames =
+    pokemon.bundle?.pokemon.types.map((slot) => slot.type.name.trim().toLowerCase()) ??
+    pokemon.types.map((label) => label.trim().toLowerCase());
+  const valid = rawNames.filter((name): name is PokemonTypeName => VALID_TYPE_SET.has(name));
+  return valid.length > 0 ? valid.slice(0, 2) : ['normal'];
+}
+
+export function buildQuickCatalogSuggestions(
+  catalogState: AsyncState<readonly SearchablePokemonItem[]>,
+  rawTerm: string,
+  limit = 5,
+): readonly SearchablePokemonItem[] {
+  if (catalogState.status !== 'success') return [];
+  const term = rawTerm.trim();
+  if (!term) return catalogState.data.slice(0, limit);
+  return filterPokemonCatalog(catalogState.data, term, limit).items;
 }
 
 export function resolveGrowthRate(pokemon: PokemonDetailView): GrowthRate {

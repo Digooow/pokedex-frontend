@@ -1,12 +1,14 @@
 import {
   ChangeDetectionStrategy,
   Component,
+  ElementRef,
   computed,
   effect,
   inject,
   input,
   output,
   untracked,
+  viewChild,
 } from '@angular/core';
 import type { AsyncState, SearchablePokemonItem } from '@pokeverse/shared';
 import { QualityStore } from '../../../core/stores/quality.store';
@@ -16,7 +18,11 @@ import {
 } from '../directives/rpg-focusable.directive';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
-import type { PokedexCacheSource, PokemonDetailView } from '../services/pokedex-view-mapper.util';
+import {
+  type PokedexCacheSource,
+  type PokemonDetailView,
+  resolveVisorBadge,
+} from '../services/pokedex-view-mapper.util';
 import { PokedexVisorDetailStore } from '../services/pokedex-visor-detail.store';
 import {
   VISOR_MODES,
@@ -61,6 +67,7 @@ export class PokedexVisorComponent {
   readonly visorDetail = inject(PokedexVisorDetailStore);
   private readonly quality = inject(QualityStore);
 
+  readonly coverOpen = input<boolean>(true);
   readonly detailState = input.required<AsyncState<PokemonDetailView>>();
   readonly cacheSource = input<PokedexCacheSource | null>(null);
   readonly transientStatus = input<{
@@ -78,6 +85,9 @@ export class PokedexVisorComponent {
   readonly holocronRequested = output<PokemonDetailView>();
   readonly calculatorRequested = output<void>();
 
+  private readonly expandToggleBtn = viewChild<ElementRef<HTMLButtonElement>>('expandToggleBtn');
+  private wasExpanded = false;
+
   readonly modes = VISOR_MODES;
   readonly tabs = VISOR_TABS;
   readonly isLite = computed(() => this.quality.tier() === 'lite');
@@ -91,45 +101,26 @@ export class PokedexVisorComponent {
       const activeName = state.status === 'success' ? state.data.name : null;
       untracked(() => this.visorDetail.resetForPokemon(activeName));
     });
+    effect(() => {
+      if (!this.coverOpen()) untracked(() => this.visorDetail.setExpanded(false));
+    });
+    effect(() => {
+      const isExpanded = this.visorDetail.expanded();
+      if (this.wasExpanded && !isExpanded && this.coverOpen()) {
+        untracked(() => this.expandToggleBtn()?.nativeElement.focus());
+      }
+      this.wasExpanded = isExpanded;
+    });
   }
 
-  readonly badgeVariant = computed(() => {
-    if (this.slotsStore.editMode()) return 'aviso';
-    const notice = this.transientStatus();
-    if (notice) return notice.variant;
-    const state = this.detailState();
-    switch (state.status) {
-      case 'loading':
-        return 'carregando';
-      case 'success':
-        return 'sucesso';
-      case 'error':
-        return state.error.code === 'POKEMON_NOT_FOUND' ? 'aviso' : 'erro';
-      default:
-        return 'aguardando';
-    }
-  });
-
-  readonly badgeLabel = computed(() => {
-    if (this.slotsStore.editMode()) return 'Botões Azuis';
-    const notice = this.transientStatus();
-    if (notice) return notice.label;
-    const state = this.detailState();
-    switch (state.status) {
-      case 'loading':
-        return 'Buscando...';
-      case 'success': {
-        const src = this.cacheSource();
-        if (src === 'hit') return 'Encontrado · Redis';
-        if (src === 'stale-fallback') return 'Encontrado · Reserva';
-        return 'Encontrado';
-      }
-      case 'error':
-        return state.error.code === 'POKEMON_NOT_FOUND' ? 'Não encontrado' : 'Erro na API';
-      default:
-        return 'Aguardando busca';
-    }
-  });
+  readonly badge = computed(() =>
+    resolveVisorBadge(
+      this.slotsStore.editMode(),
+      this.transientStatus(),
+      this.detailState(),
+      this.cacheSource(),
+    ),
+  );
 
   pokemonData(): PokemonDetailView | null {
     const state = this.detailState();
@@ -197,6 +188,16 @@ export class PokedexVisorComponent {
   onRetryClick(event: Event): void {
     event.stopPropagation();
     this.retry.emit();
+  }
+
+  onToggleExpand(event: Event): void {
+    event.stopPropagation();
+    if (!this.rpg.isAnimating()) this.visorDetail.toggleExpanded();
+  }
+
+  onCollapseExpand(event: Event): void {
+    event.stopPropagation();
+    this.visorDetail.setExpanded(false);
   }
 
   onVisorKeyDown(event: KeyboardEvent): void {

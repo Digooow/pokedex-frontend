@@ -36,6 +36,7 @@ export class PokedexVisorDetailStore implements OnDestroy {
 
   readonly activeMode = signal<VisorModeId>('ficha');
   readonly activeTab = signal<VisorTabId>('resumo');
+  readonly expanded = signal(false);
   readonly spriteMode = signal<VisorSpriteMode>('artwork');
   readonly shiny = signal(false);
   readonly playingCry = this.audioStore.activeCryKind;
@@ -51,6 +52,20 @@ export class PokedexVisorDetailStore implements OnDestroy {
     if (VISOR_MODES.some((entry) => entry.id === mode)) {
       this.activeMode.set(mode);
     }
+  }
+
+  setExpanded(value: boolean): void {
+    this.expanded.set(value);
+  }
+
+  toggleExpanded(): void {
+    this.expanded.update((prev) => !prev);
+  }
+
+  collapseIfExpanded(): boolean {
+    if (!this.expanded()) return false;
+    this.expanded.set(false);
+    return true;
   }
 
   resetForPokemon(pokemonName: string | null): void {
@@ -230,6 +245,7 @@ export class PokedexVisorDetailStore implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.expanded.set(false);
     this.formsSub?.unsubscribe();
     this.encountersSub?.unsubscribe();
     this.moveSubs.forEach((sub) => sub.unsubscribe());
