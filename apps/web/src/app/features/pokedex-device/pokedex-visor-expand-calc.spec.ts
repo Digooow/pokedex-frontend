@@ -2,9 +2,11 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { QualityStore } from '../../core/stores/quality.store';
 import {
   createCachedPokemonBundleFixture,
   flushInitialRequests,
+  resetBrowserPreferencesState,
 } from '../../testing/test-fixtures.spec-helper';
 import { createCachedMoveDetailFixture } from '../../testing/visor-fixtures.spec-helper';
 import { PokedexDevicePageComponent } from './pokedex-device.component';
@@ -13,14 +15,19 @@ import { PokedexStore } from './services/pokedex.store';
 
 describe('Pokedex Visor Expand (MEL-03) & Competitive Calculator Phase 2 (MEL-04)', () => {
   beforeEach(async () => {
-    globalThis.localStorage.removeItem('pokedex_slots_salvos');
+    resetBrowserPreferencesState();
     await TestBed.configureTestingModule({
       imports: [PokedexDevicePageComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
 
+  afterEach(() => {
+    resetBrowserPreferencesState();
+  });
+
   function mountWithPikachuAndCatalog() {
+    TestBed.inject(QualityStore).setPreference('lite');
     const httpMock = TestBed.inject(HttpTestingController);
     const store = TestBed.inject(PokedexStore);
     const visorDetail = TestBed.inject(PokedexVisorDetailStore);

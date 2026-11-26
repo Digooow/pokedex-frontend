@@ -6,6 +6,7 @@ import { QualityStore } from '../../core/stores/quality.store';
 import {
   createCachedPokemonBundleFixture,
   flushInitialRequests,
+  resetBrowserPreferencesState,
 } from '../../testing/test-fixtures.spec-helper';
 import { PokedexDevicePageComponent } from './pokedex-device.component';
 import { PokedexRpgNavService } from './services/pokedex-rpg-nav.service';
@@ -14,11 +15,15 @@ import { PokedexStore } from './services/pokedex.store';
 
 describe('PokedexDevicePageComponent & Pokédex 3D', () => {
   beforeEach(async () => {
-    window.localStorage.removeItem('pokedex_slots_salvos');
+    resetBrowserPreferencesState();
     await TestBed.configureTestingModule({
       imports: [PokedexDevicePageComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    resetBrowserPreferencesState();
   });
 
   it('starts Pokédex 3D closed on initial view, focuses #main-heading cleanly, and opens on trigger click', async () => {

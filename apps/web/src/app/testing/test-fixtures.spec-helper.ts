@@ -7,6 +7,22 @@ export {
   type PokemonBundleFixtureParams,
 } from './pokemon-bundle-fixture.spec-helper';
 
+const TEST_STORAGE_KEYS = [
+  'pokeverse_perf_pref',
+  'pokedex_cenario_ativo',
+  'pokedex_cenario_auto',
+  'pokedex_slots_salvos',
+  'pokeverse_audio_muted',
+  'pokeverse_audio_sfx',
+] as const;
+
+export function resetBrowserPreferencesState(): void {
+  document.cookie = 'pokeverse_consent=; Path=/; Max-Age=0';
+  for (const key of TEST_STORAGE_KEYS) {
+    globalThis.localStorage.removeItem(key);
+  }
+}
+
 export function flushInitialRequests(httpMock: HttpTestingController): void {
   httpMock
     .match('/health/ready')

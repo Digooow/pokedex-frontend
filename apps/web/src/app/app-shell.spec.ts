@@ -11,14 +11,23 @@ import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
 import { MuseumPageComponent } from './features/regions-museum/museum-page.component';
 import { UnderConstructionComponent } from './features/under-construction/under-construction.component';
-import { createTrainerFixture, flushInitialRequests } from './testing/test-fixtures.spec-helper';
+import {
+  createTrainerFixture,
+  flushInitialRequests,
+  resetBrowserPreferencesState,
+} from './testing/test-fixtures.spec-helper';
 
 describe('PokéVerse OS Shell', () => {
   beforeEach(async () => {
+    resetBrowserPreferencesState();
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    resetBrowserPreferencesState();
   });
 
   it('renders classic Start Screen without HUD topbar on / and mounts HUD on /inicio', async () => {

@@ -5,6 +5,7 @@ import { provideRouter } from '@angular/router';
 import {
   createCachedPokemonBundleFixture,
   flushInitialRequests,
+  resetBrowserPreferencesState,
 } from '../../testing/test-fixtures.spec-helper';
 import {
   createEnrichedCatalogFixture,
@@ -18,11 +19,15 @@ import { PokedexStore } from './services/pokedex.store';
 
 describe('Pokedex Filters Panel & 1v1 Comparator', () => {
   beforeEach(async () => {
-    window.localStorage.removeItem('pokedex_slots_salvos');
+    resetBrowserPreferencesState();
     await TestBed.configureTestingModule({
       imports: [PokedexDevicePageComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    resetBrowserPreferencesState();
   });
 
   function setupOpenPokedex() {

@@ -12,20 +12,15 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { QualityStore } from '../../core/stores/quality.store';
 import { CrySpectrogramComponent } from '../../shared/components/cry-spectrogram.component';
 import { createCachedPokemonBundleFixture } from '../../testing/pokemon-bundle-fixture.spec-helper';
+import { resetBrowserPreferencesState } from '../../testing/test-fixtures.spec-helper';
 import { PokedexHolocronPanelComponent } from '../pokedex-device/components/visor-modes/pokedex-holocron-panel.component';
 import { mapPokemonBundleToView } from '../pokedex-device/services/pokedex-view-mapper.util';
 import { resolveHolocronPalette, resolveHolocronTextures } from './holocron-palette.util';
 import { HolocronStore } from './holocron.store';
 
-function resetAudioStorage(): void {
-  document.cookie = 'pokeverse_consent=; Path=/; Max-Age=0';
-  window.localStorage.removeItem(AUDIO_MUTED_STORAGE_KEY);
-  window.localStorage.removeItem(AUDIO_SFX_STORAGE_KEY);
-}
-
 describe('Holocron 3D & Web Audio Engine', () => {
   beforeEach(async () => {
-    resetAudioStorage();
+    resetBrowserPreferencesState();
     await TestBed.configureTestingModule({
       imports: [PokedexHolocronPanelComponent, CrySpectrogramComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
@@ -33,7 +28,7 @@ describe('Holocron 3D & Web Audio Engine', () => {
   });
 
   afterEach(() => {
-    resetAudioStorage();
+    resetBrowserPreferencesState();
   });
 
   it('registers AudioStore keys in PrivacyConsentStore and purges them on essential-only choice', () => {
