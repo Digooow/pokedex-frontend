@@ -3,8 +3,9 @@
     <span class="holocron-stage__mode">{{ renderModeLabel() }}</span>
 
     @if (canUseWebGl()) {
-      <canvas #glCanvas class="holocron-stage__canvas" aria-hidden="true"></canvas>
-      <span class="visually-hidden">Projeção 3D de {{ pokemon().displayName }}</span>
+      <canvas #glCanvas class="holocron-stage__canvas">
+        Projeção 3D de {{ pokemon().displayName }}
+      </canvas>
     } @else {
       <div class="holocron-stage__fallback">
         <div class="holocron-stage__pedestal" aria-hidden="true"></div>
