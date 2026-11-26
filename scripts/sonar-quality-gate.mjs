@@ -382,6 +382,16 @@ function checkHtmlParity(rel, content, findings) {
       );
     }
   }
+
+  const selectWithAriaLabelRegex = /<select\b([^>]*)>/gs;
+  for (const m of content.matchAll(selectWithAriaLabelRegex)) {
+    const attrs = m[1] ?? '';
+    if (/\baria-label\s*=/.test(attrs)) {
+      findings.push(
+        `[Web:S7927] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Avoid aria-label directly on <select>; associate a <label for="..."> (or .sr-only-static) instead.`,
+      );
+    }
+  }
 }
 
 function checkScssParity(rel, content, findings) {

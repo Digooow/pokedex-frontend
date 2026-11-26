@@ -1,6 +1,7 @@
 # Fila Prioritaria de Melhorias e Correcoes (Prioridade Maxima)
 
-> **Regra de Governanca do Projeto:** Todo item listado neste documento tem **prioridade maxima (P0/P1)** na fila de execucao do PokéVerse OS e deve ser analisado e tratado **antes** da abertura de novas fases do roadmap geral ([`00-visao-geral-e-roadmap.md`](00-visao-geral-e-roadmap.md)).
+> **Regra de Governanca do Projeto:** A única precedência acima desta fila é a **Prioridade 0 (`P0-CI`) de CI/CD & SonarQube** ([`21-qualidade-de-codigo-sonarqube-e-regras.md`](21-qualidade-de-codigo-sonarqube-e-regras.md) + [`AGENTS.md §0`](../AGENTS.md#0-prioridade-máxima-absoluta-regras-de-cicd--portão-sonarqube-sempre-à-frente-do-resto)): se o CI/CD ou o SonarCloud acusar qualquer issue, vulnerabilidade ou duplicação, ela deve ser corrigida antes de avançar em qualquer item deste backlog.
+> Abaixo do portão `P0-CI`, todo item listado neste documento tem **prioridade maxima (P0/P1)** na fila de execucao do PokéVerse OS e deve ser analisado e tratado **antes** da abertura de novas fases do roadmap geral ([`00-visao-geral-e-roadmap.md`](00-visao-geral-e-roadmap.md)).
 > Sempre que uma feature nao ficar boa na usabilidade ou visual, ou surgir uma correcao urgente, registre aqui usando o template do final deste arquivo.
 
 ---

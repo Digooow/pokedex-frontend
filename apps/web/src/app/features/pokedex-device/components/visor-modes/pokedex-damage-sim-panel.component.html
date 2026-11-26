@@ -203,9 +203,9 @@
                 (input)="onNumericField('defLevel', $event)"
               />
             </label>
+            <label for="dmg-def-preset" class="sr-only-static">Perfil defensivo do alvo</label>
             <select
               id="dmg-def-preset"
-              aria-label="Perfil defensivo do alvo"
               class="dmg-select dmg-select--compact"
               [value]="defenderPreset()"
               (change)="onSelectField('defenderPreset', $event)"

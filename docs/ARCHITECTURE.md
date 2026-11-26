@@ -1,6 +1,6 @@
 # Contrato de Qualidade — Diretrizes de Arquitetura e Padrões de Código (PokéVerse OS)
 
-> **Documento normativo do repositório.** Complementa o [`AGENTS.md`](../AGENTS.md) e estabelece o **Contrato de Qualidade** obrigatório para qualquer código novo ou refatorado na stack do PokéVerse OS (`@pokeverse/shared`, `apps/api` e `apps/web`), impedindo a entrada de dívida técnica, acoplamento estrutural e **AI slop** (código gerativo genérico, prolixo, não otimizado ou cheio de boilerplate).
+> **Documento normativo do repositório.** Complementa o [`AGENTS.md`](../AGENTS.md) e subordina toda implementação à **precedência absoluta (`P0-CI`)** das regras de CI/CD e SonarQube em [`21-qualidade-de-codigo-sonarqube-e-regras.md`](21-qualidade-de-codigo-sonarqube-e-regras.md), estabelecendo o **Contrato de Qualidade** obrigatório para qualquer código novo ou refatorado na stack do PokéVerse OS (`@pokeverse/shared`, `apps/api` e `apps/web`), impedindo a entrada de dívida técnica, acoplamento estrutural e **AI slop** (código gerativo genérico, prolixo, não otimizado ou cheio de boilerplate).
 
 ---
 

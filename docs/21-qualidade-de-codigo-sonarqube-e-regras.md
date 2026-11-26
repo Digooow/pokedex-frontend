@@ -1,6 +1,18 @@
 # 21 — Qualidade de Código, Regras SonarQube e Governança Preventiva
 
-> **Documento normativo de qualidade estática do repositório.** Complementa o [`AGENTS.md`](../AGENTS.md), o [Contrato de Qualidade (`ARCHITECTURE.md`)](ARCHITECTURE.md) e o [Dossiê de Segurança (`doc 13`)](13-dossie-de-seguranca-e-blindagem.md), consolidando as regras do **SonarQube / SonarCloud**, ESLint, CPD (`0%`), acessibilidade HTML/Angular, SCSS e segurança estática para aprovação **de primeira** no CI/CD.
+> **Documento normativo de qualidade estática do repositório (Prioridade 0 — `P0-CI`).** Complementa o [`AGENTS.md`](../AGENTS.md), o [Contrato de Qualidade (`ARCHITECTURE.md`)](ARCHITECTURE.md) e o [Dossiê de Segurança (`doc 13`)](13-dossie-de-seguranca-e-blindagem.md), consolidando as regras do **SonarQube / SonarCloud**, ESLint, CPD (`0%`), acessibilidade HTML/Angular, SCSS e segurança estática para aprovação **de primeira** no CI/CD.
+
+---
+
+## 0. Precedência Absoluta de CI/CD e Qualidade Estática (Prioridade 0)
+
+As regras de **CI/CD, SonarQube Cloud, ESLint/SonarJS, Prettier, Typecheck, CPD `0%` e Segurança de Pipeline** possuem **prioridade máxima absoluta (`P0-CI`)** e **sempre vêm na frente de qualquer outra regra, feature, polimento visual, refatoração ou item da [Fila Prioritária](00-fila-prioritaria-melhorias.md) / [Roadmap](00-visao-geral-e-roadmap.md)**.
+
+1. **P0-CI (Máxima Precedência):** Pipeline CI/CD verde ([`ci.yml`](../.github/workflows/ci.yml)) + SonarQube Gate `OK` (`0` issues de qualquer severidade, `0` Security Hotspots `TO_REVIEW`, `0%` duplicação) + `npm run audit:sonar:local` + `npm run typecheck` + `npm run format:check` + testes + segurança (`Gitleaks`, `npm audit`, `CodeQL`, `Trivy`).
+2. **P0/P1 de Produto & UI:** Regra Zero de UI ([`AGENTS.md §1`](../AGENTS.md#1-regra-zero-de-ui--fidelidade-visual)) e [Fila Prioritária (`docs/00-fila-prioritaria-melhorias.md`)](00-fila-prioritaria-melhorias.md).
+3. **Roadmap Geral:** Fases futuras ([`00-visao-geral-e-roadmap.md`](00-visao-geral-e-roadmap.md)).
+
+> **Regra operacional de interrupção:** se existir **qualquer** issue aberta no SonarCloud ou falha no CI/CD, sua resolução interrompe e precede imediatamente qualquer outra tarefa em andamento. Nenhuma entrega pode ser declarada concluída nem enviada via `git push` sem o portão local aprovado (`npm run audit:sonar:local`) e o portão remoto zerado (`npm run audit:sonar`).
 
 ---
 
@@ -80,7 +92,9 @@ As regras estáticas atuam em conjunto com **Gitleaks**, **CodeQL** e **SonarClo
 | **`Web:S6825`** | Proibido `aria-hidden="true"` em elemento focável | `<canvas tabindex="0" aria-hidden="true">` ou `<button aria-hidden="true">` | Remover `aria-hidden` de elementos focáveis ou torná-los não focáveis |
 | **`Web:S6843`** | Proibido atribuir `role` não-interativo a elemento interativo | `<button role="presentation">` | Manter semântica nativa do controle |
 | **`Web:S6853`** | `<label>` deve estar associado a exatamente **1** controle de formulário | `<label>...<input /><button>Ir</button></label>` | `<div class="field"><label for="id">...</label><div class="inline"><input id="id" /><button>Ir</button></div></div>` |
-| **`Web:S7927`** | `aria-label` em controle com rótulo visível deve conter o texto visível | `<button aria-label="Abrir">Detalhes</button>` | `<button aria-label="Detalhes do Pokémon">Detalhes</button>` |
+| **`Web:S7927`** | `aria-label` em controle com rótulo visível deve conter o texto visível; em `<select>`, usar `<label for="...">` em vez de `aria-label` | `<button aria-label="Abrir">Detalhes</button>` / `<select id="x" aria-label="Perfil">...</select>` | `<button aria-label="Detalhes do Pokémon">Detalhes</button>` / `<label for="x" class="sr-only-static">Perfil</label><select id="x">...</select>` |
+
+> **Nota sobre `<select>` no Angular (`Web:S7927`):** O analisador HTML do SonarCloud interpreta o conteúdo interno do `<select>` (`@for` + `<option>`) como texto visível do controle e dispara `Web:S7927` quando `aria-label` não contém esse texto. Para evitar conflito, **não use `aria-label` diretamente em `<select>`**: associe um `<label for="...">` visível ou use a classe utilitária global `.sr-only-static` (definida em [`styles.scss`](../apps/web/src/styles.scss)) antes do `<select>`, preservando o layout e o nome acessível idêntico para leitores de tela (em conformidade também com `Web:S6853`).
 
 ### 3.4. CSS & SCSS (`css:S9440` + Design System)
 
@@ -122,7 +136,7 @@ npm run audit:sonar
 ```
 
 - [ ] `npm run format:check` aprovado em 100% dos arquivos `.ts`.
-- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7763`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `css:S9440`).
+- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7763`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S7927`, `css:S9440`).
 - [ ] `npm run typecheck`, `npm run test` e `npm run build` aprovados após a última edição.
 - [ ] Em mudanças de UI, `npm run audit:ui` e conferência visual real Desktop/Mobile aprovados.
 - [ ] `npm run audit:sonar` confirma `Quality Gate OK`, `0` issues abertos, `0` hotspots `TO_REVIEW` e `0` duplicações após o push.

@@ -1,6 +1,17 @@
 # PokéVerse — Regras Inegociáveis do Repositório
 
-Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), e o catálogo de regras SonarQube/ESLint/acessibilidade em [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md). A fila de melhorias, correções e features com **prioridade máxima** no projeto vive em [docs/00-fila-prioritaria-melhorias.md](docs/00-fila-prioritaria-melhorias.md).
+Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). **Regra de Precedência Absoluta (`P0-CI`):** as regras de **CI/CD, SonarQube, qualidade estática e segurança de pipeline** em [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) têm **Prioridade 0** e vêm sempre à frente de todas as demais demandas. O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), e a fila de melhorias, correções e features de produto vive em [docs/00-fila-prioritaria-melhorias.md](docs/00-fila-prioritaria-melhorias.md).
+
+---
+
+## 0. Prioridade Máxima Absoluta: Regras de CI/CD & Portão SonarQube (Sempre à Frente do Resto)
+
+1. **Precedência `P0-CI`:**
+   - Conformidade integral com o pipeline [`.github/workflows/ci.yml`](.github/workflows/ci.yml) e com o portão **SonarQube** (`0` issues em aberto de qualquer severidade — inclusive `MINOR`/`INFO` —, `0` Security Hotspots `TO_REVIEW` e `0%` de duplicação CPD), além de `npm run audit:sonar:local`, `npm run format:check`, `npm run typecheck`, testes e verificações de segurança (`Gitleaks`, `npm audit`, `CodeQL`, `Trivy`), **precede toda e qualquer feature, melhoria visual, refatoração ou item da fila prioritária**.
+   - Se houver **qualquer** issue aberta no SonarCloud ou falha no CI/CD, sua resolução interrompe e antecede imediatamente qualquer outra tarefa.
+2. **Skills Preventivas & Portão Pré-Push Obrigatório:**
+   - Durante a escrita e refatoração de código TS/JS, HTML/Angular e CSS/SCSS, consulte e aplique proativamente a skill **`sonarqube-clean-code`** e o catálogo [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) para aprovação de primeira.
+   - Antes de qualquer `git push`, execute obrigatoriamente `npm run audit:sonar:local` (`npm run lint` + `npm run audit:duplication` com `jscpd` a `0%` e paridade estática TS/HTML/SCSS) e `npm run audit:sonar` (skill `sonarqube-quality-gate`).
 
 ---
 
@@ -23,9 +34,7 @@ Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (preced�
    - Contratos Zod, schemas de eventos e regras de domínio ficam em `@pokeverse/shared` — nunca duplique schemas, tipos, constantes ou componentes entre front-end e back-end.
    - Nunca remova ou degrade comportamento já testado ao implementar uma nova etapa; valide com lint, `typecheck`, testes unitários, E2E e build após a última edição.
 3. **Portão SonarQube & Zero Duplicação Pré-Push:**
-   - Durante a escrita e refatoração de código TS/JS, HTML/Angular e CSS/SCSS, consulte e aplique proativamente a skill **`sonarqube-clean-code`** e o guia [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) para aprovação de primeira.
-   - Antes de qualquer `git push`, execute `npm run audit:sonar:local` (`npm run lint` com `eslint-plugin-sonarjs`, `no-await-in-loop`, `max-params`, `prefer-optional-chain`/`prefer-readonly` e `npm run audit:duplication` com `jscpd` a `0%` + paridade estática TS/HTML/SCSS) e `npm run audit:sonar` (skill `sonarqube-quality-gate`).
-   - **Tolerância zero:** qualquer issue (de qualquer severidade, inclusive `MINOR`/`INFO`), qualquer Security Hotspot `TO_REVIEW` e qualquer linha/bloco duplicado reprovam a entrega e devem ser corrigidos antes do push.
+   - Aplicado com **precedência absoluta (`P0-CI`)** conforme a **Seção 0** e [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md): tolerância zero para qualquer issue, Security Hotspot `TO_REVIEW` ou duplicação antes de qualquer entrega ou `git push`.
 
 ---
 

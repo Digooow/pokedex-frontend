@@ -833,7 +833,8 @@ pokedex-frontend/
 
 | Doc | Assunto |
 | :-: | :--- |
-| **00-Fila** | **[Fila Prioritária de Melhorias, Bugs e Pendências de UI (Máxima Prioridade)](docs/00-fila-prioritaria-melhorias.md)** |
+| **P0-CI / 21** | **[Prioridade Máxima Absoluta: Qualidade de Código, SonarQube e Regras de CI/CD](docs/21-qualidade-de-codigo-sonarqube-e-regras.md)** |
+| **00-Fila** | **[Fila Prioritária de Melhorias, Bugs e Pendências de UI (Produto/UI)](docs/00-fila-prioritaria-melhorias.md)** |
 | **Arch** | **[Contrato de Qualidade: Diretrizes de Arquitetura e Padrões de Código (Anti-AI Slop)](docs/ARCHITECTURE.md)** |
 | **Cap. 00** | **[Capítulo 00: como tudo começou](docs/capitulo-00-como-tudo-comecou.md)**, com o README original e a história da atividade do Senac |
 | 00 | [Visão geral, regras de acesso e roadmap](docs/00-visao-geral-e-roadmap.md) |
@@ -857,7 +858,6 @@ pokedex-frontend/
 | 18 | [Auditoria técnica e plano de dívida técnica (`ARCHITECTURE.md`)](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) |
 | 19 | [Observabilidade híbrida: OpenTelemetry, Prometheus, Loki, Tempo, Grafana, Sentry e Datadog](docs/19-observabilidade-telemetria-e-monitoramento.md) |
 | 20 | [Polimento visual, Design System e dívida estética do front-end](docs/20-polimento-visual-e-design-system-frontend.md) |
-| 21 | [Qualidade de código, regras SonarQube e governança preventiva](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) |
 | Guia 00 | **[Capítulo 00 — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-00-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
 | Guia 01 | **[Capítulo 01 — Manual Técnico e Guia de Estudos Full-Stack](docs/capitulo-01-guia-de-estudos-pokedex.md)** (`docs/capitulo-01-guia-de-estudos/`: Vols. 01–03 concluídos — Anatomia de Pastas/Arquivos, Linguagens/Frameworks/Estruturas de Dados com exemplos reais + `@pokeverse/shared` e Glossário Técnico; Vols. 04–10 planejados) |
 
@@ -869,6 +869,7 @@ pokedex-frontend/
 
 As regras completas e o Contrato de Qualidade estão em [`AGENTS.md`](AGENTS.md) e [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), valendo para qualquer pessoa ou agente que contribua.
 
+0. **Prioridade Máxima de CI/CD & SonarQube (Tolerância Zero).** Conforme [`AGENTS.md §0`](AGENTS.md#0-prioridade-máxima-absoluta-regras-de-cicd--portão-sonarqube-sempre-à-frente-do-resto) e [`docs/21`](docs/21-qualidade-de-codigo-sonarqube-e-regras.md), conformidade com o pipeline CI/CD e SonarCloud (`0` issues de qualquer severidade, `0` hotspots `TO_REVIEW` e `0%` duplicação CPD) vem sempre à frente de qualquer outra demanda, feature ou polimento.
 1. **Regra Zero de UI.** Nenhum componente, animação 3D, textura ou fluxo visual é substituído ou simplificado sem validação explícita. A referência canônica originada na Fase 0 foi portada integralmente para `apps/web`.
 2. **Conferência visual real.** Nenhuma mudança de interface é "pronta" antes de ser comparada no navegador, em Desktop `1440×900` e Mobile `375×812`, com zero erros no console, zero falhas de rede inesperadas e zero overflow horizontal.
 3. **Preservar o que já funciona.** `assets/` e o código ativo em `apps/web`, `apps/api` e `@pokeverse/shared` não têm funcionalidades degradadas; os arquivos legados da Fase 0 (`index.html`, `css/style.css` e `js/app.js`) foram removidos da raiz por desuso. Nada testado é degradado.
