@@ -1,23 +1,29 @@
 <dialog
   #privDialogEl
-  class="priv-dialog"
+  class="pv-dialog priv-dialog"
   aria-labelledby="pv-priv-title"
   closedby="any"
   (close)="onNativeClose()"
 >
   @if (privacy.dialogOpen()) {
-    <div class="priv-dialog__card">
-      <div class="priv-dialog__head">
+    <div class="pv-dialog__card priv-dialog__card">
+      <div class="pv-dialog__header priv-dialog__head">
         <div>
-          <span class="priv-dialog__badge" aria-hidden="true">PRIVACIDADE &amp; LGPD</span>
-          <h2 id="pv-priv-title" class="priv-dialog__title">Cookies, Dados Locais e Transparência</h2>
+          <span class="pv-badge priv-dialog__badge" aria-hidden="true">PRIVACIDADE &amp; LGPD</span>
+          <h2 id="pv-priv-title" class="pv-dialog__title priv-dialog__title">
+            Cookies, Dados Locais e Transparência
+          </h2>
         </div>
-        <button type="button" class="priv-btn priv-btn--ghost" (click)="privacy.closeDialog()">
+        <button
+          type="button"
+          class="pv-btn pv-btn--ghost priv-btn priv-btn--ghost"
+          (click)="privacy.closeDialog()"
+        >
           Fechar
         </button>
       </div>
 
-      <div class="priv-dialog__body">
+      <div class="pv-dialog__body priv-dialog__body">
         @if (localClearedMsg(); as cleared) {
           <output class="priv-msg priv-msg--ok" aria-live="polite">{{ cleared }}</output>
         }
@@ -65,7 +71,7 @@
             />
           </label>
           <div class="priv-inline-actions">
-            <button type="button" class="priv-btn" (click)="onClearLocalStorage()">
+            <button type="button" class="pv-btn pv-btn--secondary priv-btn" (click)="onClearLocalStorage()">
               Limpar dados locais agora
             </button>
           </div>
@@ -102,11 +108,15 @@
             <code>PokeAPI/cries</code>) via proxy BFF com cache Redis, sem envio de dados pessoais do visitante.
           </p>
           <div class="priv-inline-actions">
-            <button type="button" class="priv-btn" (click)="openThirdPartyCredits()">
+            <button type="button" class="pv-btn pv-btn--secondary priv-btn" (click)="openThirdPartyCredits()">
               Ver Créditos &amp; APIs de Terceiros
             </button>
             @if (auth.isAuthenticated()) {
-              <button type="button" class="priv-btn" (click)="openTrainerSecurityAndExport()">
+              <button
+                type="button"
+                class="pv-btn pv-btn--secondary priv-btn"
+                (click)="openTrainerSecurityAndExport()"
+              >
                 Gerenciar Sessões &amp; Exportar Dados (JSON)
               </button>
             }
@@ -114,14 +124,18 @@
         </section>
       </div>
 
-      <div class="priv-footer">
-        <button type="button" class="priv-btn" (click)="privacy.acceptEssentialOnly()">
+      <div class="pv-dialog__footer priv-footer">
+        <button type="button" class="pv-btn pv-btn--secondary priv-btn" (click)="privacy.acceptEssentialOnly()">
           Apenas essenciais
         </button>
-        <button type="button" class="priv-btn" (click)="onSaveCustom()">
+        <button type="button" class="pv-btn pv-btn--secondary priv-btn" (click)="onSaveCustom()">
           Salvar preferências
         </button>
-        <button type="button" class="priv-btn priv-btn--primary" (click)="privacy.acceptAll()">
+        <button
+          type="button"
+          class="pv-btn pv-btn--primary priv-btn priv-btn--primary"
+          (click)="privacy.acceptAll()"
+        >
           Aceitar tudo
         </button>
       </div>

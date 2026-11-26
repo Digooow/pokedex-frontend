@@ -14,15 +14,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--espaco-2, 0.5rem);
+  gap: var(--pv-space-2);
   inline-size: 100%;
   min-block-size: 0;
-  padding: var(--espaco-2, 0.5rem) var(--espaco-3, 1rem) var(--espaco-4, 1.5rem);
+  padding: var(--pv-space-2) var(--pv-space-3) var(--pv-space-4);
 }
 
 @media (min-width: 880px) {
   .app-main {
-    padding: var(--espaco-2, 0.5rem) var(--espaco-4, 1.5rem) var(--espaco-3, 1rem);
+    padding: var(--pv-space-2) var(--pv-space-4) var(--pv-space-3);
   }
 }
 

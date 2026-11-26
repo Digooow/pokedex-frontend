@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { type AsyncState, formatPokeApiText } from '@pokeverse/shared';
 import type { MoveDetail } from '@pokeverse/shared/pokedex-encyclopedia';
+import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { PvRpgFocusableDirective } from '../../directives/rpg-focusable.directive';
 import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import {
@@ -29,10 +30,13 @@ const METHOD_TABS: readonly { readonly id: MoveLearnMethodTab; readonly label: s
   selector: 'pv-visor-moves-tab',
   imports: [PvRpgFocusableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [':host { display: flex; flex-direction: column; gap: var(--espaco-3); min-width: 0; }'],
+  styles: [
+    ':host { display: flex; flex-direction: column; gap: var(--pv-space-3); min-width: 0; }',
+  ],
   templateUrl: './visor-moves-tab.component.html',
 })
 export class VisorMovesTabComponent {
+  readonly typeSlug = resolvePokemonTypeSlug;
   readonly pokemon = input.required<PokemonDetailView>();
   readonly moveDetails = input.required<Readonly<Record<string, AsyncState<MoveDetail>>>>();
 

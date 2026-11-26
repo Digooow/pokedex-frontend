@@ -9,24 +9,7 @@
 .ency-header,
 .ency-sidebar {
   padding: var(--pv-space-4);
-  border-radius: var(--pv-radius-md);
-  border: 1px solid var(--pv-border-strong);
-  background: var(--pv-encyclopedia-card-bg);
   box-shadow: var(--pv-hud-dock-shadow);
-}
-
-@supports (backdrop-filter: blur(12px)) {
-  .ency-header,
-  .ency-sidebar {
-    background: var(--pv-encyclopedia-card-bg-blur);
-    backdrop-filter: blur(12px);
-  }
-}
-
-:host-context(html[data-perf-tier='lite']) .ency-header,
-:host-context(html[data-perf-tier='lite']) .ency-sidebar {
-  backdrop-filter: none;
-  background: var(--pv-encyclopedia-card-bg-lite);
 }
 
 .ency-header {
@@ -38,13 +21,7 @@
 }
 
 .ency-header__tag {
-  display: inline-block;
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--pv-radius-pill);
-  border: 1px solid var(--pv-border-gold);
-  color: var(--pv-border-gold);
-  font-size: 0.75rem;
-  font-weight: 700;
+  border-color: var(--pv-border-gold);
 }
 
 .ency-header__title {

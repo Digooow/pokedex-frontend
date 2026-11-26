@@ -43,7 +43,7 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
         border: 1px solid var(--pv-border-strong);
         background: var(--pv-surface-solid);
         color: var(--pv-ink-primary);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42);
+        box-shadow: var(--pv-shadow-md);
       }
 
       .privacy-banner__text {
@@ -71,7 +71,7 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
         padding: 0.4rem 0.85rem;
         border-radius: var(--pv-radius-sm);
         border: 1px solid var(--pv-border-strong);
-        background: var(--palette-slate-900);
+        background: var(--pv-surface-solid);
         color: var(--pv-ink-primary);
         font-size: 0.78rem;
         font-weight: 700;
@@ -82,8 +82,8 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
       }
 
       .privacy-banner__btn:hover {
-        border-color: var(--palette-cyan-300);
-        background: var(--palette-slate-800);
+        border-color: var(--pv-cyan);
+        background: var(--pv-surface-elevated);
       }
 
       .privacy-banner__btn--primary {

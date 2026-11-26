@@ -1,28 +1,30 @@
 <dialog
   #dialogEl
-  class="compare-dialog"
+  class="pv-dialog compare-dialog"
   aria-labelledby="compare-dialog-title"
   closedby="any"
   pvDialogLightDismiss
   (close)="onNativeClose()"
 >
-  <article class="compare-dialog__card">
-    <header class="compare-dialog__header">
+  <article class="pv-dialog__card compare-dialog__card">
+    <header class="pv-dialog__header compare-dialog__header">
       <div>
-        <span class="compare-dialog__badge">ANÁLISE COMPARATIVA</span>
-        <h2 id="compare-dialog-title" class="compare-dialog__title">Comparador 1v1</h2>
+        <span class="pv-badge compare-dialog__badge">ANÁLISE COMPARATIVA</span>
+        <h2 id="compare-dialog-title" class="pv-dialog__title compare-dialog__title">
+          Comparador 1v1
+        </h2>
       </div>
       <div class="compare-dialog__header-actions">
         <button
           type="button"
-          class="compare-btn compare-btn--secondary"
+          class="pv-btn pv-btn--secondary compare-btn compare-btn--secondary"
           (click)="compare.swapSides()"
         >
           Inverter A ↔ B
         </button>
         <button
           type="button"
-          class="compare-btn compare-btn--secondary"
+          class="pv-btn pv-btn--secondary compare-btn compare-btn--secondary"
           (click)="compare.close()"
         >
           Fechar
@@ -49,7 +51,9 @@
                 placeholder="Nome ou ID..."
                 (input)="onQueryInput(side === 'left' ? 'left' : 'right', $event)"
               />
-              <button type="submit" class="compare-btn compare-btn--primary">Carregar</button>
+              <button type="submit" class="pv-btn pv-btn--primary compare-btn compare-btn--primary">
+                Carregar
+              </button>
             </div>
           </form>
 
@@ -77,7 +81,7 @@
                 @if (slotState.error.retryable) {
                   <button
                     type="button"
-                    class="compare-btn compare-btn--secondary"
+                    class="pv-btn pv-btn--secondary compare-btn compare-btn--secondary"
                     (click)="compare.retrySide(side === 'left' ? 'left' : 'right')"
                   >
                     Tentar novamente
@@ -100,9 +104,16 @@
                 <div class="compare-fighter__info">
                   <span class="compare-fighter__id tabular-nums">{{ pk.paddedId }}</span>
                   <h3 class="compare-fighter__name">{{ pk.displayName }}</h3>
-                  <p class="compare-fighter__meta">
-                    {{ pk.types.join(' / ') }} · {{ pk.heightMeters }} · {{ pk.weightKg }}
-                  </p>
+                  @if (pk.types.length > 0) {
+                    <ul class="compare-fighter__types" aria-label="Tipos">
+                      @for (typeName of pk.types; track typeName) {
+                        <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                          {{ typeName }}
+                        </li>
+                      }
+                    </ul>
+                  }
+                  <p class="compare-fighter__meta">{{ pk.heightMeters }} · {{ pk.weightKg }}</p>
                   <p class="compare-fighter__abilities">
                     {{ pk.abilities.join(', ') || 'Sem habilidades' }}
                   </p>
@@ -163,18 +174,50 @@
             <div class="compare-defense__card">
               <strong class="compare-defense__heading">{{ entry.label }}</strong>
               @if (entry.def; as def) {
-                <p class="compare-defense__line">
-                  <span>Fraquezas (4x/2x):</span>
-                  {{ def.quadWeak.concat(def.weak).join(', ') || 'Nenhuma' }}
-                </p>
-                <p class="compare-defense__line">
-                  <span>Resistências (0.5x/0.25x):</span>
-                  {{ def.resistant.concat(def.quadResistant).join(', ') || 'Nenhuma' }}
-                </p>
-                <p class="compare-defense__line">
-                  <span>Imunidades (0x):</span>
-                  {{ def.immune.join(', ') || 'Nenhuma' }}
-                </p>
+                <div class="compare-defense__row">
+                  <span class="compare-defense__label">Fraquezas (4x/2x):</span>
+                  @let weaknesses = def.quadWeak.concat(def.weak);
+                  @if (weaknesses.length > 0) {
+                    <ul class="compare-defense__chips">
+                      @for (typeName of weaknesses; track typeName) {
+                        <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                          {{ typeName }}
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="compare-defense__empty">Nenhuma</span>
+                  }
+                </div>
+                <div class="compare-defense__row">
+                  <span class="compare-defense__label">Resistências (0.5x/0.25x):</span>
+                  @let resistances = def.resistant.concat(def.quadResistant);
+                  @if (resistances.length > 0) {
+                    <ul class="compare-defense__chips">
+                      @for (typeName of resistances; track typeName) {
+                        <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                          {{ typeName }}
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="compare-defense__empty">Nenhuma</span>
+                  }
+                </div>
+                <div class="compare-defense__row">
+                  <span class="compare-defense__label">Imunidades (0x):</span>
+                  @if (def.immune.length > 0) {
+                    <ul class="compare-defense__chips">
+                      @for (typeName of def.immune; track typeName) {
+                        <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                          {{ typeName }}
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <span class="compare-defense__empty">Nenhuma</span>
+                  }
+                </div>
               } @else {
                 <p class="compare-defense__line">Matriz detalhada disponível no bundle completo.</p>
               }

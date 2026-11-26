@@ -1,0 +1,179 @@
+@layer components {
+  .pv-glass-card {
+    border-radius: var(--pv-radius-md);
+    border: 1px solid var(--pv-border-strong);
+    background: var(--pv-glass-bg);
+    box-shadow: var(--pv-shadow-md);
+  }
+
+  @supports (backdrop-filter: blur(12px)) {
+    .pv-glass-card {
+      background: var(--pv-glass-bg-blur);
+      backdrop-filter: blur(12px);
+    }
+  }
+
+  html[data-perf-tier='lite'] .pv-glass-card {
+    backdrop-filter: none;
+    background: var(--pv-glass-bg-lite);
+  }
+
+  .pv-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--pv-space-1);
+    min-block-size: 2.75rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: var(--pv-radius-sm);
+    border: 1px solid var(--pv-border-subtle);
+    background: var(--pv-surface-elevated);
+    color: var(--pv-ink-primary);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+      background-color var(--pv-motion-fast-ms) ease,
+      border-color var(--pv-motion-fast-ms) ease,
+      transform var(--pv-motion-tactile-ms) var(--pv-motion-ease-out);
+  }
+
+  .pv-btn:hover:not(:disabled) {
+    border-color: var(--pv-border-strong);
+  }
+
+  .pv-btn:active:not(:disabled) {
+    transform: translateY(1px) scale(0.985);
+  }
+
+  .pv-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .pv-btn--primary {
+    border-color: var(--pv-border-gold);
+    background: var(--pv-dex-red);
+    color: var(--pv-ink-on-accent);
+  }
+
+  .pv-btn--primary:hover:not(:disabled) {
+    background: var(--pv-dex-red-deep);
+  }
+
+  .pv-btn--secondary {
+    border-color: var(--pv-border-subtle);
+    background: var(--pv-surface-elevated);
+    color: var(--pv-ink-primary);
+  }
+
+  .pv-btn--danger {
+    border-color: var(--pv-danger);
+    background: var(--pv-dex-red-deep);
+    color: var(--pv-ink-on-accent);
+  }
+
+  .pv-btn--ghost {
+    border-color: var(--pv-border-strong);
+    background: transparent;
+    color: var(--pv-ink-primary);
+  }
+
+  .pv-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 2.25rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--pv-radius-pill);
+    border: 1px solid var(--pv-border-subtle);
+    background: var(--pv-filter-chip-bg);
+    color: var(--pv-filter-chip-ink);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .pv-chip[aria-pressed='true'] {
+    background: var(--pv-filter-chip-active-bg);
+    border-color: var(--pv-filter-chip-active-border);
+    color: var(--pv-filter-chip-active-ink);
+  }
+
+  .pv-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--pv-radius-pill);
+    border: 1px solid var(--pv-border-gold);
+    color: var(--pv-border-gold);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+  }
+
+  .pv-dialog {
+    padding: 0;
+    border: 1px solid var(--pv-border-gold);
+    border-radius: var(--pv-radius-lg);
+    background: var(--pv-surface-solid);
+    color: var(--pv-ink-primary);
+    box-shadow: var(--pv-shadow-dialog);
+  }
+
+  .pv-dialog:not([open]) {
+    display: none;
+  }
+
+  .pv-dialog__card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pv-space-3);
+    min-block-size: 0;
+    padding: var(--pv-space-4);
+  }
+
+  .pv-dialog__header {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--pv-space-2);
+  }
+
+  .pv-dialog__title {
+    margin: var(--pv-space-2) 0 0;
+    color: var(--pv-ink-primary);
+  }
+
+  .pv-dialog__body {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    overflow-y: auto;
+    display: grid;
+    gap: var(--pv-space-2);
+    padding-inline-end: 0.25rem;
+  }
+
+  .pv-dialog__footer {
+    flex: 0 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: var(--pv-space-2);
+    border-block-start: 1px solid var(--pv-border-subtle);
+    padding-block-start: var(--pv-space-3);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pv-btn {
+      transition: none;
+    }
+
+    .pv-btn:active:not(:disabled) {
+      transform: none;
+    }
+  }
+}

@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { formatPokeApiText } from '@pokeverse/shared';
 import { CrySpectrogramComponent } from '../../../../shared/components/cry-spectrogram.component';
+import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { PvRpgFocusableDirective } from '../../directives/rpg-focusable.directive';
 import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import {
@@ -24,10 +25,13 @@ import {
   selector: 'pv-visor-overview-tab',
   imports: [PvRpgFocusableDirective, CrySpectrogramComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [':host { display: flex; flex-direction: column; gap: var(--espaco-3); min-width: 0; }'],
+  styles: [
+    ':host { display: flex; flex-direction: column; gap: var(--pv-space-3); min-width: 0; }',
+  ],
   templateUrl: './visor-overview-tab.component.html',
 })
 export class VisorOverviewTabComponent {
+  readonly typeSlug = resolvePokemonTypeSlug;
   readonly pokemon = input.required<PokemonDetailView>();
   readonly spriteMode = input.required<VisorSpriteMode>();
   readonly shiny = input.required<boolean>();

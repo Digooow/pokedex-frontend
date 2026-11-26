@@ -1,7 +1,7 @@
 # 20 — Polimento Visual, Design System e Dívida Estética do Front-end
 
-> **Status:** Registro vivo de dívida estética e de Design System (`apps/web`).
-> **Regra de Ouro:** O foco atual do projeto é consolidar a arquitetura funcional da **Pokédex Suprema** (Passos `2B.1`–`2B.3`) e dos módulos do **PokéVerse OS**. Este documento existe para garantir que as decisões visuais de polimento fiquem mapeadas com precisão para uma etapa dedicada de **UI Polish**, sem atrasar as entregas funcionais e respeitando integralmente a **Regra Zero de UI** ([AGENTS.md](../AGENTS.md)).
+> **Status:** Registro vivo de dívida estética e de Design System (`apps/web`) — **Onda Visual 1 Concluída**; **Ondas Visuais 2 e 3** planejadas.
+> **Regra de Ouro:** O foco atual do projeto consolida a arquitetura funcional da **Pokédex Suprema** (Passos `2B.1`–`2B.3`) e evolui o Design System em ondas controladas de **UI Polish**, respeitando integralmente a **Regra Zero de UI** ([AGENTS.md](../AGENTS.md)) e preservando a carcaça 3D da Pokédex sem simplificações.
 
 ---
 
@@ -9,20 +9,19 @@
 
 Embora o hardware 3D skeuomórfico da Pokédex e o pipeline de verificação (`npm run audit:ui` + Playwright) garantam fidelidade estrutural, contraste WCAG AA e zero overflow, o crescimento acelerado de funcionalidades revelou dívidas estéticas claras no front-end Angular (`apps/web`):
 
-1. **Coexistência de dois sistemas de tokens em [`_tokens.scss`](../apps/web/src/styles/_tokens.scss):**
-   - Os tokens modernos `--pv-*` em `oklch(...)` (usados no HUD, diálogos, Museu, Holocron e abas novas) coexistem com dezenas de tokens legados da Fase 0 (`--palette-*`, `--bg-*`, `--espaco-*`, `--raio-*`, `--fonte-*`) herdados do porte inicial.
-   - Ainda existem valores de cor literais (`#4c5663`, `#161d27`, `rgba(...)` e `oklch(...)` inline) espalhados em parciais legadas de [`styles/pokedex/`](../apps/web/src/styles/pokedex/) (já zerados no [`museum-page.component.scss`](../apps/web/src/app/features/regions-museum/museum-page.component.scss), [`museum-region-inspector.component.scss`](../apps/web/src/app/features/regions-museum/components/museum-region-inspector.component.scss) e nos arquivos de `holocron/` no Passo `2B.3`).
-2. **Assimetria estética entre a Pokédex 3D e as telas satélites:**
-   - A carcaça 3D tem profundidade física, iluminação dinâmica (`--luz-x`/`--luz-y`), microtexturas WebP e dobradiça articulada, enquanto rotas satélites (`/museu`, `/enciclopedia`, `/mundo`, `/arcade`, `/arena`) e modais parecem painéis genéricos escuros sem linguagem visual unificada de console/SO tático.
-3. **Densidade visual crescente no Visor LCD 2.0 e no Painel Esquerdo:**
-   - O Visor LCD recebeu 5 abas, chips de raridade, barra de mídia (botões de `44px` para `Arte`/`Home`/`Animado`/`Shiny`/`Ouvir Grito`/`Retrô`/`Comparar 1v1`), cards de lore, barras de atributos e accordions dentro de uma área física compacta.
-   - O Painel Esquerdo concentra busca textual, painel colapsável de filtros combinados e lista paginada do catálogo dentro da mesma ala metálica, exigindo hierarquia visual mais limpa e menor ruído de bordas.
-4. **Ausência de tipografia display e paleta semântica de tipos:**
-   - Toda a interface usa `system-ui` + `ui-monospace` padrão sem fonte display de título/HUD que dê personalidade ao **PokéVerse OS**.
-   - As badges `.tipo-badge` e chips de efetividade ainda não possuem a paleta semântica dedicada dos **18 tipos Pokémon** (`fire`, `water`, `electric`, `grass`, etc.) com contraste WCAG AA garantido.
+1. **Unificação inicial de tokens concluída na Onda Visual 1 ([`_tokens.scss`](../apps/web/src/styles/_tokens.scss)):**
+   - Todos os componentes e estilos internos em `apps/web/src/app/**`, [`_visor-tabs.scss`](../apps/web/src/styles/pokedex/_visor-tabs.scss) e [`_filters-panel.scss`](../apps/web/src/styles/pokedex/_filters-panel.scss) foram migrados integralmente para tokens semânticos `--pv-*` (`0` referências legadas em `apps/web/src/app/**`).
+   - Os literais residuais de [`_search-scanner.scss`](../apps/web/src/styles/pokedex/_search-scanner.scss) e [`_visor-lcd.scss`](../apps/web/src/styles/pokedex/_visor-lcd.scss) foram extraídos para tokens `--pv-scanner-*` e `--pv-visor-*`, preservando os aliases retrocompatíveis apenas nas parciais da carcaça 3D ([`styles/pokedex/`](../apps/web/src/styles/pokedex/)).
+2. **Assimetria estética entre a Pokédex 3D e as telas satélites (em endereçamento nas Ondas 2–3):**
+   - A Onda Visual 1 extraiu os primitivos compartilhados em [`_primitives.scss`](../apps/web/src/styles/_primitives.scss) (`.pv-glass-card`, `.pv-btn*`, `.pv-chip`, `.pv-badge`, `.pv-dialog*`) para `/museu`, `/enciclopedia`, Comparador 1v1 e diálogos modais; a Onda Visual 3 aplicará a direção de arte "Tactical Glass" completa e emblemas regionais dedicados.
+3. **Densidade visual crescente no Visor LCD 2.0 e no Painel Esquerdo (alvo da Onda Visual 2):**
+   - O Visor LCD recebeu 5 abas, chips de raridade, barra de mídia (botões de `44px` para `Arte`/`Home`/`Animado`/`Shiny`/`Ouvir Grito`/`Retrô`/`Comparar 1v1`/`Holocron 3D`), cards de lore, barras de atributos e accordions dentro de uma área física compacta.
+   - O Painel Esquerdo concentra busca textual, painel colapsável de filtros combinados e lista paginada do catálogo dentro da mesma ala metálica, exigindo hierarquia visual mais limpa na Onda Visual 2.
+4. **Paleta semântica dos 18 tipos entregue na Onda Visual 1; tipografia display pendente na Onda Visual 3:**
+   - Criada a paleta acessível (WCAG AA+) dos **18 tipos Pokémon** em [`_pokemon-types.scss`](../apps/web/src/styles/_pokemon-types.scss) + [`pokemon-type-style.util.ts`](../apps/web/src/app/shared/utils/pokemon-type-style.util.ts), ativa no Visor LCD (`Resumo`, `Stats`, `Golpes`), Filtros Combinados, Comparador 1v1, Enciclopédia `/enciclopedia` e Holocron.
+   - A tipografia display auto-hospedada (`.woff2`) segue planejada para a Onda Visual 3.
 5. **Ritmo espacial desigual e ausência de transições entre vistas:**
-   - Espaçamentos, raios de borda e elevações variam entre HUD, Pokédex, Museu, Enciclopédia e diálogos `<dialog>`.
-   - Faltam transições suaves (`View Transitions API` / animações compostas por GPU com suporte a `prefers-reduced-motion`) na troca de rotas e abertura de painéis.
+   - Os primitivos de diálogo (`.pv-dialog*`) e vidro fosco (`.pv-glass-card`) já unificam bordas, raios, botões e desligamento automático em `LITE`/`forced-colors`; View Transitions e ajuste fino de ritmo seguem na Onda Visual 3.
 
 ---
 
@@ -59,10 +58,10 @@ Embora o hardware 3D skeuomórfico da Pokédex e o pipeline de verificação (`n
 
 > **Pré-requisito de execução:** Antes de alterar qualquer layout visível da Pokédex 3D ou telas principais, registrar screenshots "Antes" e aprovar com o usuário conforme a **Regra Zero de UI**.
 
-### Onda Visual 1 — Fundação do Design System Unificado
-- Consolidar `_tokens.scss` em uma árvore única `--pv-*` (superfícies, tintas, bordas, sombras, raios, escalas de espaço e movimento), mantendo aliases temporários apenas onde a carcaça 3D exigir retrocompatibilidade.
-- Definir paleta semântica acessível (WCAG AA) para os **18 tipos Pokémon** (`--pv-type-fire-*`, `--pv-type-electric-*`, etc.) reutilizada no Visor LCD, no Comparador 1v1 e na Enciclopédia.
-- Extrair primitivos visuais compartilhados para botões táticos, chips interativos, cards de vidro fosco (`backdrop-filter` desligado automaticamente em `html[data-perf-tier='lite']`) e cabeçalhos/rodapés de `<dialog>`.
+### Onda Visual 1 — Fundação do Design System Unificado (Concluída)
+- [`_tokens.scss`](../apps/web/src/styles/_tokens.scss) consolidado em torno da árvore `--pv-*` (`--pv-glass-bg*`, `--pv-backdrop-scrim`, `--pv-shadow-md`, `--pv-radius-xs`, `--pv-motion-fast-ms/normal-ms`, `--pv-z-skip`, `--pv-scanner-*` e `--pv-visor-*`), zerando tokens legados em `apps/web/src/app/**`, `_visor-tabs.scss` e `_filters-panel.scss`, zerando literais hex em `_search-scanner.scss` e `_visor-lcd.scss` e mantendo aliases retrocompatíveis apenas nas parciais da carcaça 3D.
+- Criada a paleta semântica acessível (WCAG AA+ com suporte a `forced-colors: active`) para os **18 tipos Pokémon** em [`_pokemon-types.scss`](../apps/web/src/styles/_pokemon-types.scss) e [`pokemon-type-style.util.ts`](../apps/web/src/app/shared/utils/pokemon-type-style.util.ts) (`+` [`pokemon-type-style.util.spec.ts`](../apps/web/src/app/shared/utils/pokemon-type-style.util.spec.ts)), aplicada no Visor LCD (`Resumo`, `Stats`, `Golpes`), Filtros Combinados, Comparador 1v1, Enciclopédia `/enciclopedia` e Holocron.
+- Extraídos os primitivos visuais compartilhados em [`_primitives.scss`](../apps/web/src/styles/_primitives.scss) (`.pv-glass-card` com desligamento automático em `html[data-perf-tier='lite']`, `.pv-btn*`, `.pv-chip`, `.pv-badge` e `.pv-dialog*`) e adotados em `/museu`, `/enciclopedia`, Comparador 1v1, Holocron, Créditos e Privacidade/LGPD, com aprovação de `npm run audit:ui`, `npm run test:e2e:web` e inspeção visual em Desktop (`1440×900`) e Mobile (`375×812`).
 
 ### Onda Visual 2 — Ergonomia e Hierarquia da Pokédex 3D (Sem Mudar a Carcaça)
 - Preservar 100% da geometria, materiais, dobradiça, tampa, D-Pad e 10 slots azuis.

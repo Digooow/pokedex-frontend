@@ -1,4 +1,6 @@
 @use './styles/tokens';
+@use './styles/pokemon-types';
+@use './styles/primitives';
 @use './styles/pokedex-classic';
 
 @layer base {
@@ -55,7 +57,7 @@
   dialog::backdrop {
     overflow: hidden;
     overscroll-behavior: contain;
-    background: oklch(8% 0.02 255 / 0.72);
+    background: var(--pv-backdrop-scrim);
     backdrop-filter: blur(4px);
   }
 }

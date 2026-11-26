@@ -1,0 +1,143 @@
+:root {
+  --pv-type-normal-bg: oklch(26% 0.02 95);
+  --pv-type-normal-border: oklch(68% 0.04 95);
+  --pv-type-normal-ink: oklch(96% 0.01 95);
+
+  --pv-type-fire-bg: oklch(26% 0.11 32);
+  --pv-type-fire-border: oklch(68% 0.19 34);
+  --pv-type-fire-ink: oklch(96% 0.025 45);
+
+  --pv-type-water-bg: oklch(25% 0.09 242);
+  --pv-type-water-border: oklch(68% 0.16 240);
+  --pv-type-water-ink: oklch(96% 0.02 230);
+
+  --pv-type-electric-bg: oklch(27% 0.08 88);
+  --pv-type-electric-border: oklch(78% 0.17 88);
+  --pv-type-electric-ink: oklch(97% 0.03 92);
+
+  --pv-type-grass-bg: oklch(25% 0.09 148);
+  --pv-type-grass-border: oklch(68% 0.17 148);
+  --pv-type-grass-ink: oklch(96% 0.025 148);
+
+  --pv-type-ice-bg: oklch(26% 0.07 205);
+  --pv-type-ice-border: oklch(75% 0.12 205);
+  --pv-type-ice-ink: oklch(97% 0.02 205);
+
+  --pv-type-fighting-bg: oklch(25% 0.11 22);
+  --pv-type-fighting-border: oklch(64% 0.2 22);
+  --pv-type-fighting-ink: oklch(96% 0.025 22);
+
+  --pv-type-poison-bg: oklch(25% 0.1 312);
+  --pv-type-poison-border: oklch(68% 0.17 312);
+  --pv-type-poison-ink: oklch(96% 0.025 312);
+
+  --pv-type-ground-bg: oklch(26% 0.08 74);
+  --pv-type-ground-border: oklch(72% 0.14 74);
+  --pv-type-ground-ink: oklch(96% 0.025 78);
+
+  --pv-type-flying-bg: oklch(26% 0.08 265);
+  --pv-type-flying-border: oklch(72% 0.13 265);
+  --pv-type-flying-ink: oklch(96% 0.02 265);
+
+  --pv-type-psychic-bg: oklch(25% 0.11 348);
+  --pv-type-psychic-border: oklch(70% 0.18 348);
+  --pv-type-psychic-ink: oklch(96% 0.025 348);
+
+  --pv-type-bug-bg: oklch(26% 0.09 124);
+  --pv-type-bug-border: oklch(72% 0.16 124);
+  --pv-type-bug-ink: oklch(96% 0.025 124);
+
+  --pv-type-rock-bg: oklch(26% 0.04 80);
+  --pv-type-rock-border: oklch(68% 0.07 80);
+  --pv-type-rock-ink: oklch(96% 0.015 80);
+
+  --pv-type-ghost-bg: oklch(24% 0.1 290);
+  --pv-type-ghost-border: oklch(68% 0.16 290);
+  --pv-type-ghost-ink: oklch(96% 0.02 290);
+
+  --pv-type-dragon-bg: oklch(24% 0.11 272);
+  --pv-type-dragon-border: oklch(66% 0.18 272);
+  --pv-type-dragon-ink: oklch(96% 0.025 272);
+
+  --pv-type-dark-bg: oklch(23% 0.03 255);
+  --pv-type-dark-border: oklch(64% 0.05 255);
+  --pv-type-dark-ink: oklch(95% 0.01 255);
+
+  --pv-type-steel-bg: oklch(26% 0.035 235);
+  --pv-type-steel-border: oklch(70% 0.06 235);
+  --pv-type-steel-ink: oklch(96% 0.015 235);
+
+  --pv-type-fairy-bg: oklch(26% 0.1 334);
+  --pv-type-fairy-border: oklch(74% 0.15 334);
+  --pv-type-fairy-ink: oklch(97% 0.02 334);
+}
+
+$pokemon-type-keys:
+  normal,
+  fire,
+  water,
+  electric,
+  grass,
+  ice,
+  fighting,
+  poison,
+  ground,
+  flying,
+  psychic,
+  bug,
+  rock,
+  ghost,
+  dragon,
+  dark,
+  steel,
+  fairy;
+
+@each $type in $pokemon-type-keys {
+  [data-pokemon-type='#{$type}'] {
+    --pv-type-active-bg: var(--pv-type-#{$type}-bg);
+    --pv-type-active-border: var(--pv-type-#{$type}-border);
+    --pv-type-active-ink: var(--pv-type-#{$type}-ink);
+  }
+}
+
+@layer components {
+  .pv-type-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.6rem;
+    border-radius: var(--pv-radius-pill);
+    font-family: var(--pv-font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: 1px solid var(--pv-type-active-border, var(--pv-border-subtle));
+    background-color: var(--pv-type-active-bg, var(--pv-surface-elevated));
+    color: var(--pv-type-active-ink, var(--pv-ink-primary));
+  }
+
+  .tipo-badge[data-pokemon-type],
+  .ency-badge[data-pokemon-type] {
+    border-color: var(--pv-type-active-border);
+    background-color: var(--pv-type-active-bg);
+    color: var(--pv-type-active-ink);
+  }
+
+  .filtro-chip[data-pokemon-type]:hover:not([aria-pressed='true']) {
+    border-color: var(--pv-type-active-border);
+  }
+
+  .filtro-chip[data-pokemon-type][aria-pressed='true'] {
+    border-color: var(--pv-type-active-border);
+    background-color: var(--pv-type-active-bg);
+    color: var(--pv-type-active-ink);
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    @each $type in $pokemon-type-keys {
+      --pv-type-#{$type}-bg: Canvas;
+      --pv-type-#{$type}-border: CanvasText;
+      --pv-type-#{$type}-ink: CanvasText;
+    }
+  }
+}

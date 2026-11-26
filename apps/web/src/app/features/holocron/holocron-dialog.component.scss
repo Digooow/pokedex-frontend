@@ -1,41 +1,25 @@
 .holocron-dialog {
-  padding: 0;
-  border: 1px solid var(--pv-holocron-ring);
-  border-radius: var(--pv-radius-lg);
-  background: var(--pv-surface-solid);
-  color: var(--pv-ink-primary);
+  border-color: var(--pv-holocron-ring);
   inline-size: min(62rem, calc(100vw - 1.5rem));
   max-block-size: calc(100dvh - 2rem);
   overflow-y: auto;
   box-shadow: var(--pv-shadow-dialog-strong);
 }
 
-.holocron-dialog:not([open]) {
-  display: none;
-}
-
 .holocron-dialog__card {
   display: grid;
   gap: var(--pv-space-4);
-  padding: var(--pv-space-4);
 }
 
 .holocron-dialog__header {
-  display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
   gap: var(--pv-space-3);
 }
 
 .holocron-dialog__badge {
-  display: inline-block;
-  padding: 0.2rem 0.6rem;
-  border-radius: var(--pv-radius-pill);
-  border: 1px solid var(--pv-holocron-ring);
+  border-color: var(--pv-holocron-ring);
   color: var(--pv-cyan);
   font-family: var(--pv-font-mono);
-  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -48,28 +32,6 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--pv-space-2);
-}
-
-.holocron-btn {
-  min-block-size: 2.75rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: var(--pv-radius-sm);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.holocron-btn--primary {
-  border: 1px solid var(--pv-border-gold);
-  background: var(--pv-dex-red);
-  color: var(--pv-ink-on-accent);
-}
-
-.holocron-btn--secondary {
-  border: 1px solid var(--pv-border-subtle);
-  background: var(--pv-surface-elevated);
-  color: var(--pv-ink-primary);
 }
 
 .holocron-btn--secondary[aria-pressed='true'] {
@@ -144,6 +106,12 @@
   font-size: 0.75rem;
   font-weight: 800;
   color: var(--pv-cyan);
+}
+
+.holocron-panel__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pv-space-1);
 }
 
 .holocron-cry-actions {

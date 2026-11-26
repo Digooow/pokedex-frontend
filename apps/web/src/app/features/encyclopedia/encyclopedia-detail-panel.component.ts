@@ -10,6 +10,7 @@ import {
 import { RouterLink } from '@angular/router';
 import type { AsyncState } from '@pokeverse/shared';
 import type { EncyclopediaResourceKey } from '@pokeverse/shared/pokedex-encyclopedia';
+import { extractPokemonTypeFromBadge } from '../../shared/utils/pokemon-type-style.util';
 import type { EncyclopediaDetailPayload } from './encyclopedia-catalog.config';
 import { presentEncyclopediaDetail } from './encyclopedia-detail-presenter.util';
 
@@ -31,6 +32,7 @@ export class EncyclopediaDetailPanelComponent {
   }>();
 
   readonly showAllPokemon = signal(false);
+  readonly badgeTypeSlug = extractPokemonTypeFromBadge;
 
   constructor() {
     effect(() => {

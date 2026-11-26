@@ -78,6 +78,7 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     const electricChip = Array.from(hostEl.querySelectorAll('.filtro-chip')).find((el) =>
       el.textContent?.includes('Electric'),
     ) as HTMLButtonElement;
+    expect(electricChip.getAttribute('data-pokemon-type')).toBe('electric');
     electricChip.click();
     fixture.detectChanges();
 
@@ -133,6 +134,8 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     expect(compare.statRows()).toHaveLength(7);
     expect(hostEl.querySelector('.compare-stats')).not.toBeNull();
     expect(hostEl.querySelector('.compare-defense')).not.toBeNull();
+    expect(hostEl.querySelector('.pv-type-badge[data-pokemon-type="electric"]')).not.toBeNull();
+    expect(hostEl.querySelector('.pv-type-badge[data-pokemon-type="psychic"]')).not.toBeNull();
 
     compare.swapSides();
     fixture.detectChanges();

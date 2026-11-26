@@ -8,35 +8,11 @@
 
 .museum-page__header {
   padding: var(--pv-space-4) var(--pv-space-5);
-  border-radius: var(--pv-radius-md);
-  border: 1px solid var(--pv-border-strong);
-  background: var(--pv-museum-card-bg);
   box-shadow: var(--pv-museum-shadow);
 }
 
-@supports (backdrop-filter: blur(12px)) {
-  .museum-page__header,
-  .region-card {
-    background: var(--pv-museum-card-bg-blur);
-    backdrop-filter: blur(12px);
-  }
-}
-
-:host-context(html[data-perf-tier='lite']) .museum-page__header,
-:host-context(html[data-perf-tier='lite']) .region-card {
-  backdrop-filter: none;
-  background: var(--pv-museum-card-bg-lite);
-}
-
 .museum-page__tag {
-  display: inline-block;
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--pv-radius-pill);
-  border: 1px solid var(--pv-border-gold);
   background: var(--pv-holocron-badge-bg);
-  color: var(--pv-border-gold);
-  font-size: 0.75rem;
-  font-weight: 700;
 }
 
 .museum-page__title {
@@ -109,9 +85,7 @@
   display: grid;
   gap: var(--pv-space-2);
   padding: var(--pv-space-4);
-  border-radius: var(--pv-radius-md);
-  border: 1px solid var(--pv-border-subtle);
-  background: var(--pv-surface);
+  border-color: var(--pv-border-subtle);
 }
 
 .region-card.is-active {

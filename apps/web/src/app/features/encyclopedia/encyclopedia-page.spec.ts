@@ -43,6 +43,7 @@ describe('EncyclopediaPageComponent', () => {
     fixture.detectChanges();
 
     expect(hostEl.querySelector('.ency-card__title')?.textContent).toContain('Thunder Shock');
+    expect(hostEl.querySelector('.ency-badge[data-pokemon-type="electric"]')).not.toBeNull();
     const reverseLink = hostEl.querySelector('.ency-reverse-link') as HTMLAnchorElement;
     expect(reverseLink).not.toBeNull();
     expect(reverseLink.getAttribute('href')).toContain('/pokedex');
@@ -84,5 +85,6 @@ describe('EncyclopediaPageComponent', () => {
     httpMock.expectOne('/api/v1/pokedex/types/electric').flush(createCachedTypeDetailFixture());
     fixture.detectChanges();
     expect(hostEl.querySelector('.ency-card__title')?.textContent).toContain('Electric');
+    expect(hostEl.querySelectorAll('.ency-badge[data-pokemon-type]').length).toBeGreaterThan(0);
   });
 });

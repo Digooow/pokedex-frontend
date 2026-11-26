@@ -2,7 +2,7 @@
   .visor-tabs {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: var(--espaco-1);
+    gap: var(--pv-space-1);
     flex-shrink: 0;
   }
 
@@ -12,7 +12,7 @@
     justify-content: center;
     min-width: 0;
     min-height: 44px;
-    padding: var(--espaco-1) var(--espaco-1);
+    padding: var(--pv-space-1) var(--pv-space-1);
     font: inherit;
     font-size: 0.75rem;
     font-weight: 800;
@@ -21,7 +21,7 @@
     color: var(--texto-lcd-secundario);
     background-color: var(--pv-lcd-tab-bg);
     border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     cursor: pointer;
     overflow-wrap: anywhere;
     transition:
@@ -50,7 +50,7 @@
   .visor-tabpanel {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-3);
+    gap: var(--pv-space-3);
     flex: 1 0 auto;
     min-width: 0;
   }
@@ -59,13 +59,13 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: var(--espaco-1);
+    gap: var(--pv-space-1);
   }
 
   .visor-rarity-chip {
     padding: 0.15rem 0.5rem;
     border-radius: var(--pv-radius-pill);
-    font-family: var(--fonte-mono);
+    font-family: var(--pv-font-mono);
     font-size: 0.6875rem;
     font-weight: 800;
     border: 1px solid var(--borda-lcd-suave);
@@ -98,29 +98,29 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
   }
 
   .visor-media-group {
     display: inline-flex;
     flex-wrap: wrap;
-    gap: var(--espaco-1);
+    gap: var(--pv-space-1);
   }
 
   .visor-media-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: var(--espaco-1);
+    gap: var(--pv-space-1);
     min-height: 44px;
-    padding: var(--espaco-1) var(--espaco-2);
+    padding: var(--pv-space-1) var(--pv-space-2);
     font: inherit;
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--texto-lcd-principal);
     background-color: var(--pv-lcd-pill-bg);
     border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     cursor: pointer;
     transition:
       background-color 140ms ease,
@@ -158,11 +158,11 @@
   .visor-subcard {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
-    padding: var(--espaco-3);
+    gap: var(--pv-space-2);
+    padding: var(--pv-space-3);
     background-color: var(--bg-dado-celula);
     border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     min-width: 0;
   }
 
@@ -171,7 +171,7 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
   }
 
   .visor-subcard-title {
@@ -184,7 +184,7 @@
   .visor-bst-badge {
     padding: 0.15rem 0.55rem;
     border-radius: var(--pv-radius-pill);
-    font-family: var(--fonte-mono);
+    font-family: var(--pv-font-mono);
     font-variant-numeric: tabular-nums;
     font-size: 0.75rem;
     font-weight: 700;
@@ -202,7 +202,7 @@
   .visor-stats-list {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
     list-style: none;
   }
 
@@ -210,18 +210,18 @@
     display: grid;
     grid-template-columns: 2.75rem 2.5rem 1fr;
     align-items: center;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
   }
 
   .visor-stat-label {
-    font-family: var(--fonte-mono);
+    font-family: var(--pv-font-mono);
     font-size: 0.75rem;
     font-weight: 800;
     color: var(--texto-lcd-destaque);
   }
 
   .visor-stat-val {
-    font-family: var(--fonte-mono);
+    font-family: var(--pv-font-mono);
     font-variant-numeric: tabular-nums;
     font-size: 0.8125rem;
     font-weight: 800;
@@ -262,27 +262,27 @@
   .visor-chip-list {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--espaco-1);
+    gap: var(--pv-space-1);
     list-style: none;
   }
 
   .visor-eff-groups {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
   }
 
   .visor-eff-group {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: var(--espaco-1);
+    gap: var(--pv-space-1);
   }
 
   .visor-eff-badge {
     padding: 0.2rem 0.55rem;
     border-radius: var(--pv-radius-pill);
-    font-family: var(--fonte-mono);
+    font-family: var(--pv-font-mono);
     font-size: 0.75rem;
     font-weight: 800;
     border: 1px solid var(--borda-lcd-suave);
@@ -321,7 +321,7 @@
   .visor-accordion-list {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
     list-style: none;
   }
 
@@ -332,8 +332,8 @@
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: var(--espaco-2);
-    padding: var(--espaco-2) var(--espaco-3);
+    gap: var(--pv-space-2);
+    padding: var(--pv-space-2) var(--pv-space-3);
     font: inherit;
     font-size: 0.8125rem;
     font-weight: 700;
@@ -341,7 +341,7 @@
     color: var(--texto-lcd-principal);
     background-color: var(--bg-cartao-interno);
     border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     cursor: pointer;
   }
 
@@ -350,23 +350,23 @@
   }
 
   .visor-accordion-body {
-    padding: var(--espaco-2) var(--espaco-3);
-    margin-top: var(--espaco-1);
+    padding: var(--pv-space-2) var(--pv-space-3);
+    margin-top: var(--pv-space-1);
     background-color: var(--bg-imagem-visor);
     border-left: 3px solid var(--borda-visor-acento);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     font-size: 0.8125rem;
     line-height: 1.45;
     color: var(--texto-lcd-secundario);
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
   }
 
   .visor-evo-list {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
     list-style: none;
   }
 
@@ -379,14 +379,14 @@
     min-height: 48px;
     display: flex;
     align-items: center;
-    gap: var(--espaco-2);
-    padding: var(--espaco-2);
+    gap: var(--pv-space-2);
+    padding: var(--pv-space-2);
     font: inherit;
     text-align: left;
     color: var(--texto-lcd-principal);
     background-color: var(--bg-cartao-interno);
     border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     cursor: pointer;
   }
 
@@ -429,7 +429,7 @@
   .visor-sprites-gallery {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
-    gap: var(--espaco-2);
+    gap: var(--pv-space-2);
     list-style: none;
   }
 
@@ -438,11 +438,11 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--espaco-1);
-    padding: var(--espaco-2);
+    gap: var(--pv-space-1);
+    padding: var(--pv-space-2);
     background-color: var(--bg-cartao-interno);
     border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     text-align: center;
     font: inherit;
     color: var(--texto-lcd-principal);
@@ -462,8 +462,8 @@
   .visor-move-meta-grid {
     display: flex;
     flex-wrap: wrap;
-    gap: var(--espaco-2);
-    font-family: var(--fonte-mono);
+    gap: var(--pv-space-2);
+    font-family: var(--pv-font-mono);
     font-variant-numeric: tabular-nums;
     font-size: 0.75rem;
     color: var(--texto-lcd-destaque);
@@ -478,14 +478,14 @@
   .visor-retry-inline {
     align-self: flex-start;
     min-height: 44px;
-    padding: var(--espaco-1) var(--espaco-3);
+    padding: var(--pv-space-1) var(--pv-space-3);
     font: inherit;
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--texto-lcd-principal);
     background-color: var(--pv-lcd-tab-bg);
     border: 1px solid var(--borda-visor-acento);
-    border-radius: var(--raio-pequeno);
+    border-radius: var(--pv-radius-sm);
     cursor: pointer;
   }
 

@@ -19,7 +19,9 @@ const ENCOUNTERS_PAGE_SIZE = 12;
 @Component({
   selector: 'pv-visor-map-tab',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [':host { display: flex; flex-direction: column; gap: var(--espaco-3); min-width: 0; }'],
+  styles: [
+    ':host { display: flex; flex-direction: column; gap: var(--pv-space-3); min-width: 0; }',
+  ],
   templateUrl: './visor-map-tab.component.html',
 })
 export class VisorMapTabComponent {

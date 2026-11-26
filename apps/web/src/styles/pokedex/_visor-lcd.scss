@@ -16,7 +16,7 @@
     padding: var(--espaco-4);
     box-shadow:
       inset 0 3px 12px rgba(0, 0, 0, 0.72),
-      0 0 0 2px #364152,
+      0 0 0 2px var(--pv-visor-bezel-ring),
       0 4px 10px rgba(15, 2, 5, 0.4);
     overflow: hidden;
     cursor: auto;
@@ -24,7 +24,7 @@
   }
 
   .painel-resultado.is-selecionando-pokemon {
-    background-color: #232933;
+    background-color: var(--pv-visor-selecting-bg);
     border-color: var(--borda-visor-acento);
   }
 
@@ -36,7 +36,7 @@
     min-height: 0;
     overflow-y: auto;
     padding: var(--espaco-3);
-    background-color: #0e1319;
+    background-color: var(--pv-visor-screen-bg);
     background-image:
       linear-gradient(
         126deg,
@@ -66,7 +66,7 @@
         rgba(0, 0, 0, 0.075) 0 1px,
         transparent 1px 3px
       );
-    border: 2px solid #06090f;
+    border: 2px solid var(--pv-visor-screen-border);
     border-radius: var(--raio-pequeno);
     box-shadow:
       inset 0 4px 12px rgba(0, 0, 0, 0.86),
@@ -464,10 +464,10 @@
   }
 
   .pokedex-rodape-direito.is-rpg-tela-cursor {
-    background-color: #961521;
+    background-color: var(--pv-visor-footer-cursor-bg);
     background-image: linear-gradient(
       168deg,
-      oklch(0.49 0.16 24) 0%,
+      var(--pv-visor-footer-cursor-hi) 0%,
       var(--plastico-vermelho-claro) 54%,
       var(--plastico-vermelho-base) 100%
     );

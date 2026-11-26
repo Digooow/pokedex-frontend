@@ -44,7 +44,9 @@
             {{ bucket.label }}
           </span>
           @for (typeLabel of bucket.types; track typeLabel) {
-            <span class="tipo-badge">{{ typeLabel }}</span>
+            <span class="tipo-badge" [attr.data-pokemon-type]="typeSlug(typeLabel)">
+              {{ typeLabel }}
+            </span>
           }
         </div>
       }

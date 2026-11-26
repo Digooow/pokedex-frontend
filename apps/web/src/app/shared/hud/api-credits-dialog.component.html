@@ -1,25 +1,29 @@
 <dialog
   #creditsDialogEl
-  class="credits-dialog"
+  class="pv-dialog credits-dialog"
   aria-labelledby="pv-credits-title"
   closedby="any"
   (close)="onNativeClose()"
 >
   @if (apiCredits.dialogOpen()) {
-    <div class="credits-dialog__card">
-      <div class="credits-dialog__head">
+    <div class="pv-dialog__card credits-dialog__card">
+      <div class="pv-dialog__header credits-dialog__head">
         <div>
-          <span class="credits-dialog__badge" aria-hidden="true">FONTES &amp; ATRIBUIÇÕES</span>
-          <h2 id="pv-credits-title" class="credits-dialog__title">
+          <span class="pv-badge credits-dialog__badge" aria-hidden="true">FONTES &amp; ATRIBUIÇÕES</span>
+          <h2 id="pv-credits-title" class="pv-dialog__title credits-dialog__title">
             Créditos de APIs de Terceiros e Propriedade Intelectual
           </h2>
         </div>
-        <button type="button" class="credits-btn credits-btn--ghost" (click)="apiCredits.closeDialog()">
+        <button
+          type="button"
+          class="pv-btn pv-btn--ghost credits-btn credits-btn--ghost"
+          (click)="apiCredits.closeDialog()"
+        >
           Fechar
         </button>
       </div>
 
-      <div class="credits-dialog__body">
+      <div class="pv-dialog__body credits-dialog__body">
         <section class="credits-panel" aria-labelledby="pv-credits-pokeapi-heading">
           <div class="credits-panel__head">
             <h3 id="pv-credits-pokeapi-heading" class="credits-panel__title">
@@ -112,8 +116,12 @@
         </section>
       </div>
 
-      <div class="credits-footer">
-        <button type="button" class="credits-btn credits-btn--primary" (click)="apiCredits.closeDialog()">
+      <div class="pv-dialog__footer credits-footer">
+        <button
+          type="button"
+          class="pv-btn pv-btn--primary credits-btn credits-btn--primary"
+          (click)="apiCredits.closeDialog()"
+        >
           Entendi
         </button>
       </div>

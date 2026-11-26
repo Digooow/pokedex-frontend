@@ -1,13 +1,7 @@
 .credits-dialog {
-  padding: 0;
-  border: 1px solid var(--pv-border-gold);
-  border-radius: var(--pv-radius-lg);
-  background: var(--pv-surface-solid);
-  color: var(--pv-ink-primary);
   inline-size: min(44rem, calc(100vw - 1.5rem));
   max-block-size: 90dvh;
   overflow: hidden;
-  box-shadow: var(--pv-shadow-dialog);
 }
 
 .credits-dialog[open] {
@@ -15,48 +9,11 @@
   flex-direction: column;
 }
 
-.credits-dialog:not([open]) {
-  display: none;
-}
-
 .credits-dialog__card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--pv-space-3);
-  min-block-size: 0;
   max-block-size: 90dvh;
-  padding: var(--pv-space-4);
-}
-
-.credits-dialog__head {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--pv-space-2);
-}
-
-.credits-dialog__body {
-  flex: 1 1 auto;
-  min-block-size: 0;
-  overflow-y: auto;
-  display: grid;
-  gap: var(--pv-space-2);
-  padding-inline-end: 0.25rem;
-}
-
-.credits-dialog__badge {
-  display: inline-block;
-  padding: 0.25rem 0.625rem;
-  border-radius: var(--pv-radius-pill);
-  border: 1px solid var(--pv-border-gold);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--pv-border-gold);
 }
 
 .credits-dialog__title {
-  margin: var(--pv-space-2) 0 0;
   font-size: 1.15rem;
 }
 
@@ -118,36 +75,4 @@
   font-family: var(--pv-font-mono);
   font-size: 0.78rem;
   color: var(--pv-ink-primary);
-}
-
-.credits-footer {
-  flex: 0 0 auto;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: var(--pv-space-2);
-  border-block-start: 1px solid var(--pv-border-subtle);
-  padding-block-start: var(--pv-space-3);
-}
-
-.credits-btn {
-  min-block-size: 2.75rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--pv-radius-sm);
-  border: 1px solid var(--pv-border-strong);
-  background: var(--pv-surface);
-  color: var(--pv-ink-primary);
-  font-size: 0.84rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.credits-btn--primary {
-  border: 0;
-  background: var(--pv-dex-red);
-  color: var(--pv-ink-on-accent);
-}
-
-.credits-btn--ghost {
-  background: transparent;
 }

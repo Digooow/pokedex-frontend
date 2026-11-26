@@ -59,7 +59,12 @@
                   }
                   @case ('success') {
                     <div class="visor-move-meta-grid">
-                      <span>Tipo: {{ formatType(state.data.type) }}</span>
+                      <span
+                        class="tipo-badge"
+                        [attr.data-pokemon-type]="typeSlug(state.data.type)"
+                      >
+                        {{ formatType(state.data.type) }}
+                      </span>
                       <span>Classe: {{ formatType(state.data.damageClass) }}</span>
                       <span>Poder: {{ state.data.power ?? '—' }}</span>
                       <span>Precisão: {{ state.data.accuracy !== null ? state.data.accuracy + '%' : '—' }}</span>

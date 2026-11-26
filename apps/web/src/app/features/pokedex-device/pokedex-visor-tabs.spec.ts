@@ -60,6 +60,7 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     const tabs = hostEl.querySelectorAll('[role="tab"]') as NodeListOf<HTMLButtonElement>;
     expect(tabs).toHaveLength(5);
     expect(visorDetail.activeTab()).toBe('resumo');
+    expect(hostEl.querySelector('.tipo-badge')?.getAttribute('data-pokemon-type')).toBe('electric');
     expect(hostEl.querySelector('.visor-lore-text')?.textContent).toContain('Stores electricity');
 
     const shinyBtn = Array.from(hostEl.querySelectorAll('.visor-media-btn')).find((el) =>
@@ -121,6 +122,12 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(hostEl.querySelector('.visor-bst-badge')?.textContent).toContain('BST 320');
     expect(hostEl.textContent).toContain('+2 Spe EV');
     expect(hostEl.querySelector('.visor-eff-badge--weak')?.textContent).toContain('2x');
+    expect(
+      hostEl.querySelector('.visor-eff-group .tipo-badge')?.getAttribute('data-pokemon-type'),
+    ).toBe('ground');
+    expect(
+      hostEl.querySelector('.visor-eff-group .tipo-badge')?.getAttribute('data-pokemon-type'),
+    ).toBe('ground');
     expect(hostEl.textContent).toContain('Ground');
 
     const abilityTrigger = hostEl.querySelector('.visor-accordion-trigger') as HTMLButtonElement;

@@ -35,7 +35,9 @@
           @if (view.badges.length > 0) {
             <ul class="ency-badges">
               @for (badge of view.badges; track badge) {
-                <li class="ency-badge">{{ badge }}</li>
+                <li class="ency-badge" [attr.data-pokemon-type]="badgeTypeSlug(badge)">
+                  {{ badge }}
+                </li>
               }
             </ul>
           }

@@ -22,7 +22,7 @@
   --pv-dex-red: oklch(53% 0.21 25);
   --pv-dex-red-deep: oklch(39% 0.17 25);
   --pv-dex-hinge: oklch(30% 0.14 25);
-  --pv-sapphire: oklch(68% 0.17 232);
+  --pv-sapphire: oklch(73% 0.15 232);
   --pv-slot-blue: oklch(64% 0.17 235);
   --pv-amber: oklch(81% 0.16 84);
   --pv-emerald: oklch(69% 0.17 152);
@@ -38,6 +38,7 @@
   --pv-space-5: 1.5rem;
   --pv-space-6: 2rem;
 
+  --pv-radius-xs: 0.375rem;
   --pv-radius-sm: 0.5rem;
   --pv-radius-md: 0.875rem;
   --pv-radius-lg: 1.25rem;
@@ -50,9 +51,15 @@
   --pv-z-stage: 10;
   --pv-z-hud: 40;
   --pv-z-modal: 80;
+  --pv-z-skip: 100;
 
   --pv-cyan: oklch(86.5% 0.127 207);
   --pv-border-focus: var(--pv-ring-focus);
+  --pv-glass-bg: oklch(17% 0.026 255 / 0.88);
+  --pv-glass-bg-blur: oklch(17% 0.026 255 / 0.84);
+  --pv-glass-bg-lite: oklch(18% 0.024 255 / 0.95);
+  --pv-backdrop-scrim: oklch(8% 0.02 255 / 0.72);
+  --pv-shadow-md: 0 12px 28px rgba(0, 0, 0, 0.42);
 
   --pv-hud-bar-bg: rgba(9, 17, 30, 0.86);
   --pv-hud-bar-bg-blur: rgba(9, 17, 30, 0.72);
@@ -92,6 +99,8 @@
   --pv-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
   --pv-motion-ease-in: cubic-bezier(0.4, 0, 1, 1);
   --pv-motion-tactile-ms: 110ms;
+  --pv-motion-fast-ms: 140ms;
+  --pv-motion-normal-ms: 220ms;
   --pv-motion-hinge-open-ms: 280ms;
   --pv-motion-hinge-close-ms: 210ms;
   --pv-hud-dock-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
@@ -135,9 +144,9 @@
   --pv-ink-dark-strong: oklch(14% 0.02 255);
   --pv-panel-inset-bg: oklch(15% 0.02 255 / 0.85);
 
-  --pv-uc-card-bg: oklch(17% 0.026 255 / 0.88);
-  --pv-uc-card-bg-blur: oklch(17% 0.026 255 / 0.78);
-  --pv-uc-card-bg-lite: oklch(18% 0.024 255 / 0.94);
+  --pv-uc-card-bg: var(--pv-glass-bg);
+  --pv-uc-card-bg-blur: var(--pv-glass-bg-blur);
+  --pv-uc-card-bg-lite: var(--pv-glass-bg-lite);
   --pv-uc-card-shadow: 0 24px 64px rgba(2, 6, 23, 0.58);
   --pv-uc-pill-bg: oklch(14% 0.025 255 / 0.85);
   --pv-uc-progress-bg: oklch(14% 0.022 255 / 0.78);
@@ -222,7 +231,7 @@
   --palette-amber-900: #78350f;
   --palette-amber-950: #3a2007;
 
-  --bg-pagina: var(--palette-slate-950);
+  --bg-pagina: var(--pv-canvas);
   --bg-carcaca-topo: #7f141e;
   --bg-carcaca-ala: var(--palette-red-700);
   --bg-tampa-fechada: var(--palette-red-600);
@@ -259,8 +268,19 @@
   --plastico-cinza-base: oklch(0.77 0.014 240);
   --plastico-cinza-escuro: oklch(0.67 0.016 240);
 
-  --textura-plastico-grao: url("/assets/textures/plastico-grao.webp");
-  --textura-metal-floco: url("/assets/textures/metal-floco.webp");
+  --textura-plastico-grao: var(--pv-tex-plastic);
+  --textura-metal-floco: var(--pv-tex-metal);
+
+  --pv-scanner-border: #4c5663;
+  --pv-scanner-form-border: #161d27;
+  --pv-scanner-list-border: #525d69;
+  --pv-scanner-scrollbar: #64748b;
+  --pv-visor-bezel-ring: #364152;
+  --pv-visor-selecting-bg: #232933;
+  --pv-visor-screen-bg: #0e1319;
+  --pv-visor-screen-border: #06090f;
+  --pv-visor-footer-cursor-bg: #961521;
+  --pv-visor-footer-cursor-hi: oklch(0.49 0.16 24);
 
   --bg-formulario: #bfc7cf;
   --bg-subpainel-busca-form: #3f4752;
@@ -325,17 +345,17 @@
   --cor-hud-carregando: var(--palette-sky-200);
   --bg-hud-carregando: var(--palette-sky-950);
 
-  --espaco-1: 0.25rem;
-  --espaco-2: 0.5rem;
-  --espaco-3: 0.75rem;
-  --espaco-4: 1rem;
+  --espaco-1: var(--pv-space-1);
+  --espaco-2: var(--pv-space-2);
+  --espaco-3: var(--pv-space-3);
+  --espaco-4: var(--pv-space-4);
   --espaco-5: 1.25rem;
-  --espaco-6: 1.5rem;
+  --espaco-6: var(--pv-space-5);
 
-  --raio-pequeno: 0.5rem;
+  --raio-pequeno: var(--pv-radius-sm);
   --raio-medio: 0.75rem;
   --raio-grande: 1.125rem;
-  --raio-dobradica: 0.375rem;
+  --raio-dobradica: var(--pv-radius-xs);
 
   --sombra-aparelho: 0 22px 44px rgba(0, 0, 0, 0.52);
   --duracao-giro-tampa: 1240ms;
@@ -345,10 +365,10 @@
   --z-fundo: 0;
   --z-hud: 1;
   --z-tela-ativa: 2;
-  --z-skip: 100;
+  --z-skip: var(--pv-z-skip);
 
-  --fonte-principal: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --fonte-mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  --fonte-principal: var(--pv-font-sans);
+  --fonte-mono: var(--pv-font-mono);
 
   --pv-lcd-tab-bg: oklch(19% 0.025 250);
   --pv-lcd-tab-hover-bg: oklch(25% 0.035 245);
@@ -409,15 +429,15 @@
   --pv-compare-bar-left: oklch(68% 0.17 232);
   --pv-compare-bar-right: oklch(78% 0.16 82);
 
-  --pv-encyclopedia-card-bg: oklch(17% 0.026 255 / 0.9);
-  --pv-encyclopedia-card-bg-blur: oklch(17% 0.026 255 / 0.8);
-  --pv-encyclopedia-card-bg-lite: oklch(18% 0.024 255 / 0.96);
+  --pv-encyclopedia-card-bg: var(--pv-glass-bg);
+  --pv-encyclopedia-card-bg-blur: var(--pv-glass-bg-blur);
+  --pv-encyclopedia-card-bg-lite: var(--pv-glass-bg-lite);
   --pv-encyclopedia-item-bg: oklch(21% 0.028 255 / 0.86);
   --pv-encyclopedia-item-active-bg: oklch(28% 0.07 232 / 0.9);
 
-  --pv-museum-card-bg: oklch(17% 0.026 255 / 0.88);
-  --pv-museum-card-bg-blur: oklch(17% 0.026 255 / 0.8);
-  --pv-museum-card-bg-lite: oklch(18% 0.024 255 / 0.95);
+  --pv-museum-card-bg: var(--pv-glass-bg);
+  --pv-museum-card-bg-blur: var(--pv-glass-bg-blur);
+  --pv-museum-card-bg-lite: var(--pv-glass-bg-lite);
   --pv-museum-panel-bg: oklch(15% 0.024 255 / 0.92);
   --pv-museum-chip-bg: oklch(22% 0.03 255 / 0.88);
   --pv-museum-chip-active-bg: oklch(30% 0.09 232 / 0.92);
@@ -516,5 +536,19 @@
     --pv-holocron-ring: CanvasText;
     --pv-holocron-badge-bg: Canvas;
     --pv-holocron-control-bg: ButtonFace;
+
+    --pv-glass-bg: Canvas;
+    --pv-glass-bg-blur: Canvas;
+    --pv-glass-bg-lite: Canvas;
+    --pv-scanner-border: CanvasText;
+    --pv-scanner-form-border: CanvasText;
+    --pv-scanner-list-border: CanvasText;
+    --pv-scanner-scrollbar: CanvasText;
+    --pv-visor-bezel-ring: CanvasText;
+    --pv-visor-selecting-bg: Canvas;
+    --pv-visor-screen-bg: Canvas;
+    --pv-visor-screen-border: CanvasText;
+    --pv-visor-footer-cursor-bg: Highlight;
+    --pv-visor-footer-cursor-hi: Highlight;
   }
 }

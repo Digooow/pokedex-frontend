@@ -12,7 +12,9 @@ import { flattenEvolutionTree } from '../../services/pokedex-visor-format.util';
   selector: 'pv-visor-evolution-tab',
   imports: [PvRpgFocusableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [':host { display: flex; flex-direction: column; gap: var(--espaco-3); min-width: 0; }'],
+  styles: [
+    ':host { display: flex; flex-direction: column; gap: var(--pv-space-3); min-width: 0; }',
+  ],
   templateUrl: './visor-evolution-tab.component.html',
 })
 export class VisorEvolutionTabComponent {

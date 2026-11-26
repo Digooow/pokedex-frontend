@@ -1,7 +1,7 @@
 <section class="museum-page" aria-labelledby="main-heading">
-  <header class="museum-page__header">
+  <header class="pv-glass-card museum-page__header">
     <div>
-      <span class="museum-page__tag">ACESSO PÚBLICO • MÓDULO 02</span>
+      <span class="pv-badge museum-page__tag">ACESSO PÚBLICO • MÓDULO 02</span>
       <h1 id="main-heading" tabindex="-1" pvMainHeading class="museum-page__title">
         Museu das Regiões &amp; História
       </h1>
@@ -38,7 +38,7 @@
   <ul class="museum-grid" aria-label="Cartões das 9 regiões">
     @for (region of regions; track region.id) {
       <li
-        class="region-card"
+        class="pv-glass-card region-card"
         [class.is-active]="museum.selectedRegionId() === region.id"
       >
         <div class="region-card__top">

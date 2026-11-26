@@ -28,7 +28,7 @@
       @if (pk.types.length > 0) {
         <ul class="pokemon-tipos" aria-label="Tipos do Pokémon">
           @for (tipo of pk.types; track tipo) {
-            <li class="tipo-badge">{{ tipo }}</li>
+            <li class="tipo-badge" [attr.data-pokemon-type]="typeSlug(tipo)">{{ tipo }}</li>
           }
         </ul>
       }

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { filterPokemonCatalog } from '@pokeverse/shared';
 import { DialogLightDismissDirective } from '../../../shared/directives/dialog-light-dismiss.directive';
+import { resolvePokemonTypeSlug } from '../../../shared/utils/pokemon-type-style.util';
 import { type CompareSide, PokedexCompareStore } from '../services/pokedex-compare.store';
 import { PokedexStore } from '../services/pokedex.store';
 
@@ -24,6 +25,7 @@ import { PokedexStore } from '../services/pokedex.store';
 export class PokedexCompareDialogComponent {
   readonly compare = inject(PokedexCompareStore);
   readonly pokedex = inject(PokedexStore);
+  readonly typeSlug = resolvePokemonTypeSlug;
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialogEl');
 
   readonly openInPokedex = output<string>();

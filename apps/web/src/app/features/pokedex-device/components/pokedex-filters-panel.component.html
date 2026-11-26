@@ -27,6 +27,7 @@
           <button
             type="button"
             class="filtro-chip"
+            [attr.data-pokemon-type]="type"
             [attr.aria-pressed]="isTypeSelected(type)"
             (click)="filters.toggleType(type)"
           >

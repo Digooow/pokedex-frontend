@@ -1,16 +1,16 @@
 <dialog
   #dialogEl
-  class="holocron-dialog"
+  class="pv-dialog holocron-dialog"
   aria-labelledby="holocron-dialog-title"
   closedby="any"
   pvDialogLightDismiss
   (close)="onNativeClose()"
 >
-  <article class="holocron-dialog__card">
-    <header class="holocron-dialog__header">
+  <article class="pv-dialog__card holocron-dialog__card">
+    <header class="pv-dialog__header holocron-dialog__header">
       <div>
-        <span class="holocron-dialog__badge">PROJETOR HOLOCRON 3D</span>
-        <h2 id="holocron-dialog-title" class="holocron-dialog__title">
+        <span class="pv-badge holocron-dialog__badge">PROJETOR HOLOCRON 3D</span>
+        <h2 id="holocron-dialog-title" class="pv-dialog__title holocron-dialog__title">
           @if (activePokemon(); as pk) {
             {{ pk.paddedId }} {{ pk.displayName }}
           } @else {
@@ -22,7 +22,7 @@
         @if (activePokemon(); as pk) {
           <button
             type="button"
-            class="holocron-btn holocron-btn--primary"
+            class="pv-btn pv-btn--primary holocron-btn holocron-btn--primary"
             (click)="onOpenInPokedex(pk.name)"
           >
             Abrir na Pokédex →
@@ -30,7 +30,7 @@
         }
         <button
           type="button"
-          class="holocron-btn holocron-btn--secondary"
+          class="pv-btn pv-btn--secondary holocron-btn holocron-btn--secondary"
           (click)="holocron.close()"
         >
           Fechar
@@ -53,7 +53,7 @@
             @if (errState.error.retryable) {
               <button
                 type="button"
-                class="holocron-btn holocron-btn--primary"
+                class="pv-btn pv-btn--primary holocron-btn holocron-btn--primary"
                 (click)="holocron.retry()"
               >
                 Tentar novamente
@@ -77,13 +77,19 @@
               <section class="holocron-panel" aria-label="Análise acústica">
                 <div class="holocron-panel__head">
                   <h3 class="holocron-panel__title">Grito &amp; Espectrograma</h3>
-                  <span class="holocron-panel__meta">{{ pk.types.join(' / ') }}</span>
+                  <div class="holocron-panel__types" aria-label="Tipos">
+                    @for (typeName of pk.types; track typeName) {
+                      <span class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                        {{ typeName }}
+                      </span>
+                    }
+                  </div>
                 </div>
                 <div class="holocron-cry-actions">
                   @if (pk.bundle?.pokemon?.cries?.latest; as latestUrl) {
                     <button
                       type="button"
-                      class="holocron-btn holocron-btn--secondary"
+                      class="pv-btn pv-btn--secondary holocron-btn holocron-btn--secondary"
                       [attr.aria-pressed]="audioStore.activeCryKind() === 'latest'"
                       (click)="onPlayCry('latest', latestUrl)"
                     >
@@ -93,7 +99,7 @@
                   @if (pk.bundle?.pokemon?.cries?.legacy; as legacyUrl) {
                     <button
                       type="button"
-                      class="holocron-btn holocron-btn--secondary"
+                      class="pv-btn pv-btn--secondary holocron-btn holocron-btn--secondary"
                       [attr.aria-pressed]="audioStore.activeCryKind() === 'legacy'"
                       (click)="onPlayCry('legacy', legacyUrl)"
                     >

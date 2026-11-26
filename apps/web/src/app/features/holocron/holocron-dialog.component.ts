@@ -13,6 +13,7 @@ import { AudioEngineService } from '../../core/audio/audio-engine.service';
 import { AudioStore } from '../../core/stores/audio.store';
 import { CrySpectrogramComponent } from '../../shared/components/cry-spectrogram.component';
 import { DialogLightDismissDirective } from '../../shared/directives/dialog-light-dismiss.directive';
+import { resolvePokemonTypeSlug } from '../../shared/utils/pokemon-type-style.util';
 import {
   computeStatBarPercent,
   flattenEvolutionTree,
@@ -32,6 +33,7 @@ import { HolocronStore } from './holocron.store';
 export class HolocronDialogComponent {
   readonly holocron = inject(HolocronStore);
   readonly audioStore = inject(AudioStore);
+  readonly typeSlug = resolvePokemonTypeSlug;
   private readonly audioEngine = inject(AudioEngineService);
   private readonly router = inject(Router);
 

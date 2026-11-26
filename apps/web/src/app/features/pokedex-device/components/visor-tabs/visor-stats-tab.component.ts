@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { type AsyncState, formatPokeApiText } from '@pokeverse/shared';
 import type { AbilityDetail } from '@pokeverse/shared/pokedex-encyclopedia';
+import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { PvRpgFocusableDirective } from '../../directives/rpg-focusable.directive';
 import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import {
@@ -20,10 +21,13 @@ interface EffectivenessBucketView {
   selector: 'pv-visor-stats-tab',
   imports: [PvRpgFocusableDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [':host { display: flex; flex-direction: column; gap: var(--espaco-3); min-width: 0; }'],
+  styles: [
+    ':host { display: flex; flex-direction: column; gap: var(--pv-space-3); min-width: 0; }',
+  ],
   templateUrl: './visor-stats-tab.component.html',
 })
 export class VisorStatsTabComponent {
+  readonly typeSlug = resolvePokemonTypeSlug;
   readonly pokemon = input.required<PokemonDetailView>();
   readonly abilityDetails = input.required<Readonly<Record<string, AsyncState<AbilityDetail>>>>();
 
