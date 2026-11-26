@@ -69,10 +69,7 @@ export class PokedexSlotsGridComponent {
     if (!slot) {
       return `Slot ${num} livre. Clique para gravar o Pokémon exibido.`;
     }
-    const label = this.formatSlotDisplayName(slot);
-    return this.isDifferentPokemonActive(slot)
-      ? `Slot ${num} utilizado: ${label}. Clique para exibir ou sobrescrever.`
-      : `Slot ${num} utilizado: ${label}. Clique para exibir.`;
+    return `Slot ${num} salvo: ${this.formatSlotDisplayName(slot)}. Clique para abrir na Pokédex.`;
   }
 
   slotTitle(slotIndex: number): string {
@@ -81,15 +78,7 @@ export class PokedexSlotsGridComponent {
     if (!slot) {
       return `Slot ${num} (livre) — clique para gravar o Pokémon exibido`;
     }
-    const label = this.formatSlotDisplayName(slot);
-    return this.isDifferentPokemonActive(slot)
-      ? `Slot ${num} (utilizado): ${label} — clique para abrir ou sobrescrever`
-      : `Slot ${num} (utilizado): ${label} — clique para abrir`;
-  }
-
-  private isDifferentPokemonActive(slot: PokedexSlotRecord): boolean {
-    const active = this.store.selectedPokemon();
-    return active !== null && active.name.toLowerCase() !== slot.pokemonName.toLowerCase();
+    return `Slot ${num}: ${this.formatSlotDisplayName(slot)} — clique para abrir`;
   }
 
   onSlotClick(slotIndex: number, event: Event): void {
@@ -101,26 +90,12 @@ export class PokedexSlotsGridComponent {
     this.rpg.rpgSlotFocusIndex.set(slotIndex);
 
     const existing = this.getSlot(slotIndex);
-    const active = this.store.selectedPokemon();
-
     if (existing) {
-      if (!active || active.name.toLowerCase() === existing.pokemonName.toLowerCase()) {
-        this.slotOpenRequested.emit(existing.pokemonName);
-        return;
-      }
-
-      const duplicateSlot = this.slotsStore.findSlotByPokemon(active.id, active.name, slotIndex);
-      this.slotsStore.requestConfirm({
-        kind: 'overwrite-click',
-        slotIndex,
-        existingLabel: this.formatSlotDisplayName(existing),
-        existingName: existing.pokemonName,
-        candidate: active,
-        duplicateSlotIndex: duplicateSlot,
-      });
+      this.slotOpenRequested.emit(existing.pokemonName);
       return;
     }
 
+    const active = this.store.selectedPokemon();
     if (!active) {
       this.slotFeedback.emit({ label: 'Busque p/ gravar', variant: 'aviso' });
       return;

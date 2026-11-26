@@ -82,25 +82,47 @@
               <ul class="ency-reverse-grid">
                 @for (ref of visibleReversePokemon(); track ref.pokemonName + ':' + ref.pokemonId) {
                   <li>
-                    <a
-                      [routerLink]="['/pokedex']"
-                      [queryParams]="{ q: ref.pokemonName }"
-                      class="ency-reverse-link"
-                    >
-                      <img
-                        [src]="ref.artworkUrl"
-                        [alt]="ref.displayName"
-                        width="36"
-                        height="36"
-                        loading="lazy"
-                      />
-                      <span class="ency-reverse-link__text">
-                        <strong>{{ ref.displayName }}</strong>
-                        @if (ref.tag) {
-                          <small>{{ ref.tag }}</small>
-                        }
-                      </span>
-                    </a>
+                    @if (embedded()) {
+                      <button
+                        type="button"
+                        class="ency-reverse-link ency-reverse-link--btn"
+                        (click)="pokemonSelected.emit(ref.pokemonName)"
+                      >
+                        <img
+                          [src]="ref.artworkUrl"
+                          [alt]="ref.displayName"
+                          width="36"
+                          height="36"
+                          loading="lazy"
+                        />
+                        <span class="ency-reverse-link__text">
+                          <strong>{{ ref.displayName }}</strong>
+                          @if (ref.tag) {
+                            <small>{{ ref.tag }}</small>
+                          }
+                        </span>
+                      </button>
+                    } @else {
+                      <a
+                        [routerLink]="['/pokedex']"
+                        [queryParams]="{ q: ref.pokemonName }"
+                        class="ency-reverse-link"
+                      >
+                        <img
+                          [src]="ref.artworkUrl"
+                          [alt]="ref.displayName"
+                          width="36"
+                          height="36"
+                          loading="lazy"
+                        />
+                        <span class="ency-reverse-link__text">
+                          <strong>{{ ref.displayName }}</strong>
+                          @if (ref.tag) {
+                            <small>{{ ref.tag }}</small>
+                          }
+                        </span>
+                      </a>
+                    }
                   </li>
                 }
               </ul>

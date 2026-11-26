@@ -158,6 +158,16 @@
       >
         Holocron 3D
       </button>
+      <button
+        type="button"
+        id="btn-calc-stats"
+        class="visor-media-btn visor-media-btn--action"
+        [pvRpgFocusable]="'visor'"
+        [pvRpgOrder]="18"
+        (click)="calculatorRequested.emit()"
+      >
+        Calculadora
+      </button>
     </div>
   </div>
   @if (playingCry() !== null) {

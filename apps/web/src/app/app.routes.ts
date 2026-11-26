@@ -1,4 +1,5 @@
-import { type Route, type Routes } from '@angular/router';
+import { inject } from '@angular/core';
+import { type Route, Router, type Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import type { UnderConstructionModuleId } from './features/under-construction/under-construction.data';
 
@@ -11,16 +12,6 @@ const loadUnderConstruction = () =>
   import('./features/under-construction/under-construction.component').then(
     (m) => m.UnderConstructionComponent,
   );
-
-function pokedexRoute(path: '' | 'pokedex'): Route {
-  return {
-    path,
-    ...(path === '' ? { pathMatch: 'full' as const } : {}),
-    title: 'Pokédex 3D — PokéVerse OS',
-    data: { initialCoverOpen: false },
-    loadComponent: loadPokedexDevice,
-  };
-}
 
 function trainerModuleRoute(
   path: string,
@@ -37,8 +28,25 @@ function trainerModuleRoute(
 }
 
 export const routes: Routes = [
-  pokedexRoute(''),
-  pokedexRoute('pokedex'),
+  {
+    path: '',
+    pathMatch: 'full',
+    title: 'PokéVerse OS — Iniciar',
+    loadComponent: () =>
+      import('./features/title-screen/title-screen.component').then((m) => m.TitleScreenComponent),
+  },
+  {
+    path: 'inicio',
+    title: 'Início — PokéVerse OS',
+    loadComponent: () =>
+      import('./features/home-hub/home-hub.component').then((m) => m.HomeHubComponent),
+  },
+  {
+    path: 'pokedex',
+    title: 'Pokédex 3D — PokéVerse OS',
+    data: { initialCoverOpen: false },
+    loadComponent: loadPokedexDevice,
+  },
   {
     path: 'museu',
     title: 'Museu das Regiões — PokéVerse OS',
@@ -47,11 +55,13 @@ export const routes: Routes = [
   },
   {
     path: 'enciclopedia',
-    title: 'Enciclopédia Global — PokéVerse OS',
-    loadComponent: () =>
-      import('./features/encyclopedia/encyclopedia-page.component').then(
-        (m) => m.EncyclopediaPageComponent,
-      ),
+    redirectTo: (activatedRoute) =>
+      inject(Router).createUrlTree(['/pokedex'], {
+        queryParams: {
+          mode: 'enciclopedia',
+          ...activatedRoute.queryParams,
+        },
+      }),
   },
   trainerModuleRoute('mundo', 'Vila Central — PokéVerse OS', 'overworld'),
   trainerModuleRoute('arcade', 'Arcade Retrô 3D — PokéVerse OS', 'arcade'),

@@ -17,7 +17,8 @@ import { PokedexFiltersStore } from '../services/pokedex-filters.store';
 import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import {
   type RpgDirection,
-  resolveStepBackTargetIdentifier,
+  resolveCatalogQuickTarget,
+  resolveCatalogStepBackPlan,
 } from '../services/pokedex-rpg-nav.util';
 import { resolveCatalogStatusLabel } from '../services/pokedex-view-mapper.util';
 import { PokedexStore } from '../services/pokedex.store';
@@ -44,19 +45,27 @@ export class PokedexSearchPanelComponent {
 
   readonly blueAdvanceOrClear = output<void>();
   readonly aConfirm = output<void>();
+  readonly sendToHolocron = output<string>();
+  readonly sendToCompare = output<string>();
 
   readonly forceValidationError = signal(false);
   readonly inputTouched = signal(false);
   readonly nonWhitespacePattern = String.raw`.*\S.*`;
 
   readonly isSearching = computed(() => this.store.detailState().status === 'loading');
+  readonly quickTarget = computed(() =>
+    resolveCatalogQuickTarget(
+      this.store.selectedPokemon(),
+      this.store.filteredCatalog().items,
+      this.rpg.rpgCatalogIndex(),
+    ),
+  );
   readonly showFieldError = computed(
     () => !this.store.query().trim() && (this.forceValidationError() || this.inputTouched()),
   );
   readonly remainingCount = computed(() =>
     Math.max(0, this.store.catalogTotalCount() - this.store.filteredCatalog().items.length),
   );
-
   readonly catalogStatusText = computed(() =>
     resolveCatalogStatusLabel({
       hasActiveFilters: this.filters.hasActiveFilters(),
@@ -72,33 +81,28 @@ export class PokedexSearchPanelComponent {
   focusInput = () => this.searchInputEl()?.nativeElement.focus();
 
   stepBackOrClearForm(): void {
-    const prev = this.store.previousQuery().trim();
-    const currentQuery = this.store.query().trim();
-    if (prev && prev.toLowerCase() !== currentQuery.toLowerCase()) {
-      const target = this.store.selectedPokemon()?.name ?? currentQuery.toLowerCase();
+    const plan = resolveCatalogStepBackPlan({
+      prevQuery: this.store.previousQuery(),
+      currentQuery: this.store.query(),
+      selectedName: this.store.selectedPokemon()?.name,
+      highlightedName: this.store.filteredCatalog().items[this.rpg.rpgCatalogIndex()]?.name ?? null,
+    });
+    if (plan.kind === 'restore-prev') {
       this.store.setQuery(this.store.consumePreviousQuery());
-      this.rpg.scrollCatalogIndexIntoView(Math.max(0, this.store.findCatalogIndex(target)));
+      this.rpg.scrollCatalogIndexIntoView(Math.max(0, this.store.findCatalogIndex(plan.target)));
       return;
     }
-
-    if (currentQuery) {
-      const highlighted =
-        this.store.filteredCatalog().items[this.rpg.rpgCatalogIndex()]?.name ?? null;
-      const target = resolveStepBackTargetIdentifier(
-        this.store.selectedPokemon()?.name,
-        highlighted,
-        currentQuery,
-      );
-      this.resetFormValidation();
-      const fullIdx = this.store.findCatalogIndex(target);
+    this.resetFormValidation();
+    if (plan.kind === 'clear-to-target') {
+      const fullIdx = this.store.findCatalogIndex(plan.target);
       if (fullIdx >= 0) {
         this.store.ensureCatalogIndexVisible(fullIdx);
         this.rpg.scrollCatalogIndexIntoView(fullIdx);
-      } else this.rpg.scrollCatalogToTop();
+        return;
+      }
+      this.rpg.scrollCatalogToTop();
       return;
     }
-
-    this.resetFormValidation();
     this.rpg.rpgLevel.set('telas');
     this.rpg.scrollCatalogToTop();
     this.focusInput();
@@ -146,8 +150,7 @@ export class PokedexSearchPanelComponent {
     const raw = this.store.query().trim();
     if (!raw) {
       this.forceValidationError.set(true);
-      this.focusInput();
-      return;
+      return this.focusInput();
     }
     this.forceValidationError.set(false);
     this.store.searchOrSelect(raw);
@@ -157,40 +160,38 @@ export class PokedexSearchPanelComponent {
     event.stopPropagation();
     this.rpg.deactivateKeyboardMode();
     (event.currentTarget as HTMLElement | null)?.blur?.();
-
     const clickDetail = event instanceof MouseEvent ? event.detail : 1;
-    const alreadyHighlighted =
+    const already =
       this.rpg.rpgLevel() === 'itens' &&
       this.rpg.rpgScreen() === 'lista' &&
       this.rpg.rpgCatalogIndex() === index;
-
     this.rpg.setCatalogCursor(index);
-    if (!alreadyHighlighted && clickDetail < 2) return;
-
+    if (!already && clickDetail < 2) return;
     this.forceValidationError.set(false);
     this.store.selectFromCatalog(item.name);
   }
 
   onCatalogScroll(event: Event): void {
     if (!this.store.hasMoreCatalog()) return;
-    const listEl = event.target as HTMLElement;
-    if (listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight < 120)
-      this.store.loadMoreCatalog();
+    const el = event.target as HTMLElement;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) this.store.loadMoreCatalog();
   }
 
-  onLoadMore(event: Event): void {
-    this.stopAndResetKeyboard(event);
-    this.store.loadMoreCatalog();
-  }
+  onLoadMore = (e: Event) => this.runAction(e, () => this.store.loadMoreCatalog());
+  onReloadCatalog = (e: Event) => this.runAction(e, () => this.store.ensureCatalogLoaded(true));
+  onToggleFilters = (e: Event) => this.runAction(e, () => this.filters.togglePanel());
+  onBlueButtonClick = () => this.runPhysical(() => this.blueAdvanceOrClear.emit());
+  onAButtonClick = () => this.runPhysical(() => this.aConfirm.emit());
+  onRedButtonClick = () =>
+    this.runPhysical(() => this.rpg.goBackOrClearForm(() => this.stepBackOrClearForm(), true));
 
-  onReloadCatalog(event: Event): void {
-    this.stopAndResetKeyboard(event);
-    this.store.ensureCatalogLoaded(true);
-  }
-
-  onToggleFilters(event: Event): void {
-    this.stopAndResetKeyboard(event);
-    this.filters.togglePanel();
+  onSendQuickAction(target: 'holocron' | 'compare', event: Event): void {
+    this.runAction(event, () => {
+      const current = this.quickTarget();
+      if (!current) return;
+      if (target === 'holocron') this.sendToHolocron.emit(current.name);
+      else this.sendToCompare.emit(current.name);
+    });
   }
 
   onDpadClick(direction: RpgDirection): void {
@@ -199,24 +200,15 @@ export class PokedexSearchPanelComponent {
     this.rpg.navigate(direction);
   }
 
-  onRedButtonClick(): void {
-    this.rpg.deactivateKeyboardMode();
-    this.rpg.goBackOrClearForm(() => this.stepBackOrClearForm(), true);
-  }
-
-  onBlueButtonClick(): void {
-    this.rpg.deactivateKeyboardMode();
-    this.blueAdvanceOrClear.emit();
-  }
-
-  onAButtonClick(): void {
-    this.rpg.deactivateKeyboardMode();
-    this.aConfirm.emit();
-  }
-
-  private stopAndResetKeyboard(event: Event): void {
+  private runAction(event: Event, fn: () => void): void {
     event.stopPropagation();
     this.rpg.deactivateKeyboardMode();
+    fn();
+  }
+
+  private runPhysical(fn: () => void): void {
+    this.rpg.deactivateKeyboardMode();
+    fn();
   }
 
   private resetFormValidation(): void {

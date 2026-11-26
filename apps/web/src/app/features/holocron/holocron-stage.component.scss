@@ -8,11 +8,20 @@
   position: relative;
   display: grid;
   place-items: center;
-  min-block-size: 17.5rem;
+  min-block-size: 16.5rem;
   border-radius: var(--pv-radius-md);
   border: 1px solid var(--pv-holocron-ring);
   background: var(--pv-holocron-stage-bg);
   overflow: hidden;
+}
+
+.holocron-stage.is-compact .holocron-stage__viewport {
+  min-block-size: 13.75rem;
+}
+
+.holocron-stage.is-compact .holocron-stage__canvas,
+.holocron-stage.is-compact .holocron-stage__fallback {
+  block-size: 13.75rem;
 }
 
 .holocron-stage__mode {

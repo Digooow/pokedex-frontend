@@ -45,6 +45,7 @@ export class VisorOverviewTabComponent {
   readonly playCry = output<'latest' | 'legacy'>();
   readonly compareRequested = output<void>();
   readonly holocronRequested = output<void>();
+  readonly calculatorRequested = output<void>();
 
   private readonly usedFallbackSprite = signal(false);
   readonly imageFailed = signal(false);

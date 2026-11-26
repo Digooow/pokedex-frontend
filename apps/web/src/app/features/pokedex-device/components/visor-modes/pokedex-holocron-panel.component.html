@@ -1,0 +1,108 @@
+<section class="holocron-embed" aria-label="Projetor Holocron 3D na Pokédex">
+  @switch (holocron.pokemonState().status) {
+    @case ('loading') {
+      <div class="holocron-embed__state" aria-label="Carregando projeção holográfica">
+        <p>Projetando modelo holográfico...</p>
+      </div>
+    }
+    @case ('error') {
+      @if (errorMessage(); as err) {
+        <div class="holocron-embed__state holocron-embed__state--error" role="alert">
+          <p>{{ err.message }}</p>
+          @if (err.retryable) {
+            <button type="button" class="holocron-embed__btn" (click)="holocron.retry()">
+              Tentar novamente
+            </button>
+          }
+        </div>
+      }
+    }
+    @case ('success') {
+      @if (activePokemon(); as pk) {
+        <header class="holocron-embed__head">
+          <div>
+            <span class="holocron-embed__badge">HOLOCRON 3D</span>
+            <h3 class="holocron-embed__title">{{ pk.paddedId }} {{ pk.displayName }}</h3>
+          </div>
+          <button type="button" class="holocron-embed__btn" (click)="backToFicha.emit()">
+            Ver Ficha
+          </button>
+        </header>
+
+        <pv-holocron-stage
+          [pokemon]="pk"
+          [shiny]="holocron.shiny()"
+          [autoRotate]="holocron.autoRotate()"
+          [compact]="true"
+          (toggleShiny)="holocron.toggleShiny()"
+          (toggleAutoRotate)="holocron.toggleAutoRotate()"
+        />
+
+        <div class="holocron-embed__meta">
+          <div class="holocron-embed__types" aria-label="Tipos">
+            @for (typeName of pk.types; track typeName) {
+              <span class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                {{ typeName }}
+              </span>
+            }
+          </div>
+
+          <div class="holocron-embed__cries">
+            @if (pk.bundle?.pokemon?.cries?.latest; as latestUrl) {
+              <button
+                type="button"
+                class="holocron-embed__btn"
+                [attr.aria-pressed]="audioStore.activeCryKind() === 'latest'"
+                (click)="onPlayCry('latest', latestUrl)"
+              >
+                {{ audioStore.activeCryKind() === 'latest' ? 'Pausar Grito' : 'Ouvir Grito' }}
+              </button>
+            }
+            @if (pk.bundle?.pokemon?.cries?.legacy; as legacyUrl) {
+              <button
+                type="button"
+                class="holocron-embed__btn"
+                [attr.aria-pressed]="audioStore.activeCryKind() === 'legacy'"
+                (click)="onPlayCry('legacy', legacyUrl)"
+              >
+                Retrô
+              </button>
+            }
+          </div>
+        </div>
+
+        <pv-cry-spectrogram [active]="audioStore.activeCryKind() !== null" [compact]="true" />
+        @if (audioStore.cryError(); as err) {
+          <output class="holocron-embed__cry-err">{{ err }}</output>
+        }
+
+        @if (evolutionNodes().length > 0) {
+          <div class="holocron-embed__evo">
+            <span class="holocron-embed__label">Cadeia Evolutiva:</span>
+            <div class="holocron-embed__evo-row">
+              @for (node of evolutionNodes(); track node.speciesId) {
+                <button
+                  type="button"
+                  class="holocron-embed__btn"
+                  [class.is-current]="node.speciesName === pk.name"
+                  (click)="selectSpecies.emit(node.speciesName)"
+                >
+                  {{ node.displayName }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      }
+    }
+    @default {
+      <div class="holocron-embed__state">
+        <h3>Projetor Holocron 3D</h3>
+        <p>
+          Selecione um Pokémon na busca ao lado ou clique em "Holocron 3D" para projetar seu modelo
+          giratório dentro da Pokédex.
+        </p>
+      </div>
+    }
+  }
+</section>

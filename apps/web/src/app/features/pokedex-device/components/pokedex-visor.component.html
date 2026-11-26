@@ -18,6 +18,25 @@
     </span>
   </div>
 
+  @if (!slotsStore.editMode()) {
+    <nav class="visor-modes" aria-label="Modos do Visor da Pokédex">
+      @for (mode of modes; track mode.id) {
+        @let selected = visorDetail.activeMode() === mode.id;
+        <button
+          type="button"
+          class="visor-mode-btn"
+          [id]="'visor-mode-' + mode.id"
+          [class.is-active]="selected"
+          [attr.aria-pressed]="selected"
+          [attr.aria-label]="mode.label"
+          (click)="onSelectMode(mode.id, $event)"
+        >
+          {{ mode.shortLabel }}
+        </button>
+      }
+    </nav>
+  }
+
   <div
     id="resultado-conteudo"
     class="resultado-conteudo"
@@ -31,171 +50,201 @@
         (slotOpened)="slotOpened.emit($event)"
       />
     } @else {
-      @switch (detailState().status) {
-        @case ('loading') {
-          <div class="skeleton-card" aria-label="Carregando dados do Pokémon na PokéAPI">
-            <div class="skeleton-cabecalho">
-              <div class="skeleton-bloco skeleton-imagem"></div>
-              <div class="skeleton-resumo">
-                <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
-                <div class="skeleton-bloco skeleton-linha skeleton-linha--media"></div>
-                <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
-              </div>
-            </div>
-            <div class="skeleton-lista">
-              <div class="skeleton-bloco skeleton-item"></div>
-              <div class="skeleton-bloco skeleton-item"></div>
-              <div class="skeleton-bloco skeleton-item"></div>
-              <div class="skeleton-bloco skeleton-item"></div>
-              <div class="skeleton-bloco skeleton-item"></div>
-            </div>
-          </div>
+      @switch (visorDetail.activeMode()) {
+        @case ('holocron') {
+          <pv-pokedex-holocron-panel
+            (selectSpecies)="onSelectSpecies($event)"
+            (backToFicha)="visorDetail.setMode('ficha')"
+          />
         }
-
-        @case ('error') {
-          @let notFound = isNotFoundError();
-          <div
-            [class]="'estado-alerta ' + (notFound ? 'estado-alerta--aviso' : 'estado-alerta--erro')"
-            [attr.role]="notFound ? null : 'alert'"
-          >
-            <span class="alerta-icone" aria-hidden="true">
-              @if (notFound) {
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <circle cx="11" cy="11" r="7" />
-                  <path d="M20 20l-3.8-3.8" />
-                </svg>
-              } @else {
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 3L2 20h20L12 3z" />
-                  <path d="M12 9v5M12 17h.01" />
-                </svg>
-              }
-            </span>
-            <h3>{{ notFound ? 'Pokémon não encontrado' : 'Erro na comunicação com a API' }}</h3>
-            <p>{{ errorMessage() }}</p>
-
-            @if (notFound && suggestions().length > 0) {
-              <div class="sugestoes-404">
-                <span class="sugestoes-404-titulo">Você quis dizer:</span>
-                <div class="sugestoes-404-lista">
-                  @for (item of suggestions(); track item.id; let idx = $index) {
-                    <button
-                      type="button"
-                      class="btn-sugestao"
-                      [pvRpgFocusable]="'visor'"
-                      [pvRpgOrder]="idx"
-                      (click)="onSelectSuggestion($event, item.name)"
-                    >
-                      #{{ padId(item.id) }} {{ item.displayName }}
-                    </button>
-                  }
+        @case ('comparar') {
+          <pv-pokedex-compare-panel
+            (openInPokedex)="onSelectFromMode($event)"
+            (backToFicha)="visorDetail.setMode('ficha')"
+          />
+        }
+        @case ('calculadora') {
+          <pv-pokedex-stat-calc-panel
+            [pokemon]="pokemonData()"
+            (backToFicha)="visorDetail.setMode('ficha')"
+          />
+        }
+        @case ('enciclopedia') {
+          <pv-pokedex-encyclopedia-panel
+            [initialCategory]="encyclopediaCategory()"
+            [initialItem]="encyclopediaItem()"
+            (pokemonSelected)="onSelectFromMode($event)"
+          />
+        }
+        @default {
+          @switch (detailState().status) {
+            @case ('loading') {
+              <div class="skeleton-card" aria-label="Carregando dados do Pokémon na PokéAPI">
+                <div class="skeleton-cabecalho">
+                  <div class="skeleton-bloco skeleton-imagem"></div>
+                  <div class="skeleton-resumo">
+                    <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
+                    <div class="skeleton-bloco skeleton-linha skeleton-linha--media"></div>
+                    <div class="skeleton-bloco skeleton-linha skeleton-linha--curta"></div>
+                  </div>
+                </div>
+                <div class="skeleton-lista">
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
+                  <div class="skeleton-bloco skeleton-item"></div>
                 </div>
               </div>
             }
 
-            @if (!notFound) {
-              <button
-                type="button"
-                class="btn-secundario"
-                [pvRpgFocusable]="'visor'"
-                [pvRpgOrder]="0"
-                (click)="onRetryClick($event)"
+            @case ('error') {
+              @let notFound = isNotFoundError();
+              <div
+                [class]="'estado-alerta ' + (notFound ? 'estado-alerta--aviso' : 'estado-alerta--erro')"
+                [attr.role]="notFound ? null : 'alert'"
               >
-                Tentar novamente
-              </button>
+                <span class="alerta-icone" aria-hidden="true">
+                  @if (notFound) {
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <circle cx="11" cy="11" r="7" />
+                      <path d="M20 20l-3.8-3.8" />
+                    </svg>
+                  } @else {
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M12 3L2 20h20L12 3z" />
+                      <path d="M12 9v5M12 17h.01" />
+                    </svg>
+                  }
+                </span>
+                <h3>{{ notFound ? 'Pokémon não encontrado' : 'Erro na comunicação com a API' }}</h3>
+                <p>{{ errorMessage() }}</p>
+
+                @if (notFound && suggestions().length > 0) {
+                  <div class="sugestoes-404">
+                    <span class="sugestoes-404-titulo">Você quis dizer:</span>
+                    <div class="sugestoes-404-lista">
+                      @for (item of suggestions(); track item.id; let idx = $index) {
+                        <button
+                          type="button"
+                          class="btn-sugestao"
+                          [pvRpgFocusable]="'visor'"
+                          [pvRpgOrder]="idx"
+                          (click)="onSelectSuggestion($event, item.name)"
+                        >
+                          #{{ padId(item.id) }} {{ item.displayName }}
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                @if (!notFound) {
+                  <button
+                    type="button"
+                    class="btn-secundario"
+                    [pvRpgFocusable]="'visor'"
+                    [pvRpgOrder]="0"
+                    (click)="onRetryClick($event)"
+                  >
+                    Tentar novamente
+                  </button>
+                }
+              </div>
             }
-          </div>
-        }
 
-        @case ('success') {
-          @if (pokemonData(); as pokemon) {
-            <div class="visor-tabs" role="tablist" aria-label="Abas do visor da Pokédex">
-              @for (tab of tabs; track tab.id) {
-                @let selected = visorDetail.activeTab() === tab.id;
-                <button
-                  type="button"
-                  role="tab"
-                  class="visor-tab-btn"
-                  [id]="'visor-tab-' + tab.id"
-                  [class.is-active]="selected"
-                  [attr.aria-selected]="selected ? 'true' : 'false'"
-                  [attr.aria-controls]="'visor-panel-' + tab.id"
-                  [attr.aria-label]="tab.label"
-                  (click)="onSelectTab(tab.id, pokemon.name, $event)"
-                  (keydown)="onTabKeyDown($event, pokemon.name)"
+            @case ('success') {
+              @if (pokemonData(); as pokemon) {
+                <div class="visor-tabs" role="tablist" aria-label="Abas do visor da Pokédex">
+                  @for (tab of tabs; track tab.id) {
+                    @let selected = visorDetail.activeTab() === tab.id;
+                    <button
+                      type="button"
+                      role="tab"
+                      class="visor-tab-btn"
+                      [id]="'visor-tab-' + tab.id"
+                      [class.is-active]="selected"
+                      [attr.aria-selected]="selected ? 'true' : 'false'"
+                      [attr.aria-controls]="'visor-panel-' + tab.id"
+                      [attr.aria-label]="tab.label"
+                      (click)="onSelectTab(tab.id, pokemon.name, $event)"
+                      (keydown)="onTabKeyDown($event, pokemon.name)"
+                    >
+                      {{ tab.shortLabel }}
+                    </button>
+                  }
+                </div>
+
+                <div
+                  class="visor-tabpanel"
+                  role="tabpanel"
+                  [id]="'visor-panel-' + visorDetail.activeTab()"
+                  [attr.aria-labelledby]="'visor-tab-' + visorDetail.activeTab()"
                 >
-                  {{ tab.shortLabel }}
-                </button>
+                  @switch (visorDetail.activeTab()) {
+                    @case ('resumo') {
+                      <pv-visor-overview-tab
+                        [pokemon]="pokemon"
+                        [spriteMode]="visorDetail.spriteMode()"
+                        [shiny]="visorDetail.shiny()"
+                        [isLite]="isLite()"
+                        [playingCry]="visorDetail.playingCry()"
+                        [cryError]="visorDetail.cryError()"
+                        (toggleShiny)="visorDetail.toggleShiny()"
+                        (selectSpriteMode)="visorDetail.setSpriteMode($event)"
+                        (playCry)="visorDetail.playCry($event, $event === 'latest' ? (pokemon.bundle?.pokemon.cries.latest ?? null) : (pokemon.bundle?.pokemon.cries.legacy ?? null))"
+                        (compareRequested)="compareRequested.emit(pokemon)"
+                        (holocronRequested)="holocronRequested.emit(pokemon)"
+                        (calculatorRequested)="calculatorRequested.emit()"
+                      />
+                    }
+                    @case ('stats') {
+                      <pv-visor-stats-tab
+                        [pokemon]="pokemon"
+                        [abilityDetails]="visorDetail.abilityDetails()"
+                        (inspectAbility)="visorDetail.loadAbilityDetail($event)"
+                      />
+                    }
+                    @case ('evolucao') {
+                      <pv-visor-evolution-tab
+                        [pokemon]="pokemon"
+                        [formsState]="visorDetail.formsState()"
+                        (selectPokemon)="onSelectSpecies($event)"
+                        (retryForms)="visorDetail.ensureFormsLoaded(pokemon.name, true)"
+                      />
+                    }
+                    @case ('golpes') {
+                      <pv-visor-moves-tab
+                        [pokemon]="pokemon"
+                        [moveDetails]="visorDetail.moveDetails()"
+                        (inspectMove)="visorDetail.loadMoveDetail($event)"
+                      />
+                    }
+                    @case ('mapa') {
+                      <pv-visor-map-tab
+                        [pokemon]="pokemon"
+                        [encountersState]="visorDetail.encountersState()"
+                        [isLite]="isLite()"
+                        (retryEncounters)="visorDetail.ensureEncountersLoaded(pokemon.name, true)"
+                      />
+                    }
+                  }
+                </div>
               }
-            </div>
+            }
 
-            <div
-              class="visor-tabpanel"
-              role="tabpanel"
-              [id]="'visor-panel-' + visorDetail.activeTab()"
-              [attr.aria-labelledby]="'visor-tab-' + visorDetail.activeTab()"
-            >
-              @switch (visorDetail.activeTab()) {
-                @case ('resumo') {
-                  <pv-visor-overview-tab
-                    [pokemon]="pokemon"
-                    [spriteMode]="visorDetail.spriteMode()"
-                    [shiny]="visorDetail.shiny()"
-                    [isLite]="isLite()"
-                    [playingCry]="visorDetail.playingCry()"
-                    [cryError]="visorDetail.cryError()"
-                    (toggleShiny)="visorDetail.toggleShiny()"
-                    (selectSpriteMode)="visorDetail.setSpriteMode($event)"
-                    (playCry)="visorDetail.playCry($event, $event === 'latest' ? (pokemon.bundle?.pokemon.cries.latest ?? null) : (pokemon.bundle?.pokemon.cries.legacy ?? null))"
-                    (compareRequested)="compareRequested.emit(pokemon)"
-                    (holocronRequested)="holocronRequested.emit(pokemon)"
-                  />
-                }
-                @case ('stats') {
-                  <pv-visor-stats-tab
-                    [pokemon]="pokemon"
-                    [abilityDetails]="visorDetail.abilityDetails()"
-                    (inspectAbility)="visorDetail.loadAbilityDetail($event)"
-                  />
-                }
-                @case ('evolucao') {
-                  <pv-visor-evolution-tab
-                    [pokemon]="pokemon"
-                    [formsState]="visorDetail.formsState()"
-                    (selectPokemon)="onSelectSpecies($event)"
-                    (retryForms)="visorDetail.ensureFormsLoaded(pokemon.name, true)"
-                  />
-                }
-                @case ('golpes') {
-                  <pv-visor-moves-tab
-                    [pokemon]="pokemon"
-                    [moveDetails]="visorDetail.moveDetails()"
-                    (inspectMove)="visorDetail.loadMoveDetail($event)"
-                  />
-                }
-                @case ('mapa') {
-                  <pv-visor-map-tab
-                    [pokemon]="pokemon"
-                    [encountersState]="visorDetail.encountersState()"
-                    [isLite]="isLite()"
-                    (retryEncounters)="visorDetail.ensureEncountersLoaded(pokemon.name, true)"
-                  />
-                }
-              }
-            </div>
+            @default {
+              <div class="estado-vazio">
+                <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
+                  <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
+                  <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
+                  <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
+                </svg>
+                <h3>{{ emptyStateTitle }}</h3>
+                <p>{{ emptyStateDescription }}</p>
+              </div>
+            }
           }
-        }
-
-        @default {
-          <div class="estado-vazio">
-            <svg class="estado-icone" viewBox="0 0 64 64" width="44" height="44" aria-hidden="true">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" stroke-width="4" />
-              <path d="M4 32h20m16 0h20" stroke="currentColor" stroke-width="4" />
-              <circle cx="32" cy="32" r="8" fill="none" stroke="currentColor" stroke-width="4" />
-            </svg>
-            <h3>{{ emptyStateTitle }}</h3>
-            <p>{{ emptyStateDescription }}</p>
-          </div>
         }
       }
     }

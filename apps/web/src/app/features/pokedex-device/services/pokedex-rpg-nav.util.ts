@@ -255,3 +255,38 @@ export function resolveSlotsConfigTransitionPlan(opening: boolean): {
     ? { screen: 'visor', visorIndex: 0, slotFocusIndex: null }
     : { screen: 'slots', visorIndex: null, slotFocusIndex: TOTAL_SLOTS_AZUIS };
 }
+
+export function resolveCatalogQuickTarget(
+  selected: { readonly name: string; readonly displayName: string } | null,
+  items: ReadonlyArray<{ readonly name: string; readonly displayName: string }>,
+  cursorIndex: number,
+): { readonly name: string; readonly displayName: string } | null {
+  if (selected) return { name: selected.name, displayName: selected.displayName };
+  const item = items[cursorIndex];
+  return item ? { name: item.name, displayName: item.displayName } : null;
+}
+
+export type StepBackPlan =
+  | { readonly kind: 'restore-prev'; readonly target: string }
+  | { readonly kind: 'clear-to-target'; readonly target: string }
+  | { readonly kind: 'reset-top' };
+
+export function resolveCatalogStepBackPlan(params: {
+  readonly prevQuery: string;
+  readonly currentQuery: string;
+  readonly selectedName: string | undefined;
+  readonly highlightedName: string | null;
+}): StepBackPlan {
+  const prev = params.prevQuery.trim();
+  const current = params.currentQuery.trim();
+  if (prev && prev.toLowerCase() !== current.toLowerCase()) {
+    return { kind: 'restore-prev', target: params.selectedName ?? current.toLowerCase() };
+  }
+  if (current) {
+    return {
+      kind: 'clear-to-target',
+      target: resolveStepBackTargetIdentifier(params.selectedName, params.highlightedName, current),
+    };
+  }
+  return { kind: 'reset-top' };
+}

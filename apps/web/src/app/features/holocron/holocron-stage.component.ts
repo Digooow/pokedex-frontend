@@ -17,7 +17,7 @@ import {
 import { AudioEngineService } from '../../core/audio/audio-engine.service';
 import { QualityStore } from '../../core/stores/quality.store';
 import type { PokemonDetailView } from '../pokedex-device/services/pokedex-view-mapper.util';
-import { resolveHolocronSpriteUrl } from './holocron-palette.util';
+import { resolveHolocronTextures, resolveLocalPokemonGlbUrl } from './holocron-palette.util';
 import type { HolocronSceneController } from './holocron-three.renderer';
 import { HolocronStore } from './holocron.store';
 
@@ -36,6 +36,7 @@ export class HolocronStageComponent implements OnDestroy {
   readonly pokemon = input.required<PokemonDetailView>();
   readonly shiny = input.required<boolean>();
   readonly autoRotate = input.required<boolean>();
+  readonly compact = input<boolean>(false);
 
   readonly toggleShiny = output<void>();
   readonly toggleAutoRotate = output<void>();
@@ -48,7 +49,10 @@ export class HolocronStageComponent implements OnDestroy {
   private mounting = false;
   private disposed = false;
 
-  readonly spriteUrl = computed(() => resolveHolocronSpriteUrl(this.pokemon(), this.shiny()));
+  readonly textures = computed(() => resolveHolocronTextures(this.pokemon(), this.shiny()));
+  readonly spriteUrl = computed(() => this.textures().frontUrl);
+  readonly glbUrl = computed(() => resolveLocalPokemonGlbUrl(this.pokemon().id));
+
   readonly canUseWebGl = computed(
     () =>
       this.isBrowser &&
@@ -62,7 +66,8 @@ export class HolocronStageComponent implements OnDestroy {
     if (this.holocron.webglLost()) return 'Modo 2D · Fallback';
     if (this.quality.tier() === 'lite') return 'Modo 2D · LITE';
     if (!this.canUseWebGl()) return 'Modo 2D · Fallback';
-    return this.quality.tier() === 'ultra' ? 'WebGL2 · ULTRA' : 'WebGL2 · EQUIL.';
+    const glbTag = this.glbUrl() ? 'GLB 3D' : 'Prisma 3D';
+    return this.quality.tier() === 'ultra' ? `${glbTag} · ULTRA` : `${glbTag} · EQUIL.`;
   });
 
   constructor() {
@@ -86,8 +91,7 @@ export class HolocronStageComponent implements OnDestroy {
 
     effect(() => {
       const pk = this.pokemon();
-      const sprite = this.spriteUrl();
-      this.controller?.updatePokemon(sprite, pk.types);
+      this.controller?.updatePokemon(this.textures(), this.glbUrl(), pk.types);
     });
 
     effect(() => {
@@ -124,7 +128,8 @@ export class HolocronStageComponent implements OnDestroy {
         tier: this.quality.tier(),
         reducedMotion: this.quality.reducedMotion(),
         autoRotate: this.autoRotate(),
-        spriteUrl: this.spriteUrl(),
+        textures: this.textures(),
+        glbUrl: this.glbUrl(),
         types: pk.types,
         readEnergy: (t) => this.audioEngine.readEnergyLevel(t),
         onContextLost: () => {

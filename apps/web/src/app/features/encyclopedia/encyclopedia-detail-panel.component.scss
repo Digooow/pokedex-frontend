@@ -150,6 +150,13 @@
   text-decoration: none;
 }
 
+.ency-reverse-link--btn {
+  inline-size: 100%;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
 .ency-reverse-link:hover {
   border-color: var(--pv-border-gold);
 }

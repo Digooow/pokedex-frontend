@@ -9,6 +9,7 @@ import {
   type PokedexSlotRecord,
   PokedexSlotRecordSchema,
   type SavePokedexSlotInput,
+  type SwapPokedexSlotsInput,
   type WorldEventType,
   WorldTickerEventSchema,
   formatPokeApiText,
@@ -105,6 +106,31 @@ export class PokedexSlotsService {
     });
 
     return this.slotRepository.deleteAllSlotsWithOutbox(trainerId, outboxEvent);
+  }
+
+  async swapSlots(
+    trainerId: string,
+    username: string,
+    input: SwapPokedexSlotsInput,
+    traceId: string | null,
+  ): Promise<PokedexSlotRecord[]> {
+    const outboxEvent = this.buildTickerOutboxEvent({
+      eventType: 'pokedex.slot.saved',
+      trainerId,
+      username,
+      aggregateId: `${trainerId}:${input.fromIndex}:${input.toIndex}`,
+      summary: `${username} reorganizou os slots ${input.fromIndex + 1} e ${input.toIndex + 1} da Pokédex.`,
+      traceId,
+    });
+
+    const rows = await this.slotRepository.swapSlotsWithOutbox({
+      trainerId,
+      fromIndex: input.fromIndex,
+      toIndex: input.toIndex,
+      outboxEvent,
+    });
+
+    return rows.map((row) => this.toSlotRecord(row));
   }
 
   private buildTickerOutboxEvent(params: {

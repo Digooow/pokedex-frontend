@@ -7,6 +7,39 @@ import {
 } from '@pokeverse/shared';
 import type { PokemonDetailView } from './pokedex-view-mapper.util';
 
+export type VisorModeId = 'ficha' | 'holocron' | 'comparar' | 'calculadora' | 'enciclopedia';
+
+export interface VisorModeMeta {
+  readonly id: VisorModeId;
+  readonly label: string;
+  readonly shortLabel: string;
+}
+
+export const VISOR_MODES: readonly VisorModeMeta[] = [
+  { id: 'ficha', label: 'Ficha do Pokémon', shortLabel: 'Ficha' },
+  { id: 'holocron', label: 'Holocron 3D', shortLabel: '3D' },
+  { id: 'comparar', label: 'Comparador 1v1', shortLabel: '1v1' },
+  { id: 'calculadora', label: 'Calculadora de Atributos', shortLabel: 'Calc' },
+  { id: 'enciclopedia', label: 'Enciclopédia Global', shortLabel: 'Enciclo' },
+];
+
+export function parseVisorModeId(raw: string | null | undefined): VisorModeId | null {
+  const normalized = raw?.trim().toLowerCase() ?? '';
+  return VISOR_MODES.find((entry) => entry.id === normalized)?.id ?? null;
+}
+
+export function parsePokedexRouteIntent(
+  getParam: (name: string) => string | null,
+  defaultCoverOpen: boolean | null,
+) {
+  const query = getParam('q')?.trim() ?? '';
+  const mode = parseVisorModeId(getParam('mode'));
+  const cat = getParam('cat')?.trim() || null;
+  const item = getParam('item')?.trim() || null;
+  const shouldOpen = Boolean(query || mode) || Boolean(defaultCoverOpen);
+  return { query, mode, cat, item, shouldOpen, hasDefault: defaultCoverOpen !== null };
+}
+
 export type VisorTabId = 'resumo' | 'stats' | 'evolucao' | 'golpes' | 'mapa';
 
 export interface VisorTabMeta {

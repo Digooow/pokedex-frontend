@@ -2,6 +2,7 @@ import type { HardwareTier } from '@pokeverse/shared';
 import {
   AdditiveBlending,
   AmbientLight,
+  BoxGeometry,
   BufferAttribute,
   BufferGeometry,
   Color,
@@ -9,24 +10,24 @@ import {
   CylinderGeometry,
   DirectionalLight,
   DoubleSide,
+  FrontSide,
   Group,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
+  type Object3D,
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
   Points,
   PointsMaterial,
   RingGeometry,
-  SRGBColorSpace,
   Scene,
   ShaderMaterial,
-  type Texture,
-  TextureLoader,
   TorusGeometry,
   WebGLRenderer,
 } from 'three';
+import type { HologramPrismRig } from './holocron-media-loader.util';
 import {
   type HolocronPalette,
   computeDeterministicParticleCoord,
@@ -138,8 +139,8 @@ function collectObjMaterials(material: Mesh['material'] | undefined): MeshBasicM
   return (Array.isArray(material) ? material : [material]) as MeshBasicMaterial[];
 }
 
-export function disposeThreeScene(scene: Scene, renderer: WebGLRenderer): void {
-  scene.traverse((obj) => {
+export function disposeObjectSubtree(root: Object3D): void {
+  root.traverse((obj) => {
     const mesh = obj as Partial<Mesh & Points>;
     mesh.geometry?.dispose();
     for (const mat of collectObjMaterials(mesh.material)) {
@@ -147,47 +148,56 @@ export function disposeThreeScene(scene: Scene, renderer: WebGLRenderer): void {
       mat.dispose();
     }
   });
+}
+
+export function disposeThreeScene(scene: Scene, renderer: WebGLRenderer): void {
+  disposeObjectSubtree(scene);
   renderer.dispose();
 }
 
-export function createSpriteTextureLoader(
-  spriteMat: MeshBasicMaterial,
-  isDisposed: () => boolean,
-): { readonly load: (url: string | null) => void; readonly disposeCurrent: () => void } {
-  const loader = new TextureLoader();
-  loader.setCrossOrigin('anonymous');
-  let activeTexture: Texture | null = null;
+function createHologramPrism(palette: HolocronPalette): HologramPrismRig {
+  const hologramGroup = new Group();
+  hologramGroup.position.y = 0.34;
 
-  return {
-    load(url) {
-      if (!url || isDisposed()) return;
-      loader.load(
-        url,
-        (tex) => {
-          if (isDisposed()) {
-            tex.dispose();
-            return;
-          }
-          tex.colorSpace = SRGBColorSpace;
-          activeTexture?.dispose();
-          activeTexture = tex;
-          spriteMat.map = tex;
-          spriteMat.needsUpdate = true;
-        },
-        undefined,
-        () => undefined,
-      );
-    },
-    disposeCurrent() {
-      activeTexture?.dispose();
-      activeTexture = null;
-    },
-  };
+  const prismGroup = new Group();
+  const frontMat = new MeshBasicMaterial({
+    color: 0xffffff,
+    transparent: true,
+    opacity: 0.96,
+    side: FrontSide,
+    depthWrite: false,
+  });
+  const backMat = new MeshBasicMaterial({
+    color: 0x93c5fd,
+    transparent: true,
+    opacity: 0.92,
+    side: FrontSide,
+    depthWrite: false,
+  });
+  const frontMesh = new Mesh(new PlaneGeometry(1.65, 1.65), frontMat);
+  frontMesh.position.z = 0.04;
+  const backMesh = new Mesh(new PlaneGeometry(1.65, 1.65), backMat);
+  backMesh.position.z = -0.04;
+  backMesh.rotation.y = Math.PI;
+
+  const coreMat = new MeshBasicMaterial({
+    color: palette.primary,
+    transparent: true,
+    opacity: 0.16,
+    blending: AdditiveBlending,
+    depthWrite: false,
+  });
+  const coreMesh = new Mesh(new BoxGeometry(1.56, 1.56, 0.06), coreMat);
+  prismGroup.add(coreMesh, frontMesh, backMesh);
+
+  const modelAnchor = new Group();
+  hologramGroup.add(prismGroup, modelAnchor);
+  return { hologramGroup, prismGroup, modelAnchor, frontMat, backMat, coreMat };
 }
 
 export function createRendererAndCamera(canvas: HTMLCanvasElement, tier: HardwareTier) {
   const camera = new PerspectiveCamera(38, 1, 0.1, 40);
-  camera.position.set(0, 0.65, 4.1);
+  camera.position.set(0, 0.85, 4.1);
   camera.lookAt(0, 0.22, 0);
 
   const renderer = new WebGLRenderer({
@@ -220,16 +230,8 @@ export function buildStageObjects(
   beamMesh.rotation.x = Math.PI;
   stageGroup.add(beamMesh);
 
-  const spriteMat = new MeshBasicMaterial({
-    color: 0xffffff,
-    transparent: true,
-    opacity: 0.96,
-    side: DoubleSide,
-    depthWrite: false,
-  });
-  const spriteMesh = new Mesh(new PlaneGeometry(1.65, 1.65), spriteMat);
-  spriteMesh.position.y = 0.34;
-  stageGroup.add(spriteMesh);
+  const prism = createHologramPrism(palette);
+  stageGroup.add(prism.hologramGroup);
 
   let particleCount = 0;
   if (!reducedMotion) {
@@ -238,5 +240,5 @@ export function buildStageObjects(
   const particles = particleCount > 0 ? createParticleField(palette, particleCount) : null;
   if (particles) stageGroup.add(particles.points);
 
-  return { rimLight, pedestal, beamMat, spriteMat, spriteMesh, particles };
+  return { rimLight, pedestal, beamMat, prism, particles };
 }

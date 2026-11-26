@@ -1,4 +1,8 @@
-<section class="holocron-stage" aria-label="Projetor holográfico">
+<section
+  class="holocron-stage"
+  [class.is-compact]="compact()"
+  aria-label="Projetor holográfico"
+>
   <div class="holocron-stage__viewport">
     <span class="holocron-stage__mode">{{ renderModeLabel() }}</span>
 
@@ -15,8 +19,8 @@
               class="holocron-stage__sprite"
               [src]="imgUrl"
               [alt]="'Projeção holográfica 2D de ' + pokemon().displayName"
-              width="168"
-              height="168"
+              width="148"
+              height="148"
               (error)="onFallbackSpriteError()"
             />
           } @else {

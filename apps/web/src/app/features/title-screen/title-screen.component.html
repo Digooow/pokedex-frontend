@@ -1,65 +1,19 @@
-<section class="title-stage" aria-labelledby="main-heading">
-  <img
-    class="title-stage__bg"
-    src="assets/backgrounds/mirante-hoenn-desktop.webp"
-    srcset="
-      assets/backgrounds/mirante-hoenn-mobile.webp   820w,
-      assets/backgrounds/mirante-hoenn-desktop.webp 1920w
-    "
-    sizes="100vw"
-    alt=""
-    aria-hidden="true"
-    decoding="async"
-    fetchpriority="high"
-  />
+<section class="start-screen" aria-labelledby="main-heading">
+  <div class="start-card">
+    <pv-pokeball-mark [size]="72" svgClass="start-card__emblem" />
 
-  <div class="title-hero">
-    <span class="title-hero__badge">FASE 2B • IAM ENTERPRISE (SESSÃO REDIS + OTP + TOTP + PASSKEYS + GOOGLE)</span>
-    <h1 id="main-heading" tabindex="-1" pvMainHeading class="title-hero__title">PokéVerse OS</h1>
-    <p class="title-hero__subtitle">
-      Sistema operacional tático integrando a Pokédex 3D skeuomórfica, detecção automática de
-      hardware e arquitetura orientada a eventos em tempo real.
+    <span class="start-card__eyebrow">POKÉVERSE OS · EDIÇÃO CLÁSSICA</span>
+    <h1 id="main-heading" tabindex="-1" pvMainHeading class="start-card__title">
+      PokéVerse
+    </h1>
+    <p class="start-card__subtitle">
+      Pressione Enter ou clique abaixo para entrar no mundo e acessar seus módulos.
     </p>
 
-    <div class="title-hero__actions">
-      <a routerLink="/pokedex" class="cta cta--primary">
-        {{ auth.isAuthenticated() ? 'Abrir Pokédex Sincronizada' : 'Abrir Pokédex 3D (Visitante)' }}
-      </a>
-      <a routerLink="/museu" class="cta cta--secondary">Museu das Regiões</a>
-      @if (!auth.isAuthenticated()) {
-        <button type="button" class="cta cta--outline" (click)="requestTrainerLogin()">
-          Entrar / Criar Conta
-        </button>
-      }
-    </div>
+    <a routerLink="/inicio" id="btn-iniciar-jogo" class="start-card__cta">
+      Iniciar Jogo
+    </a>
 
-    <section class="infra-panel" aria-label="Telemetria local da infraestrutura">
-      <div class="infra-panel__head">
-        <div>
-          <strong>Hardware Detectado:</strong>
-          <span>{{ quality.badgeLabel() }}</span>
-        </div>
-        <button type="button" class="infra-panel__retry" (click)="systemStatus.refresh()">
-          Atualizar Infra
-        </button>
-      </div>
-
-      @if (systemStatus.state().status === 'loading') {
-        <p class="infra-panel__msg">Consultando PostgreSQL, Redis, Kafka e S3...</p>
-      } @else if (dependencyCards(); as deps) {
-        <ul class="infra-grid">
-          @for (dep of deps; track dep.name) {
-            <li class="infra-chip" [class.is-up]="dep.status === 'up'">
-              <span>{{ dep.name }}</span>
-              <span class="tabular-nums">{{ dep.status.toUpperCase() }} • {{ dep.latencyMs }}ms</span>
-            </li>
-          }
-        </ul>
-      } @else {
-        <p class="infra-panel__msg">
-          Back-end NestJS desconectado no momento — modos públicos seguem liberados.
-        </p>
-      }
-    </section>
+    <span class="start-card__prompt">PRESS START</span>
   </div>
 </section>

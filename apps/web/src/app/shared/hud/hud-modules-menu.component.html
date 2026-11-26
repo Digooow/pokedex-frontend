@@ -91,10 +91,10 @@
             </button>
           } @else {
             <a
-              [routerLink]="mod.id === 'pokedex' ? '/' : mod.route"
+              [routerLink]="mod.route"
               class="hud-menu-item"
-              [class.is-active]="isModuleActive(mod.route, mod.id)"
-              [attr.aria-current]="isModuleActive(mod.route, mod.id) ? 'page' : null"
+              [class.is-active]="isModuleActive(mod.route)"
+              [attr.aria-current]="isModuleActive(mod.route) ? 'page' : null"
               (click)="closed.emit()"
             >
               <span class="hud-menu-item__key tabular-nums" aria-hidden="true">{{ mod.shortcut }}</span>
@@ -102,7 +102,7 @@
                 <span class="hud-menu-item__title">{{ mod.label }}</span>
                 <span class="hud-menu-item__desc">{{ mod.summary }}</span>
               </span>
-              @if (isModuleActive(mod.route, mod.id)) {
+              @if (isModuleActive(mod.route)) {
                 <span class="hud-menu-item__badge">Ativo</span>
               }
             </a>
@@ -113,16 +113,16 @@
 
     <div class="hud-popover__footer">
       <a
-        routerLink="/enciclopedia"
+        routerLink="/inicio"
         class="hud-menu-utility"
-        [class.is-active]="isModuleActive('/enciclopedia', 'encyclopedia')"
-        [attr.aria-current]="isModuleActive('/enciclopedia', 'encyclopedia') ? 'page' : null"
+        [class.is-active]="isModuleActive('/inicio')"
+        [attr.aria-current]="isModuleActive('/inicio') ? 'page' : null"
         (click)="closed.emit()"
       >
-        <span class="hud-menu-item__key" aria-hidden="true">E</span>
+        <span class="hud-menu-item__key" aria-hidden="true">0</span>
         <span class="hud-menu-item__body">
-          <span class="hud-menu-item__title">Enciclopédia Global</span>
-          <span class="hud-menu-item__desc">Golpes, habilidades, itens, tipos e busca reversa.</span>
+          <span class="hud-menu-item__title">Tela Inicial</span>
+          <span class="hud-menu-item__desc">Central de módulos e atalhos do Treinador.</span>
         </span>
       </a>
     </div>

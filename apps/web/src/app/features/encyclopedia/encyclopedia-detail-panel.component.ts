@@ -25,7 +25,9 @@ const INITIAL_POKEMON_VISIBLE = 36;
 })
 export class EncyclopediaDetailPanelComponent {
   readonly detailState = input.required<AsyncState<EncyclopediaDetailPayload>>();
+  readonly embedded = input<boolean>(false);
   readonly retry = output<void>();
+  readonly pokemonSelected = output<string>();
   readonly navigateRelated = output<{
     readonly category: EncyclopediaResourceKey;
     readonly name: string;

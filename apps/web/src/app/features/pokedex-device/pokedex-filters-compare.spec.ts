@@ -13,6 +13,7 @@ import {
 import { PokedexDevicePageComponent } from './pokedex-device.component';
 import { PokedexCompareStore } from './services/pokedex-compare.store';
 import { PokedexFiltersStore } from './services/pokedex-filters.store';
+import { PokedexVisorDetailStore } from './services/pokedex-visor-detail.store';
 import { PokedexStore } from './services/pokedex.store';
 
 describe('Pokedex Filters Panel & 1v1 Comparator', () => {
@@ -123,8 +124,9 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     expect(store.filteredCatalog().items).toHaveLength(3);
   });
 
-  it('opens 1v1 Comparator dialog from Visor, loads opponent, swaps sides, and opens in Pokedex', async () => {
+  it('opens embedded 1v1 Comparator inside Visor, loads opponent, swaps sides, and opens Ficha', async () => {
     const { httpMock, store, compare, fixture } = setupOpenPokedex();
+    const visorDetail = TestBed.inject(PokedexVisorDetailStore);
     const hostEl = fixture.nativeElement as HTMLElement;
 
     store.loadPokemonDetail('pikachu');
@@ -139,7 +141,7 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(compare.dialogOpen()).toBe(true);
+    expect(visorDetail.activeMode()).toBe('comparar');
     expect(compare.leftState().status).toBe('success');
 
     compare.selectSide('right', 'mewtwo');
@@ -175,7 +177,7 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
       .flush(createCachedPokemonBundleFixture({ id: 150, name: 'mewtwo', typeName: 'psychic' }));
     fixture.detectChanges();
 
-    expect(compare.dialogOpen()).toBe(false);
+    expect(visorDetail.activeMode()).toBe('ficha');
     expect(store.selectedPokemon()?.name).toBe('mewtwo');
   });
 });

@@ -1,34 +1,29 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  ElementRef,
   computed,
-  effect,
   inject,
   output,
   signal,
-  viewChild,
 } from '@angular/core';
 import { filterPokemonCatalog } from '@pokeverse/shared';
-import { DialogLightDismissDirective } from '../../../shared/directives/dialog-light-dismiss.directive';
-import { resolvePokemonTypeSlug } from '../../../shared/utils/pokemon-type-style.util';
-import { type CompareSide, PokedexCompareStore } from '../services/pokedex-compare.store';
-import { PokedexStore } from '../services/pokedex.store';
+import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
+import { type CompareSide, PokedexCompareStore } from '../../services/pokedex-compare.store';
+import { PokedexStore } from '../../services/pokedex.store';
 
 @Component({
-  selector: 'pv-pokedex-compare-dialog',
-  imports: [DialogLightDismissDirective],
+  selector: 'pv-pokedex-compare-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  templateUrl: './pokedex-compare-dialog.component.html',
-  styleUrl: './pokedex-compare-dialog.component.scss',
+  templateUrl: './pokedex-compare-panel.component.html',
+  styleUrl: './pokedex-compare-panel.component.scss',
 })
-export class PokedexCompareDialogComponent {
+export class PokedexComparePanelComponent {
   readonly compare = inject(PokedexCompareStore);
   readonly pokedex = inject(PokedexStore);
   readonly typeSlug = resolvePokemonTypeSlug;
-  private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialogEl');
 
   readonly openInPokedex = output<string>();
+  readonly backToFicha = output<void>();
 
   readonly leftQuery = signal('');
   readonly rightQuery = signal('');
@@ -43,17 +38,7 @@ export class PokedexCompareDialogComponent {
   );
 
   constructor() {
-    effect(() => {
-      const open = this.compare.dialogOpen();
-      const dialog = this.dialogRef()?.nativeElement;
-      if (!dialog) return;
-      if (!open) {
-        if (dialog.open) dialog.close();
-        return;
-      }
-      this.pokedex.ensureCatalogLoaded();
-      if (!dialog.open && typeof dialog.showModal === 'function') dialog.showModal();
-    });
+    this.pokedex.ensureCatalogLoaded();
   }
 
   onQueryInput(side: CompareSide, event: Event): void {
@@ -75,20 +60,27 @@ export class PokedexCompareDialogComponent {
     this.compare.selectSide(side, pokemonName);
   }
 
-  onOpenInPokedex(pokemonName: string): void {
-    this.compare.close();
-    this.openInPokedex.emit(pokemonName);
+  onUseSelectedOnSide(side: CompareSide): void {
+    const active = this.pokedex.selectedPokemon();
+    if (!active) return;
+    if (side === 'left') {
+      this.leftQuery.set(active.name);
+      this.compare.openWithPokemon(active);
+      return;
+    }
+    this.rightQuery.set(active.name);
+    this.compare.selectSide('right', active.name);
   }
 
-  onNativeClose(): void {
-    this.compare.close();
+  onOpenInPokedex(pokemonName: string): void {
+    this.openInPokedex.emit(pokemonName);
   }
 
   private buildQuickSuggestions(rawTerm: string) {
     const state = this.pokedex.catalogState();
     if (state.status !== 'success') return [];
     const term = rawTerm.trim();
-    if (!term) return state.data.slice(0, 6);
-    return filterPokemonCatalog(state.data, term, 6).items;
+    if (!term) return state.data.slice(0, 5);
+    return filterPokemonCatalog(state.data, term, 5).items;
   }
 }

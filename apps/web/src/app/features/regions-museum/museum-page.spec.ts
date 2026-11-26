@@ -1,12 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
-import {
-  POKEAPI_SPRITE_BASE,
-  createCachedPokemonBundleFixture,
-} from '../../testing/pokemon-bundle-fixture.spec-helper';
-import { HolocronStore } from '../holocron/holocron.store';
+import { Router, provideRouter } from '@angular/router';
+import { POKEAPI_SPRITE_BASE } from '../../testing/pokemon-bundle-fixture.spec-helper';
 import { MuseumPageComponent } from './museum-page.component';
 import { MuseumStore } from './museum.store';
 
@@ -64,7 +60,7 @@ describe('MuseumPageComponent & MuseumStore', () => {
     }).compileComponents();
   });
 
-  it('renders 9 regions, timeline 1996-2022, and loads live Kanto region + regional pokedex', () => {
+  it('renders single timeline 1996-2022 without duplicated region cards and loads live Kanto data', () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const museum = TestBed.inject(MuseumStore);
     const fixture = TestBed.createComponent(MuseumPageComponent);
@@ -79,7 +75,7 @@ describe('MuseumPageComponent & MuseumStore', () => {
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
-    expect(host.querySelectorAll('.region-card')).toHaveLength(9);
+    expect(host.querySelectorAll('.region-card')).toHaveLength(0);
     expect(host.querySelectorAll('.timeline-step')).toHaveLength(9);
     expect(host.textContent).toContain('Pallet Town');
     expect(host.textContent).toContain('Bulbasaur');
@@ -110,9 +106,10 @@ describe('MuseumPageComponent & MuseumStore', () => {
     httpMock.expectNone('/api/v1/pokedex/regions/kanto');
   });
 
-  it('handles region error with retry and opens HolocronStore from starter action', () => {
+  it('handles region error with retry and navigates into Pokedex Holocron 3D mode', () => {
     const httpMock = TestBed.inject(HttpTestingController);
-    const holocron = TestBed.inject(HolocronStore);
+    const router = TestBed.inject(Router);
+    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     const fixture = TestBed.createComponent(MuseumPageComponent);
     fixture.detectChanges();
 
@@ -137,10 +134,8 @@ describe('MuseumPageComponent & MuseumStore', () => {
 
     const holocronBtn = host.querySelector('.species-holocron-btn') as HTMLButtonElement;
     holocronBtn.click();
-    expect(holocron.dialogOpen()).toBe(true);
-    httpMock
-      .expectOne('/api/v1/pokedex/pokemon/bulbasaur/bundle')
-      .flush(createCachedPokemonBundleFixture({ id: 1, name: 'bulbasaur', typeName: 'grass' }));
-    expect(holocron.pokemonState().status).toBe('success');
+    expect(navSpy).toHaveBeenCalledWith(['/pokedex'], {
+      queryParams: { q: 'bulbasaur', mode: 'holocron' },
+    });
   });
 });

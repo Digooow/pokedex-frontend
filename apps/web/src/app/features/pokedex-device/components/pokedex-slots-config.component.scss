@@ -6,7 +6,13 @@
   margin-top: 0.2rem;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--pv-visor-muted-ink);
+  color: var(--pv-ink-muted);
+}
+
+.slot-drag-hint {
+  margin: 0.25rem 0 0;
+  font-size: 0.72rem;
+  color: var(--pv-ink-muted);
 }
 
 .slot-feedback-banner {
@@ -18,4 +24,30 @@
   color: var(--pv-slot-banner-ink);
   font-size: 0.74rem;
   font-weight: 700;
+}
+
+.slot-config-item.is-draggable {
+  cursor: grab;
+}
+
+.slot-config-item.is-dragging {
+  opacity: 0.55;
+  cursor: grabbing;
+}
+
+.slot-config-item.is-drop-target {
+  border-color: var(--pv-border-gold);
+  box-shadow: 0 0 0 2px var(--pv-border-gold);
+}
+
+.slot-drag-grip {
+  display: inline-flex;
+  align-items: center;
+  color: var(--pv-ink-muted);
+  flex-shrink: 0;
+}
+
+.btn-slot-acao--move {
+  min-inline-size: 1.85rem;
+  padding-inline: 0.35rem;
 }

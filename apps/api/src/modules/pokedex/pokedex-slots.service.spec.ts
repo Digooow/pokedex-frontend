@@ -154,4 +154,40 @@ describe('PokedexSlotsService (domain orchestration over PokedexSlotRepository)'
       }) as unknown,
     });
   });
+
+  it('swaps slots with validated Outbox event and returns ISO records', async () => {
+    const now = new Date('2026-11-26T10:00:00.000Z');
+    const swapSlotsWithOutbox = jest.fn().mockResolvedValue([
+      {
+        slotIndex: 1,
+        pokemonId: 25,
+        pokemonName: 'pikachu',
+        nickname: null,
+        spriteUrl: null,
+        updatedAt: now,
+      },
+    ]);
+    const repositoryMock = {
+      swapSlotsWithOutbox,
+    } as unknown as PokedexSlotRepository;
+
+    const service = new PokedexSlotsService(repositoryMock);
+    const res = await service.swapSlots(
+      trainerId,
+      'Red_Kanto',
+      { fromIndex: 0, toIndex: 1 },
+      null,
+    );
+
+    expect(res).toHaveLength(1);
+    expect(res[0]?.slotIndex).toBe(1);
+    expect(swapSlotsWithOutbox).toHaveBeenCalledWith({
+      trainerId,
+      fromIndex: 0,
+      toIndex: 1,
+      outboxEvent: expect.objectContaining({
+        eventType: KAFKA_TOPICS.WORLD_EVENTS,
+      }) as unknown,
+    });
+  });
 });

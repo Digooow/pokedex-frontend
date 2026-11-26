@@ -1,0 +1,215 @@
+<section class="compare-embed" aria-label="Comparador 1v1 na Pokédex">
+  <header class="compare-embed__head">
+    <div>
+      <span class="compare-embed__badge">ANÁLISE COMPARATIVA</span>
+      <h3 class="compare-embed__title">Comparador 1v1</h3>
+    </div>
+    <div class="compare-embed__actions">
+      <button type="button" class="compare-btn" (click)="compare.swapSides()">
+        Inverter A ↔ B
+      </button>
+      <button type="button" class="compare-btn" (click)="backToFicha.emit()">
+        Ver Ficha
+      </button>
+    </div>
+  </header>
+
+  <div class="compare-slots">
+    @for (side of ['left', 'right']; track side) {
+      @let slotState = side === 'left' ? compare.leftState() : compare.rightState();
+      @let suggestions = side === 'left' ? leftSuggestions() : rightSuggestions();
+      @let queryVal = side === 'left' ? leftQuery() : rightQuery();
+      <section class="compare-slot" [attr.aria-label]="side === 'left' ? 'Pokémon A' : 'Pokémon B'">
+        <div class="compare-slot__top">
+          <label class="compare-search__label" [for]="'compare-input-' + side">
+            {{ side === 'left' ? 'Lado A' : 'Lado B' }}
+          </label>
+          @if (pokedex.selectedPokemon(); as active) {
+            <button
+              type="button"
+              class="compare-chip"
+              (click)="onUseSelectedOnSide(side === 'left' ? 'left' : 'right')"
+            >
+              Usar {{ active.displayName }}
+            </button>
+          }
+        </div>
+
+        <form class="compare-search" (submit)="onSubmitSide(side === 'left' ? 'left' : 'right', $event)">
+          <div class="compare-search__row">
+            <input
+              [id]="'compare-input-' + side"
+              type="text"
+              class="compare-search__input"
+              [value]="queryVal"
+              placeholder="Nome ou ID..."
+              (input)="onQueryInput(side === 'left' ? 'left' : 'right', $event)"
+            />
+            <button type="submit" class="compare-btn compare-btn--primary">
+              Carregar
+            </button>
+          </div>
+        </form>
+
+        @if (suggestions.length > 0) {
+          <div class="compare-suggestions">
+            @for (item of suggestions; track item.id) {
+              <button
+                type="button"
+                class="compare-chip"
+                (click)="onPickSuggestion(side === 'left' ? 'left' : 'right', item.name)"
+              >
+                #{{ item.id }} {{ item.displayName }}
+              </button>
+            }
+          </div>
+        }
+
+        @if (slotState.status === 'loading') {
+          <p class="compare-state">Carregando ficha...</p>
+        } @else if (slotState.status === 'error') {
+          <div class="compare-state compare-state--error" role="alert">
+            <p>{{ slotState.error.message }}</p>
+            @if (slotState.error.retryable) {
+              <button
+                type="button"
+                class="compare-btn"
+                (click)="compare.retrySide(side === 'left' ? 'left' : 'right')"
+              >
+                Tentar novamente
+              </button>
+            }
+          </div>
+        } @else if (slotState.status === 'success') {
+          @let pk = slotState.data;
+          <div class="compare-fighter">
+            @if (pk.spriteUrl) {
+              <img
+                class="compare-fighter__sprite"
+                [src]="pk.spriteUrl"
+                [alt]="pk.displayName"
+                width="68"
+                height="68"
+              />
+            }
+            <div class="compare-fighter__info">
+              <span class="compare-fighter__id tabular-nums">{{ pk.paddedId }}</span>
+              <h4 class="compare-fighter__name">{{ pk.displayName }}</h4>
+              @if (pk.types.length > 0) {
+                <ul class="compare-fighter__types" aria-label="Tipos">
+                  @for (typeName of pk.types; track typeName) {
+                    <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                      {{ typeName }}
+                    </li>
+                  }
+                </ul>
+              }
+              <p class="compare-fighter__meta">{{ pk.heightMeters }} · {{ pk.weightKg }}</p>
+              <button
+                type="button"
+                class="compare-link-btn"
+                (click)="onOpenInPokedex(pk.name)"
+              >
+                Abrir Ficha →
+              </button>
+            </div>
+          </div>
+        } @else {
+          <p class="compare-state">Selecione um Pokémon acima para comparar.</p>
+        }
+      </section>
+    }
+  </div>
+
+  @if (bothReady()) {
+    <section class="compare-stats" aria-label="Comparativo de Base Stats">
+      <h4 class="compare-section-title">Base Stats &amp; BST</h4>
+      <ul class="compare-stats__list">
+        @for (row of compare.statRows(); track row.key) {
+          <li class="compare-stat-row" [class.is-bst]="row.key === 'bst'">
+            <span class="compare-stat-row__val tabular-nums" [class.is-win]="row.winner === 'left'">
+              {{ row.leftValue }}
+            </span>
+            <div class="compare-stat-row__track compare-stat-row__track--left">
+              <span class="compare-stat-row__fill compare-stat-row__fill--left" [style.width.%]="row.leftPercent"></span>
+            </div>
+            <span class="compare-stat-row__label">
+              {{ row.label }}
+              <small class="compare-stat-row__delta tabular-nums" [class.is-pos]="row.delta > 0" [class.is-neg]="row.delta < 0">
+                {{ row.deltaLabel }}
+              </small>
+            </span>
+            <div class="compare-stat-row__track">
+              <span class="compare-stat-row__fill compare-stat-row__fill--right" [style.width.%]="row.rightPercent"></span>
+            </div>
+            <span class="compare-stat-row__val tabular-nums" [class.is-win]="row.winner === 'right'">
+              {{ row.rightValue }}
+            </span>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="compare-defense" aria-label="Comparativo defensivo de tipos">
+      <h4 class="compare-section-title">Perfil Defensivo (0x–4x)</h4>
+      <div class="compare-defense__grid">
+        @for (entry of [
+          { label: 'Lado A', def: compare.leftDefense() },
+          { label: 'Lado B', def: compare.rightDefense() }
+        ]; track entry.label) {
+          <div class="compare-defense__card">
+            <strong class="compare-defense__heading">{{ entry.label }}</strong>
+            @if (entry.def; as def) {
+              <div class="compare-defense__row">
+                <span class="compare-defense__label">Fraquezas (4x/2x):</span>
+                @let weaknesses = def.quadWeak.concat(def.weak);
+                @if (weaknesses.length > 0) {
+                  <ul class="compare-defense__chips">
+                    @for (typeName of weaknesses; track typeName) {
+                      <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                        {{ typeName }}
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="compare-defense__empty">Nenhuma</span>
+                }
+              </div>
+              <div class="compare-defense__row">
+                <span class="compare-defense__label">Resistências (0.5x/0.25x):</span>
+                @let resistances = def.resistant.concat(def.quadResistant);
+                @if (resistances.length > 0) {
+                  <ul class="compare-defense__chips">
+                    @for (typeName of resistances; track typeName) {
+                      <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                        {{ typeName }}
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="compare-defense__empty">Nenhuma</span>
+                }
+              </div>
+              <div class="compare-defense__row">
+                <span class="compare-defense__label">Imunidades (0x):</span>
+                @if (def.immune.length > 0) {
+                  <ul class="compare-defense__chips">
+                    @for (typeName of def.immune; track typeName) {
+                      <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                        {{ typeName }}
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="compare-defense__empty">Nenhuma</span>
+                }
+              </div>
+            } @else {
+              <p class="compare-defense__line">Matriz disponível no bundle completo.</p>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+</section>

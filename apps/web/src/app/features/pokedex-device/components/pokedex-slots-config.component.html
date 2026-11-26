@@ -18,6 +18,7 @@
           </button>
         }
       </p>
+      <p class="slot-drag-hint">Arraste os itens salvos ou use ↑/↓ para trocar de posição.</p>
     </div>
 
     <div class="slots-config-acoes-globais">
@@ -52,9 +53,32 @@
   <ul class="slots-config-lista">
     @for (idx of indices; track idx) {
       @let slot = getSlot(idx);
-      <li class="slot-config-item">
+      <li
+        class="slot-config-item"
+        [class.is-draggable]="canDragSlot(idx)"
+        [class.is-dragging]="draggingIndex() === idx"
+        [class.is-drop-target]="dragOverIndex() === idx && draggingIndex() !== idx"
+        [attr.draggable]="canDragSlot(idx) ? 'true' : 'false'"
+        (dragstart)="onDragStart(idx, $event)"
+        (dragover)="onDragOver(idx, $event)"
+        (dragleave)="onDragLeave(idx)"
+        (drop)="onDrop(idx, $event)"
+        (dragend)="onDragEnd()"
+      >
         <div class="slot-config-linha">
           <div class="slot-config-info">
+            @if (slot) {
+              <span class="slot-drag-grip" aria-hidden="true" title="Arraste para reordenar">
+                <svg width="12" height="14" viewBox="0 0 12 14" fill="currentColor">
+                  <circle cx="3.5" cy="2.5" r="1.2" />
+                  <circle cx="8.5" cy="2.5" r="1.2" />
+                  <circle cx="3.5" cy="7" r="1.2" />
+                  <circle cx="8.5" cy="7" r="1.2" />
+                  <circle cx="3.5" cy="11.5" r="1.2" />
+                  <circle cx="8.5" cy="11.5" r="1.2" />
+                </svg>
+              </span>
+            }
             <span class="slot-config-num">#{{ padIndex(idx) }}</span>
             @if (slot) {
               <span class="slot-config-nome">{{ formatSlotLabel(slot) }}</span>
@@ -65,6 +89,26 @@
 
           <div class="slot-config-botoes">
             @if (slot) {
+              <button
+                type="button"
+                class="btn-slot-acao btn-slot-acao--move"
+                [disabled]="idx === 0 || slotsStore.busySlot() !== null"
+                [attr.aria-label]="'Mover slot ' + padIndex(idx) + ' para cima'"
+                title="Mover para cima"
+                (click)="onMoveSlot(idx, -1, $event)"
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                class="btn-slot-acao btn-slot-acao--move"
+                [disabled]="idx === indices.length - 1 || slotsStore.busySlot() !== null"
+                [attr.aria-label]="'Mover slot ' + padIndex(idx) + ' para baixo'"
+                title="Mover para baixo"
+                (click)="onMoveSlot(idx, 1, $event)"
+              >
+                ↓
+              </button>
               <button
                 type="button"
                 class="btn-slot-acao"

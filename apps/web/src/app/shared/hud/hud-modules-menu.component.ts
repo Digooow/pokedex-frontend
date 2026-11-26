@@ -34,20 +34,18 @@ export class HudModulesMenuComponent {
   readonly currentUrl = signal(this.router.url);
 
   readonly activeModule = computed<PlatformModuleMeta>(() => {
-    const cleanUrl = this.currentUrl().split('?')[0] ?? '/';
-    if (cleanUrl === '/enciclopedia') {
+    const cleanUrl = this.currentUrl().split('?')[0] ?? '/inicio';
+    if (cleanUrl === '/inicio') {
       return {
-        id: 'museum',
-        label: 'Enciclopédia',
-        route: '/enciclopedia',
-        shortcut: '3',
+        id: 'pokedex',
+        label: 'Início',
+        route: '/inicio',
+        shortcut: '1',
         requiresTrainer: false,
         summary: '',
       };
     }
-    const matched = this.modules.find((mod) =>
-      mod.id === 'pokedex' ? cleanUrl === '/' || cleanUrl === '/pokedex' : cleanUrl === mod.route,
-    );
+    const matched = this.modules.find((mod) => cleanUrl === mod.route);
     return (
       matched ??
       this.modules[1] ?? {
@@ -72,11 +70,8 @@ export class HudModulesMenuComponent {
       });
   }
 
-  isModuleActive(route: string, id: string): boolean {
-    const cleanUrl = this.currentUrl().split('?')[0] ?? '/';
-    if (id === 'pokedex') {
-      return cleanUrl === '/' || cleanUrl === '/pokedex';
-    }
+  isModuleActive(route: string): boolean {
+    const cleanUrl = this.currentUrl().split('?')[0] ?? '/inicio';
     return cleanUrl === route;
   }
 
@@ -109,6 +104,6 @@ export class HudModulesMenuComponent {
       this.auth.requestTrainerAccess(matched.label, matched.summary, matched.route);
       return;
     }
-    void this.router.navigateByUrl(matched.id === 'pokedex' ? '/' : matched.route);
+    void this.router.navigateByUrl(matched.route);
   }
 }

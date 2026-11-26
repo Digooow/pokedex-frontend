@@ -418,6 +418,31 @@
     flex-shrink: 0;
   }
 
+  .catalogo-quick-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-1);
+    padding: 0.3rem 0.45rem;
+    border-radius: var(--raio-pequeno);
+    background-color: var(--bg-catalogo-item);
+    border: 1px solid var(--borda-catalogo);
+    flex-shrink: 0;
+  }
+
+  .catalogo-quick-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--texto-formulario);
+  }
+
+  .catalogo-quick-btns {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
   .catalogo-status {
     font-family: var(--fonte-mono);
     font-size: 0.75rem;

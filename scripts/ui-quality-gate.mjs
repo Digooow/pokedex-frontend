@@ -312,6 +312,36 @@ function resolveApiMockPayload(pathname, state) {
       },
     };
   }
+  if (pathname === '/api/v1/pokedex/moves') {
+    return {
+      cache: 'hit',
+      category: 'move',
+      total: 1,
+      limit: 24,
+      offset: 0,
+      hasMore: false,
+      items: [{ id: 84, name: 'thunder-shock', displayName: 'Thunder Shock', subtitle: null }],
+    };
+  }
+  if (pathname === '/api/v1/pokedex/moves/thunder-shock') {
+    return {
+      cache: 'hit',
+      move: {
+        id: 84,
+        name: 'thunder-shock',
+        displayName: 'Thunder Shock',
+        type: 'electric',
+        damageClass: 'special',
+        power: 40,
+        accuracy: 100,
+        pp: 30,
+        priority: 0,
+        effectChance: 10,
+        shortEffect: 'Has a 10% chance to paralyze the target.',
+        learnedBy: [{ pokemonId: 25, pokemonName: 'pikachu' }],
+      },
+    };
+  }
   if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {
     return SAMPLE_PIKACHU;
   }
@@ -919,8 +949,12 @@ async function runAudit() {
     const { cdp } = browserSession;
 
     const scenarios = [
-      { name: 'home-closed', route: '/', auth: false, openPokedex: false },
-      { name: 'home-open-pikachu', route: '/pokedex?q=pikachu', auth: false, openPokedex: true },
+      { name: 'start-screen', route: '/', auth: false, openPokedex: false },
+      { name: 'home-hub', route: '/inicio', auth: false, openPokedex: false },
+      { name: 'pokedex-closed', route: '/pokedex', auth: false, openPokedex: false },
+      { name: 'pokedex-open-pikachu', route: '/pokedex?q=pikachu', auth: false, openPokedex: true },
+      { name: 'pokedex-calculator', route: '/pokedex?q=pikachu&mode=calculadora', auth: false, openPokedex: true },
+      { name: 'pokedex-encyclopedia', route: '/pokedex?mode=enciclopedia', auth: false, openPokedex: true },
       { name: 'museu', route: '/museu', auth: false, openPokedex: false },
       { name: 'mundo-em-construcao', route: '/mundo', auth: true, openPokedex: false },
     ];

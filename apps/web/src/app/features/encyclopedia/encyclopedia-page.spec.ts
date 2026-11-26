@@ -2,6 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { EncyclopediaStore } from './encyclopedia.store';
+import { PokedexEncyclopediaPanelComponent } from '../pokedex-device/components/visor-modes/pokedex-encyclopedia-panel.component';
 import {
   createCachedMoveDetailFixture,
   createCachedTypeDetailFixture,
@@ -9,21 +11,21 @@ import {
   createEncyclopediaNaturesListFixture,
   createEncyclopediaTypesListFixture,
 } from '../../testing/visor-fixtures.spec-helper';
-import { EncyclopediaPageComponent } from './encyclopedia-page.component';
-import { EncyclopediaStore } from './encyclopedia.store';
 
-describe('EncyclopediaPageComponent', () => {
+describe('PokedexEncyclopediaPanelComponent (Embedded Encyclopedia)', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [EncyclopediaPageComponent],
+      imports: [PokedexEncyclopediaPanelComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
 
-  it('loads moves list, inspects move detail with reverse Pokedex link, and switches to natures/types', () => {
+  it('loads moves list, inspects move detail with embedded reverse Pokemon callback, and switches to natures/types', () => {
     const httpMock = TestBed.inject(HttpTestingController);
-    const fixture = TestBed.createComponent(EncyclopediaPageComponent);
+    const fixture = TestBed.createComponent(PokedexEncyclopediaPanelComponent);
     const store = fixture.debugElement.injector.get(EncyclopediaStore);
+    const selectedEvents: string[] = [];
+    fixture.componentInstance.pokemonSelected.subscribe((name) => selectedEvents.push(name));
     fixture.detectChanges();
 
     httpMock
@@ -44,9 +46,10 @@ describe('EncyclopediaPageComponent', () => {
 
     expect(hostEl.querySelector('.ency-card__title')?.textContent).toContain('Thunder Shock');
     expect(hostEl.querySelector('.ency-badge[data-pokemon-type="electric"]')).not.toBeNull();
-    const reverseLink = hostEl.querySelector('.ency-reverse-link') as HTMLAnchorElement;
-    expect(reverseLink).not.toBeNull();
-    expect(reverseLink.getAttribute('href')).toContain('/pokedex');
+    const reverseBtn = hostEl.querySelector('.ency-reverse-link--btn') as HTMLButtonElement;
+    expect(reverseBtn).not.toBeNull();
+    reverseBtn.click();
+    expect(selectedEvents).toEqual(['pikachu']);
 
     store.setSearchQuery('bolt');
     store.submitSearch();

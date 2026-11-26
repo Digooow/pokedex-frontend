@@ -13,7 +13,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, type ParamMap } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
 import { HolocronStore } from '../holocron/holocron.store';
@@ -24,12 +24,14 @@ import {
   type SlotFeedbackNotice,
 } from './components/pokedex-slots-grid.component';
 import { PokedexVisorComponent } from './components/pokedex-visor.component';
-import { PokedexCompareDialogComponent } from './components/pokedex-compare-dialog.component';
 import { SlotConfirmDialogComponent } from './components/slot-confirm-dialog.component';
 import { PokedexCompareStore } from './services/pokedex-compare.store';
 import { PokedexInputShortcutsService } from './services/pokedex-input-shortcuts.service';
 import { PokedexRpgNavService } from './services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from './services/pokedex-slots.store';
+import type { PokemonDetailView } from './services/pokedex-view-mapper.util';
+import { PokedexVisorDetailStore } from './services/pokedex-visor-detail.store';
+import { parsePokedexRouteIntent } from './services/pokedex-visor-format.util';
 import { PokedexStore } from './services/pokedex.store';
 
 @Component({
@@ -39,7 +41,6 @@ import { PokedexStore } from './services/pokedex.store';
     PokedexSearchPanelComponent,
     PokedexSlotsGridComponent,
     PokedexVisorComponent,
-    PokedexCompareDialogComponent,
     SlotConfirmDialogComponent,
     PvMainHeadingDirective,
   ],
@@ -52,6 +53,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   readonly slotsStore = inject(PokedexSlotsStore);
   readonly compareStore = inject(PokedexCompareStore);
   readonly holocronStore = inject(HolocronStore);
+  readonly visorDetail = inject(PokedexVisorDetailStore);
   readonly rpg = inject(PokedexRpgNavService);
   private readonly shortcuts = inject(PokedexInputShortcutsService);
   private readonly route = inject(ActivatedRoute);
@@ -63,7 +65,8 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
   readonly isScanning = computed(() => this.store.detailState().status === 'loading');
   readonly transientBadge = signal<SlotFeedbackNotice | null>(null);
-
+  readonly encyCat = signal<string | null>(null);
+  readonly encyItem = signal<string | null>(null);
   private transientTimer: ReturnType<typeof setTimeout> | null = null;
   private querySub: Subscription | null = null;
 
@@ -76,7 +79,6 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
         this.rpg.syncCatalogSelection(selected.name);
       });
     });
-
     effect(() => {
       const el = this.aparelhoEl()?.nativeElement;
       if (el) this.rpg.attachHost(el);
@@ -85,25 +87,16 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const initialData = this.route.snapshot.data['initialCoverOpen'];
-    const initialQuery = this.route.snapshot.queryParamMap.get('q')?.trim() ?? '';
-
-    if (initialQuery) {
-      this.openInitialSearch(initialQuery);
-    } else if (typeof initialData === 'boolean') {
-      this.store.setCoverOpen(initialData);
-      if (initialData) this.store.ensureCatalogLoaded();
-    } else {
-      this.store.setCoverOpen(false);
-    }
-
-    this.querySub = this.route.queryParamMap.subscribe((params) => {
-      const q = params.get('q')?.trim();
-      if (q && q !== this.store.lastSearchedTerm()) this.openInitialSearch(q);
-    });
-
+    this.applyRouteParams(
+      this.route.snapshot.queryParamMap,
+      typeof initialData === 'boolean' ? initialData : false,
+    );
+    this.querySub = this.route.queryParamMap.subscribe((params) =>
+      this.applyRouteParams(params, null),
+    );
     this.slotsStore.loadSlots();
     this.shortcuts.attach({
-      onClose: (returnFocus) => this.closePokedex(returnFocus),
+      onClose: (rf) => this.closePokedex(rf),
       onStepBack: () => this.searchPanelCmp()?.stepBackOrClearForm(),
       onConfirmA: () => this.onAControl(),
     });
@@ -116,20 +109,16 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   }
 
   openPokedex = () => this.rpg.openCover(() => this.searchPanelCmp()?.focusInput());
-
-  closePokedex(returnFocusToCover = true): void {
+  closePokedex = (rf = true) =>
     this.rpg.closeCover(() => {
-      if (returnFocusToCover && this.isBrowser) this.coverCmp()?.focusTrigger();
+      if (rf && this.isBrowser) this.coverCmp()?.focusTrigger();
     });
-  }
-
   onCoverTriggerClick = () =>
     this.rpg.isDesiredOpen() ? this.closePokedex(true) : this.openPokedex();
-
-  onDevicePointerMove(event: PointerEvent): void {
+  onDevicePointerMove = (e: PointerEvent) => {
     const el = this.aparelhoEl()?.nativeElement;
-    if (el) this.rpg.onPointerMove(event, el);
-  }
+    if (el) this.rpg.onPointerMove(e, el);
+  };
 
   onDeviceClick(event: Event): void {
     if (!this.rpg.isDesiredOpen()) {
@@ -146,17 +135,31 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   onOpenExistingFromDialog(pokemonName: string): void {
     this.slotsStore.setEditMode(false);
     this.transientBadge.set(null);
+    this.visorDetail.setMode('ficha');
     this.onSelectFromVisor(pokemonName);
   }
 
-  onOverwrittenFromDialog = (info: { readonly slotIndex: number; readonly name: string }) =>
-    this.flashTransientBadge(
-      `Slot ${String(info.slotIndex + 1).padStart(2, '0')} atualizado (${info.name})`,
-      'sucesso',
-    );
+  openPokemonInMode(mode: 'holocron' | 'comparar', pokemon: PokemonDetailView): void {
+    if (mode === 'holocron') this.holocronStore.openWithPokemon(pokemon);
+    else this.compareStore.openWithPokemon(pokemon);
+    this.visorDetail.setMode(mode);
+  }
 
-  toggleSlotsConfig = (moveFocusToVisor: boolean) =>
-    this.rpg.applySlotsConfigTransition(!this.slotsStore.editMode(), moveFocusToVisor);
+  onSendToMode(mode: 'holocron' | 'comparar', pokemonName: string): void {
+    this.slotsStore.setEditMode(false);
+    const active = this.store.selectedPokemon();
+    if (active && active.name.toLowerCase() === pokemonName.toLowerCase()) {
+      this.openPokemonInMode(mode, active);
+      return;
+    }
+    this.store.searchOrSelect(pokemonName);
+    if (mode === 'holocron') this.holocronStore.openByIdentifier(pokemonName);
+    else this.compareStore.selectSide('left', pokemonName);
+    this.visorDetail.setMode(mode);
+  }
+
+  toggleSlotsConfig = (moveFocus: boolean) =>
+    this.rpg.applySlotsConfigTransition(!this.slotsStore.editMode(), moveFocus);
 
   onBlueControl = () =>
     this.rpg.advanceOrClearVisor(
@@ -190,9 +193,22 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     if (this.transientTimer !== null) clearTimeout(this.transientTimer);
   }
 
-  private openInitialSearch(query: string): void {
-    this.store.setCoverOpen(true);
-    this.store.ensureCatalogLoaded();
-    this.store.searchOrSelect(query);
+  private applyRouteParams(params: ParamMap, defaultOpen: boolean | null): void {
+    const intent = parsePokedexRouteIntent((name) => params.get(name), defaultOpen);
+    if (intent.cat || intent.item) {
+      this.encyCat.set(intent.cat);
+      this.encyItem.set(intent.item);
+    }
+    if (intent.query || intent.mode || intent.hasDefault) {
+      this.store.setCoverOpen(intent.shouldOpen);
+      if (intent.shouldOpen) this.store.ensureCatalogLoaded();
+    }
+    if (intent.query && intent.query !== this.store.lastSearchedTerm()) {
+      this.store.searchOrSelect(intent.query);
+    }
+    if (intent.mode === 'holocron' && intent.query) {
+      this.holocronStore.openByIdentifier(intent.query);
+    }
+    if (intent.mode) this.visorDetail.setMode(intent.mode);
   }
 }

@@ -5,22 +5,20 @@ import {
   PokedexSlotRecordSchema,
   PokedexSlotsListResponseSchema,
   SavePokedexSlotSchema,
+  SwapPokedexSlotsSchema,
   TOTAL_POKEDEX_SLOTS,
 } from '@pokeverse/shared';
 import { catchError, map, of } from 'rxjs';
 import { AuthStore } from '../../../core/stores/auth.store';
-import { PokedexLocalSlotsStorage, buildLocalSlotRecord } from './pokedex-local-slots.storage';
+import {
+  PokedexLocalSlotsStorage,
+  buildLocalSlotRecord,
+  buildSwappedSlotMap,
+  formatSlotNumber,
+} from './pokedex-local-slots.storage';
 import type { PokemonDetailView, ResolvedPokemonForSlot } from './pokedex.store';
 
 export type SlotConfirmPrompt =
-  | {
-      readonly kind: 'overwrite-click';
-      readonly slotIndex: number;
-      readonly existingLabel: string;
-      readonly existingName: string;
-      readonly candidate: PokemonDetailView;
-      readonly duplicateSlotIndex: number | null;
-    }
   | {
       readonly kind: 'overwrite-edit';
       readonly slotIndex: number;
@@ -37,10 +35,6 @@ export type SlotConfirmPrompt =
       readonly kind: 'delete-all';
       readonly occupiedCount: number;
     };
-
-function formatSlotNumber(slotIndex: number): string {
-  return String(slotIndex + 1).padStart(2, '0');
-}
 
 @Injectable({ providedIn: 'root' })
 export class PokedexSlotsStore {
@@ -132,11 +126,7 @@ export class PokedexSlotsStore {
         if (!parsed?.success) {
           return;
         }
-        const next = new Map<number, PokedexSlotRecord>();
-        for (const item of parsed.data.slots) {
-          next.set(item.slotIndex, item);
-        }
-        this.cloudSlotsSignal.set(next);
+        this.applyCloudSlotsList(parsed.data.slots);
       });
   }
 
@@ -208,6 +198,47 @@ export class PokedexSlotsStore {
     return true;
   }
 
+  swapSlots(fromIndex: number, toIndex: number): boolean {
+    if (this.busySlotSignal() !== null) {
+      return false;
+    }
+    const parsed = SwapPokedexSlotsSchema.safeParse({ fromIndex, toIndex });
+    if (!parsed.success || !this.slotsMap().has(fromIndex)) {
+      return false;
+    }
+
+    this.editingSlotIndexSignal.set(null);
+    const label = `Slots #${formatSlotNumber(fromIndex)} e #${formatSlotNumber(toIndex)} reorganizados.`;
+
+    if (!this.isCloudBacked()) {
+      const next = buildSwappedSlotMap(this.localSlotsSignal(), fromIndex, toIndex);
+      this.localSlotsSignal.set(next);
+      this.localSlots.persist(next);
+      this.feedbackSignal.set(label);
+      return true;
+    }
+
+    this.busySlotSignal.set(-1);
+    this.feedbackSignal.set(null);
+
+    this.http
+      .patch<unknown>('/api/v1/pokedex/slots/swap', parsed.data)
+      .pipe(
+        map((raw) => PokedexSlotsListResponseSchema.safeParse(raw)),
+        catchError(() => of(null)),
+      )
+      .subscribe((res) => {
+        this.busySlotSignal.set(null);
+        if (!res?.success) {
+          this.feedbackSignal.set('Não foi possível reordenar os slots na nuvem.');
+          return;
+        }
+        this.applyCloudSlotsList(res.data.slots);
+        this.feedbackSignal.set(label);
+      });
+    return true;
+  }
+
   clearSlot(slotIndex: number): void {
     if (slotIndex < 0 || slotIndex >= TOTAL_POKEDEX_SLOTS || this.busySlotSignal() !== null) {
       return;
@@ -272,6 +303,14 @@ export class PokedexSlotsStore {
         this.cloudSlotsSignal.set(new Map<number, PokedexSlotRecord>());
         this.feedbackSignal.set('Todos os slots na nuvem foram liberados.');
       });
+  }
+
+  private applyCloudSlotsList(slots: readonly PokedexSlotRecord[]): void {
+    const next = new Map<number, PokedexSlotRecord>();
+    for (const item of slots) {
+      next.set(item.slotIndex, item);
+    }
+    this.cloudSlotsSignal.set(next);
   }
 
   private mutateSlotMap(

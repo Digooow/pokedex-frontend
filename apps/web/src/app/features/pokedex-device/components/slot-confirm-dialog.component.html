@@ -8,58 +8,6 @@
   @if (slotsStore.pendingConfirm(); as prompt) {
     <div class="slot-dialog__card">
       @switch (prompt.kind) {
-        @case ('overwrite-click') {
-          <span class="slot-dialog__badge">BOTÃO #{{ pad(prompt.slotIndex) }}</span>
-          @if (prompt.duplicateSlotIndex !== null) {
-            <h2 id="pv-slot-confirm-title" class="slot-dialog__title">
-              {{ prompt.candidate.displayName }} já está em outro botão
-            </h2>
-            <p class="slot-dialog__desc">
-              {{ prompt.candidate.displayName }} já está salvo no Botão #{{ pad(prompt.duplicateSlotIndex) }}.
-              Cada Pokémon pode ocupar apenas um botão. Deseja abrir {{ prompt.existingLabel }} que está salvo aqui?
-            </p>
-            <div class="slot-dialog__actions">
-              <button
-                type="button"
-                class="slot-dialog__btn slot-dialog__btn--primary"
-                (click)="onOpenExisting(prompt.existingName)"
-              >
-                Abrir {{ prompt.existingLabel }}
-              </button>
-              <button type="button" class="slot-dialog__btn" (click)="closeDialog()">
-                Cancelar
-              </button>
-            </div>
-          } @else {
-            <h2 id="pv-slot-confirm-title" class="slot-dialog__title">
-              Sobrescrever botão #{{ pad(prompt.slotIndex) }}?
-            </h2>
-            <p class="slot-dialog__desc">
-              Este botão já guarda <strong>{{ prompt.existingLabel }}</strong>. Deseja reescrever
-              com <strong>{{ prompt.candidate.displayName }}</strong> ou apenas abrir o Pokémon salvo?
-            </p>
-            <div class="slot-dialog__actions">
-              <button
-                type="button"
-                class="slot-dialog__btn slot-dialog__btn--primary"
-                (click)="onConfirmOverwriteClick(prompt.slotIndex, prompt.candidate)"
-              >
-                Reescrever com {{ prompt.candidate.displayName }}
-              </button>
-              <button
-                type="button"
-                class="slot-dialog__btn"
-                (click)="onOpenExisting(prompt.existingName)"
-              >
-                Abrir {{ prompt.existingLabel }}
-              </button>
-              <button type="button" class="slot-dialog__btn" (click)="closeDialog()">
-                Cancelar
-              </button>
-            </div>
-          }
-        }
-
         @case ('overwrite-edit') {
           <span class="slot-dialog__badge">EDITAR BOTÃO #{{ pad(prompt.slotIndex) }}</span>
           <h2 id="pv-slot-confirm-title" class="slot-dialog__title">

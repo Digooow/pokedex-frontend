@@ -1,9 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { REGIONS_ATLAS_PREVIEW } from '../../shared/data/regions-atlas.data';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
-import { HolocronStore } from '../holocron/holocron.store';
 import { MuseumRegionInspectorComponent } from './components/museum-region-inspector.component';
 import { MuseumStore } from './museum.store';
 
@@ -16,7 +15,7 @@ import { MuseumStore } from './museum.store';
 })
 export class MuseumPageComponent implements OnInit, OnDestroy {
   readonly museum = inject(MuseumStore);
-  readonly holocron = inject(HolocronStore);
+  private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   readonly regions = REGIONS_ATLAS_PREVIEW;
   private querySub: Subscription | null = null;
@@ -38,7 +37,9 @@ export class MuseumPageComponent implements OnInit, OnDestroy {
   }
 
   onOpenHolocron(speciesName: string): void {
-    this.holocron.openByIdentifier(speciesName);
+    void this.router.navigate(['/pokedex'], {
+      queryParams: { q: speciesName, mode: 'holocron' },
+    });
   }
 
   ngOnDestroy(): void {

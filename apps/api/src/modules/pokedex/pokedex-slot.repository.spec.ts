@@ -168,4 +168,75 @@ describe('PokedexSlotRepository (Prisma isolation, take & OutboxStatus)', () => 
     ).toBe(3);
     expect(outboxCreate).toHaveBeenCalledTimes(2);
   });
+
+  it('swaps or moves slots atomically inside a transaction and enqueues OutboxStatus.PENDING', async () => {
+    const now = new Date('2026-11-26T10:00:00.000Z');
+    const findMany = jest
+      .fn()
+      .mockResolvedValueOnce([
+        {
+          slotIndex: 0,
+          pokemonId: 25,
+          pokemonName: 'pikachu',
+          nickname: 'Sparky',
+          spriteUrl: null,
+          updatedAt: now,
+        },
+        {
+          slotIndex: 2,
+          pokemonId: 1,
+          pokemonName: 'bulbasaur',
+          nickname: null,
+          spriteUrl: null,
+          updatedAt: now,
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          slotIndex: 0,
+          pokemonId: 1,
+          pokemonName: 'bulbasaur',
+          nickname: null,
+          spriteUrl: null,
+          updatedAt: now,
+        },
+        {
+          slotIndex: 2,
+          pokemonId: 25,
+          pokemonName: 'pikachu',
+          nickname: 'Sparky',
+          spriteUrl: null,
+          updatedAt: now,
+        },
+      ]);
+    const deleteMany = jest.fn().mockResolvedValue({ count: 2 });
+    const create = jest.fn().mockResolvedValue({});
+    const outboxCreate = jest.fn().mockResolvedValue({ id: sampleOutbox.id });
+
+    const txMock = {
+      pokedexSlot: { findMany, deleteMany, create },
+      outboxEvent: { create: outboxCreate },
+    };
+    const prismaMock = {
+      $transaction: jest.fn((fn: (tx: typeof txMock) => Promise<unknown>) =>
+        fn(txMock),
+      ),
+    } as unknown as PrismaService;
+
+    const repository = new PokedexSlotRepository(prismaMock);
+    const result = await repository.swapSlotsWithOutbox({
+      trainerId,
+      fromIndex: 0,
+      toIndex: 2,
+      outboxEvent: sampleOutbox,
+    });
+
+    expect(deleteMany).toHaveBeenCalledWith({
+      where: { trainerId, slotIndex: { in: [0, 2] } },
+    });
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(outboxCreate).toHaveBeenCalledTimes(1);
+    expect(result[0]?.pokemonName).toBe('bulbasaur');
+    expect(result[1]?.pokemonName).toBe('pikachu');
+  });
 });

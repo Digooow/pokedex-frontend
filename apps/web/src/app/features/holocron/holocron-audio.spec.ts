@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { AudioEngineService } from '../../core/audio/audio-engine.service';
 import {
   AUDIO_MUTED_STORAGE_KEY,
@@ -12,9 +12,9 @@ import { PrivacyConsentStore } from '../../core/stores/privacy-consent.store';
 import { QualityStore } from '../../core/stores/quality.store';
 import { CrySpectrogramComponent } from '../../shared/components/cry-spectrogram.component';
 import { createCachedPokemonBundleFixture } from '../../testing/pokemon-bundle-fixture.spec-helper';
+import { PokedexHolocronPanelComponent } from '../pokedex-device/components/visor-modes/pokedex-holocron-panel.component';
 import { mapPokemonBundleToView } from '../pokedex-device/services/pokedex-view-mapper.util';
-import { HolocronDialogComponent } from './holocron-dialog.component';
-import { resolveHolocronPalette } from './holocron-palette.util';
+import { resolveHolocronPalette, resolveHolocronTextures } from './holocron-palette.util';
 import { HolocronStore } from './holocron.store';
 
 function resetAudioStorage(): void {
@@ -27,7 +27,7 @@ describe('Holocron 3D & Web Audio Engine', () => {
   beforeEach(async () => {
     resetAudioStorage();
     await TestBed.configureTestingModule({
-      imports: [HolocronDialogComponent, CrySpectrogramComponent],
+      imports: [PokedexHolocronPanelComponent, CrySpectrogramComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
@@ -78,31 +78,32 @@ describe('Holocron 3D & Web Audio Engine', () => {
     engine.stopCry();
   });
 
-  it('resolves elemental palettes, renders 2D fallback in LITE mode, toggles shiny, loads evolution, and navigates to Pokedex', () => {
+  it('resolves elemental palettes, dual-face textures, renders 2D fallback in LITE mode, toggles shiny, and emits evolution click', () => {
     const electricPalette = resolveHolocronPalette(['Electric']);
     const dualPalette = resolveHolocronPalette(['Fire', 'Flying']);
     expect(electricPalette.primary).toBe(0xfacc15);
     expect(dualPalette.secondary).toBe(0x93c5fd);
 
-    const httpMock = TestBed.inject(HttpTestingController);
     const quality = TestBed.inject(QualityStore);
     quality.setPreference('lite');
 
     const holocron = TestBed.inject(HolocronStore);
-    const router = TestBed.inject(Router);
-    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-
     const pikachuView = mapPokemonBundleToView(
       createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }).bundle,
     );
+    const textures = resolveHolocronTextures(pikachuView, false);
+    expect(textures.frontUrl).toContain('/25.png');
+
     holocron.openWithPokemon(pikachuView);
 
-    const fixture = TestBed.createComponent(HolocronDialogComponent);
+    const fixture = TestBed.createComponent(PokedexHolocronPanelComponent);
+    const selectedEvo: string[] = [];
+    fixture.componentInstance.selectSpecies.subscribe((s) => selectedEvo.push(s));
     fixture.detectChanges();
 
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('.holocron-stage__mode')?.textContent).toContain('Modo 2D · LITE');
-    expect(host.textContent).toContain('BST 320');
+    expect(host.querySelector('.holocron-embed__title')?.textContent).toContain('Pikachu');
 
     const shinyBtn = Array.from(host.querySelectorAll('.holocron-ctrl-btn')).find((b) =>
       b.textContent?.includes('Shiny'),
@@ -114,21 +115,11 @@ describe('Holocron 3D & Web Audio Engine', () => {
       '/shiny/',
     );
 
-    const evoButtons = host.querySelectorAll('.holocron-evo-btn') as NodeListOf<HTMLButtonElement>;
+    const evoButtons = host.querySelectorAll(
+      '.holocron-embed__evo-row .holocron-embed__btn',
+    ) as NodeListOf<HTMLButtonElement>;
     evoButtons[1]?.click();
-    fixture.detectChanges();
-    httpMock
-      .expectOne('/api/v1/pokedex/pokemon/raichu/bundle')
-      .flush(createCachedPokemonBundleFixture({ id: 26, name: 'raichu', typeName: 'electric' }));
-    fixture.detectChanges();
-    expect(host.querySelector('#holocron-dialog-title')?.textContent).toContain('Raichu');
-
-    const openPokedexBtn = Array.from(host.querySelectorAll('.holocron-btn')).find((b) =>
-      b.textContent?.includes('Abrir na Pokédex'),
-    ) as HTMLButtonElement;
-    openPokedexBtn.click();
-    expect(holocron.dialogOpen()).toBe(false);
-    expect(navSpy).toHaveBeenCalledWith(['/pokedex'], { queryParams: { q: 'raichu' } });
+    expect(selectedEvo).toEqual(['raichu']);
   });
 
   it('degrades gracefully to 2D fallback when webglcontextlost is signaled', () => {
@@ -141,7 +132,7 @@ describe('Holocron 3D & Web Audio Engine', () => {
     holocron.openWithPokemon(pikachuView);
     holocron.markWebGlLost();
 
-    const fixture = TestBed.createComponent(HolocronDialogComponent);
+    const fixture = TestBed.createComponent(PokedexHolocronPanelComponent);
     fixture.detectChanges();
     const host = fixture.nativeElement as HTMLElement;
     expect(host.querySelector('.holocron-stage__mode')?.textContent).toContain(

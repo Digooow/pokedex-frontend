@@ -32,17 +32,65 @@ export class PokedexSlotsConfigComponent {
   readonly draftNickname = signal('');
   readonly editError = signal<string | null>(null);
   readonly savingEdit = signal(false);
+  readonly draggingIndex = signal<number | null>(null);
+  readonly dragOverIndex = signal<number | null>(null);
 
   getSlot = (idx: number): PokedexSlotRecord | null => this.slotsStore.slotsMap().get(idx) ?? null;
   padIndex = (idx: number): string => String(idx + 1).padStart(2, '0');
   readValue = (event: Event): string => (event.target as HTMLInputElement).value;
   findSavedSlot = (pokemonId: number, pokemonName: string): number | null =>
     this.slotsStore.findSlotByPokemon(pokemonId, pokemonName);
+  canDragSlot = (idx: number): boolean =>
+    this.getSlot(idx) !== null &&
+    this.slotsStore.editingSlotIndex() === null &&
+    this.slotsStore.busySlot() === null;
 
   formatSlotLabel(slot: PokedexSlotRecord): string {
     const display = formatPokeApiText(slot.pokemonName);
     const idSuffix = slot.pokemonId > 0 ? ` (#${String(slot.pokemonId).padStart(4, '0')})` : '';
     return slot.nickname ? `${slot.nickname} — ${display}` : `${display}${idSuffix}`;
+  }
+
+  onDragStart(idx: number, event: DragEvent): void {
+    if (!this.canDragSlot(idx)) return event.preventDefault();
+    this.draggingIndex.set(idx);
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/plain', String(idx));
+    }
+  }
+
+  onDragOver(idx: number, event: DragEvent): void {
+    if (this.draggingIndex() === null) return;
+    event.preventDefault();
+    if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+    if (this.dragOverIndex() !== idx) this.dragOverIndex.set(idx);
+  }
+
+  onDragLeave = (idx: number) => {
+    if (this.dragOverIndex() === idx) this.dragOverIndex.set(null);
+  };
+
+  onDrop(targetIdx: number, event: DragEvent): void {
+    event.preventDefault();
+    const raw = event.dataTransfer?.getData('text/plain') ?? '';
+    const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN;
+    const fromIdx = this.draggingIndex() ?? (Number.isNaN(parsed) ? null : parsed);
+    this.onDragEnd();
+    if (fromIdx !== null && fromIdx !== targetIdx) this.slotsStore.swapSlots(fromIdx, targetIdx);
+  }
+
+  onDragEnd = () => {
+    this.draggingIndex.set(null);
+    this.dragOverIndex.set(null);
+  };
+
+  onMoveSlot(idx: number, delta: -1 | 1, event: Event): void {
+    event.stopPropagation();
+    const targetIdx = idx + delta;
+    if (targetIdx >= 0 && targetIdx < SLOT_INDICES.length) {
+      this.slotsStore.swapSlots(idx, targetIdx);
+    }
   }
 
   onRequestTrainerLogin(event: Event): void {
@@ -56,8 +104,7 @@ export class PokedexSlotsConfigComponent {
   onClearAll(event: Event): void {
     event.stopPropagation();
     const occupiedCount = this.slotsStore.slotsMap().size;
-    if (occupiedCount === 0) return;
-    this.slotsStore.requestConfirm({ kind: 'delete-all', occupiedCount });
+    if (occupiedCount > 0) this.slotsStore.requestConfirm({ kind: 'delete-all', occupiedCount });
   }
 
   onCloseConfig(event: Event): void {
@@ -88,9 +135,7 @@ export class PokedexSlotsConfigComponent {
     this.rpg.rpgLevel.set('edicao');
     this.rpg.rpgScreen.set('visor');
     this.rpg.rpgControlIndices.update((prev) => ({ ...prev, edicao: 0 }));
-    if (this.rpg.keyboardRpgActive()) {
-      setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
-    }
+    if (this.rpg.keyboardRpgActive()) setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
   }
 
   onCancelEdit(event: Event): void {
@@ -98,9 +143,7 @@ export class PokedexSlotsConfigComponent {
     this.editError.set(null);
     this.slotsStore.setEditingSlotIndex(null);
     this.rpg.rpgLevel.set('itens');
-    if (this.rpg.keyboardRpgActive()) {
-      setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
-    }
+    if (this.rpg.keyboardRpgActive()) setTimeout(() => this.rpg.syncFocusVisuals(true), 0);
   }
 
   onRemoveSlot(idx: number, event: Event): void {
@@ -123,14 +166,9 @@ export class PokedexSlotsConfigComponent {
   async onSaveEdit(event: Event, idx: number, slotAtual: PokedexSlotRecord): Promise<void> {
     event.preventDefault();
     event.stopPropagation();
-
     const term = this.draftTerm().trim().toLowerCase().replaceAll(/\s+/g, '-');
     const nickname = this.draftNickname().trim().slice(0, 40) || null;
-    if (!term) {
-      this.editError.set('Informe um nome ou ID válido da PokéAPI.');
-      return;
-    }
-
+    if (!term) return this.editError.set('Informe um nome ou ID válido da PokéAPI.');
     if (term === slotAtual.pokemonName.toLowerCase()) {
       this.editError.set(null);
       this.slotsStore.saveSlot(
@@ -146,21 +184,18 @@ export class PokedexSlotsConfigComponent {
       this.rpg.rpgLevel.set('itens');
       return;
     }
-
     this.savingEdit.set(true);
     this.editError.set(null);
     try {
       const resolved = await this.pokedex.resolvePokemonForSlot(term);
       if (!resolved) {
-        this.editError.set('Pokémon não encontrado na PokéAPI. Verifique o nome ou ID.');
-        return;
+        return this.editError.set('Pokémon não encontrado na PokéAPI. Verifique o nome ou ID.');
       }
       const dupSlot = this.slotsStore.findSlotByPokemon(resolved.id, resolved.name, idx);
       if (dupSlot !== null) {
-        this.editError.set(
+        return this.editError.set(
           `${resolved.displayName} já está cadastrado no Botão #${this.padIndex(dupSlot)}. Apenas 1 Pokémon por botão.`,
         );
-        return;
       }
       this.slotsStore.requestConfirm({
         kind: 'overwrite-edit',

@@ -7,6 +7,13 @@ export interface HolocronPalette {
   readonly accent: number;
 }
 
+export interface HolocronTexturePair {
+  readonly frontUrl: string | null;
+  readonly backUrl: string | null;
+}
+
+export const LOCAL_POKEMON_GLB_MODELS: Readonly<Record<number, string>> = {};
+
 const DEFAULT_PALETTE: HolocronPalette = {
   primary: 0x38bdf8,
   secondary: 0x0ea5e9,
@@ -69,4 +76,18 @@ export function resolveHolocronSpriteUrl(
 ): string | null {
   const resolved = resolveVisorSpriteUrl(pokemon, 'artwork', shiny, false);
   return resolved.primary ?? resolved.fallback;
+}
+
+export function resolveHolocronTextures(
+  pokemon: PokemonDetailView,
+  shiny: boolean,
+): HolocronTexturePair {
+  const frontUrl = resolveHolocronSpriteUrl(pokemon, shiny);
+  const def = pokemon.bundle?.pokemon.sprites.default;
+  const backUrl = shiny ? (def?.backShiny ?? def?.backDefault ?? null) : (def?.backDefault ?? null);
+  return { frontUrl, backUrl };
+}
+
+export function resolveLocalPokemonGlbUrl(pokemonId: number): string | null {
+  return LOCAL_POKEMON_GLB_MODELS[pokemonId] ?? null;
 }

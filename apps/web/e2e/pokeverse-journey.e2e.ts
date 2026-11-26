@@ -1,14 +1,19 @@
 import { expect, test } from './bff-e2e-fixture';
 
 test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
-  test('authenticates visitor through BFF cookie login and unlocks protected Arcade route', async ({
+  test('starts on Press Start screen, enters Home Hub, authenticates via BFF, and unlocks Arcade', async ({
     page,
     bff,
   }) => {
     await page.goto(`${bff.baseUrl}/`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('#main-heading')).toBeVisible();
+    await expect(page.locator('#main-heading')).toContainText('PokéVerse');
+    await expect(page.locator('.hud-topbar')).toHaveCount(0);
 
     await page.getByRole('button', { name: 'Apenas essenciais' }).click();
+    await page.locator('#btn-iniciar-jogo').click();
+
+    await expect(page).toHaveURL(/\/inicio$/);
+    await expect(page.locator('.hud-topbar')).toBeVisible();
 
     await page.locator('.hud-modules-trigger').click();
     const lockedArcadeBtn = page.locator('button.hud-menu-item--locked', {
@@ -38,11 +43,11 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(bff.consoleErrors).toEqual([]);
   });
 
-  test('opens 3D Pokédex, searches and selects Pikachu in 2 clicks, saves slot 01, and checks mobile viewport', async ({
+  test('opens 3D Pokédex, selects Pikachu in 2 clicks, saves and opens slot 01 without modal, and checks mobile viewport', async ({
     page,
     bff,
   }) => {
-    await page.goto(`${bff.baseUrl}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${bff.baseUrl}/pokedex`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('#main-heading')).toBeVisible();
 
     const aparelho = page.locator('#pokedex-aparelho');
@@ -84,6 +89,9 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await slotZero.click();
     await expect(slotZero).toHaveClass(/is-ocupado/);
 
+    await slotZero.click();
+    await expect(page.locator('dialog.slot-dialog[open]')).toHaveCount(0);
+
     await page.setViewportSize({ width: 375, height: 812 });
     const hasOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -92,11 +100,11 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(bff.consoleErrors).toEqual([]);
   });
 
-  test('applies combined Pokedex filters, runs 1v1 comparison, and navigates Encyclopedia reverse lookup', async ({
+  test('applies combined Pokedex filters, runs embedded 1v1 Comparator, Stat Calculator, and Encyclopedia inside Visor', async ({
     page,
     bff,
   }) => {
-    await page.goto(`${bff.baseUrl}/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${bff.baseUrl}/pokedex`, { waitUntil: 'domcontentloaded' });
     await page.locator('#btn-abrir-pokedex').click();
 
     await page.locator('#btn-filtros-catalogo').click();
@@ -110,17 +118,25 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
 
     await page.locator('#btn-comparar-1v1').click();
-    const compareDialog = page.locator('dialog.compare-dialog');
-    await expect(compareDialog).toBeVisible();
-    await compareDialog.locator('.compare-chip', { hasText: 'Pikachu' }).nth(1).click();
-    await expect(compareDialog.locator('.compare-stats')).toBeVisible();
-    await compareDialog.getByRole('button', { name: 'Fechar' }).click();
+    const comparePanel = page.locator('.compare-embed');
+    await expect(comparePanel).toBeVisible();
+    await comparePanel
+      .locator('.compare-slot')
+      .nth(1)
+      .locator('.compare-chip', { hasText: 'Pikachu' })
+      .first()
+      .click();
+    await expect(comparePanel.locator('.compare-stats')).toBeVisible();
 
-    await page.goto(`${bff.baseUrl}/enciclopedia`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1#main-heading')).toContainText('Enciclopédia PokéVerse');
+    await page.locator('#visor-mode-calculadora').click();
+    await expect(page.locator('.calc-panel')).toBeVisible();
+    await expect(page.locator('.calc-footer__total')).toBeVisible();
+
+    await page.locator('#visor-mode-enciclopedia').click();
+    await expect(page.locator('.ency-embed')).toBeVisible();
     await page.locator('.ency-cat-btn', { hasText: 'Tipos' }).click();
     await page.locator('.ency-list-item', { hasText: 'Electric' }).click();
-    await expect(page.locator('.ency-reverse-link', { hasText: 'Pikachu' })).toBeVisible();
+    await expect(page.locator('.ency-reverse-link--btn', { hasText: 'Pikachu' })).toBeVisible();
 
     await page.setViewportSize({ width: 375, height: 812 });
     const hasOverflow = await page.evaluate(
@@ -130,29 +146,21 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(bff.consoleErrors).toEqual([]);
   });
 
-  test('explores expanded 9-region Museum with timeline & live data and opens Holocron 3D from Museum and Pokédex', async ({
+  test('explores single-timeline 9-region Museum without duplicated cards and opens embedded Holocron 3D in Pokédex', async ({
     page,
     bff,
   }) => {
     await page.goto(`${bff.baseUrl}/museu`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('h1#main-heading')).toContainText('Museu das Regiões');
-    await expect(page.locator('.region-card')).toHaveCount(9);
+    await expect(page.locator('.region-card')).toHaveCount(0);
     await expect(page.locator('.timeline-step')).toHaveCount(9);
     await expect(page.locator('.inspector')).toContainText('Pallet Town');
     await expect(page.locator('.native-grid')).toContainText('Bulbasaur');
 
     await page.locator('.species-holocron-btn').first().click();
-    const holocronDialog = page.locator('dialog.holocron-dialog');
-    await expect(holocronDialog).toBeVisible();
-    await expect(holocronDialog.locator('.cry-spec')).toBeVisible();
-    await holocronDialog.getByRole('button', { name: 'Fechar' }).click();
-    await expect(holocronDialog).not.toBeVisible();
-
-    await page.goto(`${bff.baseUrl}/pokedex?q=pikachu`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
-    await page.locator('#btn-holocron-3d').click();
-    await expect(holocronDialog).toBeVisible();
-    await expect(holocronDialog.locator('#holocron-dialog-title')).toContainText('Pikachu');
+    await expect(page).toHaveURL(/\/pokedex\?q=bulbasaur&mode=holocron$/);
+    await expect(page.locator('.holocron-embed')).toBeVisible();
+    await expect(page.locator('.holocron-embed .cry-spec')).toBeVisible();
 
     await page.setViewportSize({ width: 375, height: 812 });
     const hasOverflow = await page.evaluate(

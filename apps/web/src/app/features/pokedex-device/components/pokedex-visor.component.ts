@@ -18,8 +18,17 @@ import { PokedexRpgNavService } from '../services/pokedex-rpg-nav.service';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 import type { PokedexCacheSource, PokemonDetailView } from '../services/pokedex-view-mapper.util';
 import { PokedexVisorDetailStore } from '../services/pokedex-visor-detail.store';
-import { VISOR_TABS, type VisorTabId } from '../services/pokedex-visor-format.util';
+import {
+  VISOR_MODES,
+  VISOR_TABS,
+  type VisorModeId,
+  type VisorTabId,
+} from '../services/pokedex-visor-format.util';
 import { PokedexSlotsConfigComponent } from './pokedex-slots-config.component';
+import { PokedexComparePanelComponent } from './visor-modes/pokedex-compare-panel.component';
+import { PokedexEncyclopediaPanelComponent } from './visor-modes/pokedex-encyclopedia-panel.component';
+import { PokedexHolocronPanelComponent } from './visor-modes/pokedex-holocron-panel.component';
+import { PokedexStatCalcPanelComponent } from './visor-modes/pokedex-stat-calc-panel.component';
 import { VisorEvolutionTabComponent } from './visor-tabs/visor-evolution-tab.component';
 import { VisorMapTabComponent } from './visor-tabs/visor-map-tab.component';
 import { VisorMovesTabComponent } from './visor-tabs/visor-moves-tab.component';
@@ -30,6 +39,10 @@ import { VisorStatsTabComponent } from './visor-tabs/visor-stats-tab.component';
   selector: 'pv-pokedex-visor',
   imports: [
     PokedexSlotsConfigComponent,
+    PokedexHolocronPanelComponent,
+    PokedexComparePanelComponent,
+    PokedexStatCalcPanelComponent,
+    PokedexEncyclopediaPanelComponent,
     PvRpgContainerDirective,
     PvRpgFocusableDirective,
     VisorOverviewTabComponent,
@@ -55,13 +68,17 @@ export class PokedexVisorComponent {
     readonly variant: 'sucesso' | 'aviso';
   } | null>(null);
   readonly suggestions = input<readonly SearchablePokemonItem[]>([]);
+  readonly encyclopediaCategory = input<string | null>(null);
+  readonly encyclopediaItem = input<string | null>(null);
 
   readonly retry = output<void>();
   readonly selectSuggestion = output<string>();
   readonly slotOpened = output<string>();
   readonly compareRequested = output<PokemonDetailView>();
   readonly holocronRequested = output<PokemonDetailView>();
+  readonly calculatorRequested = output<void>();
 
+  readonly modes = VISOR_MODES;
   readonly tabs = VISOR_TABS;
   readonly isLite = computed(() => this.quality.tier() === 'lite');
   readonly emptyStateTitle = 'Nenhum Pokémon no visor';
@@ -119,18 +136,29 @@ export class PokedexVisorComponent {
     return state.status === 'success' ? state.data : null;
   }
 
-  isNotFoundError(): boolean {
+  isNotFoundError = (): boolean => {
     const state = this.detailState();
     return state.status === 'error' && state.error.code === 'POKEMON_NOT_FOUND';
-  }
+  };
 
-  errorMessage(): string {
+  errorMessage = (): string => {
     const state = this.detailState();
     return state.status === 'error' ? state.error.message : '';
+  };
+
+  padId = (id: number): string => (id > 0 ? String(id).padStart(4, '0') : '----');
+
+  onSelectMode(modeId: VisorModeId, event: Event): void {
+    event.stopPropagation();
+    const pk = this.pokemonData();
+    if (modeId === 'holocron' && pk) this.holocronRequested.emit(pk);
+    else if (modeId === 'comparar' && pk) this.compareRequested.emit(pk);
+    else this.visorDetail.setMode(modeId);
   }
 
-  padId(id: number): string {
-    return id > 0 ? String(id).padStart(4, '0') : '----';
+  onSelectFromMode(pokemonName: string): void {
+    this.visorDetail.setMode('ficha');
+    this.selectSuggestion.emit(pokemonName);
   }
 
   onSelectTab(tabId: VisorTabId, pokemonName: string, event: Event): void {
@@ -139,16 +167,10 @@ export class PokedexVisorComponent {
   }
 
   onTabKeyDown(event: KeyboardEvent, pokemonName: string): void {
-    if (event.key === 'ArrowRight') {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
       event.preventDefault();
       event.stopPropagation();
-      this.visorDetail.stepTab(1, pokemonName);
-      return;
-    }
-    if (event.key === 'ArrowLeft') {
-      event.preventDefault();
-      event.stopPropagation();
-      this.visorDetail.stepTab(-1, pokemonName);
+      this.visorDetail.stepTab(event.key === 'ArrowRight' ? 1 : -1, pokemonName);
       return;
     }
     if (event.key === 'Home' && this.tabs[0]) {
@@ -170,9 +192,7 @@ export class PokedexVisorComponent {
     this.selectSuggestion.emit(name);
   }
 
-  onSelectSpecies(name: string): void {
-    this.selectSuggestion.emit(name);
-  }
+  onSelectSpecies = (name: string) => this.selectSuggestion.emit(name);
 
   onRetryClick(event: Event): void {
     event.stopPropagation();

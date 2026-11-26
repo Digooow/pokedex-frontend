@@ -1,0 +1,211 @@
+.calc-panel {
+  display: grid;
+  gap: var(--pv-space-3);
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-lcd-hairline);
+  background: var(--bg-cartao-interno);
+  color: var(--texto-lcd-principal);
+}
+
+.calc-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pv-space-2);
+  padding-bottom: var(--pv-space-2);
+  border-bottom: 1px solid var(--pv-lcd-hairline);
+}
+
+.calc-head__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.calc-head__meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  color: var(--texto-lcd-secundario);
+}
+
+.calc-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--pv-space-2);
+}
+
+.calc-field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.calc-field__label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--texto-lcd-secundario);
+}
+
+.calc-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pv-space-1);
+}
+
+.calc-input,
+.calc-select,
+.calc-mini-input {
+  min-block-size: 2.25rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: var(--pv-radius-xs);
+  border: 1px solid var(--borda-visor-acento);
+  background: var(--pv-visor-paper);
+  color: var(--pv-ink-on-light);
+  font-family: var(--pv-font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.calc-input {
+  inline-size: 4.25rem;
+}
+
+.calc-select {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.calc-mini-input {
+  inline-size: 100%;
+  min-inline-size: 2.8rem;
+  text-align: center;
+}
+
+.calc-btn,
+.calc-chip {
+  min-block-size: 2.25rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: var(--pv-radius-xs);
+  border: 1px solid var(--borda-lcd-suave);
+  background: var(--pv-lcd-pill-bg);
+  color: var(--texto-lcd-principal);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.calc-btn:hover,
+.calc-chip:hover {
+  background: var(--pv-lcd-tab-hover-bg);
+}
+
+.calc-presets {
+  display: grid;
+  gap: var(--pv-space-1);
+}
+
+.calc-presets__ev {
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--pv-cyan);
+}
+
+.calc-table {
+  display: grid;
+  gap: var(--pv-space-1);
+}
+
+.calc-row {
+  display: grid;
+  grid-template-columns: 2.6rem 2.3rem 3.1rem 3.3rem 1fr;
+  align-items: center;
+  gap: var(--pv-space-1);
+  padding: 0.25rem 0.35rem;
+  border-radius: var(--pv-radius-xs);
+  background: var(--bg-dado-celula);
+}
+
+.calc-row--head {
+  background: transparent;
+  font-family: var(--pv-font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--texto-lcd-secundario);
+}
+
+.calc-row__label {
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.calc-row__num {
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  color: var(--texto-lcd-secundario);
+}
+
+.calc-final {
+  display: flex;
+  align-items: center;
+  gap: var(--pv-space-1);
+  min-inline-size: 0;
+}
+
+.calc-final__val {
+  min-inline-size: 2.1rem;
+  text-align: end;
+  font-family: var(--pv-font-mono);
+  font-size: 0.8rem;
+}
+
+.calc-final__track {
+  flex: 1 1 auto;
+  block-size: 0.45rem;
+  border-radius: var(--pv-radius-pill);
+  background: var(--pv-stat-track-bg);
+  overflow: hidden;
+}
+
+.calc-final__fill {
+  display: block;
+  block-size: 100%;
+  background: var(--pv-stat-high);
+}
+
+.calc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--pv-space-2);
+  border-top: 1px solid var(--pv-lcd-hairline);
+  font-size: 0.8125rem;
+}
+
+.calc-footer__total {
+  font-family: var(--pv-font-mono);
+  font-size: 1rem;
+  color: var(--pv-border-gold);
+}
+
+.calc-empty {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-3);
+  text-align: center;
+}
+
+.calc-empty h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.calc-empty p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--texto-lcd-secundario);
+}

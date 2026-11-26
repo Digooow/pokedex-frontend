@@ -1,6 +1,6 @@
 # PokéVerse — Regras Inegociáveis do Repositório
 
-Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A fila de melhorias, correções e features com **prioridade máxima** no projeto vive em [docs/00-fila-prioritaria-melhorias.md](docs/00-fila-prioritaria-melhorias.md).
 
 ---
 

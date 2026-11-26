@@ -368,56 +368,11 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     const slotButtons = fixture.nativeElement.querySelectorAll(
       '.btn-slot-azul',
     ) as NodeListOf<HTMLButtonElement>;
-    const clickDialogPrimary = () => {
-      (
-        fixture.nativeElement.querySelector('.slot-dialog__btn--primary') as HTMLButtonElement
-      ).click();
-      fixture.detectChanges();
-    };
-    return { httpMock, store, slotsStore, fixture, slotButtons, clickDialogPrimary };
+    return { httpMock, store, slotsStore, fixture, slotButtons };
   }
 
-  it('opens occupied slot directly when visor is empty or same Pokémon, and flags duplicate when already saved elsewhere', () => {
-    const { httpMock, store, slotsStore, fixture, slotButtons, clickDialogPrimary } =
-      setupOpenDeviceWithSlots();
-
-    slotButtons[0]?.click();
-    fixture.detectChanges();
-    expect(slotsStore.pendingConfirm()).toBeNull();
-    httpMock
-      .expectOne('/api/v1/pokedex/pokemon/pikachu/bundle')
-      .flush(createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
-    fixture.detectChanges();
-    expect(store.selectedPokemon()?.name).toBe('pikachu');
-
-    slotButtons[0]?.click();
-    fixture.detectChanges();
-    expect(slotsStore.pendingConfirm()).toBeNull();
-    httpMock
-      .expectOne('/api/v1/pokedex/pokemon/pikachu/bundle')
-      .flush(createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
-    fixture.detectChanges();
-
-    slotButtons[1]?.click();
-    fixture.detectChanges();
-    const duplicatePrompt = slotsStore.pendingConfirm();
-    expect(duplicatePrompt?.kind).toBe('overwrite-click');
-    if (duplicatePrompt?.kind === 'overwrite-click') {
-      expect(duplicatePrompt.duplicateSlotIndex).toBe(0);
-    }
-
-    clickDialogPrimary();
-    expect(slotsStore.pendingConfirm()).toBeNull();
-    httpMock
-      .expectOne('/api/v1/pokedex/pokemon/bulbasaur/bundle')
-      .flush(createCachedPokemonBundleFixture({ id: 1, name: 'bulbasaur', typeName: 'grass' }));
-    fixture.detectChanges();
-    expect(store.selectedPokemon()?.name).toBe('bulbasaur');
-  });
-
-  it('opens overwrite-click confirmation modal when clicking an occupied slot with a different non-duplicate Pokémon in visor', () => {
-    const { httpMock, store, slotsStore, fixture, slotButtons, clickDialogPrimary } =
-      setupOpenDeviceWithSlots();
+  it('opens occupied slot directly without confirmation modal and swaps slots cleanly', () => {
+    const { httpMock, store, slotsStore, fixture, slotButtons } = setupOpenDeviceWithSlots();
 
     store.loadPokemonDetail('charmander');
     fixture.detectChanges();
@@ -429,20 +384,32 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
 
     slotButtons[0]?.click();
     fixture.detectChanges();
-
-    const overwritePrompt = slotsStore.pendingConfirm();
-    expect(overwritePrompt?.kind).toBe('overwrite-click');
-    if (overwritePrompt?.kind === 'overwrite-click') {
-      expect(overwritePrompt.duplicateSlotIndex).toBeNull();
-      expect(overwritePrompt.existingName).toBe('pikachu');
-      expect(overwritePrompt.candidate.name).toBe('charmander');
-    }
-
-    clickDialogPrimary();
     expect(slotsStore.pendingConfirm()).toBeNull();
-    expect(slotsStore.slotsMap().get(0)?.pokemonName).toBe('charmander');
-    expect(fixture.nativeElement.querySelector('#status-badge')?.textContent).toContain(
-      'Slot 01 atualizado',
-    );
+    expect(slotsStore.slotsMap().get(0)?.pokemonName).toBe('pikachu');
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/pikachu/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }));
+    fixture.detectChanges();
+    expect(store.selectedPokemon()?.name).toBe('pikachu');
+
+    slotButtons[1]?.click();
+    fixture.detectChanges();
+    expect(slotsStore.pendingConfirm()).toBeNull();
+    httpMock
+      .expectOne('/api/v1/pokedex/pokemon/bulbasaur/bundle')
+      .flush(createCachedPokemonBundleFixture({ id: 1, name: 'bulbasaur', typeName: 'grass' }));
+    fixture.detectChanges();
+    expect(store.selectedPokemon()?.name).toBe('bulbasaur');
+
+    expect(slotsStore.swapSlots(0, 1)).toBe(true);
+    expect(slotsStore.slotsMap().get(0)?.pokemonName).toBe('bulbasaur');
+    expect(slotsStore.slotsMap().get(1)?.pokemonName).toBe('pikachu');
+
+    (fixture.nativeElement.querySelector('#btn-config-slots') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const moveDownBtn = fixture.nativeElement.querySelector(
+      '.btn-slot-acao--move[aria-label*="para baixo"]',
+    ) as HTMLButtonElement;
+    expect(moveDownBtn).not.toBeNull();
   });
 });

@@ -130,6 +130,30 @@
         <pv-pokedex-filters-panel />
       }
 
+      @if (quickTarget(); as target) {
+        <div class="catalogo-quick-actions" aria-label="Enviar Pokémon selecionado para módulos">
+          <span class="catalogo-quick-label">{{ target.displayName }}:</span>
+          <div class="catalogo-quick-btns">
+            <button
+              type="button"
+              id="btn-busca-holocron"
+              class="btn-catalogo-recarregar"
+              (click)="onSendQuickAction('holocron', $event)"
+            >
+              Holocron 3D
+            </button>
+            <button
+              type="button"
+              id="btn-busca-comparar"
+              class="btn-catalogo-recarregar"
+              (click)="onSendQuickAction('compare', $event)"
+            >
+              Comparar 1v1
+            </button>
+          </div>
+        </div>
+      }
+
       <ul
         id="pokemon-catalogo"
         class="pokemon-catalogo-lista"

@@ -1,0 +1,107 @@
+<section class="ency-embed" aria-label="Enciclopédia PokéVerse na Pokédex">
+  <header class="ency-embed__head">
+    <h3 class="ency-embed__title">Enciclopédia PokéVerse</h3>
+    <p class="ency-embed__subtitle">{{ store.categoryConfig().description }}</p>
+  </header>
+
+  <nav class="ency-categories" aria-label="Categorias da Enciclopédia">
+    @for (cat of categories; track cat.key) {
+      <button
+        type="button"
+        class="ency-cat-btn"
+        [attr.aria-pressed]="store.activeCategory() === cat.key"
+        (click)="store.selectCategory(cat.key)"
+      >
+        {{ cat.label }}
+      </button>
+    }
+  </nav>
+
+  <div class="ency-sidebar">
+    <form class="ency-search" (submit)="onSearchSubmit($event)">
+      <label for="ency-search-input" class="visually-hidden">
+        Filtrar {{ store.categoryConfig().label }}
+      </label>
+      <input
+        id="ency-search-input"
+        type="search"
+        class="ency-search__input"
+        [value]="store.searchQuery()"
+        [placeholder]="'Buscar em ' + store.categoryConfig().label + '...'"
+        (input)="onSearchInput($event)"
+      />
+      <button type="submit" class="ency-btn ency-btn--primary">Buscar</button>
+      @if (store.committedQuery()) {
+        <button type="button" class="ency-btn" (click)="store.clearSearch()">Limpar</button>
+      }
+    </form>
+
+    @let listState = store.listState();
+    @if (listState.status === 'loading') {
+      <p class="ency-list-state">Carregando {{ store.categoryConfig().label }}...</p>
+    } @else if (listState.status === 'error') {
+      <div class="ency-list-state ency-list-state--error" role="alert">
+        <p>{{ listState.error.message }}</p>
+        <button type="button" class="ency-btn" (click)="store.retryList()">
+          Tentar novamente
+        </button>
+      </div>
+    } @else if (listState.status === 'empty') {
+      <p class="ency-list-state">Nenhum registro encontrado nesta categoria.</p>
+    } @else if (listState.status === 'success') {
+      @let listData = listState.data;
+      <div class="ency-list-meta">
+        <span class="tabular-nums">{{ listData.total }} registros</span>
+        <span class="tabular-nums">
+          Página {{ store.currentPage() }} / {{ store.totalPages() }}
+        </span>
+      </div>
+
+      <ul class="ency-list">
+        @for (item of listData.items; track item.id + ':' + item.name) {
+          <li>
+            <button
+              type="button"
+              class="ency-list-item"
+              [class.is-active]="store.selectedName() === item.name"
+              [attr.aria-current]="store.selectedName() === item.name ? 'true' : null"
+              (click)="store.selectItem(item.name)"
+            >
+              <span class="ency-list-item__title">{{ item.displayName }}</span>
+              @if (item.subtitle) {
+                <span class="ency-list-item__sub">{{ item.subtitle }}</span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+
+      <div class="ency-pagination">
+        <button
+          type="button"
+          class="ency-btn"
+          [disabled]="store.offset() === 0"
+          (click)="store.prevPage()"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="ency-btn"
+          [disabled]="!listData.hasMore"
+          (click)="store.nextPage()"
+        >
+          Próxima
+        </button>
+      </div>
+    }
+  </div>
+
+  <pv-encyclopedia-detail-panel
+    [detailState]="store.detailState()"
+    [embedded]="true"
+    (retry)="store.retryDetail()"
+    (pokemonSelected)="pokemonSelected.emit($event)"
+    (navigateRelated)="store.navigateRelated($event.category, $event.name)"
+  />
+</section>

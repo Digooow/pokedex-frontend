@@ -41,11 +41,14 @@
             [cacheSource]="store.cacheSource()"
             [transientStatus]="transientBadge()"
             [suggestions]="store.suggestions()"
+            [encyclopediaCategory]="encyCat()"
+            [encyclopediaItem]="encyItem()"
             (retry)="store.retryLastSearch()"
             (selectSuggestion)="onSelectFromVisor($event)"
             (slotOpened)="onSelectFromVisor($event)"
-            (compareRequested)="compareStore.openWithPokemon($event)"
-            (holocronRequested)="holocronStore.openWithPokemon($event)"
+            (compareRequested)="openPokemonInMode('comparar', $event)"
+            (holocronRequested)="openPokemonInMode('holocron', $event)"
+            (calculatorRequested)="visorDetail.setMode('calculadora')"
           />
 
           <pv-pokedex-slots-grid
@@ -67,18 +70,13 @@
             #searchPanelCmp
             (blueAdvanceOrClear)="onBlueControl()"
             (aConfirm)="onAControl()"
+            (sendToHolocron)="onSendToMode('holocron', $event)"
+            (sendToCompare)="onSendToMode('comparar', $event)"
           />
         </div>
       </div>
     </div>
   </section>
 
-  <pv-slot-confirm-dialog
-    (openExistingRequested)="onOpenExistingFromDialog($event)"
-    (overwrittenFromClick)="onOverwrittenFromDialog($event)"
-  />
-
-  @defer (when compareStore.dialogOpen()) {
-    <pv-pokedex-compare-dialog (openInPokedex)="onSelectFromVisor($event)" />
-  }
+  <pv-slot-confirm-dialog />
 </main>

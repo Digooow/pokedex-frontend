@@ -1,0 +1,60 @@
+<section class="hub-page" aria-labelledby="main-heading">
+  <header class="pv-glass-card hub-hero">
+    <div class="hub-hero__copy">
+      <span class="pv-badge hub-hero__tag">CENTRAL POKÉVERSE OS</span>
+      <h1 id="main-heading" tabindex="-1" pvMainHeading class="hub-hero__title">
+        @if (auth.trainer(); as trainer) {
+          Bem-vindo, {{ trainer.username }}
+        } @else {
+          Tela Inicial do Treinador
+        }
+      </h1>
+      <p class="hub-hero__subtitle">
+        Escolha para onde seguir no PokéVerse. A Pokédex centraliza fichas, Holocron 3D,
+        Comparador 1v1, Calculadora de Atributos e Enciclopédia.
+      </p>
+    </div>
+
+    <div class="hub-hero__actions">
+      <a routerLink="/pokedex" class="pv-btn pv-btn--primary">Abrir Pokédex</a>
+      @if (!auth.isAuthenticated()) {
+        <button type="button" class="pv-btn pv-btn--secondary" (click)="requestTrainerLogin()">
+          Entrar / Criar Conta
+        </button>
+      }
+      <a routerLink="/" class="pv-btn pv-btn--secondary">Tela de Título</a>
+    </div>
+  </header>
+
+  <ul class="hub-grid" aria-label="Módulos disponíveis">
+    @for (mod of modules; track mod.id) {
+      <li class="pv-glass-card hub-card">
+        <div class="hub-card__head">
+          <span class="hub-card__key tabular-nums">{{ mod.shortcut }}</span>
+          <span class="hub-card__access">
+            {{ mod.requiresTrainer ? 'Treinador' : 'Público' }}
+          </span>
+        </div>
+
+        <h2 class="hub-card__title">{{ mod.label }}</h2>
+        <p class="hub-card__desc">{{ mod.summary }}</p>
+
+        @if (mod.requiresTrainer && !auth.isAuthenticated()) {
+          <button
+            type="button"
+            class="pv-btn pv-btn--secondary hub-card__cta"
+            [pvRequiresTrainer]="mod.label"
+            [lockedDescription]="mod.summary"
+            [lockedRoute]="mod.route"
+          >
+            Desbloquear {{ mod.label }}
+          </button>
+        } @else {
+          <a [routerLink]="mod.route" class="pv-btn pv-btn--primary hub-card__cta">
+            Acessar {{ mod.label }} →
+          </a>
+        }
+      </li>
+    }
+  </ul>
+</section>

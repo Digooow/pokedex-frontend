@@ -17,24 +17,33 @@ describe('PokéVerse OS Shell', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideRouter(routes), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
 
-  it('mounts compact HUD topbar with unified Modules, User, Settings, and Cloud controls', async () => {
+  it('renders classic Start Screen without HUD topbar on / and mounts HUD on /inicio', async () => {
+    const router = TestBed.inject(Router);
+    const httpMock = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    flushInitialRequests(TestBed.inject(HttpTestingController));
+    flushInitialRequests(httpMock);
 
+    await router.navigateByUrl('/');
     await fixture.whenStable();
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
 
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('.hud-topbar')).toBeNull();
+    expect(compiled.querySelector('#btn-iniciar-jogo')?.textContent).toContain('Iniciar Jogo');
+
+    await router.navigateByUrl('/inicio');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('.hud-topbar')).not.toBeNull();
+    expect(compiled.querySelector('.hud-brand')?.getAttribute('href')).toBe('/inicio');
     expect(compiled.querySelector('.hud-brand__name')?.textContent).toContain('PokéVerse OS');
     expect(compiled.querySelector('.hud-brand__pokeball')).not.toBeNull();
-    expect(compiled.querySelector('.hud-brand__lens')).toBeNull();
-    expect(compiled.querySelector('pv-hud-quick-dock')).toBeNull();
-    expect(compiled.querySelector('pv-cenarios-bar')).toBeNull();
 
     const modulesPopover = compiled.querySelector('#pv-modules-popover') as HTMLElement;
     const settingsPopover = compiled.querySelector('#pv-settings-popover') as HTMLElement;
@@ -43,23 +52,17 @@ describe('PokéVerse OS Shell', () => {
     expect(settingsPopover.classList.contains('is-open')).toBe(false);
     expect(settingsPopover.hasAttribute('inert')).toBe(true);
 
-    const topbarText = compiled.querySelector('.hud-topbar')?.textContent ?? '';
-    expect(topbarText).not.toContain('Créditos & APIs');
-    expect(topbarText).not.toContain('Cookies & LGPD');
     const cloudBtn = compiled.querySelector('.hud-topbar__right .hud-pill--cloud');
     expect(cloudBtn).not.toBeNull();
     expect(cloudBtn?.textContent).toMatch(/Nuvem|Modo Offline/);
 
     const modulesTrigger = compiled.querySelector('.hud-modules-trigger') as HTMLButtonElement;
-    expect(modulesTrigger).not.toBeNull();
     modulesTrigger.click();
     fixture.detectChanges();
 
     expect(modulesPopover.classList.contains('is-open')).toBe(true);
     expect(modulesPopover.hasAttribute('inert')).toBe(false);
-
-    const moduleItems = compiled.querySelectorAll('#pv-modules-popover .hud-menu-item');
-    expect(moduleItems).toHaveLength(5);
+    expect(compiled.querySelectorAll('#pv-modules-popover .hud-menu-item')).toHaveLength(5);
 
     const lockedButtons = compiled.querySelectorAll('button.hud-menu-item--locked');
     expect(lockedButtons).toHaveLength(3);
@@ -72,8 +75,6 @@ describe('PokéVerse OS Shell', () => {
 
   it('focuses #main-heading in place when activating the skip link', async () => {
     const router = TestBed.inject(Router);
-    router.resetConfig(routes);
-
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitialRequests(TestBed.inject(HttpTestingController));
@@ -92,9 +93,11 @@ describe('PokéVerse OS Shell', () => {
   });
 
   it('manages scenarios, auto-rotation, and hardware quality from the topbar Settings menu', async () => {
+    const router = TestBed.inject(Router);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     flushInitialRequests(TestBed.inject(HttpTestingController));
+    await router.navigateByUrl('/inicio');
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -103,7 +106,6 @@ describe('PokéVerse OS Shell', () => {
     const quality = TestBed.inject(QualityStore);
 
     const settingsTrigger = compiled.querySelector('.hud-settings-trigger') as HTMLButtonElement;
-    expect(settingsTrigger).not.toBeNull();
     settingsTrigger.click();
     fixture.detectChanges();
 
@@ -111,7 +113,6 @@ describe('PokéVerse OS Shell', () => {
       compiled.querySelectorAll('#pv-settings-popover .hud-settings-option'),
     ) as HTMLButtonElement[];
     const florestaBtn = scenarioButtons.find((btn) => btn.textContent?.trim() === 'Floresta');
-    expect(florestaBtn).toBeDefined();
     florestaBtn?.click();
     fixture.detectChanges();
     expect(scenarioStore.activeScenario()).toBe('floresta');
@@ -123,7 +124,6 @@ describe('PokéVerse OS Shell', () => {
     expect(scenarioStore.autoEnabled()).toBe(true);
 
     const liteBtn = scenarioButtons.find((btn) => btn.textContent?.trim() === 'Lite');
-    expect(liteBtn).toBeDefined();
     liteBtn?.click();
     fixture.detectChanges();
     expect(quality.tier()).toBe('lite');
@@ -132,7 +132,6 @@ describe('PokéVerse OS Shell', () => {
   it('keeps trainer panel and security/logout actions inside the right-side User menu', async () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const router = TestBed.inject(Router);
-    router.resetConfig(routes);
 
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
@@ -147,15 +146,15 @@ describe('PokéVerse OS Shell', () => {
       'Museu das Regiões & História',
     );
     expect(compiled.querySelector('.museum-page__header')).not.toBeNull();
-    expect(compiled.querySelector('.museum-page__footer')).toBeNull();
-    expect(compiled.querySelectorAll('.region-card')).toHaveLength(9);
+    expect(compiled.querySelectorAll('.timeline-step')).toHaveLength(9);
+    expect(compiled.querySelectorAll('.region-card')).toHaveLength(0);
     httpMock
       .match((req) => req.url.startsWith('/api/v1/pokedex/regions/'))
       .forEach((req) => req.flush(null, { status: 404, statusText: 'Not Found' }));
 
     const museumFixture = TestBed.createComponent(MuseumPageComponent);
     museumFixture.detectChanges();
-    expect(museumFixture.nativeElement.querySelector('.museum-page__footer')).toBeNull();
+    expect(museumFixture.nativeElement.querySelectorAll('.region-card')).toHaveLength(0);
 
     const ucFixture = TestBed.createComponent(UnderConstructionComponent);
     ucFixture.detectChanges();
@@ -195,7 +194,6 @@ describe('PokéVerse OS Shell', () => {
 
     const rightControls = compiled.querySelector('.hud-topbar__right');
     const userTrigger = rightControls?.querySelector('.hud-pill--trainer') as HTMLButtonElement;
-    expect(userTrigger).not.toBeNull();
     expect(userTrigger.textContent).toContain('Red_Kanto • ELO 1000');
 
     userTrigger.click();

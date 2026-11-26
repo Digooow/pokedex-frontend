@@ -16,8 +16,8 @@
 
     <div class="inspector__actions">
       <a
-        [routerLink]="['/enciclopedia']"
-        [queryParams]="{ cat: 'region', item: region.id }"
+        [routerLink]="['/pokedex']"
+        [queryParams]="{ mode: 'enciclopedia', cat: 'region', item: region.id }"
         class="inspector-btn inspector-btn--secondary"
       >
         Ver na Enciclopédia →
@@ -222,8 +222,8 @@
                 <div class="location-chips">
                   @for (loc of museum.filteredLocations(); track loc.id) {
                     <a
-                      [routerLink]="['/enciclopedia']"
-                      [queryParams]="{ cat: 'location', item: loc.name }"
+                      [routerLink]="['/pokedex']"
+                      [queryParams]="{ mode: 'enciclopedia', cat: 'location', item: loc.name }"
                       class="location-chip"
                     >
                       {{ formatName(loc.name) }}

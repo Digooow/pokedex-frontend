@@ -9,7 +9,13 @@ import { Subscription } from 'rxjs';
 import { AudioEngineService } from '../../../core/audio/audio-engine.service';
 import { AudioStore, type CryPlaybackKind } from '../../../core/stores/audio.store';
 import { PokedexApiClient } from './pokedex-api.client';
-import { VISOR_TABS, type VisorSpriteMode, type VisorTabId } from './pokedex-visor-format.util';
+import {
+  VISOR_MODES,
+  VISOR_TABS,
+  type VisorModeId,
+  type VisorSpriteMode,
+  type VisorTabId,
+} from './pokedex-visor-format.util';
 
 @Injectable({ providedIn: 'root' })
 export class PokedexVisorDetailStore implements OnDestroy {
@@ -28,6 +34,7 @@ export class PokedexVisorDetailStore implements OnDestroy {
   private readonly abilitySubs = new Map<string, Subscription>();
   private currentPokemonName: string | null = null;
 
+  readonly activeMode = signal<VisorModeId>('ficha');
   readonly activeTab = signal<VisorTabId>('resumo');
   readonly spriteMode = signal<VisorSpriteMode>('artwork');
   readonly shiny = signal(false);
@@ -39,6 +46,12 @@ export class PokedexVisorDetailStore implements OnDestroy {
   });
   readonly moveDetails = signal<Readonly<Record<string, AsyncState<MoveDetail>>>>({});
   readonly abilityDetails = signal<Readonly<Record<string, AsyncState<AbilityDetail>>>>({});
+
+  setMode(mode: VisorModeId): void {
+    if (VISOR_MODES.some((entry) => entry.id === mode)) {
+      this.activeMode.set(mode);
+    }
+  }
 
   resetForPokemon(pokemonName: string | null): void {
     const normalized = pokemonName?.trim().toLowerCase() ?? null;

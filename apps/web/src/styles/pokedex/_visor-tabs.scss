@@ -1,4 +1,38 @@
 @layer components {
+  .visor-modes {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+    padding: 2px;
+    background-color: var(--pv-lcd-segmented-bg);
+    border: 1px solid var(--pv-lcd-segmented-border);
+    border-radius: var(--pv-radius-sm);
+    flex-shrink: 0;
+  }
+
+  .visor-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 2.25rem;
+    padding: 0.2rem;
+    font: inherit;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--texto-lcd-secundario);
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: calc(var(--pv-radius-sm) - 2px);
+    cursor: pointer;
+  }
+
+  .visor-mode-btn.is-active {
+    background-color: var(--pv-dex-red);
+    border-color: var(--pv-border-gold);
+    color: var(--pv-ink-on-accent);
+  }
+
   .visor-tabs {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -124,7 +158,7 @@
 
   .visor-media-actions {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
     gap: var(--pv-space-2);
     width: 100%;
   }

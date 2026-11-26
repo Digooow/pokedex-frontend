@@ -1,6 +1,6 @@
 # 08 — Museu das Regiões, Lore e Pokédex Holocron 3D
 
-> **Nota de Estado Real (pós-Passo 2B.3):** Já estão implementados na plataforma o **Projetor Holocron 3D** em `<dialog>` sob demanda (`@defer` + chunk isolado `three`, pedestal hexagonal elemental, feixe GLSL, partículas determinísticas, espectrograma Web Audio `CrySpectrogramComponent`, matriz defensiva `0x..4x`, árvore evolutiva clicável e fallback 2D em `LITE`/`webglcontextlost`) e o **Museu das 9 Regiões** (`/museu`) com **Linha do Tempo Histórica (1996–2022)**, dossiê vivo integrado a `/regions/:id` + `/pokedexes/:id`, filtro de localizações e atalho para `/arcade` (Gen I–IV). As expansões planejadas abaixo — *globo/atlas 3D interativo no Museu, fichas de Líderes de Ginásio/Elite Four com desafio PvE e trilha sonora ambiente do Museu* — seguem mapeadas para a **Fase 6**.
+> **Nota de Estado Real (UX Unificada):** O **Projetor Holocron 3D**, o **Comparador 1v1**, a **Calculadora de Atributos** e a **Enciclopédia Global** agora vivem **embutidos dentro do Visor da Pokédex 3D** (`/pokedex?mode=holocron|comparar|calculadora|enciclopedia`), com seleção direta a partir da lista de busca e da ficha. O Holocron 3D corrigiu o bug da contra-rotação (agora gira 360° reais ao redor de um prisma 3D duplo + pipeline `GLTFLoader` pronto para `.glb` leves locais em `LOCAL_POKEMON_GLB_MODELS`) e mantém fallback 2D em `LITE`/`webglcontextlost`. O **Museu das 9 Regiões** (`/museu`) removeu os cards regionais duplicados e concentra-se em uma **Linha do Tempo Histórica única (`1996–2022`)** + dossiê vivo ligado diretamente a `/pokedex`. Expansões futuras (*globo/atlas 3D interativo, fichas de Ginásio/Elite Four PvE e trilha sonora ambiente do Museu*) seguem na **Fase 6** e em [00 — Fila Prioritária](00-fila-prioritaria-melhorias.md).
 
 ## 1. Acesso Aberto: A Vitrine Pública da Plataforma
 
@@ -15,7 +15,7 @@ flowchart LR
   Input["Busca Fonética + Damerau-Levenshtein"] --> Classic["Pokédex Clássica 3D (Módulo 01)"]
   Classic -->|"Modo Visitante"| ReadSlots["10 Slots com Cadeado (Convite Login)"]
   Classic -->|"Treinador Logado"| CloudSlots["10 Slots Cloud (Sync PostgreSQL + Ticker Kafka)"]
-  Classic -->|"Botão Expandir Holocron"| Holocron["Holocron 3D (Three.js + Web Audio API)"]
+  Classic -->|"Botão 3D / Atalho Busca"| Holocron["Holocron 3D Embutido no Visor (/pokedex?mode=holocron)"]
   Holocron --> Cry["Player de Grito + Espectro de Áudio (AnalyserNode)"]
   Holocron --> Evo["Árvore Evolutiva Interativa"]
   Holocron --> Matrix["Matriz de Tipos (0x a 4x) & Golpes por Geração"]
@@ -26,11 +26,11 @@ A Pokédex construída inicialmente na Fase 0 (`index.html`, `css/style.css` e `
 - **Preservação Integral:** abertura 3D com transição para modo plano nítido (`1260ms`), carcaça metálica semi-opaca com iluminação dinâmica no ponteiro, busca tolerante a erros de digitação (normalização `NFD`, chave fonética e distância Damerau-Levenshtein), navegação estilo RPG por D-Pad/teclado e as duas fileiras inferiores de botões iluminados sob tampa transparente.
 - **Comportamento por Permissão:**
   - **Visitante:** navega livremente pelo catálogo, pesquisa qualquer Pokémon via PokéAPI cacheada no Redis e abre a ficha completa; os 10 botões inferiores exibem estado bloqueado (ao clicar, abre o modal amigável de Login/Cadastro).
-  - **Treinador Logado:** grava, renomeia e organiza seus 10 Pokémon favoritos diretamente na nuvem (`PokedexSlot` no PostgreSQL), sincronizando instantaneamente entre dispositivos e publicando eventos de captura rara no Feed Global.
+  - **Treinador Logado:** grava, renomeia, abre instantaneamente sem modal de confirmação e reordena via Drag & Drop / `↑`/`↓` seus 10 Pokémon favoritos diretamente na nuvem (`PokedexSlot` no PostgreSQL via `PATCH /api/v1/pokedex/slots/swap`), sincronizando entre dispositivos e publicando eventos de captura rara no Feed Global.
 
-### 2.2. Expansão Holocron 3D (Inspeção Profunda)
-Ao clicar em **Inspecionar no Holocron 3D** dentro da ficha de qualquer Pokémon, a interface abre o palco **Three.js**:
-1. **Pedestal Holográfico Elemental:** base em metal escuro com shader de energia parametrizado pela cor do tipo primário e secundário, rotação orbital suave (`OrbitControls`) e partículas atmosféricas combinando com o elemento.
+### 2.2. Expansão Holocron 3D (Embutida no Visor da Pokédex)
+Ao clicar em **3D** na barra de modos do visor ou no atalho **Holocron 3D** diretamente na busca/ficha de qualquer Pokémon, o palco **Three.js** é montado dentro do próprio Visor LCD (`/pokedex?q=<nome>&mode=holocron`):
+1. **Pedestal Holográfico Elemental & Giro 360° Real:** base em metal escuro com shader de energia parametrizado pelo tipo, prisma holográfico duplo estacionário (sem contra-rotação) + hook lazy `GLTFLoader` (`LOCAL_POKEMON_GLB_MODELS`) para modelos `.glb` leves locais, giro orbital 360° e inclinação vertical suaves, além de partículas atmosféricas por elemento.
 2. **Sintetizador & Analisador de Grito (*Cry* via Web Audio API):** reproduz o áudio oficial (`.ogg`/`.mp3`) capturado da PokéAPI ligado a um `AnalyserNode`, desenhando barras/ondas de frequência em tempo real diretamente no HUD do Holocron.
 3. **Árvore Evolutiva Completa:** grafo interativo mostrando pré-evoluções, ramificações (ex.: Eevee, Tyrogue, Wurmple) e gatilhos exatos (*nível*, *pedra evolutiva*, *amizade*, *horário dia/noite*, *troca*).
 4. **Calculadora Instantânea de Fraquezas e Resistências:** cruza a matriz `18 × 18` oficial para o par de tipos do Pokémon, agrupando multiplicadores em **`4x`**, **`2x`**, **`1x`**, **`0.5x`**, **`0.25x`** e **`0x` (Imune)**, além de listar movimentos aprendidos por nível, TM/HM e Egg Moves.

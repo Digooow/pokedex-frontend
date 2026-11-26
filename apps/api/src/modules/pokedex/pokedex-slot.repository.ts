@@ -151,6 +151,68 @@ export class PokedexSlotRepository {
     });
   }
 
+  swapSlotsWithOutbox(params: {
+    readonly trainerId: string;
+    readonly fromIndex: number;
+    readonly toIndex: number;
+    readonly outboxEvent: SlotOutboxEventInput;
+  }): Promise<PersistedPokedexSlot[]> {
+    return this.prisma.$transaction(async (tx) => {
+      const pair = await tx.pokedexSlot.findMany({
+        where: {
+          trainerId: params.trainerId,
+          slotIndex: { in: [params.fromIndex, params.toIndex] },
+        },
+        orderBy: { slotIndex: 'asc' },
+        select: POKEDEX_SLOT_SELECT,
+      });
+
+      if (pair.length === 0) {
+        return tx.pokedexSlot.findMany({
+          where: { trainerId: params.trainerId },
+          orderBy: { slotIndex: 'asc' },
+          take: TOTAL_POKEDEX_SLOTS,
+          select: POKEDEX_SLOT_SELECT,
+        });
+      }
+
+      await tx.pokedexSlot.deleteMany({
+        where: {
+          trainerId: params.trainerId,
+          slotIndex: { in: [params.fromIndex, params.toIndex] },
+        },
+      });
+
+      await Promise.all(
+        pair.map((row) => {
+          const targetIndex =
+            row.slotIndex === params.fromIndex
+              ? params.toIndex
+              : params.fromIndex;
+          return tx.pokedexSlot.create({
+            data: {
+              trainerId: params.trainerId,
+              slotIndex: targetIndex,
+              pokemonId: row.pokemonId,
+              pokemonName: row.pokemonName,
+              nickname: row.nickname,
+              spriteUrl: row.spriteUrl,
+            },
+          });
+        }),
+      );
+
+      await this.enqueueSlotOutboxEvent(tx, params.outboxEvent);
+
+      return tx.pokedexSlot.findMany({
+        where: { trainerId: params.trainerId },
+        orderBy: { slotIndex: 'asc' },
+        take: TOTAL_POKEDEX_SLOTS,
+        select: POKEDEX_SLOT_SELECT,
+      });
+    });
+  }
+
   private enqueueSlotOutboxEvent(
     tx: Prisma.TransactionClient,
     outboxEvent: SlotOutboxEventInput,

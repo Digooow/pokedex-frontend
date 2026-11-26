@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Put,
   Req,
   Res,
@@ -23,6 +24,8 @@ import {
   PokemonIdentifierParamSchema,
   type SavePokedexSlotInput,
   SavePokedexSlotSchema,
+  type SwapPokedexSlotsInput,
+  SwapPokedexSlotsSchema,
 } from '@pokeverse/shared';
 import type {
   CachedEnrichedCatalogResponse,
@@ -136,6 +139,25 @@ export class PokedexController {
     @CurrentTrainer() trainer: AuthenticatedTrainer,
   ): Promise<{ readonly slots: PokedexSlotRecord[] }> {
     const slots = await this.slotsService.listSlots(trainer.trainerId);
+    return PokedexSlotsListResponseSchema.parse({ slots });
+  }
+
+  @Roles('TRAINER', 'MODERATOR', 'ADMIN')
+  @Scopes('pokedex:write')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @Patch('slots/swap')
+  async swapSlots(
+    @Body(new ZodValidationPipe(SwapPokedexSlotsSchema))
+    body: SwapPokedexSlotsInput,
+    @CurrentTrainer() trainer: AuthenticatedTrainer,
+    @Req() req: RequestWithTrace,
+  ): Promise<{ readonly slots: PokedexSlotRecord[] }> {
+    const slots = await this.slotsService.swapSlots(
+      trainer.trainerId,
+      trainer.username,
+      body,
+      req.traceId ?? null,
+    );
     return PokedexSlotsListResponseSchema.parse({ slots });
   }
 

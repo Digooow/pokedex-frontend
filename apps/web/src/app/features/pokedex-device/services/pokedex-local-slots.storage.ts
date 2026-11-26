@@ -24,6 +24,32 @@ export function buildLocalSlotRecord(payload: LocalSlotSaveInput): PokedexSlotRe
   };
 }
 
+export function formatSlotNumber(slotIndex: number): string {
+  return String(slotIndex + 1).padStart(2, '0');
+}
+
+export function buildSwappedSlotMap(
+  source: ReadonlyMap<number, PokedexSlotRecord>,
+  fromIndex: number,
+  toIndex: number,
+): Map<number, PokedexSlotRecord> {
+  const copy = new Map(source);
+  const fromSlot = copy.get(fromIndex);
+  const toSlot = copy.get(toIndex);
+  const nowIso = new Date().toISOString();
+
+  copy.delete(fromIndex);
+  copy.delete(toIndex);
+
+  if (fromSlot) {
+    copy.set(toIndex, { ...fromSlot, slotIndex: toIndex, updatedAt: nowIso });
+  }
+  if (toSlot) {
+    copy.set(fromIndex, { ...toSlot, slotIndex: fromIndex, updatedAt: nowIso });
+  }
+  return copy;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PokedexLocalSlotsStorage {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));

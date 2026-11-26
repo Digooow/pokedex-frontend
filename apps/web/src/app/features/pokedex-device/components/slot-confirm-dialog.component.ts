@@ -4,7 +4,6 @@ import {
   ElementRef,
   effect,
   inject,
-  output,
   viewChild,
 } from '@angular/core';
 import { PokedexSlotsStore } from '../services/pokedex-slots.store';
@@ -18,9 +17,6 @@ import { PokedexSlotsStore } from '../services/pokedex-slots.store';
 export class SlotConfirmDialogComponent {
   readonly slotsStore = inject(PokedexSlotsStore);
   private readonly dialogRef = viewChild<ElementRef<HTMLDialogElement>>('dialogEl');
-
-  readonly openExistingRequested = output<string>();
-  readonly overwrittenFromClick = output<{ readonly slotIndex: number; readonly name: string }>();
 
   constructor() {
     effect(() => {
@@ -42,23 +38,6 @@ export class SlotConfirmDialogComponent {
   }
 
   closeDialog = () => this.slotsStore.closeConfirm();
-
-  onOpenExisting(existingName: string): void {
-    this.slotsStore.closeConfirm();
-    this.openExistingRequested.emit(existingName);
-  }
-
-  onConfirmOverwriteClick(
-    slotIndex: number,
-    candidate: Extract<
-      NonNullable<ReturnType<PokedexSlotsStore['pendingConfirm']>>,
-      { kind: 'overwrite-click' }
-    >['candidate'],
-  ): void {
-    const saved = this.slotsStore.saveSlot(slotIndex, candidate);
-    this.slotsStore.closeConfirm();
-    if (saved) this.overwrittenFromClick.emit({ slotIndex, name: candidate.displayName });
-  }
 
   onConfirmOverwriteEdit(
     prompt: Extract<

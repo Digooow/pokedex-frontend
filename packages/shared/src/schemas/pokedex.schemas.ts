@@ -117,6 +117,18 @@ export const SavePokedexSlotSchema = z
 
 export type SavePokedexSlotInput = z.infer<typeof SavePokedexSlotSchema>;
 
+export const SwapPokedexSlotsSchema = z
+  .object({
+    fromIndex: z.number().int().min(0).max(MAX_POKEDEX_SLOT_INDEX),
+    toIndex: z.number().int().min(0).max(MAX_POKEDEX_SLOT_INDEX),
+  })
+  .strict()
+  .refine((data) => data.fromIndex !== data.toIndex, {
+    message: 'Os índices de origem e destino devem ser diferentes.',
+  });
+
+export type SwapPokedexSlotsInput = z.infer<typeof SwapPokedexSlotsSchema>;
+
 export const PokedexSlotRecordSchema = z.object({
   slotIndex: z.number().int().min(0).max(MAX_POKEDEX_SLOT_INDEX),
   pokemonId: z.number().int().positive(),

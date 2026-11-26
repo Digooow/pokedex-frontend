@@ -11,6 +11,7 @@ import { RouterLink } from '@angular/router';
 import { SystemStatusStore } from '../../core/stores/system-status.store';
 import { WorldTickerStore } from '../../core/stores/world-ticker.store';
 import { MainLandmarkFocusService } from '../directives/main-heading.directive';
+import { PokeballMarkComponent } from '../components/pokeball-mark.component';
 import { HudModulesMenuComponent } from './hud-modules-menu.component';
 import { HudSettingsMenuComponent } from './hud-settings-menu.component';
 import { HudUserMenuComponent } from './hud-user-menu.component';
@@ -19,7 +20,13 @@ export type HudTopbarMenuId = 'modules' | 'user' | 'settings';
 
 @Component({
   selector: 'pv-hud-topbar',
-  imports: [RouterLink, HudModulesMenuComponent, HudUserMenuComponent, HudSettingsMenuComponent],
+  imports: [
+    RouterLink,
+    PokeballMarkComponent,
+    HudModulesMenuComponent,
+    HudUserMenuComponent,
+    HudSettingsMenuComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hud-topbar.component.html',
   styleUrl: './hud-topbar.component.scss',

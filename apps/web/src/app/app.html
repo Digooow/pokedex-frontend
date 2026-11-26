@@ -1,7 +1,9 @@
 <pv-cenarios-backdrop />
 
 <div class="app-shell">
-  <pv-hud-topbar />
+  @if (!isTitleScreen()) {
+    <pv-hud-topbar />
+  }
 
   <main id="main-content" class="app-main" tabindex="-1" pvMainLandmark>
     <router-outlet />
@@ -40,8 +42,4 @@
 
 @defer (when privacy.dialogOpen()) {
   <pv-privacy-consent-dialog />
-}
-
-@defer (when holocron.dialogOpen()) {
-  <pv-holocron-dialog />
 }

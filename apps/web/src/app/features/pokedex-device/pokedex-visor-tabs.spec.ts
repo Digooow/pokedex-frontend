@@ -214,4 +214,26 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(hostEl.textContent).toContain('Viridian Forest Area');
     expect(hostEl.textContent).toContain('Red Blue');
   });
+
+  it('switches into embedded Stat Calculator and computes level, nature, IVs, EVs, and XP', () => {
+    const { visorDetail, fixture } = setupDeviceWithPikachu();
+    const hostEl = fixture.nativeElement as HTMLElement;
+
+    (hostEl.querySelector('#visor-mode-calculadora') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(visorDetail.activeMode()).toBe('calculadora');
+
+    const levelInput = hostEl.querySelector('#calc-level-input') as HTMLInputElement;
+    levelInput.value = '100';
+    levelInput.dispatchEvent(new Event('input', { bubbles: true }));
+    fixture.detectChanges();
+
+    const natureSelect = hostEl.querySelector('#calc-nature-select') as HTMLSelectElement;
+    natureSelect.value = 'timid';
+    natureSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(hostEl.querySelector('.calc-head__title')?.textContent).toContain('Pikachu · Nv. 100');
+    expect(hostEl.querySelector('.calc-footer__total')?.textContent?.trim()).not.toBe('0');
+  });
 });
