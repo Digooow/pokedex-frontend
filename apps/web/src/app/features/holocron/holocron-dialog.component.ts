@@ -67,7 +67,7 @@ export class HolocronDialogComponent {
   readonly defenseSummary = computed(() => {
     const eff = this.activePokemon()?.bundle?.typeEffectiveness;
     if (!eff) return null;
-    const formatTypes = (list: readonly string[]) => list.map(formatPokeApiText);
+    const formatTypes = (list: readonly string[]) => list.map((item) => formatPokeApiText(item));
     return {
       weak4x: formatTypes(eff.quadWeak),
       weak2x: formatTypes(eff.weak),

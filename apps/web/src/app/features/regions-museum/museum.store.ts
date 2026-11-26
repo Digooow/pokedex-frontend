@@ -64,7 +64,7 @@ export class MuseumStore implements OnDestroy {
 
     this.regionSub = this.api.fetchDetail('region', targetId).subscribe((payload) => {
       if (this.selectedRegionId() !== targetId) return;
-      if (!payload || payload.kind !== 'region') {
+      if (payload?.kind !== 'region') {
         this.regionDetailState.set({
           status: 'error',
           error: {
@@ -104,7 +104,7 @@ export class MuseumStore implements OnDestroy {
     this.pokedexDetailState.set({ status: 'loading' });
     this.pokedexSub = this.api.fetchDetail('pokedex', key).subscribe((payload) => {
       if (this.selectedPokedexName() !== key) return;
-      if (!payload || payload.kind !== 'pokedex') {
+      if (payload?.kind !== 'pokedex') {
         this.pokedexDetailState.set({
           status: 'error',
           error: {

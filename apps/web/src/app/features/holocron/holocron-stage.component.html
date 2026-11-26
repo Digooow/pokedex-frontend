@@ -3,12 +3,8 @@
     <span class="holocron-stage__mode">{{ renderModeLabel() }}</span>
 
     @if (canUseWebGl()) {
-      <canvas
-        #glCanvas
-        class="holocron-stage__canvas"
-        role="img"
-        [attr.aria-label]="'Projeção 3D de ' + pokemon().displayName"
-      ></canvas>
+      <canvas #glCanvas class="holocron-stage__canvas" aria-hidden="true"></canvas>
+      <span class="visually-hidden">Projeção 3D de {{ pokemon().displayName }}</span>
     } @else {
       <div class="holocron-stage__fallback">
         <div class="holocron-stage__pedestal" aria-hidden="true"></div>
@@ -32,7 +28,8 @@
     }
   </div>
 
-  <div class="holocron-stage__controls" role="group" aria-label="Controles do projetor">
+  <fieldset class="holocron-stage__controls">
+    <legend class="visually-hidden">Controles do projetor</legend>
     @if (canUseWebGl()) {
       <button type="button" class="holocron-ctrl-btn" (click)="onNudge(-0.45)">Girar ◀</button>
       <button
@@ -54,5 +51,5 @@
     >
       {{ shiny() ? 'Shiny ON' : 'Shiny' }}
     </button>
-  </div>
+  </fieldset>
 </section>
