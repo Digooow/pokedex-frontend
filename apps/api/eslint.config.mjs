@@ -32,5 +32,12 @@ export default createWorkspaceEslintConfig({
       files: ['src/modules/auth/auth.service.spec.ts'],
       rules: { 'max-lines': maxLinesRule(800) },
     },
+    {
+      files: [
+        'src/modules/auth/credentials-auth.service.ts',
+        'src/modules/auth/token-refresh.service.ts',
+      ],
+      rules: { 'max-params': ['error', 9] },
+    },
   ],
 });

@@ -1,15 +1,12 @@
 import {
   type AsyncState,
   type BaseStatsSpread,
-  COMPETITIVE_SPREAD_PRESETS,
-  type CompetitiveSpreadPreset,
   type GrowthRate,
   GrowthRateSchema,
   MAX_EV_PER_STAT,
   MAX_EV_TOTAL,
   POKEMON_NATURES,
   POKEMON_TYPES,
-  type PokemonNatureOption,
   type PokemonTypeName,
   type SearchablePokemonItem,
   type StatSpreadKey,
@@ -25,7 +22,7 @@ export {
   type CompetitiveSpreadPreset,
   type PokemonNatureOption,
   type StatSpreadKey,
-};
+} from '@pokeverse/shared';
 
 export type StatKey = StatSpreadKey;
 
@@ -91,7 +88,7 @@ export function extractBaseStatsSpread(pokemon: PokemonDetailView): BaseStatsSpr
     speed: 50,
   };
   const bundleStats = pokemon.bundle?.pokemon.stats;
-  if (bundleStats && bundleStats.length > 0) {
+  if (bundleStats?.length) {
     for (const entry of bundleStats) {
       const mapped = API_STAT_TO_KEY[entry.stat.name.toLowerCase()];
       if (mapped) {

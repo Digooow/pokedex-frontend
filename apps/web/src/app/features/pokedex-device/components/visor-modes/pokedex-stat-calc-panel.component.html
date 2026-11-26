@@ -82,8 +82,8 @@
           </label>
 
           <div class="calc-controls">
-            <label class="calc-field">
-              <span class="calc-field__label">Nível (1–100)</span>
+            <div class="calc-field">
+              <label for="calc-level-input" class="calc-field__label">Nível (1–100)</label>
               <div class="calc-inline">
                 <input
                   id="calc-level-input"
@@ -97,7 +97,7 @@
                 <button type="button" class="calc-chip" (click)="level.set(50)">Nv.50</button>
                 <button type="button" class="calc-chip" (click)="level.set(100)">Nv.100</button>
               </div>
-            </label>
+            </div>
 
             <label class="calc-field">
               <span class="calc-field__label">Natureza (25 oficiais)</span>
@@ -128,7 +128,7 @@
             </div>
           </div>
 
-          <div class="calc-table" role="region" aria-label="Tabela de atributos calculados">
+          <section class="calc-table" aria-label="Tabela de atributos calculados">
             <div class="calc-row calc-row--head">
               <span>Stat</span>
               <span>Base</span>
@@ -169,7 +169,7 @@
                 </div>
               </div>
             }
-          </div>
+          </section>
 
           <footer class="calc-footer">
             <span>Poder Total Calculado:</span>

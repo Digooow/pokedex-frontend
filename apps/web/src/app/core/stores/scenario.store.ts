@@ -4,7 +4,7 @@ import { type ScenarioId, ScenarioIdSchema } from '@pokeverse/shared';
 import { PrivacyConsentStore } from './privacy-consent.store';
 import { QualityStore } from './quality.store';
 
-export { ScenarioIdSchema, type ScenarioId };
+export { ScenarioIdSchema, type ScenarioId } from '@pokeverse/shared';
 
 export interface ScenarioDefinition {
   readonly id: ScenarioId;

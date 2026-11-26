@@ -1,0 +1,128 @@
+# 21 — Qualidade de Código, Regras SonarQube e Governança Preventiva
+
+> **Documento normativo de qualidade estática do repositório.** Complementa o [`AGENTS.md`](../AGENTS.md), o [Contrato de Qualidade (`ARCHITECTURE.md`)](ARCHITECTURE.md) e o [Dossiê de Segurança (`doc 13`)](13-dossie-de-seguranca-e-blindagem.md), consolidando as regras do **SonarQube / SonarCloud**, ESLint, CPD (`0%`), acessibilidade HTML/Angular, SCSS e segurança estática para aprovação **de primeira** no CI/CD.
+
+---
+
+## 1. Política de Tolerância Zero
+
+A régua padrão do Sonar ("Sonar way") tolera até `3%` de duplicação ou code smells leves em código legado. No **PokéVerse OS**, a política é **tolerância zero** sobre todo o código-fonte (`apps/**` e `packages/**`):
+
+| Critério | Meta Obrigatória | Onde é Bloqueante |
+| :--- | :---: | :--- |
+| **Quality Gate (SonarCloud)** | `OK` | `npm run audit:sonar` e job `sonarqube` ([`ci.yml`](../.github/workflows/ci.yml)) |
+| **Issues em aberto (`resolved=false`)** | **`0`** (`BUG`, `VULNERABILITY`, `CODE_SMELL`, de `BLOCKER` a `INFO`) | `npm run audit:sonar` e job `sonarqube` |
+| **Security Hotspots (`TO_REVIEW`)** | **`0`** | `npm run audit:sonar` e job `sonarqube` |
+| **Duplicação de Código (CPD)** | **`0` linhas** e **`0` blocos** (`0.00%`) | `npm run audit:duplication` (`jscpd`) + `sonarqube` |
+| **ESLint + SonarJS + Paridade Local** | **`0` erros e `0` warnings** (`--max-warnings=0`) | `npm run audit:sonar:local` e job `verify` |
+| **Formatação e Tipagem** | `0` desvios Prettier / `0` erros `tsc --noEmit` | `npm run format:check`, `npm run typecheck` e job `verify` |
+
+> **Proibido mascarar apontamentos:** não utilize `// NOSONAR`, `@SuppressWarnings`, `/* cpd-ignore */` ou supressões amplas de `eslint-disable` para esconder dívida real. Corrija na origem extraindo helpers, diretivas, componentes ou fixtures compartilhados.
+
+---
+
+## 2. Arquitetura de Defesa em 3 Camadas
+
+```mermaid
+flowchart LR
+  C1["Camada 1: Autoria Preventiva<br/>Skills sonarqube-clean-code<br/>+ sonarqube-quality-gate<br/>+ AGENTS.md / ARCHITECTURE.md"] --> C2["Camada 2: Portão Local<br/>eslint.base.mjs + jscpd 0%<br/>+ runLocalSonarParityGate<br/>(npm run audit:sonar:local)"]
+  C2 --> C3["Camada 3: Bloqueio CI/CD<br/>ci.yml: verify + sast (CodeQL)<br/>+ sonarqube (--mode=remote)"]
+
+  classDef prevent fill:#10301f,stroke:#3ddc84,color:#fff
+  classDef local fill:#1b2a4a,stroke:#6aa7ff,color:#fff
+  classDef ci fill:#3a1020,stroke:#ff3b4e,color:#fff
+  class C1 prevent
+  class C2 local
+  class C3 ci
+```
+
+1. **Camada 1 — Autoria Preventiva (Agentes de IA & Desenvolvedores):** consulta obrigatória à skill **`sonarqube-clean-code`** antes e durante a escrita/refatoração de código TypeScript, JavaScript, HTML/Angular e CSS/SCSS, somada à skill **`sonarqube-quality-gate`** antes de qualquer `git push`.
+2. **Camada 2 — Portão Local (`npm run audit:sonar:local`):** executa `eslint --max-warnings=0` nos 3 workspaces via [`eslint.base.mjs`](../eslint.base.mjs) e aciona [`scripts/sonar-quality-gate.mjs`](../scripts/sonar-quality-gate.mjs) (`--mode=local`) com detector CPD (`jscpd` `--threshold 0`) e varredura estática de paridade SonarCloud (`runLocalSonarParityGate`) em arquivos `.ts`, `.js`, `.html` e `.scss`.
+3. **Camada 3 — Bloqueio Remoto em CI/CD ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml) + [`.sonarcloud.properties`](../.sonarcloud.properties)):** o job `verify` roda Gitleaks, `npm audit --omit=dev --audit-level=high`, `typecheck`, `lint`, `format:check`, `audit:duplication`, unitários, E2E, `build`, `audit:ui`, Playwright e Trivy; em seguida, o job `sonarqube` (`needs: [verify]`) consulta o SonarCloud e falha o pipeline se qualquer métrica fugir de `0`.
+
+---
+
+## 3. Catálogo de Regras Obrigatórias por Linguagem
+
+### 3.1. TypeScript & JavaScript (SonarAnalyzer JS/TS + ESLint)
+
+| Regra | Exigência | Errado | Certo |
+| :--- | :--- | :--- | :--- |
+| **`typescript:S6582`** | Usar *optional chaining* (`?.`) em vez de guarda `a && a.b` *(não converter `a && a.x !== y` se `a` puder ser nullish)* | `if (active && active.name === q)` | `if (active?.name === q)` (ou `const match = active?.name === q; if (active && match)`) |
+| **`typescript:S7747`** | Nunca copiar iterável dentro de `for...of`; usar loop reverso por índice ao mutar | `for (const c of [...group.children])` / `Array.from(set)` | `for (const item of set)` ou `for (let i = arr.length - 1; i >= 0; i -= 1)` |
+| **`typescript:S7763`** | Re-export direto sem `import` intermediário órfão | `import { Foo } from '@pkg'; export { Foo };` | `export { Foo } from '@pkg';` |
+| **`typescript:S7727`** | Não passar função diretamente em `.map()`/`.filter()` | `items.map(formatPokeApiText)` | `items.map((item) => formatPokeApiText(item))` |
+| **`typescript:S2933`** | Marcar campos de classe não reatribuídos como `readonly` | `private timerSub: Subscription;` | `private readonly timerSub: Subscription;` |
+| **`typescript:S7503`** | Proibido `async` sem expressão `await` | `async getList() { return this.list; }` | `getList() { return Promise.resolve(this.list); }` |
+| **`typescript:S7649`** | Não usar alias em `@Input()` / `input()` no Angular | `readonly order = input(0, { alias: 'pvOrder' })` | `readonly pvOrder = input(0)` |
+| **`typescript:S7780` / `S7781` / `S4624`** | Usar `String.raw`, `.replaceAll()` e evitar template literals aninhados | `str.replace(/ /g, '-')` | `str.replaceAll(' ', '-')` / ``String.raw`\d+` `` |
+| **`typescript:S3358`** | Proibido ternário aninhado | `a ? x : b ? y : z` | Função auxiliar ou `if` com *early return* |
+| **`typescript:S3776` / `complexity`** | Complexidade cognitiva e ciclomática `<= 15`, `max-depth <= 3` | Cascatas `if/else` profundas | *Guard Clauses* + extração de helpers |
+| **`typescript:S107` (`max-params`)** | Máximo de **7 parâmetros** por função/método *(acima de 3–4, usar objeto de opções)* | `fn(a, b, c, d, e, f, g, h)` | `fn(params: { ... })` *(exceção documentada em [`apps/api/eslint.config.mjs`](../apps/api/eslint.config.mjs) apenas para 2 construtores DI legados de Auth aprovados no SonarCloud)* |
+| **`typescript:S9382` (`no-await-in-loop`)** | Proibido `await` dentro de loops | `for (const id of ids) await fetch(id);` | `await Promise.all(ids.map((id) => fetch(id)))` |
+| **`typescript:S7764` / `S5906`** | Preferir `globalThis` a `window`/`typeof navigator` e matchers específicos em testes | `expect(x).toBe(undefined)` / `window.localStorage` | `expect(x).toBeUndefined()` / `globalThis.localStorage` |
+
+### 3.2. Segurança Estática & Prevenção de Vulnerabilidades (Conexão com [Doc 13](13-dossie-de-seguranca-e-blindagem.md))
+
+As regras estáticas atuam em conjunto com **Gitleaks**, **CodeQL** e **SonarCloud Security Hotspots**:
+
+- **`typescript:S8786` (Anti-ReDoS):** proibido escrever regexes com backtracking superlinear (ex.: `/^\s*(...)\s*$/` sobre entradas longas). Normalize com `.trim()` antes de aplicar `/^(-?\d+)\s+([a-z.]+)$/i.exec(part.trim())`.
+- **`typescript:S5869`:** proibido repetir caracteres na mesma *character class* em expressões regulares.
+- **Tipagem e Injeção:** `@typescript-eslint/no-explicit-any: 'error'`, proibição de `[innerHTML]`/`dangerouslySetInnerHTML`, proibição de URLs `javascript:`/`data:`, e zero credenciais, IPs ou segredos hardcoded no código de produção (coberto também por `sonarjs/no-hardcoded-passwords`, `no-hardcoded-ip` e `no-clear-text-protocols`).
+- **Validação na borda:** todo input externo entra por schema Zod `.strict()` em `@pokeverse/shared` ([doc 13](13-dossie-de-seguranca-e-blindagem.md#2-radiografia-atual-controles-implementados-vs-lacunas-abertas)).
+
+### 3.3. Templates HTML & Acessibilidade Angular (`Web:S*`)
+
+| Regra | Exigência | Errado | Certo |
+| :--- | :--- | :--- | :--- |
+| **`Web:S6819`** | Usar elemento semântico HTML nativo em vez de `role="..."` substituível | `<div role="region" aria-label="...">` | `<section aria-label="...">` (`<nav>`, `<button>`, `<img>`, `<fieldset>`, `<ul>/<li>`) |
+| **`Web:S1082` / `MouseEventWithoutKeyboardEquivalentCheck`** | Todo elemento interativo com `(click)` exige equivalência de teclado — preferir `<button type="button">` nativo (inclusive em backdrops) | `<div class="backdrop" (click)="close()">` | `<button type="button" class="backdrop" aria-label="..." (click)="close()">` |
+| **`Web:S6825`** | Proibido `aria-hidden="true"` em elemento focável | `<canvas tabindex="0" aria-hidden="true">` ou `<button aria-hidden="true">` | Remover `aria-hidden` de elementos focáveis ou torná-los não focáveis |
+| **`Web:S6843`** | Proibido atribuir `role` não-interativo a elemento interativo | `<button role="presentation">` | Manter semântica nativa do controle |
+| **`Web:S6853`** | `<label>` deve estar associado a exatamente **1** controle de formulário | `<label>...<input /><button>Ir</button></label>` | `<div class="field"><label for="id">...</label><div class="inline"><input id="id" /><button>Ir</button></div></div>` |
+| **`Web:S7927`** | `aria-label` em controle com rótulo visível deve conter o texto visível | `<button aria-label="Abrir">Detalhes</button>` | `<button aria-label="Detalhes do Pokémon">Detalhes</button>` |
+
+### 3.4. CSS & SCSS (`css:S9440` + Design System)
+
+- **`css:S9440`:** toda folha `.scss` de componente em `apps/web/src/app/**` que declarar `transition:` ou `animation:` (diferente de `none`) **deve** incluir bloco `@media (prefers-reduced-motion: reduce)` anulando a animação/transição.
+- **Zero hardcode visual:** cores hex/rgb literais avulsas são proibidas em `apps/web/src/app/**` — usar tokens semânticos `--pv-*` de [`_tokens.scss`](../apps/web/src/styles/_tokens.scss) ([doc 20](20-polimento-visual-e-design-system-frontend.md)), validados em conjunto com `npm run audit:ui`.
+
+### 3.5. Zero Duplicação (CPD `0%`) & Limites de Coesão
+
+| Guardrail | Configuração Atual | Fonte |
+| :--- | :--- | :--- |
+| **Tamanho de arquivo (`max-lines`)** | `<= 300` linhas (geral) / `<= 200` linhas (`*.component.ts` no `web`) / `<= 400–450` (specs) | [`eslint.base.mjs`](../eslint.base.mjs) |
+| **Tamanho de função (`max-lines-per-function`)** | `<= 65` linhas úteis | [`eslint.base.mjs`](../eslint.base.mjs) |
+| **Complexidade & Aninhamento** | `complexity <= 15`, `max-depth <= 3`, `max-params <= 7` | [`eslint.base.mjs`](../eslint.base.mjs) |
+| **Detector CPD (`jscpd`)** | `min-lines=10`, `min-tokens=95`, `threshold=0` (`0%` em `apps,packages`) | [`scripts/sonar-quality-gate.mjs`](../scripts/sonar-quality-gate.mjs) |
+| **Exclusões CPD** | Apenas `**/*.spec.ts`, `**/*.e2e-spec.ts` e migrations geradas | [`.sonarcloud.properties`](../.sonarcloud.properties) |
+
+Sempre que dois blocos compartilharem lógica ou markup repetitivo, extraia para função pura em `*.util.ts`, contrato em `@pokeverse/shared`, componente reutilizável ou helper em `*.spec-helper.ts`.
+
+---
+
+## 4. Skills Preventivas para Agentes de IA
+
+Para evitar ciclos de retrabalho após falhas no CI/CD, o ambiente de agentes mantém duas skills complementares:
+
+1. **`sonarqube-clean-code`** *(uso proativo durante escrita e refatoração):* aplicada **antes e durante** qualquer edição em TypeScript, JavaScript, templates HTML/Angular, CSS/SCSS e testes, garantindo conformidade com `S6582`, `S7747`, `S7763`, `S7727`, `S2933`, `S7503`, `S7649`, `S8786`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S6853`, `css:S9440` e CPD zero logo na primeira escrita.
+2. **`sonarqube-quality-gate`** *(portão obrigatório pré-push e auditoria CI/CD):* exige a execução de `npm run audit:sonar:local` (ESLint SonarJS + `jscpd` `0%` + paridade estática SonarCloud) e a verificação remota via `npm run audit:sonar` antes de considerar uma entrega pronta para `git push`.
+
+---
+
+## 5. Checklist Obrigatório Pré-Commit e Pré-Push
+
+```bash
+npm run format:check
+npm run typecheck
+npm run audit:sonar:local
+npm run test
+npm run build
+npm run audit:sonar
+```
+
+- [ ] `npm run format:check` aprovado em 100% dos arquivos `.ts`.
+- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7763`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `css:S9440`).
+- [ ] `npm run typecheck`, `npm run test` e `npm run build` aprovados após a última edição.
+- [ ] Em mudanças de UI, `npm run audit:ui` e conferência visual real Desktop/Mobile aprovados.
+- [ ] `npm run audit:sonar` confirma `Quality Gate OK`, `0` issues abertos, `0` hotspots `TO_REVIEW` e `0` duplicações após o push.

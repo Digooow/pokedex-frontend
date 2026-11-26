@@ -36,6 +36,10 @@
     position: fixed;
     inset: 0;
     z-index: calc(var(--pv-z-modal) - 1);
+    border: 0;
+    padding: 0;
+    margin: 0;
+    appearance: none;
     background-color: var(--pv-backdrop-scrim);
     backdrop-filter: blur(4px);
     cursor: pointer;

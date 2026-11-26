@@ -122,8 +122,10 @@ export class PokedexEnrichmentService {
     ]);
 
     const speciesSlug = rawPokemon.species.name.toLowerCase();
+    const isDirectSpeciesMatch =
+      directSpecies?.name.toLowerCase() === speciesSlug;
     const rawSpecies =
-      directSpecies && directSpecies.name.toLowerCase() === speciesSlug
+      directSpecies && isDirectSpeciesMatch
         ? directSpecies
         : await this.fetcher.fetchRawSpecies(speciesSlug);
 

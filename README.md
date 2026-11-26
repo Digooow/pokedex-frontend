@@ -498,7 +498,7 @@ flowchart LR
 
   subgraph v["CI Verification (ci.yml: verify)"]
     direction LR
-    s0["Gitleaks<br/>+ npm audit high"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck + Lint (SonarJS)<br/>+ Prettier + Zero CPD"]
+    s0["Gitleaks<br/>+ npm audit high"] --> s1["Prisma generate<br/>+ build shared"] --> s2["Typecheck + Lint (SonarJS)<br/>+ Prettier + Paridade/CPD"]
     s2 --> s4["Testes unitários<br/>212 Vitest + Jest"]
     s4 --> s5["E2E HTTP Edge<br/>22 testes (infra mockada)"]
     s5 --> s6["Build<br/>+ legado da raiz"]
@@ -525,6 +525,14 @@ flowchart LR
   classDef gate fill:#3a1020,stroke:#ff3b4e,color:#fff
   class s7,b2 gate
 ```
+
+### Qualidade de código e SonarQube Gate
+
+O repositório opera sob **tolerância zero** no SonarQube Cloud (`Quality Gate OK`, **`0` issues** de qualquer tipo ou severidade, **`0` Security Hotspots `TO_REVIEW`** e **`0%` de duplicação CPD**), sem uso de `// NOSONAR` ou `cpd-ignore`.
+
+- **Regras normativas consolidadas:** [`docs/21-qualidade-de-codigo-sonarqube-e-regras.md`](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) define o catálogo obrigatório para TypeScript/JS (`S6582`, `S7747`, `S7763`, `S7727`, `S2933`, `S7503`, `S7649`, `S8786`, `S9382`, `S107`), HTML/Angular (`Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S6853`), CSS/SCSS (`css:S9440`) e limites de coesão/duplicação.
+- **Portão local pré-push (`npm run audit:sonar:local`):** executa ESLint (`eslint-plugin-sonarjs`, `no-await-in-loop`, `complexity <= 15`, `max-depth <= 3`, `max-params <= 7`, `prefer-optional-chain`, `prefer-readonly`, `max-lines`) + [`scripts/sonar-quality-gate.mjs`](scripts/sonar-quality-gate.mjs) (`jscpd` a `0%` + paridade estática SonarCloud em `.ts`, `.js`, `.html` e `.scss`).
+- **Autoria preventiva para agentes de IA:** as skills **`sonarqube-clean-code`** (aplicada proativamente *durante* escrita/refatoração de código para aprovação de primeira) e **`sonarqube-quality-gate`** (portão obrigatório antes do `git push`) mantêm conformidade contínua com o pipeline.
 
 ### UI Quality Gate
 
@@ -601,10 +609,11 @@ flowchart TB
 | **WebSockets & Logs** | `/ws/world` rejeita `!origin` em produção e aplica cota (`10`/IP, `1000` globais); `StructuredLoggerService` mascara segredos/tokens e logs HTTP gravam só `req.path`; `bodyParser: false` com `64kb` (`413`/`400`) |
 | **LGPD** | Cookie de consentimento versionado (`pokeverse_consent`, 180 dias), chaves não essenciais registradas declarativamente, portabilidade em `GET /auth/me/export`, eliminação definitiva em cascata via `DELETE /auth/me` (confirmação em 2 etapas na UI), expurgo automático a cada `6h` de tokens/eventos expirados e zero rastreadores de terceiros |
 | **Infra & CI/CD** | Container multi-stage não-root stateless (migrations pré-deploy separadas em `deploy.yml` via `DATABASE_URL_UNPOOLED` e step `db-secret`), backing services reais no `ci.yml` (`postgres`, `redis`, `apache/kafka`), **Testcontainers** local (`test:integration:tc`), **Gitleaks** (pré-`npm ci` + `.gitleaks.toml`), **Trivy** (`CRITICAL`, pinado por SHA + SBOM CycloneDX), **CodeQL** SAST, `npm audit --omit=dev --audit-level=high` (`0` vulnerabilidades), `.github/CODEOWNERS` + template de PR, TLS e mTLS em nuvem |
+| **Qualidade Estática & SAST (`SonarQube`)** | `SonarQube Cloud` bloqueante com `0` vulnerabilidades, `0` Security Hotspots `TO_REVIEW`, prevenção de ReDoS (`S8786`) e `0%` CPD; paridade estática local pré-push via `npm run audit:sonar:local` + skills preventivas `sonarqube-clean-code` e `sonarqube-quality-gate` ([doc 21](docs/21-qualidade-de-codigo-sonarqube-e-regras.md)) |
 | **Observabilidade** | **OpenTelemetry SDK (3 sinais OTLP)** ponta a ponta (HTTP, Prisma, Redis, KafkaJS + *Child Spans*, WebSocket e RUM Angular via `/api/v1/telemetry/rum` sob gate LGPD) -> **OTel Collector** -> **Prometheus** (+ Postgres/Redis Exporters e `alerts.yml`), **Grafana Loki** (`30d`) + Promtail, **Grafana Tempo** e **Grafana** (`:3005` autenticado em `127.0.0.1`), além de **`SentryErrorReporterService`** (Envelope v7 + anti-SSRF pós-DNS via `/api/v1/telemetry/errors`) e perfil paralelo `datadog` (`Datadog Agent`) ([doc 19](docs/19-observabilidade-telemetria-e-monitoramento.md)) |
 | **Governança & Gate Pré-IA (35 controles)** | Matriz completa `REQ-SEC-01..35` documentada: RBAC granular/escopos, WAF/DDoS, CORS/CSP estritos, anti-SSRF, rate limit por usuário/chave, proteção EDoS, cofre centralizado de segredos, KMS em repouso, DLP runtime, TTLs automatizados, trilha de auditoria imutável, SCA/SBOM + SAST/DAST, revisão de terceiros, controle estrito de logs/métricas, alertas + playbooks IRP, limitações/AUP, SLAs de responsabilidade compartilhada e portões obrigatórios antes de qualquer uso de IA/modelos (tokenização PII, filtro de *prompt injection*, moderação, Red Teaming, vieses, sandboxing sem rede, HITL, privacidade diferencial e assinatura de respostas) |
 
-Os detalhes estão no [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md) e nos [requisitos de privacidade, LGPD e segurança (`REQ-SEC-01..35`)](docs/16-cookies-lgpd-e-requisitos.md).
+Os detalhes estão no [Dossiê 13](docs/13-dossie-de-seguranca-e-blindagem.md), nos [requisitos de privacidade, LGPD e segurança (`REQ-SEC-01..35`)](docs/16-cookies-lgpd-e-requisitos.md) e no [guia de qualidade de código e SonarQube](docs/21-qualidade-de-codigo-sonarqube-e-regras.md).
 
 ---
 
@@ -754,10 +763,10 @@ npm run dev:web               # Web em http://localhost:4200 (proxy para /api, /
 | :--- | :--- |
 | `npm run build` | Build de `shared`, `api` e `web` |
 | `npm run typecheck` | `tsc --noEmit` nos 3 workspaces |
-| `npm run lint` | ESLint (`--max-warnings=0`, `eslint-plugin-sonarjs`, `no-await-in-loop`, `complexity`, `max-depth`, `max-lines`, `max-lines-per-function`) nos 3 workspaces |
+| `npm run lint` | ESLint (`--max-warnings=0`, `eslint-plugin-sonarjs`, `no-await-in-loop`, `complexity`, `max-depth`, `max-params`, `max-lines`, `max-lines-per-function`, `prefer-optional-chain` e `prefer-readonly` nos type-checked) nos 3 workspaces |
 | `npm run format:check` | Valida formatação Prettier nos 3 workspaces (`shared`, `api`, `web`) |
-| `npm run audit:duplication` | Detector CPD local (`jscpd` a `0%` sobre `apps` e `packages`, respeitando `.sonarcloud.properties`) |
-| `npm run audit:sonar:local` | Executa `lint` (SonarJS) + `audit:duplication` antes do `git push` |
+| `npm run audit:duplication` | Detector CPD local (`jscpd` a `0%`) + paridade estática SonarCloud em `.ts`, `.js`, `.html` e `.scss` (`apps` e `packages`) |
+| `npm run audit:sonar:local` | Executa `lint` (SonarJS) + `audit:duplication` (CPD + paridade SonarCloud) antes do `git push` |
 | `npm run audit:sonar` | Consulta a API do SonarQube Cloud e reprova se houver qualquer issue, hotspot ou duplicação |
 | `npm run test` | Vitest (`shared`, `web`) e Jest (`api` unitários) |
 | `npm run test:e2e` | Suítes E2E completas (`test:e2e:api` + `test:e2e:web`) |
@@ -813,7 +822,7 @@ pokedex-frontend/
 ├── scripts/                       # ui-quality-gate.mjs (CDP) e sonar-quality-gate.mjs (Zero CPD + SonarCloud Gate)
 ├── .github/                       # CODEOWNERS, pull_request_template.md e workflows (ci.yml, deploy.yml)
 ├── assets/                        # Cenários WebP (-desktop e -mobile) e texturas da galeria
-├── docs/                          # Documentação (00 a 20), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
+├── docs/                          # Documentação (00 a 21), Capítulo 00 e Manual Capítulo 01 (`capitulo-01-guia-de-estudos/`)
 ├── eslint.base.mjs                # Base compartilhada do ESLint v9 para os 3 workspaces
 └── AGENTS.md                      # Regras inegociáveis de fidelidade visual e engenharia
 ```
@@ -848,6 +857,7 @@ pokedex-frontend/
 | 18 | [Auditoria técnica e plano de dívida técnica (`ARCHITECTURE.md`)](docs/18-auditoria-e-plano-divida-tecnica-arquitetura.md) |
 | 19 | [Observabilidade híbrida: OpenTelemetry, Prometheus, Loki, Tempo, Grafana, Sentry e Datadog](docs/19-observabilidade-telemetria-e-monitoramento.md) |
 | 20 | [Polimento visual, Design System e dívida estética do front-end](docs/20-polimento-visual-e-design-system-frontend.md) |
+| 21 | [Qualidade de código, regras SonarQube e governança preventiva](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) |
 | Guia 00 | **[Capítulo 00 — Guia de estudos da Pokédex (Fase 0)](docs/capitulo-00-guia-de-estudos-pokedex.md)**, a "colinha" e manual técnico para a apresentação no Senac |
 | Guia 01 | **[Capítulo 01 — Manual Técnico e Guia de Estudos Full-Stack](docs/capitulo-01-guia-de-estudos-pokedex.md)** (`docs/capitulo-01-guia-de-estudos/`: Vols. 01–03 concluídos — Anatomia de Pastas/Arquivos, Linguagens/Frameworks/Estruturas de Dados com exemplos reais + `@pokeverse/shared` e Glossário Técnico; Vols. 04–10 planejados) |
 

@@ -224,7 +224,7 @@ function parseStatPairs(
   let matched = false;
   let runningTotal = 0;
   for (const part of segment.split('/')) {
-    const match = /^\s*(-?\d+)\s+([a-z.]+)\s*$/i.exec(part);
+    const match = /^(-?\d+)\s+([a-z.]+)$/i.exec(part.trim());
     const rawNum = match?.[1];
     const rawStat = match?.[2];
     if (!rawNum || !rawStat) continue;

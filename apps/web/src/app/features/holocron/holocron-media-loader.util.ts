@@ -75,9 +75,12 @@ async function fetchGlbModel(
 }
 
 function clearAnchorChildren(prism: HologramPrismRig, onDispose: (obj: Object3D) => void): void {
-  for (const child of [...prism.modelAnchor.children]) {
-    onDispose(child);
-    prism.modelAnchor.remove(child);
+  for (let i = prism.modelAnchor.children.length - 1; i >= 0; i -= 1) {
+    const child = prism.modelAnchor.children[i];
+    if (child) {
+      onDispose(child);
+      prism.modelAnchor.remove(child);
+    }
   }
   prism.prismGroup.visible = true;
 }

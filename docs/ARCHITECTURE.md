@@ -345,7 +345,8 @@ Todo agente de IA ou contribuidor atuando neste repositório deve seguir um ritm
 3. **Preservação da Regra Zero de UI e Legado da Fase 0 Removido:**
    - Os arquivos estáticos da Fase 0 (`index.html`, `css/style.css`, `js/app.js`) foram integralmente migrados para `apps/web`/`@pokeverse/shared` e removidos da raiz por desuso (referências preservadas em `docs/` e no histórico Git). Nunca simplifique os componentes 3D/visuais de `apps/web` nem remova `assets/` da raiz sem solicitação explícita.
 4. **Portão Obrigatório Pré-Commit/Pré-Push & Documentação Sincronizada:**
-   - Antes de declarar uma entrega pronta para `git commit` ou `git push`, execute na raiz:
+   - Durante a escrita e refatoração de código TypeScript, JavaScript, HTML/Angular e CSS/SCSS, aplique proativamente a skill **`sonarqube-clean-code`** e as regras consolidadas em [`21 — Qualidade de Código, SonarQube e Regras`](21-qualidade-de-codigo-sonarqube-e-regras.md) para aprovação já na primeira passagem.
+   - Antes de declarar uma entrega pronta para `git commit` ou `git push` (skill **`sonarqube-quality-gate`**), execute na raiz:
      ```bash
      npm run typecheck && npm run audit:sonar:local && npm run format:check && npm run test && npm run build
      ```

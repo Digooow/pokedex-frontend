@@ -149,7 +149,8 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   onSendToMode(mode: 'holocron' | 'comparar', pokemonName: string): void {
     this.slotsStore.setEditMode(false);
     const active = this.store.selectedPokemon();
-    if (active && active.name.toLowerCase() === pokemonName.toLowerCase()) {
+    const isSamePokemon = active?.name.toLowerCase() === pokemonName.toLowerCase();
+    if (active && isSamePokemon) {
       this.openPokemonInMode(mode, active);
       return;
     }

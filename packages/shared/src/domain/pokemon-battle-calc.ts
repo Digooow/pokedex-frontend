@@ -103,9 +103,8 @@ export function computeAttackTypeMultiplier(
   defenderTypes: readonly PokemonTypeName[],
 ): number {
   const chart = OFFENSIVE_TYPE_CHART[moveType];
-  const uniqueDefenders = Array.from(new Set(defenderTypes));
   let multiplier = 1;
-  for (const defType of uniqueDefenders) {
+  for (const defType of new Set(defenderTypes)) {
     if (chart.noEffect.includes(defType)) return 0;
     if (chart.superEffective.includes(defType)) multiplier *= 2;
     else if (chart.notVeryEffective.includes(defType)) multiplier *= 0.5;

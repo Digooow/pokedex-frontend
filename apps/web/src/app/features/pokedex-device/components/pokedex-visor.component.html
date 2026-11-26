@@ -1,5 +1,10 @@
 @if (visorDetail.expanded()) {
-  <div class="visor-expand-backdrop" aria-hidden="true" (click)="onCollapseExpand($event)"></div>
+  <button
+    type="button"
+    class="visor-expand-backdrop"
+    aria-label="Recolher visor expandido"
+    (click)="onCollapseExpand($event)"
+  ></button>
 }
 
 <section

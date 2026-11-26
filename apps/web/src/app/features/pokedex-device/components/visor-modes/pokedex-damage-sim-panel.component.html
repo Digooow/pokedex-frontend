@@ -1,7 +1,7 @@
 <section class="dmg-panel" aria-label="Simulador de Dano Competitivo">
   <form class="dmg-search" (submit)="onDefenderSubmit($event)">
-    <label class="dmg-field dmg-field--grow">
-      <span class="dmg-label">Defensor (Alvo)</span>
+    <div class="dmg-field dmg-field--grow">
+      <label for="dmg-defender-input" class="dmg-label">Defensor (Alvo)</label>
       <div class="dmg-inline">
         <input
           id="dmg-defender-input"
@@ -13,11 +13,11 @@
         />
         <button type="submit" id="btn-dmg-load" class="dmg-btn">Carregar</button>
       </div>
-    </label>
+    </div>
   </form>
 
   @if (defenderSuggestions().length > 0) {
-    <div class="dmg-chips" aria-label="Sugestões de defensor">
+    <section class="dmg-chips" aria-label="Sugestões de defensor">
       @for (item of defenderSuggestions(); track item.id) {
         <button
           type="button"
@@ -27,7 +27,7 @@
           {{ item.displayName }}
         </button>
       }
-    </div>
+    </section>
   }
 
   <div class="dmg-grid">
@@ -55,12 +55,12 @@
 
     <label class="dmg-field">
       <span class="dmg-label">Tipo do Golpe</span>
-        <select
-          id="dmg-move-type"
-          class="dmg-select"
-          [value]="moveType()"
-          (change)="onSelectField('moveType', $event)"
-        >
+      <select
+        id="dmg-move-type"
+        class="dmg-select"
+        [value]="moveType()"
+        (change)="onSelectField('moveType', $event)"
+      >
         @for (t of pokemonTypes; track t) {
           <option [value]="t">{{ formatLabel(t) }}</option>
         }

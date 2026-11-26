@@ -13,7 +13,7 @@ import { PokedexStore } from './services/pokedex.store';
 
 describe('Pokedex Visor Expand (MEL-03) & Competitive Calculator Phase 2 (MEL-04)', () => {
   beforeEach(async () => {
-    window.localStorage.removeItem('pokedex_slots_salvos');
+    globalThis.localStorage.removeItem('pokedex_slots_salvos');
     await TestBed.configureTestingModule({
       imports: [PokedexDevicePageComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],

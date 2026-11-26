@@ -52,8 +52,9 @@ export class PokedexSpreadIoPanelComponent {
     this.errorMessage.set(null);
     const text = this.exportedText();
     try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(text);
+      const clipboard = globalThis.navigator?.clipboard;
+      if (clipboard) {
+        await clipboard.writeText(text);
         this.statusMessage.set('Spread Showdown copiado para a área de transferência.');
         return;
       }

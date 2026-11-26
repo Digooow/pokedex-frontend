@@ -1,6 +1,6 @@
 # PokéVerse — Regras Inegociáveis do Repositório
 
-Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). A fila de melhorias, correções e features com **prioridade máxima** no projeto vive em [docs/00-fila-prioritaria-melhorias.md](docs/00-fila-prioritaria-melhorias.md).
+Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (precedência máxima no projeto). O contrato normativo detalhado de arquitetura, padrões de código e combate a *AI slop* está documentado em [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), e o catálogo de regras SonarQube/ESLint/acessibilidade em [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md). A fila de melhorias, correções e features com **prioridade máxima** no projeto vive em [docs/00-fila-prioritaria-melhorias.md](docs/00-fila-prioritaria-melhorias.md).
 
 ---
 
@@ -23,7 +23,8 @@ Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (preced�
    - Contratos Zod, schemas de eventos e regras de domínio ficam em `@pokeverse/shared` — nunca duplique schemas, tipos, constantes ou componentes entre front-end e back-end.
    - Nunca remova ou degrade comportamento já testado ao implementar uma nova etapa; valide com lint, `typecheck`, testes unitários, E2E e build após a última edição.
 3. **Portão SonarQube & Zero Duplicação Pré-Push:**
-   - Antes de qualquer `git push`, execute `npm run audit:sonar:local` (`npm run lint` com `eslint-plugin-sonarjs` + `no-await-in-loop` e `npm run audit:duplication` com `jscpd` a `0%` de tolerância) e `npm run audit:sonar` (consulta ao SonarQube Cloud).
+   - Durante a escrita e refatoração de código TS/JS, HTML/Angular e CSS/SCSS, consulte e aplique proativamente a skill **`sonarqube-clean-code`** e o guia [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) para aprovação de primeira.
+   - Antes de qualquer `git push`, execute `npm run audit:sonar:local` (`npm run lint` com `eslint-plugin-sonarjs`, `no-await-in-loop`, `max-params`, `prefer-optional-chain`/`prefer-readonly` e `npm run audit:duplication` com `jscpd` a `0%` + paridade estática TS/HTML/SCSS) e `npm run audit:sonar` (skill `sonarqube-quality-gate`).
    - **Tolerância zero:** qualquer issue (de qualquer severidade, inclusive `MINOR`/`INFO`), qualquer Security Hotspot `TO_REVIEW` e qualquer linha/bloco duplicado reprovam a entrega e devem ser corrigidos antes do push.
 
 ---

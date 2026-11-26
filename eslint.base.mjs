@@ -37,11 +37,18 @@ export function createWorkspaceEslintConfig({
         "no-await-in-loop": "error",
         complexity: ["error", 15],
         "max-depth": ["error", 3],
+        "max-params": ["error", 7],
         "max-lines": maxLinesRule(300),
         "max-lines-per-function": [
           "error",
           { max: 65, skipBlankLines: true, skipComments: true, IIFEs: true },
         ],
+        ...(typeChecked
+          ? {
+              "@typescript-eslint/prefer-optional-chain": "error",
+              "@typescript-eslint/prefer-readonly": "error",
+            }
+          : {}),
         ...extraRules,
       },
     },
@@ -50,6 +57,7 @@ export function createWorkspaceEslintConfig({
       rules: {
         "max-lines": maxLinesRule(specMaxLines),
         "max-lines-per-function": "off",
+        "max-params": "off",
         "no-await-in-loop": "off",
         "sonarjs/assertions-in-tests": "off",
         "sonarjs/function-return-type": "off",
