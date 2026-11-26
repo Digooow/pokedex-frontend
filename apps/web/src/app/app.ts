@@ -5,6 +5,8 @@ import { AuthStore } from './core/stores/auth.store';
 import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { SystemStatusStore } from './core/stores/system-status.store';
 import { WorldTickerStore } from './core/stores/world-ticker.store';
+import { HolocronDialogComponent } from './features/holocron/holocron-dialog.component';
+import { HolocronStore } from './features/holocron/holocron.store';
 import { PvMainLandmarkDirective } from './shared/directives/main-heading.directive';
 import { ApiCreditsDialogComponent } from './shared/hud/api-credits-dialog.component';
 import { CenariosBackdropComponent } from './shared/hud/cenarios-backdrop.component';
@@ -25,6 +27,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
     PrivacyConsentDialogComponent,
     VisitorLockDialogComponent,
     SecuritySettingsDialogComponent,
+    HolocronDialogComponent,
     PvMainLandmarkDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,6 +37,7 @@ import { VisitorLockDialogComponent } from './shared/hud/visitor-lock-dialog.com
 export class App implements OnInit {
   readonly apiCredits = inject(ApiCreditsStore);
   readonly auth = inject(AuthStore);
+  readonly holocron = inject(HolocronStore);
   readonly privacy = inject(PrivacyConsentStore);
   private readonly systemStatus = inject(SystemStatusStore);
   private readonly ticker = inject(WorldTickerStore);

@@ -1,0 +1,181 @@
+.museum-page {
+  display: grid;
+  gap: var(--pv-space-5);
+  inline-size: min(72rem, 100%);
+  margin-inline: auto;
+  padding: var(--pv-space-5) var(--pv-space-3);
+}
+
+.museum-page__header {
+  padding: var(--pv-space-4) var(--pv-space-5);
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-border-strong);
+  background: var(--pv-museum-card-bg);
+  box-shadow: var(--pv-museum-shadow);
+}
+
+@supports (backdrop-filter: blur(12px)) {
+  .museum-page__header,
+  .region-card {
+    background: var(--pv-museum-card-bg-blur);
+    backdrop-filter: blur(12px);
+  }
+}
+
+:host-context(html[data-perf-tier='lite']) .museum-page__header,
+:host-context(html[data-perf-tier='lite']) .region-card {
+  backdrop-filter: none;
+  background: var(--pv-museum-card-bg-lite);
+}
+
+.museum-page__tag {
+  display: inline-block;
+  padding: 0.25rem 0.625rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-gold);
+  background: var(--pv-holocron-badge-bg);
+  color: var(--pv-border-gold);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.museum-page__title {
+  margin: var(--pv-space-2) 0 0;
+  color: var(--pv-ink-primary);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.museum-page__subtitle {
+  margin: var(--pv-space-2) 0 0;
+  color: var(--pv-ink-muted);
+}
+
+.museum-timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.25rem, 1fr));
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-2);
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-museum-timeline-track);
+  background: var(--pv-museum-panel-bg);
+}
+
+.timeline-step {
+  display: grid;
+  gap: 0.15rem;
+  min-block-size: 2.75rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-museum-chip-bg);
+  color: var(--pv-ink-primary);
+  text-align: start;
+  font: inherit;
+  cursor: pointer;
+}
+
+.timeline-step.is-active {
+  border-color: var(--pv-border-gold);
+  background: var(--pv-museum-chip-active-bg);
+}
+
+.timeline-step__year {
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--pv-border-gold);
+}
+
+.timeline-step__name {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.timeline-step__platform {
+  font-size: 0.75rem;
+  color: var(--pv-ink-muted);
+}
+
+.museum-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16.5rem, 1fr));
+  gap: var(--pv-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.region-card {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-4);
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-surface);
+}
+
+.region-card.is-active {
+  border-color: var(--pv-border-gold);
+}
+
+.region-card__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--pv-space-1);
+}
+
+.region-card__gen {
+  font-size: 0.75rem;
+  color: var(--pv-sapphire);
+  font-weight: 700;
+}
+
+.region-card__platform {
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  color: var(--pv-ink-muted);
+}
+
+.region-card__name {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.region-card__landmark {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--pv-ink-muted);
+}
+
+.region-card__footer {
+  display: grid;
+  gap: var(--pv-space-1);
+}
+
+.region-card__inspect-btn {
+  min-block-size: 2.75rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-museum-chip-bg);
+  color: var(--pv-ink-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.region-card__inspect-btn[aria-pressed='true'] {
+  border-color: var(--pv-border-gold);
+  background: var(--pv-museum-chip-active-bg);
+}
+
+.region-card__cta {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  color: var(--pv-border-gold);
+  font-weight: 700;
+  text-decoration: none;
+}

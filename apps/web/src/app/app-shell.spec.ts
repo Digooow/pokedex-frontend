@@ -148,7 +148,10 @@ describe('PokéVerse OS Shell', () => {
     );
     expect(compiled.querySelector('.museum-page__header')).not.toBeNull();
     expect(compiled.querySelector('.museum-page__footer')).toBeNull();
-    expect(compiled.querySelectorAll('.region-card')).toHaveLength(6);
+    expect(compiled.querySelectorAll('.region-card')).toHaveLength(9);
+    httpMock
+      .match((req) => req.url.startsWith('/api/v1/pokedex/regions/'))
+      .forEach((req) => req.flush(null, { status: 404, statusText: 'Not Found' }));
 
     const museumFixture = TestBed.createComponent(MuseumPageComponent);
     museumFixture.detectChanges();

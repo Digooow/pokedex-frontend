@@ -1,4 +1,5 @@
 import {
+  type AsyncState,
   type CatalogFilterResult,
   type EnrichedCatalogItem,
   type PokeApiCatalogResponse,
@@ -148,6 +149,36 @@ export function buildPokemonFetchErrorMessage(
     return `Não foi possível concluir a comunicação com a PokéAPI no momento (código HTTP ${err.statusCode}).`;
   }
   return 'A PokéAPI não respondeu a tempo. Verifique sua conexão com a internet e tente novamente.';
+}
+
+export function mapResolvedResultToAsyncState(
+  resolved: ResolvedPokemonResult,
+  rawTerm: string,
+): AsyncState<PokemonDetailView> {
+  if (!resolved.found) {
+    return {
+      status: 'error',
+      error: {
+        code: resolved.notFound ? 'POKEMON_NOT_FOUND' : 'POKEMON_FETCH_FAILED',
+        message: buildPokemonFetchErrorMessage(rawTerm, resolved),
+        retryable: !resolved.notFound,
+      },
+    };
+  }
+
+  const vm = mapResolvedPokemonToView(resolved);
+  if (!vm) {
+    return {
+      status: 'error',
+      error: {
+        code: 'POKEMON_FETCH_FAILED',
+        message: 'Resposta inválida ao carregar os dados do Pokémon.',
+        retryable: true,
+      },
+    };
+  }
+
+  return { status: 'success', data: vm };
 }
 
 export function buildAdvancedCatalogResult(

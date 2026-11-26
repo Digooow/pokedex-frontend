@@ -1,0 +1,174 @@
+<dialog
+  #dialogEl
+  class="holocron-dialog"
+  aria-labelledby="holocron-dialog-title"
+  closedby="any"
+  pvDialogLightDismiss
+  (close)="onNativeClose()"
+>
+  <article class="holocron-dialog__card">
+    <header class="holocron-dialog__header">
+      <div>
+        <span class="holocron-dialog__badge">PROJETOR HOLOCRON 3D</span>
+        <h2 id="holocron-dialog-title" class="holocron-dialog__title">
+          @if (activePokemon(); as pk) {
+            {{ pk.paddedId }} {{ pk.displayName }}
+          } @else {
+            Inspeção Holográfica
+          }
+        </h2>
+      </div>
+      <div class="holocron-dialog__actions">
+        @if (activePokemon(); as pk) {
+          <button
+            type="button"
+            class="holocron-btn holocron-btn--primary"
+            (click)="onOpenInPokedex(pk.name)"
+          >
+            Abrir na Pokédex →
+          </button>
+        }
+        <button
+          type="button"
+          class="holocron-btn holocron-btn--secondary"
+          (click)="holocron.close()"
+        >
+          Fechar
+        </button>
+      </div>
+    </header>
+
+    @switch (holocron.pokemonState().status) {
+      @case ('loading') {
+        <div class="holocron-loading" aria-label="Carregando projeção holográfica">
+          <div class="holocron-skeleton holocron-skeleton--stage"></div>
+          <div class="holocron-skeleton holocron-skeleton--panel"></div>
+        </div>
+      }
+      @case ('error') {
+        @let errState = holocron.pokemonState();
+        @if (errState.status === 'error') {
+          <div class="holocron-error" role="alert">
+            <p>{{ errState.error.message }}</p>
+            @if (errState.error.retryable) {
+              <button
+                type="button"
+                class="holocron-btn holocron-btn--primary"
+                (click)="holocron.retry()"
+              >
+                Tentar novamente
+              </button>
+            }
+          </div>
+        }
+      }
+      @case ('success') {
+        @if (activePokemon(); as pk) {
+          <div class="holocron-layout">
+            <pv-holocron-stage
+              [pokemon]="pk"
+              [shiny]="holocron.shiny()"
+              [autoRotate]="holocron.autoRotate()"
+              (toggleShiny)="holocron.toggleShiny()"
+              (toggleAutoRotate)="holocron.toggleAutoRotate()"
+            />
+
+            <div class="holocron-intel">
+              <section class="holocron-panel" aria-label="Análise acústica">
+                <div class="holocron-panel__head">
+                  <h3 class="holocron-panel__title">Grito &amp; Espectrograma</h3>
+                  <span class="holocron-panel__meta">{{ pk.types.join(' / ') }}</span>
+                </div>
+                <div class="holocron-cry-actions">
+                  @if (pk.bundle?.pokemon?.cries?.latest; as latestUrl) {
+                    <button
+                      type="button"
+                      class="holocron-btn holocron-btn--secondary"
+                      [attr.aria-pressed]="audioStore.activeCryKind() === 'latest'"
+                      (click)="onPlayCry('latest', latestUrl)"
+                    >
+                      {{ audioStore.activeCryKind() === 'latest' ? 'Pausar Grito' : 'Ouvir Grito' }}
+                    </button>
+                  }
+                  @if (pk.bundle?.pokemon?.cries?.legacy; as legacyUrl) {
+                    <button
+                      type="button"
+                      class="holocron-btn holocron-btn--secondary"
+                      [attr.aria-pressed]="audioStore.activeCryKind() === 'legacy'"
+                      (click)="onPlayCry('legacy', legacyUrl)"
+                    >
+                      Retrô
+                    </button>
+                  }
+                </div>
+                <pv-cry-spectrogram [active]="audioStore.activeCryKind() !== null" />
+                @if (audioStore.cryError(); as err) {
+                  <output class="holocron-cry-error">{{ err }}</output>
+                }
+              </section>
+
+              <section class="holocron-panel" aria-label="Atributos e defesa">
+                <div class="holocron-panel__head">
+                  <h3 class="holocron-panel__title">Matriz Tática</h3>
+                  <span class="holocron-panel__meta numero-tabular">BST {{ bstTotal() }}</span>
+                </div>
+                <ul class="holocron-stats">
+                  @for (row of statRows(); track row.label) {
+                    <li class="holocron-stat-row">
+                      <span class="holocron-stat-label">{{ row.label }}</span>
+                      <span class="holocron-stat-val numero-tabular">{{ row.value }}</span>
+                      <span class="holocron-stat-track">
+                        <span
+                          [class]="'holocron-stat-fill holocron-stat-fill--' + row.tier"
+                          [style.width.%]="row.percent"
+                        ></span>
+                      </span>
+                    </li>
+                  }
+                </ul>
+                @if (defenseSummary(); as def) {
+                  <div class="holocron-defense">
+                    @if (def.weak4x.length > 0) {
+                      <p class="holocron-defense__line">
+                        <span>4x Fraqueza:</span> {{ def.weak4x.join(', ') }}
+                      </p>
+                    }
+                    @if (def.weak2x.length > 0) {
+                      <p class="holocron-defense__line">
+                        <span>2x Fraqueza:</span> {{ def.weak2x.join(', ') }}
+                      </p>
+                    }
+                    @if (def.immune.length > 0) {
+                      <p class="holocron-defense__line">
+                        <span>0x Imune:</span> {{ def.immune.join(', ') }}
+                      </p>
+                    }
+                  </div>
+                }
+              </section>
+
+              @if (evolutionNodes().length > 0) {
+                <section class="holocron-panel" aria-label="Cadeia evolutiva">
+                  <h3 class="holocron-panel__title">Cadeia Evolutiva</h3>
+                  <div class="holocron-evo-list">
+                    @for (node of evolutionNodes(); track node.speciesId) {
+                      <button
+                        type="button"
+                        class="holocron-evo-btn"
+                        [class.is-current]="node.speciesName === pk.name"
+                        (click)="onSelectEvolution(node.speciesName)"
+                      >
+                        <span class="holocron-evo-btn__name">{{ node.displayName }}</span>
+                        <span class="holocron-evo-btn__cond">{{ node.conditionText }}</span>
+                      </button>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          </div>
+        }
+      }
+    }
+  </article>
+</dialog>

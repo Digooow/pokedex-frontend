@@ -1,5 +1,4 @@
-import { isPlatformBrowser } from '@angular/common';
-import { Injectable, OnDestroy, PLATFORM_ID, inject, signal } from '@angular/core';
+import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import type {
   AsyncState,
   CachedPokemonEncountersResponse,
@@ -7,13 +6,16 @@ import type {
 } from '@pokeverse/shared';
 import type { AbilityDetail, MoveDetail } from '@pokeverse/shared/pokedex-encyclopedia';
 import { Subscription } from 'rxjs';
+import { AudioEngineService } from '../../../core/audio/audio-engine.service';
+import { AudioStore, type CryPlaybackKind } from '../../../core/stores/audio.store';
 import { PokedexApiClient } from './pokedex-api.client';
 import { VISOR_TABS, type VisorSpriteMode, type VisorTabId } from './pokedex-visor-format.util';
 
 @Injectable({ providedIn: 'root' })
 export class PokedexVisorDetailStore implements OnDestroy {
-  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private readonly apiClient = inject(PokedexApiClient);
+  private readonly audioStore = inject(AudioStore);
+  private readonly audioEngine = inject(AudioEngineService);
 
   private readonly formsCache = new Map<string, CachedPokemonFormsResponse>();
   private readonly encountersCache = new Map<string, CachedPokemonEncountersResponse>();
@@ -24,14 +26,13 @@ export class PokedexVisorDetailStore implements OnDestroy {
   private encountersSub: Subscription | null = null;
   private readonly moveSubs = new Map<string, Subscription>();
   private readonly abilitySubs = new Map<string, Subscription>();
-  private activeAudio: HTMLAudioElement | null = null;
   private currentPokemonName: string | null = null;
 
   readonly activeTab = signal<VisorTabId>('resumo');
   readonly spriteMode = signal<VisorSpriteMode>('artwork');
   readonly shiny = signal(false);
-  readonly playingCry = signal<'latest' | 'legacy' | null>(null);
-  readonly cryError = signal<string | null>(null);
+  readonly playingCry = this.audioStore.activeCryKind;
+  readonly cryError = this.audioStore.cryError;
   readonly formsState = signal<AsyncState<CachedPokemonFormsResponse>>({ status: 'idle' });
   readonly encountersState = signal<AsyncState<CachedPokemonEncountersResponse>>({
     status: 'idle',
@@ -77,48 +78,12 @@ export class PokedexVisorDetailStore implements OnDestroy {
     this.spriteMode.set(mode);
   }
 
-  playCry(kind: 'latest' | 'legacy', url: string | null): void {
-    if (!this.isBrowser || !url || typeof Audio === 'undefined') {
-      this.cryError.set('Áudio indisponível neste dispositivo.');
-      return;
-    }
-
-    const wasSame = this.playingCry() === kind;
-    this.stopCry();
-    if (wasSame) return;
-
-    this.cryError.set(null);
-    const audio = new Audio(url);
-    this.activeAudio = audio;
-    this.playingCry.set(kind);
-
-    audio.onended = () => {
-      if (this.activeAudio === audio) this.stopCry();
-    };
-    audio.onerror = () => {
-      if (this.activeAudio === audio) {
-        this.stopCry();
-        this.cryError.set('Não foi possível reproduzir o áudio deste Pokémon.');
-      }
-    };
-
-    Promise.resolve(audio.play()).catch(() => {
-      if (this.activeAudio === audio) {
-        this.stopCry();
-        this.cryError.set('Reprodução bloqueada pelo navegador.');
-      }
-    });
+  playCry(kind: CryPlaybackKind, url: string | null): void {
+    this.audioEngine.playCry(kind, url);
   }
 
   stopCry(): void {
-    if (this.activeAudio) {
-      this.activeAudio.onended = null;
-      this.activeAudio.onerror = null;
-      this.activeAudio.pause();
-      this.activeAudio = null;
-    }
-    this.playingCry.set(null);
-    this.cryError.set(null);
+    this.audioEngine.stopCry();
   }
 
   ensureFormsLoaded(pokemonName: string, force = false): void {

@@ -129,4 +129,36 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(hasOverflow).toBe(false);
     expect(bff.consoleErrors).toEqual([]);
   });
+
+  test('explores expanded 9-region Museum with timeline & live data and opens Holocron 3D from Museum and Pokédex', async ({
+    page,
+    bff,
+  }) => {
+    await page.goto(`${bff.baseUrl}/museu`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('h1#main-heading')).toContainText('Museu das Regiões');
+    await expect(page.locator('.region-card')).toHaveCount(9);
+    await expect(page.locator('.timeline-step')).toHaveCount(9);
+    await expect(page.locator('.inspector')).toContainText('Pallet Town');
+    await expect(page.locator('.native-grid')).toContainText('Bulbasaur');
+
+    await page.locator('.species-holocron-btn').first().click();
+    const holocronDialog = page.locator('dialog.holocron-dialog');
+    await expect(holocronDialog).toBeVisible();
+    await expect(holocronDialog.locator('.cry-spec')).toBeVisible();
+    await holocronDialog.getByRole('button', { name: 'Fechar' }).click();
+    await expect(holocronDialog).not.toBeVisible();
+
+    await page.goto(`${bff.baseUrl}/pokedex?q=pikachu`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
+    await page.locator('#btn-holocron-3d').click();
+    await expect(holocronDialog).toBeVisible();
+    await expect(holocronDialog.locator('#holocron-dialog-title')).toContainText('Pikachu');
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+    expect(bff.consoleErrors).toEqual([]);
+  });
 });

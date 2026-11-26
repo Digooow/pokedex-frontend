@@ -13,6 +13,9 @@ import {
 import {
   SAMPLE_ELECTRIC_TYPE,
   SAMPLE_ENRICHED_CATALOG,
+  SAMPLE_JOHTO_REGION,
+  SAMPLE_KANTO_POKEDEX,
+  SAMPLE_KANTO_REGION,
   SAMPLE_META_FILTERS,
   SAMPLE_MOVES_LIST,
   SAMPLE_TYPES_LIST,
@@ -156,6 +159,13 @@ const EXACT_POKEDEX_MOCKS: Readonly<Record<string, unknown>> = {
   '/api/v1/pokedex/types/electric': SAMPLE_ELECTRIC_TYPE,
 };
 
+const PREFIX_POKEDEX_MOCKS: ReadonlyArray<readonly [string, unknown]> = [
+  ['/api/v1/pokedex/moves/', SAMPLE_THUNDER_SHOCK_MOVE],
+  ['/api/v1/pokedex/abilities/', SAMPLE_STATIC_ABILITY],
+  ['/api/v1/pokedex/pokedexes/', SAMPLE_KANTO_POKEDEX],
+  ['/api/v1/pokedex/pokemon/', SAMPLE_PIKACHU],
+];
+
 async function handlePokedexRoute(
   req: http.IncomingMessage,
   res: http.ServerResponse,
@@ -186,16 +196,13 @@ async function handlePokedexRoute(
     });
     return true;
   }
-  if (pathname.startsWith('/api/v1/pokedex/moves/')) {
-    writeJson(res, 200, SAMPLE_THUNDER_SHOCK_MOVE);
+  if (pathname.startsWith('/api/v1/pokedex/regions/')) {
+    writeJson(res, 200, pathname.endsWith('/johto') ? SAMPLE_JOHTO_REGION : SAMPLE_KANTO_REGION);
     return true;
   }
-  if (pathname.startsWith('/api/v1/pokedex/abilities/')) {
-    writeJson(res, 200, SAMPLE_STATIC_ABILITY);
-    return true;
-  }
-  if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {
-    writeJson(res, 200, SAMPLE_PIKACHU);
+  const matchedPrefix = PREFIX_POKEDEX_MOCKS.find(([prefix]) => pathname.startsWith(prefix));
+  if (matchedPrefix) {
+    writeJson(res, 200, matchedPrefix[1]);
     return true;
   }
   if (pathname === '/api/v1/pokedex/slots' && req.method === 'GET') {

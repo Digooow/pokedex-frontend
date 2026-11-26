@@ -1,5 +1,6 @@
 import { isPlatformBrowser } from '@angular/common';
 import { Injectable, PLATFORM_ID, computed, inject, signal } from '@angular/core';
+import { AudioEngineService } from '../../../core/audio/audio-engine.service';
 import { QualityStore } from '../../../core/stores/quality.store';
 import { PokedexRpgFocusRegistry, type RpgFocusGroup } from '../directives/rpg-focusable.directive';
 import { PokedexLidPhysicsService } from './pokedex-lid-physics.service';
@@ -19,6 +20,7 @@ export {
 @Injectable()
 export class PokedexRpgNavService {
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
+  private readonly audioEngine = inject(AudioEngineService);
   private readonly quality = inject(QualityStore);
   private readonly pokedex = inject(PokedexStore);
   private readonly slotsStore = inject(PokedexSlotsStore);
@@ -227,6 +229,7 @@ export class PokedexRpgNavService {
 
   private toggleCover(open: boolean, onComplete?: () => void): void {
     if (this.lidPhysics.isDesiredOpen() === open) return;
+    this.audioEngine.playUiTone(open ? 'hinge-open' : 'hinge-close');
     if (open) {
       this.pokedex.ensureCatalogLoaded();
       this.rpgLevel.set('telas');

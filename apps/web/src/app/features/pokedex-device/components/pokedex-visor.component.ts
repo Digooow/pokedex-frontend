@@ -60,6 +60,7 @@ export class PokedexVisorComponent {
   readonly selectSuggestion = output<string>();
   readonly slotOpened = output<string>();
   readonly compareRequested = output<PokemonDetailView>();
+  readonly holocronRequested = output<PokemonDetailView>();
 
   readonly tabs = VISOR_TABS;
   readonly isLite = computed(() => this.quality.tier() === 'lite');

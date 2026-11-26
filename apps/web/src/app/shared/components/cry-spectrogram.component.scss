@@ -1,0 +1,33 @@
+.cry-spec {
+  display: grid;
+  gap: var(--pv-space-1);
+  padding: var(--pv-space-2);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-audio-border);
+  background: var(--pv-audio-track-bg);
+}
+
+.cry-spec--compact {
+  padding: var(--pv-space-1) var(--pv-space-2);
+}
+
+.cry-spec__canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 2.5rem;
+}
+
+.cry-spec--compact .cry-spec__canvas {
+  block-size: 1.85rem;
+}
+
+.cry-spec__caption {
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--pv-ink-muted);
+}
+
+.cry-spec.is-active .cry-spec__caption {
+  color: var(--pv-hud-ok-ink);
+}

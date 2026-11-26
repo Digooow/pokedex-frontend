@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import type { PerfPreference } from '@pokeverse/shared';
+import { AudioStore } from '../../core/stores/audio.store';
 import { QualityStore } from '../../core/stores/quality.store';
 import { ScenarioStore } from '../../core/stores/scenario.store';
 
@@ -24,6 +25,7 @@ const PERF_OPTIONS: readonly PerfOption[] = [
 export class HudSettingsMenuComponent {
   readonly scenarioStore = inject(ScenarioStore);
   readonly quality = inject(QualityStore);
+  readonly audio = inject(AudioStore);
 
   readonly open = input<boolean>(false);
   readonly toggled = output<void>();

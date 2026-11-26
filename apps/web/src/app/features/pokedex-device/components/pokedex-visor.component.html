@@ -148,6 +148,7 @@
                     (selectSpriteMode)="visorDetail.setSpriteMode($event)"
                     (playCry)="visorDetail.playCry($event, $event === 'latest' ? (pokemon.bundle?.pokemon.cries.latest ?? null) : (pokemon.bundle?.pokemon.cries.legacy ?? null))"
                     (compareRequested)="compareRequested.emit(pokemon)"
+                    (holocronRequested)="holocronRequested.emit(pokemon)"
                   />
                 }
                 @case ('stats') {

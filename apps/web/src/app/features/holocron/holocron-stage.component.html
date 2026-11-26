@@ -1,0 +1,58 @@
+<section class="holocron-stage" aria-label="Projetor holográfico">
+  <div class="holocron-stage__viewport">
+    <span class="holocron-stage__mode">{{ renderModeLabel() }}</span>
+
+    @if (canUseWebGl()) {
+      <canvas
+        #glCanvas
+        class="holocron-stage__canvas"
+        role="img"
+        [attr.aria-label]="'Projeção 3D de ' + pokemon().displayName"
+      ></canvas>
+    } @else {
+      <div class="holocron-stage__fallback">
+        <div class="holocron-stage__pedestal" aria-hidden="true"></div>
+        @if (spriteUrl(); as imgUrl) {
+          @if (!fallbackImageFailed()) {
+            <img
+              class="holocron-stage__sprite"
+              [src]="imgUrl"
+              [alt]="'Projeção holográfica 2D de ' + pokemon().displayName"
+              width="168"
+              height="168"
+              (error)="onFallbackSpriteError()"
+            />
+          } @else {
+            <p class="holocron-stage__sprite-empty">Arte indisponível no momento.</p>
+          }
+        } @else {
+          <p class="holocron-stage__sprite-empty">Arte indisponível no momento.</p>
+        }
+      </div>
+    }
+  </div>
+
+  <div class="holocron-stage__controls" role="group" aria-label="Controles do projetor">
+    @if (canUseWebGl()) {
+      <button type="button" class="holocron-ctrl-btn" (click)="onNudge(-0.45)">Girar ◀</button>
+      <button
+        type="button"
+        class="holocron-ctrl-btn"
+        [attr.aria-pressed]="autoRotate()"
+        (click)="toggleAutoRotate.emit()"
+      >
+        {{ autoRotate() ? 'Pausar Giro' : 'Auto-Giro' }}
+      </button>
+      <button type="button" class="holocron-ctrl-btn" (click)="onNudge(0.45)">Girar ▶</button>
+      <button type="button" class="holocron-ctrl-btn" (click)="onResetCamera()">Resetar</button>
+    }
+    <button
+      type="button"
+      class="holocron-ctrl-btn"
+      [attr.aria-pressed]="shiny()"
+      (click)="toggleShiny.emit()"
+    >
+      {{ shiny() ? 'Shiny ON' : 'Shiny' }}
+    </button>
+  </div>
+</section>

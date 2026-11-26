@@ -414,6 +414,31 @@
   --pv-encyclopedia-card-bg-lite: oklch(18% 0.024 255 / 0.96);
   --pv-encyclopedia-item-bg: oklch(21% 0.028 255 / 0.86);
   --pv-encyclopedia-item-active-bg: oklch(28% 0.07 232 / 0.9);
+
+  --pv-museum-card-bg: oklch(17% 0.026 255 / 0.88);
+  --pv-museum-card-bg-blur: oklch(17% 0.026 255 / 0.8);
+  --pv-museum-card-bg-lite: oklch(18% 0.024 255 / 0.95);
+  --pv-museum-panel-bg: oklch(15% 0.024 255 / 0.92);
+  --pv-museum-chip-bg: oklch(22% 0.03 255 / 0.88);
+  --pv-museum-chip-active-bg: oklch(30% 0.09 232 / 0.92);
+  --pv-museum-timeline-track: oklch(30% 0.04 250 / 0.65);
+  --pv-museum-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+
+  --pv-audio-track-bg: oklch(13% 0.022 250 / 0.95);
+  --pv-audio-bar-low: oklch(70% 0.16 205);
+  --pv-audio-bar-mid: oklch(78% 0.17 152);
+  --pv-audio-bar-peak: oklch(83% 0.17 85);
+  --pv-audio-border: oklch(54% 0.06 232 / 0.55);
+
+  --pv-holocron-stage-bg: radial-gradient(
+    circle at 50% 42%,
+    oklch(26% 0.07 232 / 0.72),
+    oklch(11% 0.022 255 / 0.96) 74%
+  );
+  --pv-holocron-pedestal-glow: oklch(68% 0.17 220 / 0.4);
+  --pv-holocron-ring: oklch(76% 0.14 215 / 0.65);
+  --pv-holocron-badge-bg: oklch(14% 0.025 255 / 0.9);
+  --pv-holocron-control-bg: oklch(21% 0.03 255 / 0.92);
 }
 
 @media (forced-colors: active) {
@@ -470,5 +495,26 @@
     --texto-sobre-destaque: ButtonText;
     --cor-foco-claro: Highlight;
     --cor-foco-escuro: Highlight;
+
+    --pv-museum-card-bg: Canvas;
+    --pv-museum-card-bg-blur: Canvas;
+    --pv-museum-card-bg-lite: Canvas;
+    --pv-museum-panel-bg: Canvas;
+    --pv-museum-chip-bg: ButtonFace;
+    --pv-museum-chip-active-bg: Highlight;
+    --pv-museum-timeline-track: CanvasText;
+    --pv-museum-shadow: none;
+
+    --pv-audio-track-bg: Canvas;
+    --pv-audio-bar-low: Highlight;
+    --pv-audio-bar-mid: Highlight;
+    --pv-audio-bar-peak: Highlight;
+    --pv-audio-border: CanvasText;
+
+    --pv-holocron-stage-bg: Canvas;
+    --pv-holocron-pedestal-glow: Highlight;
+    --pv-holocron-ring: CanvasText;
+    --pv-holocron-badge-bg: Canvas;
+    --pv-holocron-control-bg: ButtonFace;
   }
 }

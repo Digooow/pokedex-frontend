@@ -1,0 +1,72 @@
+<section class="museum-page" aria-labelledby="main-heading">
+  <header class="museum-page__header">
+    <div>
+      <span class="museum-page__tag">ACESSO PÚBLICO • MÓDULO 02</span>
+      <h1 id="main-heading" tabindex="-1" pvMainHeading class="museum-page__title">
+        Museu das Regiões &amp; História
+      </h1>
+      <p class="museum-page__subtitle">
+        Atlas histórico das 9 regiões canônicas (1996–2022) integrado aos dados vivos da PokéAPI
+        e ao Projetor Holocron 3D.
+      </p>
+      <a
+        [routerLink]="['/enciclopedia']"
+        [queryParams]="{ cat: 'region' }"
+        class="region-card__cta"
+      >
+        Explorar Enciclopédia &amp; Regiões →
+      </a>
+    </div>
+  </header>
+
+  <nav class="museum-timeline" aria-label="Linha do tempo histórica dos jogos (1996 a 2022)">
+    @for (region of regions; track region.id) {
+      <button
+        type="button"
+        class="timeline-step"
+        [class.is-active]="museum.selectedRegionId() === region.id"
+        [attr.aria-pressed]="museum.selectedRegionId() === region.id"
+        (click)="onSelectRegion(region.id)"
+      >
+        <span class="timeline-step__year numero-tabular">{{ region.releaseYear }}</span>
+        <span class="timeline-step__name">{{ region.name }}</span>
+        <span class="timeline-step__platform">{{ region.platform }}</span>
+      </button>
+    }
+  </nav>
+
+  <ul class="museum-grid" aria-label="Cartões das 9 regiões">
+    @for (region of regions; track region.id) {
+      <li
+        class="region-card"
+        [class.is-active]="museum.selectedRegionId() === region.id"
+      >
+        <div class="region-card__top">
+          <span class="region-card__gen">{{ region.generation }}</span>
+          <span class="region-card__platform">{{ region.platform }}</span>
+        </div>
+        <h2 class="region-card__name">{{ region.name }}</h2>
+        <p class="region-card__landmark">{{ region.landmark }}</p>
+        <div class="region-card__footer">
+          <button
+            type="button"
+            class="region-card__inspect-btn"
+            [attr.aria-pressed]="museum.selectedRegionId() === region.id"
+            (click)="onSelectRegion(region.id)"
+          >
+            {{ museum.selectedRegionId() === region.id ? 'Região em foco' : 'Abrir dossiê vivo' }}
+          </button>
+          <a
+            [routerLink]="['/pokedex']"
+            [queryParams]="{ q: region.starterQuery }"
+            class="region-card__cta"
+          >
+            Inspecionar inicial na Pokédex →
+          </a>
+        </div>
+      </li>
+    }
+  </ul>
+
+  <pv-museum-region-inspector (holocronRequested)="onOpenHolocron($event)" />
+</section>

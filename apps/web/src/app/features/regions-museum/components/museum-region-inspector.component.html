@@ -1,0 +1,240 @@
+@let region = museum.selectedRegionMeta();
+
+<section class="inspector" aria-labelledby="inspector-region-title">
+  <header class="inspector__head">
+    <div>
+      <span class="inspector__badge">{{ region.generation }} · {{ region.releaseYear }}</span>
+      <h2 id="inspector-region-title" class="inspector__title">{{ region.name }} — Dossiê &amp; Atlas Vivo</h2>
+      <p class="inspector__meta">
+        <strong>Console:</strong> {{ region.platform }} ({{ region.flagshipGames }}) ·
+        <strong>Era visual:</strong> {{ region.visualEra }}
+      </p>
+      <p class="inspector__meta">
+        <strong>Marcos históricos:</strong> {{ region.landmark }}
+      </p>
+    </div>
+
+    <div class="inspector__actions">
+      <a
+        [routerLink]="['/enciclopedia']"
+        [queryParams]="{ cat: 'region', item: region.id }"
+        class="inspector-btn inspector-btn--secondary"
+      >
+        Ver na Enciclopédia →
+      </a>
+      @if (region.arcadeSupported) {
+        <a [routerLink]="['/arcade']" class="inspector-btn inspector-btn--primary">
+          Jogar no Arcade 3D →
+        </a>
+      }
+    </div>
+  </header>
+
+  <div class="inspector__highlights">
+    <section class="inspector-box" aria-label="Iniciais da região">
+      <h3 class="inspector-box__title">Iniciais da Região</h3>
+      <ul class="species-cards">
+        @for (starter of region.starters; track starter.id) {
+          <li class="species-card">
+            <img
+              [src]="artworkUrl(starter.id)"
+              [alt]="starter.displayName"
+              width="64"
+              height="64"
+              loading="lazy"
+            />
+            <div class="species-card__info">
+              <span class="species-card__name">{{ starter.displayName }}</span>
+              <div class="species-card__links">
+                <a [routerLink]="['/pokedex']" [queryParams]="{ q: starter.name }" class="species-link">
+                  Pokédex
+                </a>
+                <button
+                  type="button"
+                  class="species-holocron-btn"
+                  (click)="holocronRequested.emit(starter.name)"
+                >
+                  Holocron 3D
+                </button>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+
+    <section class="inspector-box" aria-label="Guardiões lendários">
+      <h3 class="inspector-box__title">Guardiões Lendários</h3>
+      <ul class="species-cards">
+        @for (legend of region.legendaries; track legend.id) {
+          <li class="species-card">
+            <img
+              [src]="artworkUrl(legend.id)"
+              [alt]="legend.displayName"
+              width="64"
+              height="64"
+              loading="lazy"
+            />
+            <div class="species-card__info">
+              <span class="species-card__name">{{ legend.displayName }}</span>
+              <div class="species-card__links">
+                <a [routerLink]="['/pokedex']" [queryParams]="{ q: legend.name }" class="species-link">
+                  Pokédex
+                </a>
+                <button
+                  type="button"
+                  class="species-holocron-btn"
+                  (click)="holocronRequested.emit(legend.name)"
+                >
+                  Holocron 3D
+                </button>
+              </div>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  </div>
+
+  <section class="inspector-box" aria-label="Dados vivos da PokéAPI">
+    <h3 class="inspector-box__title">Dados Vivos da PokéAPI (BFF)</h3>
+
+    @switch (museum.regionDetailState().status) {
+      @case ('loading') {
+        <div class="inspector-skeleton" aria-label="Carregando dados da região"></div>
+      }
+      @case ('error') {
+        @let regErr = museum.regionDetailState();
+        @if (regErr.status === 'error') {
+          <div class="inspector-error" role="alert">
+            <p>{{ regErr.error.message }}</p>
+            <button type="button" class="inspector-btn inspector-btn--secondary" (click)="museum.retryRegion()">
+              Tentar novamente
+            </button>
+          </div>
+        }
+      }
+      @case ('success') {
+        @let regData = museum.regionDetailState();
+        @if (regData.status === 'success') {
+          <div class="inspector__live-grid">
+            <div class="inspector__live-col">
+              <div class="inspector-subhead">
+                <span class="inspector-subhead__label">Pokédexes Regionais</span>
+                <div class="inspector-chip-row">
+                  @for (dex of regData.data.pokedexes; track dex.id) {
+                    <button
+                      type="button"
+                      class="inspector-chip"
+                      [attr.aria-pressed]="museum.selectedPokedexName() === dex.name"
+                      (click)="museum.selectPokedex(dex.name)"
+                    >
+                      {{ formatName(dex.name) }}
+                    </button>
+                  }
+                </div>
+              </div>
+
+              @switch (museum.pokedexDetailState().status) {
+                @case ('loading') {
+                  <p class="inspector-state">Carregando espécies nativas...</p>
+                }
+                @case ('empty') {
+                  @let emptyDex = museum.pokedexDetailState();
+                  @if (emptyDex.status === 'empty') {
+                    <p class="inspector-state">{{ emptyDex.reason }}</p>
+                  }
+                }
+                @case ('error') {
+                  @let dexErr = museum.pokedexDetailState();
+                  @if (dexErr.status === 'error') {
+                    <div class="inspector-error" role="alert">
+                      <p>{{ dexErr.error.message }}</p>
+                      <button type="button" class="inspector-btn inspector-btn--secondary" (click)="museum.retryPokedex()">
+                        Tentar novamente
+                      </button>
+                    </div>
+                  }
+                }
+                @case ('success') {
+                  @let dexData = museum.pokedexDetailState();
+                  @if (dexData.status === 'success') {
+                    <ul class="native-grid">
+                      @for (entry of museum.visiblePokedexEntries(); track entry.entryNumber) {
+                        <li class="native-card">
+                          <img
+                            [src]="entry.artworkUrl"
+                            [alt]="formatName(entry.speciesName)"
+                            width="48"
+                            height="48"
+                            loading="lazy"
+                          />
+                          <div class="native-card__meta">
+                            <span class="native-card__num numero-tabular">#{{ entry.entryNumber }}</span>
+                            <span class="native-card__name">{{ formatName(entry.speciesName) }}</span>
+                          </div>
+                          <div class="native-card__actions">
+                            <a [routerLink]="['/pokedex']" [queryParams]="{ q: entry.speciesName }" class="species-link">
+                              Pokédex
+                            </a>
+                            <button
+                              type="button"
+                              class="species-holocron-btn"
+                              (click)="holocronRequested.emit(entry.speciesName)"
+                            >
+                              Holocron
+                            </button>
+                          </div>
+                        </li>
+                      }
+                    </ul>
+                    @if (museum.visiblePokedexEntries().length < dexData.data.entries.length) {
+                      <button
+                        type="button"
+                        class="inspector-btn inspector-btn--secondary"
+                        (click)="museum.showMoreEntries()"
+                      >
+                        Carregar mais espécies ({{ museum.visiblePokedexEntries().length }}/{{ dexData.data.entries.length }})
+                      </button>
+                    }
+                  }
+                }
+              }
+            </div>
+
+            <div class="inspector__live-col">
+              <div class="inspector-subhead">
+                <label for="museum-loc-filter" class="inspector-subhead__label">
+                  Localizações ({{ regData.data.locations.length }})
+                </label>
+                <input
+                  id="museum-loc-filter"
+                  type="search"
+                  class="inspector-search"
+                  [value]="museum.locationQuery()"
+                  placeholder="Filtrar cidades e rotas..."
+                  (input)="onLocationFilterInput($event)"
+                />
+              </div>
+              @if (museum.filteredLocations().length === 0) {
+                <p class="inspector-state">Nenhuma localização encontrada com esse filtro.</p>
+              } @else {
+                <div class="location-chips">
+                  @for (loc of museum.filteredLocations(); track loc.id) {
+                    <a
+                      [routerLink]="['/enciclopedia']"
+                      [queryParams]="{ cat: 'location', item: loc.name }"
+                      class="location-chip"
+                    >
+                      {{ formatName(loc.name) }}
+                    </a>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      }
+    }
+  </section>
+</section>

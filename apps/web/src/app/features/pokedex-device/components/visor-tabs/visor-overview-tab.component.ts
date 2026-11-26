@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { formatPokeApiText } from '@pokeverse/shared';
+import { CrySpectrogramComponent } from '../../../../shared/components/cry-spectrogram.component';
 import { PvRpgFocusableDirective } from '../../directives/rpg-focusable.directive';
 import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import {
@@ -21,7 +22,7 @@ import {
 
 @Component({
   selector: 'pv-visor-overview-tab',
-  imports: [PvRpgFocusableDirective],
+  imports: [PvRpgFocusableDirective, CrySpectrogramComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styles: [':host { display: flex; flex-direction: column; gap: var(--espaco-3); min-width: 0; }'],
   templateUrl: './visor-overview-tab.component.html',
@@ -38,6 +39,7 @@ export class VisorOverviewTabComponent {
   readonly selectSpriteMode = output<VisorSpriteMode>();
   readonly playCry = output<'latest' | 'legacy'>();
   readonly compareRequested = output<void>();
+  readonly holocronRequested = output<void>();
 
   private readonly usedFallbackSprite = signal(false);
   readonly imageFailed = signal(false);

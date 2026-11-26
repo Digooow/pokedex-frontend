@@ -3,11 +3,7 @@ import { type AsyncState, normalizePokemonName } from '@pokeverse/shared';
 import { Subscription } from 'rxjs';
 import { PokedexApiClient } from './pokedex-api.client';
 import { buildCompareStatRows, buildDefenseHighlights } from './pokedex-compare.util';
-import {
-  type PokemonDetailView,
-  buildPokemonFetchErrorMessage,
-  mapResolvedPokemonToView,
-} from './pokedex-view-mapper.util';
+import { type PokemonDetailView, mapResolvedResultToAsyncState } from './pokedex-view-mapper.util';
 
 export type CompareSide = 'left' | 'right';
 
@@ -101,32 +97,7 @@ export class PokedexCompareStore implements OnDestroy {
     rawStr: string,
   ): Subscription {
     return this.apiClient.fetchPokemonBundle(normalized).subscribe((resolved) => {
-      if (!resolved.found) {
-        applyState({
-          status: 'error',
-          error: {
-            code: resolved.notFound ? 'POKEMON_NOT_FOUND' : 'POKEMON_FETCH_FAILED',
-            message: buildPokemonFetchErrorMessage(rawStr, resolved),
-            retryable: !resolved.notFound,
-          },
-        });
-        return;
-      }
-
-      const vm = mapResolvedPokemonToView(resolved);
-      if (!vm) {
-        applyState({
-          status: 'error',
-          error: {
-            code: 'POKEMON_FETCH_FAILED',
-            message: 'Resposta inválida ao carregar os dados do Pokémon.',
-            retryable: true,
-          },
-        });
-        return;
-      }
-
-      applyState({ status: 'success', data: vm });
+      applyState(mapResolvedResultToAsyncState(resolved, rawStr));
     });
   }
 }

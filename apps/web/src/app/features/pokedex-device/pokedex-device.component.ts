@@ -16,6 +16,7 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
+import { HolocronStore } from '../holocron/holocron.store';
 import { PokedexCoverComponent } from './components/pokedex-cover.component';
 import { PokedexSearchPanelComponent } from './components/pokedex-search-panel.component';
 import {
@@ -50,6 +51,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
   readonly store = inject(PokedexStore);
   readonly slotsStore = inject(PokedexSlotsStore);
   readonly compareStore = inject(PokedexCompareStore);
+  readonly holocronStore = inject(HolocronStore);
   readonly rpg = inject(PokedexRpgNavService);
   private readonly shortcuts = inject(PokedexInputShortcutsService);
   private readonly route = inject(ActivatedRoute);

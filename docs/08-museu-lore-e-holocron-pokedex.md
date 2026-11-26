@@ -1,5 +1,7 @@
 # 08 — Museu das Regiões, Lore e Pokédex Holocron 3D
 
+> **Nota de Estado Real (pós-Passo 2B.3):** Já estão implementados na plataforma o **Projetor Holocron 3D** em `<dialog>` sob demanda (`@defer` + chunk isolado `three`, pedestal hexagonal elemental, feixe GLSL, partículas determinísticas, espectrograma Web Audio `CrySpectrogramComponent`, matriz defensiva `0x..4x`, árvore evolutiva clicável e fallback 2D em `LITE`/`webglcontextlost`) e o **Museu das 9 Regiões** (`/museu`) com **Linha do Tempo Histórica (1996–2022)**, dossiê vivo integrado a `/regions/:id` + `/pokedexes/:id`, filtro de localizações e atalho para `/arcade` (Gen I–IV). As expansões planejadas abaixo — *globo/atlas 3D interativo no Museu, fichas de Líderes de Ginásio/Elite Four com desafio PvE e trilha sonora ambiente do Museu* — seguem mapeadas para a **Fase 6**.
+
 ## 1. Acesso Aberto: A Vitrine Pública da Plataforma
 
 A **Pokédex 3D / Holocron** e o **Museu das Regiões & Jogos** formam os dois pilares acessíveis já para **Visitantes (sem login)**. Enquanto recursos de gravação, jogo em emulador e batalhas competitivas exigem autenticação, qualquer visitante explora o universo Pokémon com fluidez gráfica completa logo após a tela *"Press Start"*.

@@ -2,6 +2,8 @@ import { isPlatformBrowser } from '@angular/common';
 import { DestroyRef, Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { AuthStore } from '../../../core/stores/auth.store';
 import { PrivacyConsentStore } from '../../../core/stores/privacy-consent.store';
+import { HolocronStore } from '../../holocron/holocron.store';
+import { PokedexCompareStore } from './pokedex-compare.store';
 import { PokedexRpgNavService } from './pokedex-rpg-nav.service';
 import {
   INTERNAL_INTERACTIVE_SELECTOR,
@@ -25,6 +27,8 @@ export class PokedexInputShortcutsService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly auth = inject(AuthStore);
   private readonly privacy = inject(PrivacyConsentStore);
+  private readonly holocron = inject(HolocronStore);
+  private readonly compare = inject(PokedexCompareStore);
   private readonly slotsStore = inject(PokedexSlotsStore);
   private readonly store = inject(PokedexStore);
   private readonly rpg = inject(PokedexRpgNavService);
@@ -93,7 +97,9 @@ export class PokedexInputShortcutsService {
     this.slotsStore.pendingConfirm() !== null ||
     this.auth.visitorPrompt() !== null ||
     this.auth.securityModalOpen() ||
-    this.privacy.dialogOpen();
+    this.privacy.dialogOpen() ||
+    this.compare.dialogOpen() ||
+    this.holocron.dialogOpen();
 
   consumePointerPreserved(): boolean {
     const startedPreserved = this.pointerStartedPreserved;

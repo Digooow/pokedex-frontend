@@ -110,5 +110,36 @@
         <p class="hud-settings-note">Preferência de movimento reduzido detectada no sistema.</p>
       }
     </section>
+
+    <section class="hud-settings-section" aria-labelledby="pv-settings-audio-heading">
+      <h3 id="pv-settings-audio-heading" class="hud-settings-section__title">
+        Áudio &amp; Efeitos
+      </h3>
+      <button
+        type="button"
+        class="hud-settings-toggle"
+        [class.is-active]="!audio.muted()"
+        [attr.aria-pressed]="!audio.muted()"
+        (click)="audio.toggleMute()"
+      >
+        <span>Som do Sistema</span>
+        <span class="hud-settings-toggle__state">
+          {{ audio.muted() ? 'MUDO' : 'ON' }}
+        </span>
+      </button>
+      <button
+        type="button"
+        class="hud-settings-toggle"
+        [class.is-active]="!audio.muted() && audio.sfxEnabled()"
+        [attr.aria-pressed]="audio.sfxEnabled()"
+        [disabled]="audio.muted()"
+        (click)="audio.toggleSfx()"
+      >
+        <span>Efeitos Táteis</span>
+        <span class="hud-settings-toggle__state">
+          {{ audio.sfxEnabled() ? 'ON' : 'OFF' }}
+        </span>
+      </button>
+    </section>
   </section>
 </div>

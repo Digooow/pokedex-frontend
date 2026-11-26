@@ -148,8 +148,21 @@
       >
         Comparar 1v1
       </button>
+      <button
+        type="button"
+        id="btn-holocron-3d"
+        class="visor-media-btn"
+        [pvRpgFocusable]="'visor'"
+        [pvRpgOrder]="17"
+        (click)="holocronRequested.emit()"
+      >
+        Holocron 3D
+      </button>
     </div>
   </div>
+  @if (playingCry() !== null) {
+    <pv-cry-spectrogram [active]="true" [compact]="true" />
+  }
   @if (cryError(); as err) {
     <output class="visor-cry-error">{{ err }}</output>
   }

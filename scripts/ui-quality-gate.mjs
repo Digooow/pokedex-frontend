@@ -276,6 +276,42 @@ function resolveApiMockPayload(pathname, state) {
       varieties: [],
     };
   }
+  if (pathname.startsWith('/api/v1/pokedex/regions/')) {
+    const regionName = pathname.split('/').pop() || 'kanto';
+    return {
+      cache: 'hit',
+      region: {
+        id: 1,
+        name: regionName,
+        mainGeneration: 'generation-i',
+        pokedexes: [{ id: 2, name: 'kanto' }],
+        versionGroups: ['red-blue'],
+        locations: [{ id: 86, name: 'pallet-town' }],
+      },
+    };
+  }
+  if (pathname.startsWith('/api/v1/pokedex/pokedexes/')) {
+    return {
+      cache: 'hit',
+      pokedex: {
+        id: 2,
+        name: 'kanto',
+        isMainSeries: true,
+        region: 'kanto',
+        description: 'Pokédex regional de Kanto.',
+        versionGroups: ['red-blue'],
+        totalEntries: 1,
+        entries: [
+          {
+            entryNumber: 25,
+            speciesId: 25,
+            speciesName: 'pikachu',
+            artworkUrl: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png',
+          },
+        ],
+      },
+    };
+  }
   if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {
     return SAMPLE_PIKACHU;
   }

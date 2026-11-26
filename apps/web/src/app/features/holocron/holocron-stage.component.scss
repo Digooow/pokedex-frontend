@@ -1,0 +1,100 @@
+.holocron-stage {
+  display: grid;
+  gap: var(--pv-space-2);
+  min-inline-size: 0;
+}
+
+.holocron-stage__viewport {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-block-size: 17.5rem;
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-holocron-ring);
+  background: var(--pv-holocron-stage-bg);
+  overflow: hidden;
+}
+
+.holocron-stage__mode {
+  position: absolute;
+  inset-block-start: var(--pv-space-2);
+  inset-inline-start: var(--pv-space-2);
+  z-index: 2;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-holocron-badge-bg);
+  color: var(--pv-cyan);
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.holocron-stage__canvas {
+  display: block;
+  inline-size: 100%;
+  block-size: 17.5rem;
+  cursor: grab;
+  touch-action: pan-y;
+}
+
+.holocron-stage__canvas:active {
+  cursor: grabbing;
+}
+
+.holocron-stage__fallback {
+  position: relative;
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 17.5rem;
+  padding: var(--pv-space-4);
+}
+
+.holocron-stage__pedestal {
+  position: absolute;
+  inset-block-end: 1.4rem;
+  inline-size: 10rem;
+  block-size: 2.2rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-holocron-ring);
+  background: var(--pv-holocron-pedestal-glow);
+}
+
+.holocron-stage__sprite {
+  position: relative;
+  z-index: 1;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 22px var(--pv-holocron-pedestal-glow));
+}
+
+.holocron-stage__sprite-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--pv-ink-muted);
+}
+
+.holocron-stage__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pv-space-1);
+}
+
+.holocron-ctrl-btn {
+  min-block-size: 2.75rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-holocron-control-bg);
+  color: var(--pv-ink-primary);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.holocron-ctrl-btn[aria-pressed='true'] {
+  border-color: var(--pv-border-gold);
+  background: var(--pv-filter-btn-active-bg);
+  color: var(--pv-filter-btn-active-ink);
+}

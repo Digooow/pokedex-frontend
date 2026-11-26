@@ -117,3 +117,57 @@ export const SAMPLE_ELECTRIC_TYPE = {
     moves: [{ id: 84, name: 'thunder-shock' }],
   },
 };
+
+export const SAMPLE_KANTO_REGION = {
+  cache: 'hit',
+  region: {
+    id: 1,
+    name: 'kanto',
+    mainGeneration: 'generation-i',
+    pokedexes: [{ id: 2, name: 'kanto' }],
+    versionGroups: ['red-blue', 'yellow'],
+    locations: [
+      { id: 86, name: 'pallet-town' },
+      { id: 162, name: 'viridian-forest' },
+    ],
+  },
+};
+
+export const SAMPLE_JOHTO_REGION = {
+  cache: 'hit',
+  region: {
+    id: 2,
+    name: 'johto',
+    mainGeneration: 'generation-ii',
+    pokedexes: [{ id: 3, name: 'original-johto' }],
+    versionGroups: ['gold-silver', 'crystal'],
+    locations: [{ id: 201, name: 'ecruteak-city' }],
+  },
+};
+
+export const SAMPLE_KANTO_POKEDEX = {
+  cache: 'hit',
+  pokedex: {
+    id: 2,
+    name: 'kanto',
+    isMainSeries: true,
+    region: 'kanto',
+    description: 'Pokédex original da região de Kanto.',
+    versionGroups: ['red-blue'],
+    totalEntries: 2,
+    entries: [
+      {
+        entryNumber: 1,
+        speciesId: 1,
+        speciesName: 'bulbasaur',
+        artworkUrl: `${SPRITE_BASE}/other/official-artwork/1.png`,
+      },
+      {
+        entryNumber: 25,
+        speciesId: 25,
+        speciesName: 'pikachu',
+        artworkUrl: `${SPRITE_BASE}/other/official-artwork/25.png`,
+      },
+    ],
+  },
+};
