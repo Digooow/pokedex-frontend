@@ -33,6 +33,7 @@ import {
 export class VisorOverviewTabComponent {
   readonly typeSlug = resolvePokemonTypeSlug;
   readonly pokemon = input.required<PokemonDetailView>();
+  readonly primaryTypeSlug = computed(() => resolvePokemonTypeSlug(this.pokemon().types[0] ?? ''));
   readonly spriteMode = input.required<VisorSpriteMode>();
   readonly shiny = input.required<boolean>();
   readonly isLite = input.required<boolean>();

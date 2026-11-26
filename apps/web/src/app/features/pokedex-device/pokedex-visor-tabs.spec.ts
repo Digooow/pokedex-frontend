@@ -60,7 +60,11 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     const tabs = hostEl.querySelectorAll('[role="tab"]') as NodeListOf<HTMLButtonElement>;
     expect(tabs).toHaveLength(5);
     expect(visorDetail.activeTab()).toBe('resumo');
+    expect(hostEl.querySelector('.pokemon-imagem-box')?.getAttribute('data-pokemon-type')).toBe(
+      'electric',
+    );
     expect(hostEl.querySelector('.tipo-badge')?.getAttribute('data-pokemon-type')).toBe('electric');
+    expect(hostEl.querySelectorAll('.visor-media-bar .visor-segmented')).toHaveLength(2);
     expect(hostEl.querySelector('.visor-lore-text')?.textContent).toContain('Stores electricity');
 
     const shinyBtn = Array.from(hostEl.querySelectorAll('.visor-media-btn')).find((el) =>
@@ -181,6 +185,7 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
 
     (hostEl.querySelector('#visor-tab-golpes') as HTMLButtonElement).click();
     fixture.detectChanges();
+    expect(hostEl.querySelector('.visor-segmented')).not.toBeNull();
     expect(hostEl.textContent).toContain('Thunder Shock');
     expect(hostEl.textContent).toContain('Light Ball');
 

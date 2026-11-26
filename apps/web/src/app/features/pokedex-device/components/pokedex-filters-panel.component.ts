@@ -1,10 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { POKEMON_TYPES, type PokemonTypeName, formatPokeApiText } from '@pokeverse/shared';
 import {
   type CatalogSortOption,
   type FilterFlagKey,
   PokedexFiltersStore,
 } from '../services/pokedex-filters.store';
+
+export type FilterPanelTab = 'primary' | 'taxonomy';
 
 @Component({
   selector: 'pv-pokedex-filters-panel',
@@ -14,6 +16,26 @@ import {
 })
 export class PokedexFiltersPanelComponent {
   readonly filters = inject(PokedexFiltersStore);
+  readonly activeTab = signal<FilterPanelTab>('primary');
+
+  readonly primaryActiveCount = computed(
+    () =>
+      this.filters.types().length +
+      (this.filters.generation() !== null ? 1 : 0) +
+      Number(this.filters.onlyLegendary()) +
+      Number(this.filters.onlyMythical()) +
+      Number(this.filters.onlyBaby()) +
+      Number(this.filters.excludeAlternateForms()),
+  );
+
+  readonly taxonomyActiveCount = computed(
+    () =>
+      (this.filters.sortBy() !== 'id-asc' ? 1 : 0) +
+      (this.filters.minBst() > 0 ? 1 : 0) +
+      (this.filters.habitat() !== null ? 1 : 0) +
+      (this.filters.color() !== null ? 1 : 0) +
+      (this.filters.shape() !== null ? 1 : 0),
+  );
 
   readonly availableTypes = computed<readonly PokemonTypeName[]>(() => {
     const meta = this.filters.metaState();
@@ -110,5 +132,29 @@ export class PokedexFiltersPanelComponent {
   onRetry(event: Event): void {
     event.stopPropagation();
     this.filters.ensureLoaded(true);
+  }
+
+  selectTab(tab: FilterPanelTab): void {
+    this.activeTab.set(tab);
+  }
+
+  onTabKeyDown(event: KeyboardEvent): void {
+    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.activeTab.update((curr) => (curr === 'primary' ? 'taxonomy' : 'primary'));
+      return;
+    }
+    if (event.key === 'Home') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.activeTab.set('primary');
+      return;
+    }
+    if (event.key === 'End') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.activeTab.set('taxonomy');
+    }
   }
 }

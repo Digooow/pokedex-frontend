@@ -5,7 +5,7 @@
   </div>
 
   @if (pokemon().bundle) {
-    <fieldset class="visor-media-group">
+    <fieldset class="visor-media-group visor-segmented">
       <legend class="visually-hidden">Filtrar golpes por método</legend>
       @for (tab of methodTabs; track tab.id; let idx = $index) {
         <button

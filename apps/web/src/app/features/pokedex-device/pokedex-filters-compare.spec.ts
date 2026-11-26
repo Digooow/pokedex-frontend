@@ -75,6 +75,12 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     httpMock.expectOne('/api/v1/pokedex/meta/filters').flush(createMetaFiltersFixture());
     fixture.detectChanges();
 
+    const primaryTab = hostEl.querySelector('#filtro-tab-primary') as HTMLButtonElement;
+    const taxonomyTab = hostEl.querySelector('#filtro-tab-taxonomy') as HTMLButtonElement;
+    expect(primaryTab.getAttribute('aria-selected')).toBe('true');
+    expect(hostEl.querySelector('#filtro-panel-primary')).not.toBeNull();
+    expect(hostEl.querySelector('#filtro-panel-taxonomy')).toBeNull();
+
     const electricChip = Array.from(hostEl.querySelectorAll('.filtro-chip')).find((el) =>
       el.textContent?.includes('Electric'),
     ) as HTMLButtonElement;
@@ -83,7 +89,24 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     fixture.detectChanges();
 
     expect(filters.activeFilterCount()).toBe(1);
+    expect(primaryTab.querySelector('.filtros-tab-count')?.textContent).toContain('1');
     expect(store.filteredCatalog().items.map((item) => item.name)).toEqual(['pikachu']);
+
+    taxonomyTab.click();
+    fixture.detectChanges();
+    expect(taxonomyTab.getAttribute('aria-selected')).toBe('true');
+    expect(hostEl.querySelector('#filtro-panel-taxonomy')).not.toBeNull();
+    expect(hostEl.querySelector('#filtro-panel-taxonomy')?.textContent).toContain('Ordenação');
+    expect(hostEl.querySelector('#filtro-panel-taxonomy')?.textContent).toContain('BST mínimo');
+
+    filters.setMinBst(500);
+    fixture.detectChanges();
+    expect(taxonomyTab.querySelector('.filtros-tab-count')?.textContent).toContain('1');
+
+    taxonomyTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture.detectChanges();
+    expect(primaryTab.getAttribute('aria-selected')).toBe('true');
+    expect(hostEl.querySelector('#filtro-panel-primary')).not.toBeNull();
 
     filters.toggleType('electric');
     filters.toggleFlag('onlyLegendary');

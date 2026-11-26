@@ -54,15 +54,84 @@
   .filtros-painel {
     display: flex;
     flex-direction: column;
-    gap: var(--pv-space-2);
-    max-height: 15rem;
+    gap: var(--pv-space-3);
+    max-height: 16.5rem;
     overflow-y: auto;
     padding: var(--pv-space-3);
     background-color: var(--pv-filter-panel-bg);
     color: var(--pv-ink-primary);
     border: 1px solid var(--pv-filter-panel-border);
     border-radius: var(--pv-radius-sm);
+    color-scheme: dark;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pv-scanner-scrollbar) transparent;
     flex-shrink: 0;
+  }
+
+  .filtros-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2px;
+    padding: 2px;
+    background-color: var(--pv-filter-tab-bg);
+    border: 1px solid var(--pv-border-subtle);
+    border-radius: var(--pv-radius-sm);
+    flex-shrink: 0;
+  }
+
+  .filtros-tab-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--pv-space-1);
+    min-width: 0;
+    min-height: 44px;
+    padding: var(--pv-space-1) var(--pv-space-2);
+    font: inherit;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-align: center;
+    color: var(--pv-ink-muted);
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: calc(var(--pv-radius-sm) - 2px);
+    cursor: pointer;
+    overflow-wrap: anywhere;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease,
+      color 140ms ease;
+  }
+
+  .filtros-tab-btn:hover:not(.is-active) {
+    color: var(--pv-ink-primary);
+  }
+
+  .filtros-tab-btn.is-active {
+    background-color: var(--pv-filter-tab-active-bg);
+    border-color: var(--pv-filter-tab-active-border);
+    color: var(--pv-filter-tab-active-ink);
+  }
+
+  .filtros-tab-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.15rem;
+    padding: 0 0.3rem;
+    border-radius: var(--pv-radius-pill);
+    background-color: var(--pv-filter-chip-active-bg);
+    color: var(--pv-filter-chip-active-ink);
+    font-family: var(--pv-font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 0.6875rem;
+  }
+
+  .filtros-tabpanel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pv-space-3);
+    min-width: 0;
   }
 
   .filtros-aviso-degradado,
@@ -109,6 +178,13 @@
     border: 1px solid var(--pv-border-subtle);
     border-radius: var(--pv-radius-pill);
     cursor: pointer;
+    transition:
+      background-color 140ms ease,
+      border-color 140ms ease;
+  }
+
+  .filtro-chip:hover:not([aria-pressed='true']) {
+    border-color: var(--pv-border-strong);
   }
 
   .filtro-chip[aria-pressed='true'] {
@@ -136,14 +212,16 @@
   .filtro-select,
   .filtro-input {
     width: 100%;
-    min-height: 36px;
-    padding: 0.3rem 0.5rem;
+    min-height: 40px;
+    padding: 0.3rem 0.55rem;
     font: inherit;
     font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
     color: var(--pv-filter-select-ink);
     background-color: var(--pv-filter-select-bg);
-    border: 1px solid var(--pv-border-subtle);
+    border: 1px solid var(--pv-filter-select-border);
     border-radius: var(--pv-radius-sm);
+    color-scheme: dark;
   }
 
   .filtros-rodape {
@@ -175,7 +253,9 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .btn-catalogo-filtros {
+    .btn-catalogo-filtros,
+    .filtros-tab-btn,
+    .filtro-chip {
       transition: none;
     }
 

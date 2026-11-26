@@ -412,6 +412,9 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--espaco-2);
+    min-height: 36px;
+    padding-bottom: var(--pv-space-1);
+    border-bottom: 1px solid var(--pv-scanner-divider);
     flex-shrink: 0;
   }
 

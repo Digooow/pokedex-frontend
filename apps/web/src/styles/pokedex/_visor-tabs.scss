@@ -2,7 +2,11 @@
   .visor-tabs {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: var(--pv-space-1);
+    gap: 2px;
+    padding: 2px;
+    background-color: var(--pv-lcd-segmented-bg);
+    border: 1px solid var(--pv-lcd-segmented-border);
+    border-radius: var(--pv-radius-sm);
     flex-shrink: 0;
   }
 
@@ -12,16 +16,16 @@
     justify-content: center;
     min-width: 0;
     min-height: 44px;
-    padding: var(--pv-space-1) var(--pv-space-1);
+    padding: var(--pv-space-1) 0.15rem;
     font: inherit;
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 800;
     line-height: 1.15;
     text-align: center;
     color: var(--texto-lcd-secundario);
-    background-color: var(--pv-lcd-tab-bg);
-    border: 1px solid var(--borda-lcd-suave);
-    border-radius: var(--pv-radius-sm);
+    background-color: transparent;
+    border: 1px solid transparent;
+    border-radius: calc(var(--pv-radius-sm) - 2px);
     cursor: pointer;
     overflow-wrap: anywhere;
     transition:
@@ -40,7 +44,7 @@
     background-color: var(--pv-lcd-tab-active-bg);
     border-color: var(--pv-lcd-tab-active-border);
     color: var(--pv-lcd-tab-active-ink);
-    box-shadow: inset 0 1px 0 var(--borda-visor-acento);
+    box-shadow: inset 0 -2px 0 var(--pv-lcd-tab-active-border);
   }
 
   .visor-tab-btn:active {
@@ -96,8 +100,7 @@
 
   .visor-media-bar {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
     gap: var(--pv-space-2);
   }
 
@@ -105,6 +108,25 @@
     display: inline-flex;
     flex-wrap: wrap;
     gap: var(--pv-space-1);
+    min-width: 0;
+  }
+
+  .visor-segmented {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    width: 100%;
+    padding: 2px;
+    background-color: var(--pv-lcd-segmented-bg);
+    border: 1px solid var(--pv-lcd-segmented-border);
+    border-radius: var(--pv-radius-sm);
+  }
+
+  .visor-media-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--pv-space-2);
+    width: 100%;
   }
 
   .visor-media-btn {
@@ -112,6 +134,7 @@
     align-items: center;
     justify-content: center;
     gap: var(--pv-space-1);
+    min-width: 0;
     min-height: 44px;
     padding: var(--pv-space-1) var(--pv-space-2);
     font: inherit;
@@ -122,17 +145,37 @@
     border: 1px solid var(--borda-lcd-suave);
     border-radius: var(--pv-radius-sm);
     cursor: pointer;
+    overflow-wrap: anywhere;
     transition:
       background-color 140ms ease,
       border-color 140ms ease,
       transform 110ms var(--pv-motion-ease-out);
   }
 
+  .visor-segmented .visor-media-btn {
+    flex: 1 1 4.5rem;
+    background-color: transparent;
+    border-color: transparent;
+    border-radius: calc(var(--pv-radius-sm) - 2px);
+  }
+
+  .visor-media-btn--action {
+    width: 100%;
+    background-color: var(--pv-lcd-action-bg);
+    border-color: var(--pv-lcd-action-border);
+    color: var(--pv-lcd-action-ink);
+  }
+
   .visor-media-btn:hover:not(:disabled) {
     background-color: var(--pv-lcd-tab-hover-bg);
   }
 
-  .visor-media-btn[aria-pressed='true'] {
+  .visor-media-btn--action:hover:not(:disabled) {
+    background-color: var(--pv-lcd-action-hover-bg);
+  }
+
+  .visor-media-btn[aria-pressed='true'],
+  .visor-segmented .visor-media-btn[aria-pressed='true'] {
     background-color: var(--pv-lcd-pill-active-bg);
     border-color: var(--pv-lcd-pill-active-border);
     color: var(--pv-lcd-pill-active-ink);
@@ -161,9 +204,14 @@
     gap: var(--pv-space-2);
     padding: var(--pv-space-3);
     background-color: var(--bg-dado-celula);
-    border: 1px solid var(--borda-lcd-suave);
+    border: 1px solid var(--pv-lcd-hairline);
     border-radius: var(--pv-radius-sm);
     min-width: 0;
+  }
+
+  .visor-lore-card {
+    background-color: var(--pv-lcd-lore-bg);
+    border-left: 3px solid var(--pv-lcd-tab-active-border);
   }
 
   .visor-subcard-header {
@@ -172,6 +220,8 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--pv-space-2);
+    padding-bottom: var(--pv-space-2);
+    border-bottom: 1px solid var(--pv-lcd-hairline);
   }
 
   .visor-subcard-title {
@@ -277,6 +327,7 @@
     flex-wrap: wrap;
     align-items: center;
     gap: var(--pv-space-1);
+    padding: var(--pv-space-1) 0;
   }
 
   .visor-eff-badge {
@@ -495,7 +546,8 @@
     }
 
     .visor-tab-btn {
-      font-size: 0.8125rem;
+      padding: var(--pv-space-1) var(--pv-space-1);
+      font-size: 0.75rem;
     }
   }
 

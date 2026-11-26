@@ -1,7 +1,7 @@
 <article class="pokemon-ficha">
   @let pk = pokemon();
   <div class="pokemon-cabecalho">
-    <div class="pokemon-imagem-box">
+    <div class="pokemon-imagem-box" [attr.data-pokemon-type]="primaryTypeSlug() || null">
       @if (activeSpriteUrl(); as imgUrl) {
         <img
           class="pokemon-imagem"
@@ -52,7 +52,7 @@
 
   <div class="visor-media-bar" aria-label="Controles visuais, áudio e comparação">
     @if (pk.bundle) {
-      <fieldset class="visor-media-group">
+      <fieldset class="visor-media-group visor-segmented">
         <legend class="visually-hidden">Modo de imagem</legend>
         <button
           type="button"
@@ -92,7 +92,7 @@
         }
       </fieldset>
 
-      <fieldset class="visor-media-group">
+      <fieldset class="visor-media-group visor-segmented">
         <legend class="visually-hidden">Variação cromática e grito</legend>
         <button
           type="button"
@@ -137,11 +137,11 @@
       </fieldset>
     }
 
-    <div class="visor-media-group">
+    <div class="visor-media-group visor-media-actions">
       <button
         type="button"
         id="btn-comparar-1v1"
-        class="visor-media-btn"
+        class="visor-media-btn visor-media-btn--action"
         [pvRpgFocusable]="'visor'"
         [pvRpgOrder]="16"
         (click)="compareRequested.emit()"
@@ -151,7 +151,7 @@
       <button
         type="button"
         id="btn-holocron-3d"
-        class="visor-media-btn"
+        class="visor-media-btn visor-media-btn--action"
         [pvRpgFocusable]="'visor'"
         [pvRpgOrder]="17"
         (click)="holocronRequested.emit()"
