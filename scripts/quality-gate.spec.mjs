@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { ESLint } from 'eslint';
+import {
+  parseGitleaksAllowlist,
+  scanRepositorySecrets,
+  scanSecretsContent,
+  validateApiDockerfileBuildContext,
+  validateDeployWorkflowAndEdgeConfig,
+  validatePrismaSchema,
+} from './ci-parity-checks.mjs';
 import {
   checkHtmlParity,
   checkScssParity,
@@ -492,4 +501,141 @@ test('Suite 4 — Live Codebase SonarCloud Parity Smoke Check', () => {
     0,
     `Expected 0 parity violations in codebase, found:\n${findings.map((f) => formatParityFinding(f)).join('\n')}`,
   );
+});
+
+test('Suite 5 — Local Secret Scanning Parity (Gitleaks gate)', () => {
+  const allowlist = parseGitleaksAllowlist(REPO_ROOT);
+  const syntheticGithubPat = ['ghp_', 'a'.repeat(36)].join('');
+  const syntheticAwsKey = ['AKIA', '1234567890ABCDEF'].join('');
+  const syntheticPemHeader = ['-----BEGIN ', 'PRIVATE KEY-----'].join('');
+  const syntheticResendKey = ['re_', '1234567890abcdefghijklmnop'].join('');
+  const syntheticSonarToken = ['sqp_', 'a'.repeat(40)].join('');
+
+  assert.equal(
+    scanSecretsContent('apps/api/src/a.ts', `const t = '${syntheticGithubPat}';`, allowlist)[0]?.rule,
+    'github-pat',
+  );
+  assert.equal(
+    scanSecretsContent('apps/api/src/a.ts', `const k = '${syntheticAwsKey}';`, allowlist)[0]?.rule,
+    'aws-access-key',
+  );
+  assert.equal(
+    scanSecretsContent('apps/api/src/a.ts', `const p = '${syntheticPemHeader}';`, allowlist)[0]?.rule,
+    'private-key',
+  );
+  assert.equal(
+    scanSecretsContent('apps/api/src/a.ts', `const r = '${syntheticResendKey}';`, allowlist)[0]?.rule,
+    'resend-api-key',
+  );
+  assert.equal(
+    scanSecretsContent('apps/api/src/a.ts', `const s = '${syntheticSonarToken}';`, allowlist)[0]?.rule,
+    'sonar-token',
+  );
+  assert.equal(
+    scanSecretsContent(
+      'apps/api/src/a.ts',
+      `const t = '${syntheticGithubPat}'; // gitleaks:allow`,
+      allowlist,
+    ).length,
+    0,
+  );
+  assert.equal(
+    scanSecretsContent('.env.example', `RESEND_API_KEY=${syntheticResendKey}`, allowlist).length,
+    0,
+  );
+
+  const { filesCount, findings } = scanRepositorySecrets(REPO_ROOT);
+  assert.ok(filesCount > 0, 'Expected repository files to be scanned for secrets.');
+  assert.equal(
+    findings.length,
+    0,
+    `Expected 0 secret findings in repository, found: ${JSON.stringify(findings)}`,
+  );
+});
+
+test('Suite 6 — Docker Build Context & Root Lifecycle Simulation (Runs 45942849996 & 45942850091)', () => {
+  const realPkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+  const brokenPkg = {
+    ...realPkg,
+    scripts: {
+      ...realPkg.scripts,
+      prepare: 'node scripts/setup-git-hooks.mjs',
+    },
+  };
+
+  const brokenErrors = validateApiDockerfileBuildContext(REPO_ROOT, {
+    packageJsonOverride: brokenPkg,
+  });
+  assert.ok(
+    brokenErrors.some(
+      (msg) => (msg.includes('builder') || msg.includes('prod-deps')) && msg.includes('prepare'),
+    ),
+    `Expected Docker lifecycle simulation to catch missing scripts/ in prepare hook, got: ${JSON.stringify(brokenErrors)}`,
+  );
+
+  const realErrors = validateApiDockerfileBuildContext(REPO_ROOT);
+  assert.equal(
+    realErrors.length,
+    0,
+    `Expected api.Dockerfile build context & lifecycle simulation to pass, got:\n${realErrors.join('\n')}`,
+  );
+
+  const localPrepare = spawnSync(realPkg.scripts.prepare, {
+    cwd: REPO_ROOT,
+    shell: true,
+    encoding: 'utf8',
+  });
+  assert.equal(
+    localPrepare.status,
+    0,
+    `Expected root prepare script to succeed in repo root, stderr: ${localPrepare.stderr}`,
+  );
+});
+
+test('Suite 7 — Deploy Workflow, Edge Config, Prisma & Full-Stage Hook Parity', () => {
+  const deployErrors = validateDeployWorkflowAndEdgeConfig(REPO_ROOT);
+  assert.equal(
+    deployErrors.length,
+    0,
+    `Expected deploy/edge checks to pass, got:\n${deployErrors.join('\n')}`,
+  );
+
+  const prismaErrors = validatePrismaSchema(REPO_ROOT);
+  assert.equal(
+    prismaErrors.length,
+    0,
+    `Expected Prisma schema & migrations to pass, got:\n${prismaErrors.join('\n')}`,
+  );
+
+  const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+  const verifyCommit = pkg.scripts?.['verify:commit'] ?? '';
+  const verifyPush = pkg.scripts?.['verify:push'] ?? '';
+  const combinedHooks = `${verifyCommit} ${verifyPush}`;
+
+  for (const requiredStage of [
+    'audit:secrets',
+    'audit:prisma',
+    'format:check',
+    'build:shared',
+    'typecheck',
+    'audit:sonar:local',
+    'test:quality-gates',
+    'audit:deps',
+    'test:unit',
+    'test:e2e:api',
+    'build',
+    'audit:ui',
+    'test:e2e:web',
+    'audit:docker',
+  ]) {
+    assert.ok(
+      combinedHooks.includes(requiredStage),
+      `verify:commit / verify:push missing CI-parity stage: ${requiredStage}`,
+    );
+  }
+
+  const preCommitHook = fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'), 'utf8');
+  const prePushHook = fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-push'), 'utf8');
+  assert.match(preCommitHook, /npm run verify:commit/);
+  assert.match(prePushHook, /npm run verify:push/);
 });

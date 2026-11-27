@@ -52,7 +52,8 @@ flowchart LR
 2. **Camada 2 — Portão Local + Git Hooks (`npm run verify:commit` / `npm run verify:push`):**
    - [`eslint.base.mjs`](../eslint.base.mjs) ativa regras *type-aware* (`@typescript-eslint/require-await`, `prefer-optional-chain`, `prefer-readonly`) nos **3 workspaces** (`@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`) e aplica `sonarjs/no-nested-conditional` (`S3358`) inclusive em `.spec.ts` / `.e2e-spec.ts`.
    - [`scripts/sonar-quality-gate.mjs`](../scripts/sonar-quality-gate.mjs) (`--mode=local`) executa `jscpd` (`--threshold 0`) e o motor modular [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) sobre `.ts`, `.js`, `.html` e `.scss`.
-   - [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) (`npm run test:quality-gates`, integrado a `npm run test`) valida **regressivamente** todas as regras SonarCloud (paridade + AST real do ESLint/Prettier) e todos os invariantes de falhas históricas do CI antes de qualquer commit/push via [`.githooks/pre-commit`](../.githooks/pre-commit) e [`.githooks/pre-push`](../.githooks/pre-push).
+   - [`scripts/ci-parity-checks.mjs`](../scripts/ci-parity-checks.mjs) e [`scripts/verify-docker-build.mjs`](../scripts/verify-docker-build.mjs) validam localmente todas as etapas não-Sonar do CI/CD: detecção de segredos estilo Gitleaks (`audit:secrets`), `prisma validate` + ordem de migrations (`audit:prisma`), simulação isolada de contexto/lifecycle hooks de `infra/docker/api.Dockerfile` + `docker build` (`audit:docker`) e invariantes de `deploy.yml`/`_headers`/`_routes.json`.
+   - [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) (`npm run test:quality-gates`, integrado a `npm run test` e `verify:commit`) valida **regressivamente** todas as regras SonarCloud (paridade + AST real do ESLint/Prettier), paridade Gitleaks, simulação negativa/positiva do build Docker e invariantes de `ci.yml`/`deploy.yml`/Prisma antes de qualquer commit/push via [`.githooks/pre-commit`](../.githooks/pre-commit) e [`.githooks/pre-push`](../.githooks/pre-push).
 3. **Camada 3 — Bloqueio Remoto em CI/CD ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml) + [`.sonarcloud.properties`](../.sonarcloud.properties)):** o job `verify` roda Gitleaks, `npm audit --omit=dev --audit-level=high`, `typecheck`, `lint`, `format:check`, `audit:duplication`, unitários (+ `test:quality-gates`), E2E, `build`, `audit:ui`, Playwright e Trivy; em seguida, o job `sonarqube` (`needs: [verify]`) consulta o SonarCloud e falha o pipeline se qualquer métrica fugir de `0`.
 
 ---
@@ -142,19 +143,20 @@ Qualquer erro ocorrido em CI/CD, SonarCloud, Prettier, Vitest/Jest ou UI Gate de
 | **SonarCloud CSS/SCSS (`css:*`)** | `css:S9440` (`prefers-reduced-motion`), `css:S4656` (propriedade duplicada), `css:S4666` (seletor duplicado — Run `45919655938`) | [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) (scanner com suporte a `#{...}`) + **Suite 1 & Suite 4** |
 | **SonarCloud PL/SQL & Draco** | `plsql:VarcharUsageCheck`, `plsql:CharVarchar`, `plsql:S1192`, assets `draco` (Run `45919655938`) | Exclusões validadas em [`.sonarcloud.properties`](../.sonarcloud.properties) (**Suite 3**) |
 | **Falhas de Pipeline CI/CD** | Kafka `0.0.0.0` (Run `45106052067`), `ui-quality-gate` DevTools timeout & `.wasm` MIME (Runs `44711820371`, `44871732673`), OAuth E2E não hermético (Run `45373283111`), bleed de estado Vitest `PokedexDevice` (Run `45909358834`) e completude do `ci.yml` | Invariantes estruturais automatizados em **Suite 3** de [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) |
+| **Docker Build & Todas Etapas CI/Deploy** | `npm ci` falhando em `prepare` sem `scripts/` em `api.Dockerfile` (Runs `45942849996` e `45942850091`), segredos estilo Gitleaks, `prisma validate`, `npm audit`, E2E API/Web, `audit:ui` e `deploy.yml`/`_headers`/`_routes.json` | [`scripts/ci-parity-checks.mjs`](../scripts/ci-parity-checks.mjs) + [`scripts/verify-docker-build.mjs`](../scripts/verify-docker-build.mjs) + **Suites 5, 6 e 7** de [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) (`verify:commit` + `verify:push`) |
 
 ---
 
 ## 6. Checklist Obrigatório Pré-Commit e Pré-Push
 
 ```bash
-npm run verify:commit   # executado automaticamente pelo .githooks/pre-commit
-npm run verify:push     # executado automaticamente pelo .githooks/pre-push
+npm run verify:commit   # executado automaticamente pelo .githooks/pre-commit (secrets, prisma, format, build:shared, typecheck, sonar:local, quality-gates)
+npm run verify:push     # executado automaticamente pelo .githooks/pre-push (verify:commit + audit:deps + test:unit + test:e2e:api + build + audit:ui + test:e2e:web + audit:docker)
 npm run audit:sonar     # verificação remota pós-push no SonarCloud
 ```
 
-- [ ] `npm run format:check` aprovado em 100% dos arquivos `.ts`.
+- [ ] `npm run audit:secrets`, `npm run audit:prisma` e `npm run format:check` aprovados.
 - [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7758`, `S7763`, `S7766`, `S7727`, `S7649`, `S7780`, `S7781`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S6843`, `Web:S6853`, `Web:S7927`, `css:S4656`, `css:S4666`, `css:S9440`).
-- [ ] `npm run test:quality-gates`, `npm run typecheck`, `npm run test` e `npm run build` aprovados após a última edição.
-- [ ] Em mudanças de UI, `npm run audit:ui` e conferência visual real Desktop/Mobile aprovados.
+- [ ] `npm run test:quality-gates`, `npm run typecheck`, `npm run audit:deps`, `npm run test:unit`, `npm run test:e2e:api`, `npm run build`, `npm run audit:ui`, `npm run test:e2e:web` e `npm run audit:docker` aprovados após a última edição.
+- [ ] Em mudanças de UI, conferência visual real Desktop/Mobile aprovada.
 - [ ] `npm run audit:sonar` confirma `Quality Gate OK`, `0` issues abertos, `0` hotspots `TO_REVIEW` e `0` duplicações após o push.
