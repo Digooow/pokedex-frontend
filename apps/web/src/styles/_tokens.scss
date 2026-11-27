@@ -490,6 +490,39 @@
   --pv-compare-input-bg: oklch(13% 0.022 252);
   --pv-compare-input-border: oklch(52% 0.04 245 / 0.65);
   --pv-compare-input-ink: oklch(96% 0.01 250);
+
+  --pv-char-portrait-bg: radial-gradient(
+    circle at 50% 34%,
+    oklch(28% 0.05 245 / 0.85),
+    oklch(13% 0.022 255 / 0.96) 76%
+  );
+  --pv-char-portrait-ring: oklch(72% 0.14 218 / 0.55);
+  --pv-char-ink-outline: oklch(16% 0.025 255);
+  --pv-char-skin-porcelain: oklch(89% 0.04 52);
+  --pv-char-skin-sand: oklch(82% 0.065 65);
+  --pv-char-skin-ochre: oklch(73% 0.085 60);
+  --pv-char-skin-bronze: oklch(61% 0.095 54);
+  --pv-char-skin-umber: oklch(47% 0.075 48);
+  --pv-char-skin-ebony: oklch(34% 0.05 42);
+  --pv-char-hair-obsidian: oklch(20% 0.018 255);
+  --pv-char-hair-chestnut: oklch(38% 0.09 42);
+  --pv-char-hair-copper: oklch(56% 0.16 40);
+  --pv-char-hair-wheat: oklch(82% 0.11 88);
+  --pv-char-hair-ash: oklch(68% 0.02 250);
+  --pv-char-hair-indigo: oklch(44% 0.13 272);
+  --pv-char-outfit-forest: oklch(44% 0.12 152);
+  --pv-char-outfit-slate: oklch(42% 0.04 248);
+  --pv-char-outfit-crimson: oklch(48% 0.18 24);
+  --pv-char-outfit-ochre: oklch(62% 0.14 78);
+  --pv-char-outfit-cobalt: oklch(48% 0.15 248);
+  --pv-char-outfit-linen: oklch(76% 0.04 86);
+  --pv-vital-track-bg: oklch(14% 0.02 252);
+  --pv-vital-hp: oklch(64% 0.19 25);
+  --pv-vital-stamina: oklch(72% 0.17 152);
+  --pv-vital-mana: oklch(68% 0.16 238);
+  --pv-vital-hunger: oklch(78% 0.15 78);
+  --pv-vital-thirst: oklch(74% 0.14 205);
+  --pv-vital-fatigue: oklch(68% 0.13 305);
 }
 
 @media (forced-colors: active) {
@@ -635,5 +668,16 @@
     --pv-filter-tab-active-bg: Highlight;
     --pv-filter-tab-active-border: HighlightText;
     --pv-filter-tab-active-ink: HighlightText;
+
+    --pv-char-portrait-bg: Canvas;
+    --pv-char-portrait-ring: CanvasText;
+    --pv-char-ink-outline: CanvasText;
+    --pv-vital-track-bg: Canvas;
+    --pv-vital-hp: Highlight;
+    --pv-vital-stamina: Highlight;
+    --pv-vital-mana: Highlight;
+    --pv-vital-hunger: Highlight;
+    --pv-vital-thirst: Highlight;
+    --pv-vital-fatigue: Highlight;
   }
 }

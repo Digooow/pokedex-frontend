@@ -48,6 +48,14 @@ export const routes: Routes = [
     loadComponent: loadPokedexDevice,
   },
   {
+    path: 'personagem',
+    title: 'Personagem — PokéVerse OS',
+    loadComponent: () =>
+      import('./features/character-studio/character-studio-page.component').then(
+        (m) => m.CharacterStudioPageComponent,
+      ),
+  },
+  {
     path: 'museu',
     redirectTo: (activatedRoute) => {
       const regiao = activatedRoute.queryParams['regiao'];

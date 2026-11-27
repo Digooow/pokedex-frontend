@@ -39,6 +39,13 @@ enum TrainerRole {
   ADMIN
 }
 
+enum CharacterPresenceMode {
+  ONLINE
+  OFFLINE_ROUTINE
+  OFFLINE_SHOP
+  OFFLINE_GUARD
+}
+
 model Trainer {
   id                  String      @id @default(uuid()) @db.Uuid
   username            String      @unique @db.VarChar(32)
@@ -67,6 +74,7 @@ model Trainer {
   scores         MinigameScore[]
   matchesAsP1    BattleMatch[]         @relation("MatchPlayerOne")
   matchesAsP2    BattleMatch[]         @relation("MatchPlayerTwo")
+  characters     Character[]
 
   @@index([eloRating(sort: Desc), id])
 }
@@ -280,4 +288,47 @@ model AuditLog {
 
   @@index([actorTrainerId, createdAt(sort: Desc)])
   @@index([action, createdAt(sort: Desc)])
+}
+
+model Character {
+  id                       String                @id @default(uuid()) @db.Uuid
+  accountId                String                @db.Uuid
+  name                     String                @db.VarChar(24)
+  normalizedName           String                @unique @db.VarChar(24)
+  originKey                String                @db.VarChar(32)
+  appearance               Json
+  level                    Int                   @default(1) @db.SmallInt
+  totalSkillMilestones     BigInt                @default(0)
+  availableAttributePoints Int                   @default(0) @db.SmallInt
+  hpCurrent                Int                   @db.SmallInt
+  staminaCurrent           Int                   @db.SmallInt
+  manaCurrent              Int                   @db.SmallInt
+  hungerCurrent            Int                   @default(100) @db.SmallInt
+  thirstCurrent            Int                   @default(100) @db.SmallInt
+  fatigueCurrent           Int                   @default(0) @db.SmallInt
+  hexQ                     Int                   @default(0)
+  hexR                     Int                   @default(0)
+  hexZ                     Int                   @default(0)
+  presenceMode             CharacterPresenceMode @default(ONLINE)
+  createdAt                DateTime              @default(now()) @db.Timestamptz(6)
+  updatedAt                DateTime              @updatedAt @db.Timestamptz(6)
+
+  account    Trainer             @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  attributes CharacterAttribute?
+
+  @@index([accountId, createdAt(sort: Desc), id])
+}
+
+model CharacterAttribute {
+  characterId String   @id @db.Uuid
+  physique    Int      @default(5) @db.SmallInt
+  dexterity   Int      @default(5) @db.SmallInt
+  stamina     Int      @default(5) @db.SmallInt
+  magic       Int      @default(5) @db.SmallInt
+  perception  Int      @default(5) @db.SmallInt
+  willpower   Int      @default(5) @db.SmallInt
+  handling    Int      @default(5) @db.SmallInt
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 }

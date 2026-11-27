@@ -1,0 +1,191 @@
+.char-portrait {
+  display: grid;
+  gap: var(--pv-space-3);
+  margin: 0;
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-border-strong);
+  background: var(--pv-surface-solid);
+
+  --_skin: var(--pv-char-skin-ochre);
+  --_hair: var(--pv-char-hair-obsidian);
+  --_outfit: var(--pv-char-outfit-forest);
+}
+
+.char-portrait.is-compact {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+}
+
+.char-portrait[data-skin='porcelain'] {
+  --_skin: var(--pv-char-skin-porcelain);
+}
+.char-portrait[data-skin='sand'] {
+  --_skin: var(--pv-char-skin-sand);
+}
+.char-portrait[data-skin='ochre'] {
+  --_skin: var(--pv-char-skin-ochre);
+}
+.char-portrait[data-skin='bronze'] {
+  --_skin: var(--pv-char-skin-bronze);
+}
+.char-portrait[data-skin='umber'] {
+  --_skin: var(--pv-char-skin-umber);
+}
+.char-portrait[data-skin='ebony'] {
+  --_skin: var(--pv-char-skin-ebony);
+}
+
+.char-portrait[data-hair-color='obsidian'] {
+  --_hair: var(--pv-char-hair-obsidian);
+}
+.char-portrait[data-hair-color='chestnut'] {
+  --_hair: var(--pv-char-hair-chestnut);
+}
+.char-portrait[data-hair-color='copper'] {
+  --_hair: var(--pv-char-hair-copper);
+}
+.char-portrait[data-hair-color='wheat'] {
+  --_hair: var(--pv-char-hair-wheat);
+}
+.char-portrait[data-hair-color='ash'] {
+  --_hair: var(--pv-char-hair-ash);
+}
+.char-portrait[data-hair-color='indigo'] {
+  --_hair: var(--pv-char-hair-indigo);
+}
+
+.char-portrait[data-outfit-color='forest'] {
+  --_outfit: var(--pv-char-outfit-forest);
+}
+.char-portrait[data-outfit-color='slate'] {
+  --_outfit: var(--pv-char-outfit-slate);
+}
+.char-portrait[data-outfit-color='crimson'] {
+  --_outfit: var(--pv-char-outfit-crimson);
+}
+.char-portrait[data-outfit-color='ochre'] {
+  --_outfit: var(--pv-char-outfit-ochre);
+}
+.char-portrait[data-outfit-color='cobalt'] {
+  --_outfit: var(--pv-char-outfit-cobalt);
+}
+.char-portrait[data-outfit-color='linen'] {
+  --_outfit: var(--pv-char-outfit-linen);
+}
+
+.char-portrait__stage {
+  display: grid;
+  place-items: center;
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-char-portrait-ring);
+  background: var(--pv-char-portrait-bg);
+  padding: var(--pv-space-2);
+}
+
+.char-portrait__svg {
+  inline-size: min(11rem, 100%);
+  block-size: auto;
+}
+
+.char-portrait.is-compact .char-portrait__svg {
+  inline-size: 6.5rem;
+}
+
+.avatar-aura {
+  fill: none;
+  stroke: var(--pv-char-portrait-ring);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 5;
+}
+
+.avatar-skin {
+  fill: var(--_skin);
+  stroke: var(--pv-char-ink-outline);
+  stroke-width: 2;
+}
+
+.avatar-hair {
+  fill: var(--_hair);
+  stroke: var(--pv-char-ink-outline);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.avatar-hair-buzz {
+  fill: var(--_hair);
+  opacity: 0.72;
+}
+
+.avatar-outfit {
+  fill: var(--_outfit);
+  stroke: var(--pv-char-ink-outline);
+  stroke-width: 2.2;
+}
+
+.avatar-outfit-cape {
+  fill: var(--_outfit);
+  filter: brightness(0.78);
+  stroke: var(--pv-char-ink-outline);
+  stroke-width: 2;
+}
+
+.avatar-outfit-accent {
+  fill: var(--pv-char-outfit-linen);
+  opacity: 0.85;
+  stroke: var(--pv-char-ink-outline);
+  stroke-width: 1.8;
+}
+
+.avatar-outfit-trim {
+  fill: none;
+  stroke: var(--pv-border-gold);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+}
+
+.avatar-eye {
+  fill: var(--pv-char-ink-outline);
+}
+
+.avatar-mouth {
+  fill: none;
+  stroke: var(--pv-char-ink-outline);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+
+.char-portrait__meta {
+  display: grid;
+  gap: var(--pv-space-1);
+  min-inline-size: 0;
+}
+
+.char-portrait__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pv-space-2);
+}
+
+.char-portrait__classless {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-sapphire);
+  background: var(--pv-surface-elevated);
+  color: var(--pv-ink-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.char-portrait__name {
+  font-size: 1.125rem;
+  color: var(--pv-ink-primary);
+  overflow-wrap: anywhere;
+}
+
+.char-portrait__origin {
+  font-size: 0.8125rem;
+  color: var(--pv-ink-muted);
+}

@@ -1,0 +1,92 @@
+<section class="studio-page" aria-labelledby="main-heading">
+  <header class="pv-glass-card studio-header">
+    <div class="studio-header__copy">
+      <span class="pv-badge">PASSO 1 · IDENTIDADE &amp; ATRIBUTOS</span>
+      <h1 id="main-heading" tabindex="-1" pvMainHeading class="studio-header__title">
+        Criação &amp; Ficha de Personagem
+      </h1>
+      <p class="studio-header__subtitle">
+        Defina aparência modular, origem de largada e 10 pontos iniciais entre os 7 atributos sem
+        restrições de classe.
+      </p>
+    </div>
+
+    <div class="studio-header__tabs">
+      <button
+        type="button"
+        class="pv-btn"
+        [class.pv-btn--primary]="store.activeTab() === 'create'"
+        [class.pv-btn--secondary]="store.activeTab() !== 'create'"
+        (click)="store.openCreateTab()"
+      >
+        Criar Personagem
+      </button>
+      <button
+        type="button"
+        class="pv-btn"
+        [class.pv-btn--primary]="store.activeTab() === 'sheet'"
+        [class.pv-btn--secondary]="store.activeTab() !== 'sheet'"
+        [disabled]="!store.activeSheet()"
+        (click)="store.openSheetTab()"
+      >
+        Ficha Viva
+      </button>
+    </div>
+  </header>
+
+  @if (auth.isAuthenticated()) {
+    @switch (store.charactersState().status) {
+      @case ('loading') {
+        <div class="pv-glass-card studio-state" aria-busy="true">
+          <div class="studio-skeleton studio-skeleton--title"></div>
+          <div class="studio-skeleton studio-skeleton--row"></div>
+          <div class="studio-skeleton studio-skeleton--row"></div>
+        </div>
+      }
+      @case ('error') {
+        <div class="pv-glass-card studio-state" role="alert">
+          <p class="studio-state__msg">
+            {{ store.loadErrorMessage() ?? 'Erro ao carregar personagens.' }}
+          </p>
+          <button type="button" class="pv-btn pv-btn--primary" (click)="store.loadCharacters()">
+            Tentar novamente
+          </button>
+        </div>
+      }
+      @case ('success') {
+        @if (store.savedCharacters().length > 0) {
+          <nav class="pv-glass-card studio-roster" aria-label="Personagens salvos na conta">
+            <span class="studio-roster__label">Seus personagens:</span>
+            <div class="studio-roster__items">
+              @for (item of store.savedCharacters(); track item.id) {
+                <button
+                  type="button"
+                  class="pv-chip"
+                  [attr.aria-pressed]="
+                    store.activeTab() === 'sheet' && store.activeSheet()?.id === item.id
+                  "
+                  (click)="store.selectCharacter(item.id)"
+                >
+                  {{ item.name }} (Nv. {{ item.level }})
+                </button>
+              }
+            </div>
+          </nav>
+        } @else if (store.activeTab() === 'sheet') {
+          <div class="pv-glass-card studio-state">
+            <p class="studio-state__msg">Você ainda não criou nenhum personagem nesta conta.</p>
+            <button type="button" class="pv-btn pv-btn--primary" (click)="store.openCreateTab()">
+              Criar Primeiro Personagem
+            </button>
+          </div>
+        }
+      }
+    }
+  }
+
+  @if (store.activeTab() === 'sheet' && store.activeSheet(); as sheet) {
+    <pv-character-sheet-view [character]="sheet" [isPreview]="store.isShowingPreview()" />
+  } @else {
+    <pv-character-creator-form />
+  }
+</section>

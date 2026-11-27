@@ -1,0 +1,313 @@
+<div class="creator-grid">
+  <aside class="creator-aside" aria-label="Prévia do personagem">
+    <pv-character-avatar-preview
+      [appearance]="store.draftAppearance()"
+      [displayName]="store.draftName()"
+      [originKey]="store.draftOriginKey()"
+      [level]="1"
+    />
+
+    <section class="pv-glass-card creator-preview-card" aria-label="Atributos derivados ao vivo">
+      <h2 class="creator-card-title">Projeção Inicial (Nível 1)</h2>
+      <dl class="creator-metrics">
+        <div class="creator-metric">
+          <dt>HP Máximo</dt>
+          <dd class="tabular-nums">{{ store.draftVitals().hpMax }}</dd>
+        </div>
+        <div class="creator-metric">
+          <dt>Fôlego</dt>
+          <dd class="tabular-nums">{{ store.draftVitals().staminaMax }}</dd>
+        </div>
+        <div class="creator-metric">
+          <dt>Mana</dt>
+          <dd class="tabular-nums">{{ store.draftVitals().manaMax }}</dd>
+        </div>
+        <div class="creator-metric">
+          <dt>Carga Máxima</dt>
+          <dd class="tabular-nums">{{ store.draftVitals().carryCapacityKg }} kg</dd>
+        </div>
+        <div class="creator-metric">
+          <dt>Esquiva Base</dt>
+          <dd class="tabular-nums">{{ store.draftVitals().baseDodgeRating }}</dd>
+        </div>
+        <div class="creator-metric">
+          <dt>Auxiliares</dt>
+          <dd class="tabular-nums">Até {{ store.draftVitals().companionSlots }}</dd>
+        </div>
+      </dl>
+
+      <div class="creator-kit">
+        <div class="creator-kit__head">
+          <h3 class="creator-kit__title">Kit Rudimentar de Largada</h3>
+          <span class="tabular-nums">{{ store.draftStarterKitWeightKg() }} kg</span>
+        </div>
+        <ul class="creator-kit__list">
+          @for (item of store.draftOrigin().starterKit; track item.key) {
+            <li class="creator-kit__item">
+              <span>{{ item.name }} ×{{ item.quantity }}</span>
+              <span class="tabular-nums">{{ item.weightKg }} kg</span>
+            </li>
+          }
+        </ul>
+      </div>
+    </section>
+  </aside>
+
+  <form class="pv-glass-card creator-form" (submit)="onSubmit($event)" novalidate>
+    <div class="creator-classless-banner" role="note">
+      <strong>Sistema 100% Livre (Sem Classes):</strong>
+      <span>
+        Você nunca fica preso a "Guerreiro" ou "Mago". Qualquer personagem pode treinar qualquer
+        arma, magia ou ofício pelo uso real.
+      </span>
+    </div>
+
+    <fieldset class="creator-fieldset">
+      <legend class="creator-legend">1. Identidade</legend>
+      <div class="creator-field">
+        <label for="char-name" class="creator-label">
+          Nome único do personagem ({{ minNameLength }}–{{ maxNameLength }} caracteres)
+        </label>
+        <input
+          id="char-name"
+          type="text"
+          class="creator-input"
+          autocomplete="off"
+          [attr.maxlength]="maxNameLength"
+          [value]="store.draftName()"
+          [attr.aria-invalid]="store.mutationState().status === 'error'"
+          placeholder="Ex.: Kael Vance"
+          (input)="onNameInput($event)"
+        />
+      </div>
+    </fieldset>
+
+    <fieldset class="creator-fieldset">
+      <legend class="creator-legend">2. Aparência Modular</legend>
+
+      <fieldset class="creator-appearance-group">
+        <legend class="creator-sublabel">Tom de pele</legend>
+        <div class="creator-chips">
+          @for (opt of skinOptions; track opt.value) {
+            <button
+              type="button"
+              class="pv-chip creator-chip"
+              [attr.aria-pressed]="store.draftAppearance().skinTone === opt.value"
+              (click)="onSkinSelect(opt.value)"
+            >
+              <span
+                class="creator-swatch"
+                [attr.data-swatch-kind]="'skin'"
+                [attr.data-swatch-value]="opt.value"
+                aria-hidden="true"
+              ></span>
+              <span>{{ opt.label }}</span>
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="creator-appearance-group">
+        <legend class="creator-sublabel">Cabelo</legend>
+        <div class="creator-chips">
+          @for (opt of hairStyleOptions; track opt.value) {
+            <button
+              type="button"
+              class="pv-chip"
+              [attr.aria-pressed]="store.draftAppearance().hairStyle === opt.value"
+              (click)="onHairStyleSelect(opt.value)"
+            >
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="creator-appearance-group">
+        <legend class="creator-sublabel">Cor do cabelo</legend>
+        <div class="creator-chips">
+          @for (opt of hairColorOptions; track opt.value) {
+            <button
+              type="button"
+              class="pv-chip creator-chip"
+              [attr.aria-pressed]="store.draftAppearance().hairColor === opt.value"
+              (click)="onHairColorSelect(opt.value)"
+            >
+              <span
+                class="creator-swatch"
+                [attr.data-swatch-kind]="'hair'"
+                [attr.data-swatch-value]="opt.value"
+                aria-hidden="true"
+              ></span>
+              <span>{{ opt.label }}</span>
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="creator-appearance-group">
+        <legend class="creator-sublabel">Vestimenta</legend>
+        <div class="creator-chips">
+          @for (opt of outfitStyleOptions; track opt.value) {
+            <button
+              type="button"
+              class="pv-chip"
+              [attr.aria-pressed]="store.draftAppearance().outfitStyle === opt.value"
+              (click)="onOutfitStyleSelect(opt.value)"
+            >
+              {{ opt.label }}
+            </button>
+          }
+        </div>
+      </fieldset>
+
+      <fieldset class="creator-appearance-group">
+        <legend class="creator-sublabel">Cor da vestimenta</legend>
+        <div class="creator-chips">
+          @for (opt of outfitColorOptions; track opt.value) {
+            <button
+              type="button"
+              class="pv-chip creator-chip"
+              [attr.aria-pressed]="store.draftAppearance().outfitColor === opt.value"
+              (click)="onOutfitColorSelect(opt.value)"
+            >
+              <span
+                class="creator-swatch"
+                [attr.data-swatch-kind]="'outfit'"
+                [attr.data-swatch-value]="opt.value"
+                aria-hidden="true"
+              ></span>
+              <span>{{ opt.label }}</span>
+            </button>
+          }
+        </div>
+      </fieldset>
+    </fieldset>
+
+    <fieldset class="creator-fieldset">
+      <legend class="creator-legend">3. Origem de Largada (Cosmética — Sem Bônus Oculto)</legend>
+      <div class="creator-origins">
+        @for (origin of origins; track origin.key) {
+          <button
+            type="button"
+            class="creator-origin-card"
+            [class.is-selected]="store.draftOriginKey() === origin.key"
+            [attr.aria-pressed]="store.draftOriginKey() === origin.key"
+            (click)="onOriginSelect(origin.key)"
+          >
+            <strong class="creator-origin-card__title">{{ origin.label }}</strong>
+            <span class="creator-origin-card__region">Região: {{ origin.startingRegionName }}</span>
+            <span class="creator-origin-card__desc">{{ origin.summary }}</span>
+          </button>
+        }
+      </div>
+    </fieldset>
+
+    <fieldset class="creator-fieldset">
+      <legend class="creator-legend">
+        4. Distribuição dos {{ initialPool }} Pontos Iniciais (Base {{ baseAttributeValue }})
+      </legend>
+
+      <div class="creator-pool-bar">
+        <span class="creator-pool-count tabular-nums">
+          Pontos restantes: <strong>{{ store.remainingInitialPoints() }}</strong> / {{ initialPool }}
+        </span>
+        <div class="creator-presets">
+          @for (preset of presets; track preset.key) {
+            <button
+              type="button"
+              class="pv-chip"
+              [title]="preset.hint"
+              (click)="store.applyInitialPreset(preset.key)"
+            >
+              {{ preset.label }}
+            </button>
+          }
+          <button type="button" class="pv-chip" (click)="store.resetInitialAllocation()">
+            Zerar
+          </button>
+        </div>
+      </div>
+
+      <ul class="creator-attr-list">
+        @for (meta of attributesMeta; track meta.key) {
+          <li class="creator-attr-row">
+            <div class="creator-attr-row__info">
+              <strong class="creator-attr-row__name">
+                {{ meta.label }} <span class="creator-attr-row__short">({{ meta.shortLabel }})</span>
+              </strong>
+              <span class="creator-attr-row__desc">{{ meta.mechanicalImpact }}</span>
+            </div>
+
+            <div class="creator-attr-row__controls">
+              <button
+                type="button"
+                class="pv-btn pv-btn--secondary creator-step-btn"
+                [attr.aria-label]="'Diminuir ' + meta.label"
+                [disabled]="store.draftAllocation()[meta.key] <= 0"
+                (click)="onStepAttribute(meta.key, -1)"
+              >
+                −
+              </button>
+              <span class="creator-attr-row__value tabular-nums">
+                {{ store.draftAttributes()[meta.key] }}
+                <small>(+{{ store.draftAllocation()[meta.key] }})</small>
+              </span>
+              <button
+                type="button"
+                class="pv-btn pv-btn--secondary creator-step-btn"
+                [attr.aria-label]="'Aumentar ' + meta.label"
+                [disabled]="store.remainingInitialPoints() <= 0"
+                (click)="onStepAttribute(meta.key, 1)"
+              >
+                +
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </fieldset>
+
+    @if (store.mutationState(); as mut) {
+      @if (mut.status === 'error') {
+        <p class="creator-feedback creator-feedback--error" role="alert">{{ mut.message }}</p>
+      } @else if (mut.status === 'success') {
+        <p class="creator-feedback creator-feedback--ok" aria-live="polite">{{ mut.message }}</p>
+      }
+    }
+
+    <div class="creator-actions">
+      @if (auth.isAuthenticated()) {
+        <button
+          type="submit"
+          class="pv-btn pv-btn--primary creator-submit-btn"
+          [disabled]="
+            store.isSubmitting() ||
+            store.remainingInitialPoints() !== 0 ||
+            !store.canCreateMore()
+          "
+        >
+          @if (store.isSubmitting()) {
+            Salvando personagem...
+          } @else if (!store.canCreateMore()) {
+            Limite de personagens atingido
+          } @else {
+            Criar Personagem
+          }
+        </button>
+      } @else {
+        <button type="submit" class="pv-btn pv-btn--primary creator-submit-btn">
+          Entrar para Salvar Personagem
+        </button>
+        <button
+          type="button"
+          class="pv-btn pv-btn--secondary"
+          [disabled]="store.remainingInitialPoints() !== 0"
+          (click)="store.openVisitorPreview()"
+        >
+          Visualizar Ficha em Prévia
+        </button>
+      }
+    </div>
+  </form>
+</div>

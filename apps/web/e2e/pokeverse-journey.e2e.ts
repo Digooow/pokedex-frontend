@@ -205,4 +205,42 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(hasOverflow).toBe(false);
     expect(bff.consoleErrors).toEqual([]);
   });
+
+  test('creates a classless character on /personagem, preserves draft across login, persists across reload, and allocates points', async ({
+    page,
+    bff,
+  }) => {
+    await page.goto(`${bff.baseUrl}/personagem`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('#main-heading')).toContainText('Criação');
+    await expect(page.locator('.creator-classless-banner')).toContainText('Sem Classes');
+
+    await page.locator('#char-name').fill('Kael Norte');
+    await page.locator('.creator-origin-card', { hasText: 'Aprendiz de Porto' }).click();
+    await page.locator('.creator-submit-btn').click();
+
+    await expect(page.locator('dialog.visitor-dialog')).toBeVisible();
+    await page.locator('#pv-auth-email').fill('red@pokeverse.dev');
+    await page.locator('#pv-auth-password').fill('Password1234!');
+    await page.locator('.visitor-dialog__btn-primary').click();
+
+    await expect(page.locator('#char-name')).toHaveValue('Kael Norte');
+    await page.locator('.creator-submit-btn').click();
+
+    await expect(page.locator('.sheet-hero')).toBeVisible();
+    await expect(page.locator('.char-portrait__name')).toContainText('Kael Norte');
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.locator('.char-portrait__name')).toContainText('Kael Norte');
+
+    await page.locator('button[aria-label="Adicionar ponto em Percepção"]').click();
+    await page.getByRole('button', { name: /Confirmar Alocação/ }).click();
+    await expect(page.locator('.sheet-card__head .pv-badge')).toContainText('Pontos livres: 0');
+
+    await page.setViewportSize({ width: 375, height: 812 });
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+    expect(bff.consoleErrors).toEqual([]);
+  });
 });

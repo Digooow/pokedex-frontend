@@ -1,0 +1,189 @@
+<div class="sheet-wrap">
+  @if (isPreview()) {
+    <div class="pv-glass-card sheet-preview-banner" role="note">
+      <div class="sheet-preview-banner__copy">
+        <strong>Prévia de Visitante (Não Persistida):</strong>
+        <span>Faça login ou crie sua conta para gravar este personagem no banco de dados.</span>
+      </div>
+      <div class="sheet-preview-banner__actions">
+        <button type="button" class="pv-btn pv-btn--primary" (click)="requestLoginFromPreview()">
+          Entrar para Salvar
+        </button>
+        <button type="button" class="pv-btn pv-btn--secondary" (click)="store.openCreateTab()">
+          Voltar ao Editor
+        </button>
+      </div>
+    </div>
+  }
+
+  <header class="pv-glass-card sheet-hero">
+    <pv-character-avatar-preview
+      [appearance]="character().appearance"
+      [displayName]="character().name"
+      [originKey]="character().originKey"
+      [level]="character().level"
+      [compact]="true"
+    />
+
+    <dl class="sheet-meta-grid">
+      <div class="sheet-meta-item">
+        <dt>Presença</dt>
+        <dd>{{ presenceLabel() }}</dd>
+      </div>
+      <div class="sheet-meta-item">
+        <dt>Posição Hex</dt>
+        <dd class="tabular-nums">
+          q={{ character().hexQ }}, r={{ character().hexR }}, z={{ character().hexZ }}
+        </dd>
+      </div>
+      <div class="sheet-meta-item">
+        <dt>Capacidade de Carga</dt>
+        <dd class="tabular-nums">
+          {{ character().vitals.starterKitWeightKg }} / {{ character().vitals.carryCapacityKg }} kg
+        </dd>
+      </div>
+      <div class="sheet-meta-item">
+        <dt>Marcos de Skill</dt>
+        <dd class="tabular-nums">{{ character().totalSkillMilestones }}</dd>
+      </div>
+    </dl>
+  </header>
+
+  <div class="sheet-columns">
+    <section class="pv-glass-card sheet-card" aria-label="Estados vitais e combate base">
+      <h2 class="sheet-card__title">Estados Vitais &amp; Parâmetros</h2>
+
+      <ul class="vital-list">
+        @for (bar of vitalBars(); track bar.key) {
+          <li class="vital-item">
+            <div class="vital-item__head">
+              <span>{{ bar.label }}</span>
+              <span class="tabular-nums">{{ bar.current }} / {{ bar.max }}</span>
+            </div>
+            <div class="vital-track">
+              <div
+                class="vital-fill"
+                [attr.data-tone]="bar.tone"
+                [style.inline-size.%]="bar.percent"
+              ></div>
+            </div>
+          </li>
+        }
+      </ul>
+
+      <dl class="tactical-grid">
+        <div class="tactical-stat">
+          <dt>Esquiva Base</dt>
+          <dd class="tabular-nums">{{ character().vitals.baseDodgeRating }}</dd>
+        </div>
+        <div class="tactical-stat">
+          <dt>Detecção</dt>
+          <dd class="tabular-nums">{{ character().vitals.baseDetectionRadius }} m</dd>
+        </div>
+        <div class="tactical-stat">
+          <dt>Res. Maldições</dt>
+          <dd class="tabular-nums">{{ character().vitals.curseResistanceBase }}</dd>
+        </div>
+        <div class="tactical-stat">
+          <dt>Auxiliares / Pets</dt>
+          <dd class="tabular-nums">Até {{ character().vitals.companionSlots }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="pv-glass-card sheet-card" aria-label="Atributos primários do personagem">
+      <div class="sheet-card__head">
+        <h2 class="sheet-card__title">7 Atributos Primários</h2>
+        <span class="pv-badge tabular-nums">
+          Pontos livres: {{ remainingLevelPoints() }}
+        </span>
+      </div>
+
+      <ul class="sheet-attr-list">
+        @for (meta of attributesMeta; track meta.key) {
+          <li class="sheet-attr-row">
+            <div class="sheet-attr-row__copy">
+              <strong class="sheet-attr-row__name">
+                {{ meta.label }} <span class="sheet-attr-row__short">({{ meta.shortLabel }})</span>
+              </strong>
+              <span class="sheet-attr-row__impact">{{ meta.mechanicalImpact }}</span>
+            </div>
+
+            <div class="sheet-attr-row__right">
+              <strong class="sheet-attr-row__value tabular-nums">
+                {{ character().attributes[meta.key] + pendingAllocations()[meta.key] }}
+              </strong>
+              @if (!isPreview() && character().availableAttributePoints > 0) {
+                <div class="sheet-attr-steppers">
+                  <button
+                    type="button"
+                    class="pv-btn pv-btn--secondary sheet-step-btn"
+                    [attr.aria-label]="'Remover ponto pendente de ' + meta.label"
+                    [disabled]="pendingAllocations()[meta.key] <= 0 || store.isSubmitting()"
+                    (click)="stepPendingPoint(meta.key, -1)"
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    class="pv-btn pv-btn--secondary sheet-step-btn"
+                    [attr.aria-label]="'Adicionar ponto em ' + meta.label"
+                    [disabled]="remainingLevelPoints() <= 0 || store.isSubmitting()"
+                    (click)="stepPendingPoint(meta.key, 1)"
+                  >
+                    +
+                  </button>
+                </div>
+              }
+            </div>
+          </li>
+        }
+      </ul>
+
+      @if (!isPreview() && character().availableAttributePoints > 0) {
+        <div class="sheet-alloc-actions">
+          <button
+            type="button"
+            class="pv-btn pv-btn--primary"
+            [disabled]="pendingTotal() <= 0 || store.isSubmitting()"
+            (click)="confirmAllocation()"
+          >
+            {{
+              store.isSubmitting()
+                ? 'Aplicando pontos...'
+                : 'Confirmar Alocação (' + pendingTotal() + ')'
+            }}
+          </button>
+          <button
+            type="button"
+            class="pv-btn pv-btn--secondary"
+            [disabled]="pendingTotal() <= 0 || store.isSubmitting()"
+            (click)="resetPending()"
+          >
+            Limpar Seleção
+          </button>
+        </div>
+      }
+    </section>
+  </div>
+
+  <section class="pv-glass-card sheet-card" aria-label="Equipamento rudimentar de largada">
+    <div class="sheet-card__head">
+      <h2 class="sheet-card__title">Kit Rudimentar de Largada</h2>
+      <span class="sheet-kit-weight tabular-nums">
+        Peso total: {{ character().vitals.starterKitWeightKg }} kg
+      </span>
+    </div>
+
+    <ul class="starter-kit-grid">
+      @for (item of character().starterKit; track item.key) {
+        <li class="starter-kit-item">
+          <strong>{{ item.name }}</strong>
+          <span class="tabular-nums">
+            Qtd: {{ item.quantity }} · {{ item.weightKg }} kg · Durab. {{ item.durabilityMax }}
+          </span>
+        </li>
+      }
+    </ul>
+  </section>
+</div>

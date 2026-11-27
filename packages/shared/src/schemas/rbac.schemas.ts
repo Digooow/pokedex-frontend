@@ -9,19 +9,31 @@ export const PermissionScopeSchema = z.enum([
   'account:read',
   'account:manage',
   'lab:run',
+  'character:read',
+  'character:write',
   'ops:audit',
 ]);
 export type PermissionScope = z.infer<typeof PermissionScopeSchema>;
 
 export const ROLE_DEFAULT_SCOPES: Readonly<Record<TrainerRole, readonly PermissionScope[]>> = {
   VISITOR: ['pokedex:read'],
-  TRAINER: ['pokedex:read', 'pokedex:write', 'account:read', 'account:manage', 'lab:run'],
+  TRAINER: [
+    'pokedex:read',
+    'pokedex:write',
+    'account:read',
+    'account:manage',
+    'lab:run',
+    'character:read',
+    'character:write',
+  ],
   MODERATOR: [
     'pokedex:read',
     'pokedex:write',
     'account:read',
     'account:manage',
     'lab:run',
+    'character:read',
+    'character:write',
     'ops:audit',
   ],
   ADMIN: [
@@ -30,6 +42,8 @@ export const ROLE_DEFAULT_SCOPES: Readonly<Record<TrainerRole, readonly Permissi
     'account:read',
     'account:manage',
     'lab:run',
+    'character:read',
+    'character:write',
     'ops:audit',
   ],
 };

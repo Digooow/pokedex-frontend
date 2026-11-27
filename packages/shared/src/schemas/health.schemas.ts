@@ -33,10 +33,10 @@ export const ReadinessResponseSchema = z.object({
 export type ReadinessResponse = z.infer<typeof ReadinessResponseSchema>;
 
 export const PlatformModuleSchema = z.object({
-  id: z.enum(['overworld', 'pokedex', 'arcade', 'arena']),
+  id: z.enum(['overworld', 'pokedex', 'arcade', 'arena', 'character']),
   label: z.string().min(1),
   route: z.string().startsWith('/'),
-  shortcut: z.enum(['1', '2', '3', '4']),
+  shortcut: z.enum(['1', '2', '3', '4', '5']),
   requiresTrainer: z.boolean(),
   summary: z.string().min(1),
 });

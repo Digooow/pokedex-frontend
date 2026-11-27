@@ -358,6 +358,90 @@ function resolveApiMockPayload(pathname, state) {
   if (pathname.startsWith('/api/v1/pokedex/pokemon/')) {
     return SAMPLE_PIKACHU;
   }
+  if (pathname === '/api/v1/characters') {
+    const nowIso = new Date().toISOString();
+    return {
+      items: state.authenticated
+        ? [
+            {
+              id: '660e8400-e29b-41d4-a716-446655440000',
+              accountId: '550e8400-e29b-41d4-a716-446655440000',
+              name: 'Kael Vance',
+              originKey: 'settler',
+              originLabel: 'Filho de Colono',
+              startingRegionName: 'Planície dos Marcos',
+              classlessMode: true,
+              appearance: {
+                skinTone: 'ochre',
+                hairStyle: 'short',
+                hairColor: 'obsidian',
+                outfitStyle: 'tunic',
+                outfitColor: 'forest',
+              },
+              level: 1,
+              totalSkillMilestones: 0,
+              availableAttributePoints: 2,
+              hexQ: 0,
+              hexR: 0,
+              hexZ: 0,
+              presenceMode: 'ONLINE',
+              attributes: {
+                physique: 7,
+                dexterity: 7,
+                stamina: 7,
+                magic: 6,
+                perception: 6,
+                willpower: 6,
+                handling: 6,
+              },
+              vitals: {
+                hpCurrent: 192,
+                hpMax: 192,
+                staminaCurrent: 151,
+                staminaMax: 151,
+                manaCurrent: 126,
+                manaMax: 126,
+                hungerCurrent: 100,
+                hungerMax: 100,
+                thirstCurrent: 100,
+                thirstMax: 100,
+                fatigueCurrent: 0,
+                fatigueMax: 100,
+                carryCapacityKg: 52.9,
+                starterKitWeightKg: 4.2,
+                baseDodgeRating: 22,
+                baseDetectionRadius: 7.6,
+                curseResistanceBase: 22,
+                companionSlots: 2,
+              },
+              starterKit: [
+                {
+                  key: 'settler_garb',
+                  name: 'Túnica de Linho Rústica',
+                  category: 'outfit',
+                  quantity: 1,
+                  weightKg: 1.2,
+                  durabilityMax: 60,
+                },
+                {
+                  key: 'leather_canteen',
+                  name: 'Cantil de Couro',
+                  category: 'survival',
+                  quantity: 1,
+                  weightKg: 0.8,
+                  durabilityMax: 40,
+                },
+              ],
+              createdAt: nowIso,
+              updatedAt: nowIso,
+            },
+          ]
+        : [],
+      total: state.authenticated ? 1 : 0,
+      limit: 20,
+      offset: 0,
+    };
+  }
   return null;
 }
 
@@ -973,6 +1057,8 @@ async function runAudit() {
       { name: 'pokedex-calculator', route: '/pokedex?q=pikachu&mode=calculadora', auth: false, openPokedex: true },
       { name: 'pokedex-encyclopedia', route: '/pokedex?mode=enciclopedia', auth: false, openPokedex: true },
       { name: 'pokedex-regions-atlas', route: '/pokedex?mode=enciclopedia&cat=region', auth: false, openPokedex: true },
+      { name: 'character-studio', route: '/personagem', auth: false, openPokedex: false },
+      { name: 'character-studio-auth', route: '/personagem', auth: true, openPokedex: false },
       { name: 'mundo-em-construcao', route: '/mundo', auth: true, openPokedex: false },
     ];
 

@@ -70,7 +70,7 @@ describe('PokéVerse OS Shell', () => {
 
     expect(modulesPopover.classList.contains('is-open')).toBe(true);
     expect(modulesPopover.hasAttribute('inert')).toBe(false);
-    expect(compiled.querySelectorAll('#pv-modules-popover .hud-menu-item')).toHaveLength(4);
+    expect(compiled.querySelectorAll('#pv-modules-popover .hud-menu-item')).toHaveLength(5);
 
     const lockedButtons = compiled.querySelectorAll('button.hud-menu-item--locked');
     expect(lockedButtons).toHaveLength(3);

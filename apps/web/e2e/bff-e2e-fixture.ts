@@ -2,6 +2,8 @@ import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { test as base } from '@playwright/test';
+import type { CharacterSheet } from '@pokeverse/shared';
+import { handleE2eCharacterRoute } from './bff-e2e-character.data';
 import {
   SAMPLE_CATALOG,
   SAMPLE_PIKACHU,
@@ -239,6 +241,7 @@ async function handleApiRoute(
   res: http.ServerResponse,
   pathname: string,
   slots: Map<number, SavedSlotRecord>,
+  characters: Map<string, CharacterSheet>,
 ): Promise<boolean> {
   if (pathname === '/health/ready') {
     writeJson(res, 200, {
@@ -264,6 +267,18 @@ async function handleApiRoute(
     return true;
   }
   if (handleAuthRoute(req, res, pathname)) {
+    return true;
+  }
+  if (
+    await handleE2eCharacterRoute({
+      req,
+      res,
+      pathname,
+      characters,
+      readRequestBody,
+      writeJson,
+    })
+  ) {
     return true;
   }
   return handlePokedexRoute(req, res, pathname, slots);
@@ -324,9 +339,10 @@ export const test = base.extend<{ bff: BffE2eHarness }>({
     });
 
     const slots = new Map<number, SavedSlotRecord>();
+    const characters = new Map<string, CharacterSheet>();
     const server = http.createServer((req, res) => {
       const pathname = new URL(req.url ?? '/', 'http://127.0.0.1').pathname;
-      void handleApiRoute(req, res, pathname, slots).then((handled) => {
+      void handleApiRoute(req, res, pathname, slots, characters).then((handled) => {
         if (!handled) {
           serveStaticAsset(pathname, res);
         }

@@ -17,6 +17,7 @@
 
     <div class="hub-hero__actions">
       <a routerLink="/pokedex" class="pv-btn pv-btn--primary">Abrir Pokédex</a>
+      <a routerLink="/personagem" class="pv-btn pv-btn--secondary">Criar Personagem</a>
       @if (!auth.isAuthenticated()) {
         <button type="button" class="pv-btn pv-btn--secondary" (click)="requestTrainerLogin()">
           Entrar / Criar Conta

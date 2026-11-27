@@ -14,6 +14,7 @@ import { validateApiEnv } from './config/env.schema';
 import { InfraModule } from './infra/infra.module';
 import { RedisService } from './infra/redis.service';
 import { AuthModule } from './modules/auth/auth.module';
+import { CharactersModule } from './modules/characters/characters.module';
 import { EventsModule } from './modules/events/events.module';
 import { HealthModule } from './modules/health/health.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -50,6 +51,7 @@ import { WorldModule } from './modules/world/world.module';
     InfraModule,
     NotificationsModule,
     AuthModule,
+    CharactersModule,
     PokedexModule,
     WorldModule,
     EventsModule,

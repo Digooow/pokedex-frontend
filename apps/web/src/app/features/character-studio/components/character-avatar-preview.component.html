@@ -1,0 +1,83 @@
+<figure
+  class="char-portrait"
+  [class.is-compact]="compact()"
+  [attr.data-skin]="appearance().skinTone"
+  [attr.data-hair-color]="appearance().hairColor"
+  [attr.data-outfit-color]="appearance().outfitColor"
+  [attr.data-outfit-style]="appearance().outfitStyle"
+>
+  <div class="char-portrait__stage">
+    <svg
+      class="char-portrait__svg"
+      viewBox="0 0 180 200"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle class="avatar-aura" cx="90" cy="96" r="76" />
+
+      @if (appearance().outfitStyle === 'cloak') {
+        <path class="avatar-outfit-cape" d="M38 192 L54 118 L126 118 L142 192 Z" />
+      }
+
+      @if (appearance().hairStyle === 'long') {
+        <path class="avatar-hair" d="M53 68 C47 104 49 128 56 142 L124 142 C131 128 133 104 127 68 Z" />
+      }
+
+      <path class="avatar-outfit" d="M48 192 C50 144 64 126 90 126 C116 126 130 144 132 192 Z" />
+
+      @if (appearance().outfitStyle === 'apron') {
+        <path class="avatar-outfit-accent" d="M68 134 L112 134 L116 192 L64 192 Z" />
+      } @else if (appearance().outfitStyle === 'vest') {
+        <path class="avatar-outfit-accent" d="M62 128 L82 128 L86 192 L58 192 Z M98 128 L118 128 L122 192 L94 192 Z" />
+      } @else {
+        <path class="avatar-outfit-trim" d="M72 127 L90 144 L108 127" />
+      }
+
+      <rect class="avatar-skin" x="78" y="106" width="24" height="24" rx="8" />
+      <circle class="avatar-skin" cx="56" cy="84" r="7" />
+      <circle class="avatar-skin" cx="124" cy="84" r="7" />
+      <rect class="avatar-skin" x="58" y="46" width="64" height="68" rx="30" />
+
+      <circle class="avatar-eye" cx="76" cy="82" r="4" />
+      <circle class="avatar-eye" cx="104" cy="82" r="4" />
+      <path class="avatar-mouth" d="M81 98 Q90 104 99 98" />
+
+      @switch (appearance().hairStyle) {
+        @case ('short') {
+          <path class="avatar-hair" d="M56 76 C56 44 74 34 90 34 C106 34 124 44 124 76 C114 60 102 56 90 56 C78 56 66 60 56 76 Z" />
+        }
+        @case ('long') {
+          <path class="avatar-hair" d="M56 74 C56 42 74 34 90 34 C106 34 124 42 124 74 C112 58 98 54 90 54 C82 54 68 58 56 74 Z" />
+        }
+        @case ('braid') {
+          <path class="avatar-hair" d="M56 72 C56 42 74 34 90 34 C106 34 124 42 124 72 C110 56 98 54 90 54 C82 54 70 56 56 72 Z" />
+          <path class="avatar-hair" d="M116 86 C128 100 128 124 118 144 C112 130 112 108 116 86 Z" />
+        }
+        @case ('curly') {
+          <circle class="avatar-hair" cx="68" cy="52" r="16" />
+          <circle class="avatar-hair" cx="90" cy="44" r="18" />
+          <circle class="avatar-hair" cx="112" cy="52" r="16" />
+          <circle class="avatar-hair" cx="58" cy="68" r="11" />
+          <circle class="avatar-hair" cx="122" cy="68" r="11" />
+        }
+        @case ('hooded') {
+          <path class="avatar-outfit-cape" d="M48 92 C48 40 70 28 90 28 C110 28 132 40 132 92 L120 74 C114 52 102 46 90 46 C78 46 66 52 60 74 Z" />
+        }
+        @case ('shaved') {
+          <path class="avatar-hair-buzz" d="M62 62 C66 44 78 38 90 38 C102 38 114 44 118 62 C108 54 100 52 90 52 C80 52 72 54 62 62 Z" />
+        }
+      }
+    </svg>
+  </div>
+
+  <figcaption class="char-portrait__meta">
+    <div class="char-portrait__badges">
+      <span class="pv-badge tabular-nums">Nv. {{ level() }}</span>
+      <span class="char-portrait__classless">Sem Classe Fixa</span>
+    </div>
+    <strong class="char-portrait__name">{{ resolvedName() }}</strong>
+    <span class="char-portrait__origin">
+      {{ origin().label }} · {{ origin().startingRegionName }}
+    </span>
+  </figcaption>
+</figure>

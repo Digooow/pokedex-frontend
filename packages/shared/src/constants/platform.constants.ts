@@ -31,10 +31,10 @@ export const POKEMON_TYPES = [
 export type PokemonTypeName = (typeof POKEMON_TYPES)[number];
 
 export interface PlatformModuleMeta {
-  readonly id: 'overworld' | 'pokedex' | 'arcade' | 'arena';
+  readonly id: 'overworld' | 'pokedex' | 'arcade' | 'arena' | 'character';
   readonly label: string;
   readonly route: string;
-  readonly shortcut: '1' | '2' | '3' | '4';
+  readonly shortcut: '1' | '2' | '3' | '4' | '5';
   readonly requiresTrainer: boolean;
   readonly summary: string;
 }
@@ -72,5 +72,14 @@ export const PLATFORM_MODULES: readonly PlatformModuleMeta[] = [
     shortcut: '4',
     requiresTrainer: true,
     summary: 'Team Builder competitivo, mini-games em tempo real e batalhas PvE/PvP.',
+  },
+  {
+    id: 'character',
+    label: 'Personagem',
+    route: '/personagem',
+    shortcut: '5',
+    requiresTrainer: false,
+    summary:
+      'Crie seu personagem sem classes, distribua 7 atributos iniciais e acompanhe a ficha viva.',
   },
 ] as const;
