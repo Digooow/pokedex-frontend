@@ -3,39 +3,48 @@ import type { BaseStatsSpread } from './pokemon-lab';
 
 export type StatSpreadKey = keyof BaseStatsSpread;
 
+type NonHpStatKey = Exclude<StatSpreadKey, 'hp'>;
+
 export interface PokemonNatureOption {
   readonly key: string;
   readonly label: string;
-  readonly up: Exclude<StatSpreadKey, 'hp'> | null;
-  readonly down: Exclude<StatSpreadKey, 'hp'> | null;
+  readonly up: NonHpStatKey | null;
+  readonly down: NonHpStatKey | null;
+}
+
+const NATURE_MATRIX: ReadonlyArray<
+  readonly [NonHpStatKey, string, readonly [string, string, string, string]]
+> = [
+  ['attack', 'Atk', ['lonely', 'brave', 'adamant', 'naughty']],
+  ['defense', 'Def', ['bold', 'relaxed', 'impish', 'lax']],
+  ['speed', 'Spe', ['timid', 'hasty', 'jolly', 'naive']],
+  ['specialAttack', 'SpA', ['modest', 'mild', 'quiet', 'rash']],
+  ['specialDefense', 'SpD', ['calm', 'gentle', 'sassy', 'careful']],
+];
+
+function capitalizeKey(key: string): string {
+  return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
 export const POKEMON_NATURES: readonly PokemonNatureOption[] = [
-  { key: 'hardy', label: 'Hardy (Neutra)', up: null, down: null },
-  { key: 'docile', label: 'Docile (Neutra)', up: null, down: null },
-  { key: 'serious', label: 'Serious (Neutra)', up: null, down: null },
-  { key: 'bashful', label: 'Bashful (Neutra)', up: null, down: null },
-  { key: 'quirky', label: 'Quirky (Neutra)', up: null, down: null },
-  { key: 'lonely', label: 'Lonely (+Atk, -Def)', up: 'attack', down: 'defense' },
-  { key: 'brave', label: 'Brave (+Atk, -Spe)', up: 'attack', down: 'speed' },
-  { key: 'adamant', label: 'Adamant (+Atk, -SpA)', up: 'attack', down: 'specialAttack' },
-  { key: 'naughty', label: 'Naughty (+Atk, -SpD)', up: 'attack', down: 'specialDefense' },
-  { key: 'bold', label: 'Bold (+Def, -Atk)', up: 'defense', down: 'attack' },
-  { key: 'relaxed', label: 'Relaxed (+Def, -Spe)', up: 'defense', down: 'speed' },
-  { key: 'impish', label: 'Impish (+Def, -SpA)', up: 'defense', down: 'specialAttack' },
-  { key: 'lax', label: 'Lax (+Def, -SpD)', up: 'defense', down: 'specialDefense' },
-  { key: 'timid', label: 'Timid (+Spe, -Atk)', up: 'speed', down: 'attack' },
-  { key: 'hasty', label: 'Hasty (+Spe, -Def)', up: 'speed', down: 'defense' },
-  { key: 'jolly', label: 'Jolly (+Spe, -SpA)', up: 'speed', down: 'specialAttack' },
-  { key: 'naive', label: 'Naive (+Spe, -SpD)', up: 'speed', down: 'specialDefense' },
-  { key: 'modest', label: 'Modest (+SpA, -Atk)', up: 'specialAttack', down: 'attack' },
-  { key: 'mild', label: 'Mild (+SpA, -Def)', up: 'specialAttack', down: 'defense' },
-  { key: 'quiet', label: 'Quiet (+SpA, -Spe)', up: 'specialAttack', down: 'speed' },
-  { key: 'rash', label: 'Rash (+SpA, -SpD)', up: 'specialAttack', down: 'specialDefense' },
-  { key: 'calm', label: 'Calm (+SpD, -Atk)', up: 'specialDefense', down: 'attack' },
-  { key: 'gentle', label: 'Gentle (+SpD, -Def)', up: 'specialDefense', down: 'defense' },
-  { key: 'sassy', label: 'Sassy (+SpD, -Spe)', up: 'specialDefense', down: 'speed' },
-  { key: 'careful', label: 'Careful (+SpD, -SpA)', up: 'specialDefense', down: 'specialAttack' },
+  ...(['hardy', 'docile', 'serious', 'bashful', 'quirky'] as const).map((key) => ({
+    key,
+    label: `${capitalizeKey(key)} (Neutra)`,
+    up: null,
+    down: null,
+  })),
+  ...NATURE_MATRIX.flatMap(([up, upShort, keys]) => {
+    const downs = NATURE_MATRIX.filter(([stat]) => stat !== up);
+    return keys.map((key, idx) => {
+      const [down, downShort] = downs[idx] ?? [up, upShort];
+      return {
+        key,
+        label: `${capitalizeKey(key)} (+${upShort}, -${downShort})`,
+        up,
+        down,
+      };
+    });
+  }),
 ];
 
 export interface CompetitiveSpreadPreset {

@@ -30,57 +30,74 @@ export interface CharacterAttributeMeta {
   readonly mechanicalImpact: string;
 }
 
-export const CHARACTER_ATTRIBUTES_META: readonly CharacterAttributeMeta[] = [
-  {
-    key: 'physique',
-    label: 'Físico',
-    shortLabel: 'FIS',
-    subtitle: 'Força & Porte',
-    mechanicalImpact: 'Dano corpo a corpo, limite de carga (kg) e esforço bruto.',
-  },
-  {
-    key: 'dexterity',
-    label: 'Destreza',
-    shortLabel: 'DES',
-    subtitle: 'Agilidade & Coordenação',
-    mechanicalImpact: 'Velocidade de ataque, esquiva base e precisão manual.',
-  },
-  {
-    key: 'stamina',
-    label: 'Fôlego',
-    shortLabel: 'FOL',
-    subtitle: 'Vitalidade & Vigor',
-    mechanicalImpact: 'HP máximo, reserva de fôlego, marchas e trabalho contínuo.',
-  },
-  {
-    key: 'magic',
-    label: 'Magia',
-    shortLabel: 'MAG',
-    subtitle: 'Intelecto & Canalização',
-    mechanicalImpact: 'Reserva de mana, potência arcana e sustentação de encantos.',
-  },
-  {
-    key: 'perception',
-    label: 'Percepção',
-    shortLabel: 'PER',
-    subtitle: 'Sentidos & Leitura',
-    mechanicalImpact: 'Raio de detecção, chance de crítico e leitura de rastros.',
-  },
-  {
-    key: 'willpower',
-    label: 'Vontade',
-    shortLabel: 'VON',
-    subtitle: 'Estabilidade & Espírito',
-    mechanicalImpact: 'Resistência a maldições, foco sob dano e força de bênçãos.',
-  },
-  {
-    key: 'handling',
-    label: 'Manejo',
-    shortLabel: 'MAN',
-    subtitle: 'Liderança & Empatia',
-    mechanicalImpact: 'Limite de auxiliares/pets, adestramento e gestão de caravana.',
-  },
-] as const;
+type CharacterAttributeTuple = readonly [
+  key: CharacterAttributeKey,
+  label: string,
+  shortLabel: string,
+  subtitle: string,
+  mechanicalImpact: string,
+];
+
+const CHARACTER_ATTRIBUTE_TUPLES: readonly CharacterAttributeTuple[] = [
+  [
+    'physique',
+    'Físico',
+    'FIS',
+    'Força & Porte',
+    'Dano corpo a corpo, limite de carga (kg) e esforço bruto.',
+  ],
+  [
+    'dexterity',
+    'Destreza',
+    'DES',
+    'Agilidade & Coordenação',
+    'Velocidade de ataque, esquiva base e precisão manual.',
+  ],
+  [
+    'stamina',
+    'Fôlego',
+    'FOL',
+    'Vitalidade & Vigor',
+    'HP máximo, reserva de fôlego, marchas e trabalho contínuo.',
+  ],
+  [
+    'magic',
+    'Magia',
+    'MAG',
+    'Intelecto & Canalização',
+    'Reserva de mana, potência arcana e sustentação de encantos.',
+  ],
+  [
+    'perception',
+    'Percepção',
+    'PER',
+    'Sentidos & Leitura',
+    'Raio de detecção, chance de crítico e leitura de rastros.',
+  ],
+  [
+    'willpower',
+    'Vontade',
+    'VON',
+    'Estabilidade & Espírito',
+    'Resistência a maldições, foco sob dano e força de bênçãos.',
+  ],
+  [
+    'handling',
+    'Manejo',
+    'MAN',
+    'Liderança & Empatia',
+    'Limite de auxiliares/pets, adestramento e gestão de caravana.',
+  ],
+];
+
+export const CHARACTER_ATTRIBUTES_META: readonly CharacterAttributeMeta[] =
+  CHARACTER_ATTRIBUTE_TUPLES.map(([key, label, shortLabel, subtitle, mechanicalImpact]) => ({
+    key,
+    label,
+    shortLabel,
+    subtitle,
+    mechanicalImpact,
+  }));
 
 export const CHARACTER_SKIN_TONES = [
   'porcelain',
@@ -181,75 +198,77 @@ const SHARED_SURVIVAL_KIT: readonly CharacterStarterItem[] = [
   },
 ];
 
+const ORIGIN_SUMMARY_SUFFIX = 'com kit rústico equivalente, sem bônus ou trava de classe.';
+
+function createStarterOutfit(key: string, name: string): CharacterStarterItem {
+  return {
+    key,
+    name,
+    category: 'outfit',
+    quantity: 1,
+    weightKg: 1.2,
+    durabilityMax: 60,
+  };
+}
+
+function createOriginSpec(params: {
+  readonly key: CharacterOriginKey;
+  readonly label: string;
+  readonly startingRegionName: string;
+  readonly startDescription: string;
+  readonly startingHex: { readonly q: number; readonly r: number; readonly z: number };
+  readonly outfitKey: string;
+  readonly outfitName: string;
+}): CharacterOriginSpec {
+  return {
+    key: params.key,
+    label: params.label,
+    startingRegionName: params.startingRegionName,
+    summary: `Largada em ${params.startDescription} ${ORIGIN_SUMMARY_SUFFIX}`,
+    startingHex: params.startingHex,
+    starterKit: [createStarterOutfit(params.outfitKey, params.outfitName), ...SHARED_SURVIVAL_KIT],
+  };
+}
+
 export const CHARACTER_ORIGINS: readonly CharacterOriginSpec[] = [
-  {
+  createOriginSpec({
     key: 'settler',
     label: 'Filho de Colono',
     startingRegionName: 'Planície dos Marcos',
-    summary:
-      'Largada em terras abertas férteis com kit rústico equivalente, sem bônus ou trava de classe.',
+    startDescription: 'terras abertas férteis',
     startingHex: { q: 0, r: 0, z: 0 },
-    starterKit: [
-      {
-        key: 'settler_garb',
-        name: 'Túnica de Linho Rústica',
-        category: 'outfit',
-        quantity: 1,
-        weightKg: 1.2,
-        durabilityMax: 60,
-      },
-      ...SHARED_SURVIVAL_KIT,
-    ],
-  },
-  {
+    outfitKey: 'settler_garb',
+    outfitName: 'Túnica de Linho Rústica',
+  }),
+  createOriginSpec({
     key: 'harbor',
     label: 'Aprendiz de Porto',
     startingRegionName: 'Enseada da Brisa',
-    summary:
-      'Largada em cais costeiro seguro com kit rústico equivalente, sem bônus ou trava de classe.',
+    startDescription: 'cais costeiro seguro',
     startingHex: { q: 4, r: -2, z: 0 },
-    starterKit: [
-      {
-        key: 'harbor_garb',
-        name: 'Casaco de Lona Costeira',
-        category: 'outfit',
-        quantity: 1,
-        weightKg: 1.2,
-        durabilityMax: 60,
-      },
-      ...SHARED_SURVIVAL_KIT,
-    ],
-  },
-  {
+    outfitKey: 'harbor_garb',
+    outfitName: 'Casaco de Lona Costeira',
+  }),
+  createOriginSpec({
     key: 'highlands',
     label: 'Andarilho das Montanhas',
     startingRegionName: 'Passo de Granito',
-    summary:
-      'Largada em platô elevado firme com kit rústico equivalente, sem bônus ou trava de classe.',
+    startDescription: 'platô elevado firme',
     startingHex: { q: -3, r: 4, z: 1 },
-    starterKit: [
-      {
-        key: 'highlands_garb',
-        name: 'Manto de Lã Serrana',
-        category: 'outfit',
-        quantity: 1,
-        weightKg: 1.2,
-        durabilityMax: 60,
-      },
-      ...SHARED_SURVIVAL_KIT,
-    ],
-  },
+    outfitKey: 'highlands_garb',
+    outfitName: 'Manto de Lã Serrana',
+  }),
 ] as const;
 
-export const ZERO_ATTRIBUTE_ALLOCATION: Readonly<CharacterAttributeAllocation> = {
-  physique: 0,
-  dexterity: 0,
-  stamina: 0,
-  magic: 0,
-  perception: 0,
-  willpower: 0,
-  handling: 0,
-};
+type AttributeTuple = readonly [number, number, number, number, number, number, number];
+
+function createAttributeAllocation(values: AttributeTuple): Readonly<CharacterAttributeAllocation> {
+  const [physique, dexterity, stamina, magic, perception, willpower, handling] = values;
+  return { physique, dexterity, stamina, magic, perception, willpower, handling };
+}
+
+export const ZERO_ATTRIBUTE_ALLOCATION: Readonly<CharacterAttributeAllocation> =
+  createAttributeAllocation([0, 0, 0, 0, 0, 0, 0]);
 
 export interface CharacterInitialPreset {
   readonly key: 'balanced' | 'vanguard' | 'arcanist';
@@ -263,42 +282,18 @@ export const CHARACTER_INITIAL_PRESETS: readonly CharacterInitialPreset[] = [
     key: 'balanced',
     label: 'Versátil',
     hint: 'Distribuição equilibrada para testar qualquer atividade.',
-    allocation: {
-      physique: 2,
-      dexterity: 2,
-      stamina: 2,
-      magic: 1,
-      perception: 1,
-      willpower: 1,
-      handling: 1,
-    },
+    allocation: createAttributeAllocation([2, 2, 2, 1, 1, 1, 1]),
   },
   {
     key: 'vanguard',
     label: 'Vanguarda',
     hint: 'Inclinação inicial para carga, resistência física e combate.',
-    allocation: {
-      physique: 3,
-      dexterity: 2,
-      stamina: 3,
-      magic: 0,
-      perception: 1,
-      willpower: 1,
-      handling: 0,
-    },
+    allocation: createAttributeAllocation([3, 2, 3, 0, 1, 1, 0]),
   },
   {
     key: 'arcanist',
     label: 'Estudioso',
     hint: 'Inclinação inicial para canalização, percepção e manejo.',
-    allocation: {
-      physique: 0,
-      dexterity: 1,
-      stamina: 1,
-      magic: 3,
-      perception: 2,
-      willpower: 2,
-      handling: 1,
-    },
+    allocation: createAttributeAllocation([0, 1, 1, 3, 2, 2, 1]),
   },
 ] as const;

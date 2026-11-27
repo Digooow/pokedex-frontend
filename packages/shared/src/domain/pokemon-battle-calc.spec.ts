@@ -10,6 +10,43 @@ import {
 describe('Competitive Battle Calculator & Showdown Spread Engine', () => {
   it('registers all 25 official natures and valid Smogon/VGC presets', () => {
     expect(POKEMON_NATURES).toHaveLength(25);
+    expect(POKEMON_NATURES.slice(0, 5).map((entry) => entry.key)).toEqual([
+      'hardy',
+      'docile',
+      'serious',
+      'bashful',
+      'quirky',
+    ]);
+    expect(POKEMON_NATURES.find((entry) => entry.key === 'lonely')).toEqual({
+      key: 'lonely',
+      label: 'Lonely (+Atk, -Def)',
+      up: 'attack',
+      down: 'defense',
+    });
+    expect(POKEMON_NATURES.find((entry) => entry.key === 'adamant')).toEqual({
+      key: 'adamant',
+      label: 'Adamant (+Atk, -SpA)',
+      up: 'attack',
+      down: 'specialAttack',
+    });
+    expect(POKEMON_NATURES.find((entry) => entry.key === 'timid')).toEqual({
+      key: 'timid',
+      label: 'Timid (+Spe, -Atk)',
+      up: 'speed',
+      down: 'attack',
+    });
+    expect(POKEMON_NATURES.find((entry) => entry.key === 'modest')).toEqual({
+      key: 'modest',
+      label: 'Modest (+SpA, -Atk)',
+      up: 'specialAttack',
+      down: 'attack',
+    });
+    expect(POKEMON_NATURES.find((entry) => entry.key === 'careful')).toEqual({
+      key: 'careful',
+      label: 'Careful (+SpD, -SpA)',
+      up: 'specialDefense',
+      down: 'specialAttack',
+    });
     expect(COMPETITIVE_SPREAD_PRESETS).toHaveLength(8);
     for (const preset of COMPETITIVE_SPREAD_PRESETS) {
       const evSum =

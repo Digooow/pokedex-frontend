@@ -6,6 +6,11 @@ import {
   scanRepositorySecrets,
   validatePrismaSchema,
 } from './ci-parity-checks.mjs';
+import {
+  detectSonarCpdClones,
+  formatSonarCpdClone,
+  isCpdExcluded,
+} from './sonar-cpd-parity.mjs';
 import { formatParityFinding, scanFileParity } from './sonar-parity-rules.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
@@ -49,6 +54,17 @@ export function isParityTrackedFile(rel) {
   }
   const segments = normalized.split('/');
   return !segments.some((segment) => PARITY_SKIP_SEGMENTS.has(segment));
+}
+
+export function isCpdTrackedFile(rel) {
+  const normalized = normalizeRelPath(rel);
+  if (!normalized.startsWith('apps/') && !normalized.startsWith('packages/')) {
+    return false;
+  }
+  if (!/\.(?:ts|js|mjs|cjs)$/.test(normalized)) {
+    return false;
+  }
+  return !isCpdExcluded(normalized);
 }
 
 export function hasPrismaChanges(stagedFiles) {
@@ -142,6 +158,18 @@ export function runFastCommitChecks(repoRoot = REPO_ROOT) {
   const prettierFiles = stagedFiles.filter((rel) => isPrettierTrackedFile(rel));
   failures.push(...checkStagedPrettier(repoRoot, prettierFiles));
 
+  const cpdFiles = stagedFiles.filter((rel) => isCpdTrackedFile(rel));
+  if (cpdFiles.length > 0) {
+    const cpdEntries = cpdFiles.map((rel) => ({
+      file: rel,
+      content: fs.readFileSync(path.join(repoRoot, rel), 'utf8'),
+    }));
+    const cpdClones = detectSonarCpdClones(cpdEntries);
+    for (const clone of cpdClones) {
+      failures.push(formatSonarCpdClone(clone));
+    }
+  }
+
   const elapsedSec = ((Date.now() - startMs) / 1000).toFixed(2);
   if (failures.length > 0) {
     console.error(`[verify:commit] FAILED in ${elapsedSec}s:`);
@@ -153,7 +181,7 @@ export function runFastCommitChecks(repoRoot = REPO_ROOT) {
   }
 
   console.log(
-    `[verify:commit] PASSED in ${elapsedSec}s (secrets + ${parityFiles.length} staged parity + ${prettierFiles.length} staged prettier files).`,
+    `[verify:commit] PASSED in ${elapsedSec}s (secrets + ${parityFiles.length} staged parity + ${prettierFiles.length} staged prettier + ${cpdFiles.length} staged cpd files).`,
   );
   return true;
 }

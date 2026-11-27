@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  CHARACTER_ATTRIBUTE_KEYS,
+  CHARACTER_ATTRIBUTES_META,
   CHARACTER_BASE_ATTRIBUTE,
   CHARACTER_INITIAL_ATTRIBUTE_POOL,
   CHARACTER_INITIAL_PRESETS,
@@ -55,6 +57,24 @@ describe('character-rules domain and Zod contracts', () => {
 
     const starterWeights = CHARACTER_ORIGINS.map((origin) => computeStarterKitWeightKg(origin.key));
     expect(starterWeights).toEqual([4.2, 4.2, 4.2]);
+
+    expect(CHARACTER_ATTRIBUTES_META.map((meta) => meta.key)).toEqual([
+      ...CHARACTER_ATTRIBUTE_KEYS,
+    ]);
+    for (const meta of CHARACTER_ATTRIBUTES_META) {
+      expect(meta.label.trim().length).toBeGreaterThan(0);
+      expect(meta.shortLabel.trim().length).toBeGreaterThan(0);
+      expect(meta.subtitle.trim().length).toBeGreaterThan(0);
+      expect(meta.mechanicalImpact.trim().length).toBeGreaterThan(0);
+    }
+
+    expect(CHARACTER_ORIGINS).toHaveLength(3);
+    for (const origin of CHARACTER_ORIGINS) {
+      const outfit = origin.starterKit[0];
+      expect(outfit?.category).toBe('outfit');
+      expect(outfit?.weightKg).toBeCloseTo(1.2, 5);
+      expect(outfit?.durabilityMax).toBe(60);
+    }
   });
 
   it('normalizes display and uniqueness names safely', () => {

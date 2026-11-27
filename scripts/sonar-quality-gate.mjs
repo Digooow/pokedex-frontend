@@ -3,6 +3,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { runJscpd } from 'jscpd';
 import {
+  formatSonarCpdClone,
+  scanRepositorySonarCpd,
+} from './sonar-cpd-parity.mjs';
+import {
   formatParityFinding,
   scanRepositoryParity,
 } from './sonar-parity-rules.mjs';
@@ -231,7 +235,29 @@ function runLocalDuplicationGate(props) {
     return;
   }
   console.log(
-    '[sonar-gate:local] PASSED: 0 duplicated blocks/lines detected.',
+    '[sonar-gate:local] PASSED: 0 Type-1 jscpd duplicated blocks/lines detected.',
+  );
+
+  const { filesCount, clones } = scanRepositorySonarCpd(
+    REPO_ROOT,
+    props.sources,
+    props.exclusions,
+  );
+  if (clones.length > 0) {
+    console.error(
+      `[sonar-gate:local] FAILED: ${clones.length} SonarCloud Type-2 (literal-normalized) CPD clone(s) detected:`,
+    );
+    for (const clone of clones) {
+      console.error(`  - ${formatSonarCpdClone(clone)}`);
+    }
+    console.error(
+      '[sonar-gate:local] Refactor repeated object catalogs or code blocks into tuple tables, factories, or shared helpers.',
+    );
+    process.exitCode = 1;
+    return;
+  }
+  console.log(
+    `[sonar-gate:local] PASSED: 0 Type-2 literal-normalized CPD clones across ${filesCount} TS/JS source files.`,
   );
 }
 

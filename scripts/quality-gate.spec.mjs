@@ -16,6 +16,10 @@ import {
   getAllStagesForMode,
 } from './run-verify-suite.mjs';
 import {
+  detectSonarCpdClones,
+  scanRepositorySonarCpd,
+} from './sonar-cpd-parity.mjs';
+import {
   checkHtmlParity,
   checkScssParity,
   checkSuppressionBypass,
@@ -25,6 +29,7 @@ import {
 } from './sonar-parity-rules.mjs';
 import {
   hasPrismaChanges,
+  isCpdTrackedFile,
   isParityTrackedFile,
   isPrettierTrackedFile,
 } from './verify-commit-fast.mjs';
@@ -739,4 +744,136 @@ test('Suite 7 — Deploy Workflow, Edge Config, Prisma & Full-Stage Hook Parity'
   assert.match(prePushHook, /npm run verify:push/);
   assert.equal(preCommitHook.includes('\r'), false, '.githooks/pre-commit must use LF line endings.');
   assert.equal(prePushHook.includes('\r'), false, '.githooks/pre-push must use LF line endings.');
+});
+
+test('Suite 8 — Code Duplication & SonarCloud Type-2 CPD Parity Gate', () => {
+  const repeatedCatalogSample = [
+    'export const CATALOG = [',
+    ...[1, 2, 3, 4, 5, 6, 7].map((idx) =>
+      [
+        '  {',
+        `    key: 'item_${idx}',`,
+        `    label: 'Label ${idx}',`,
+        `    shortLabel: 'L${idx}',`,
+        `    subtitle: 'Subtitle ${idx}',`,
+        `    impact: 'Impact description ${idx}',`,
+        '  },',
+      ].join('\n'),
+    ),
+    '] as const;',
+  ].join('\n');
+
+  const intraFileClones = detectSonarCpdClones([
+    { file: 'packages/shared/src/domain/sample-catalog.ts', content: repeatedCatalogSample },
+  ]);
+  assert.ok(
+    intraFileClones.length > 0,
+    'Regression (character-presets.ts): must catch intra-file Type-2 literal-normalized clones.',
+  );
+
+  const crossFileA = [
+    "import { z } from 'zod';",
+    'export function buildHandlerA(input: string, flag: boolean): Record<string, unknown> {',
+    '  const normalized = input.trim().toLowerCase();',
+    '  if (!normalized) {',
+    "    return { ok: false, code: 'EMPTY_A', message: 'A is empty' };",
+    '  }',
+    '  if (flag && normalized.length > 3) {',
+    "    return { ok: true, code: 'LONG_A', value: normalized, source: 'alpha' };",
+    '  }',
+    "  return { ok: true, code: 'SHORT_A', value: normalized, source: 'alpha-default' };",
+    '}',
+  ].join('\n');
+  const crossFileB = [
+    "import { z } from 'zod';",
+    'export function buildHandlerA(input: string, flag: boolean): Record<string, unknown> {',
+    '  const normalized = input.trim().toLowerCase();',
+    '  if (!normalized) {',
+    "    return { ok: false, code: 'EMPTY_B', message: 'B is empty' };",
+    '  }',
+    '  if (flag && normalized.length > 3) {',
+    "    return { ok: true, code: 'LONG_B', value: normalized, source: 'beta' };",
+    '  }',
+    "  return { ok: true, code: 'SHORT_B', value: normalized, source: 'beta-default' };",
+    '}',
+  ].join('\n');
+
+  const crossFileClones = detectSonarCpdClones([
+    { file: 'apps/api/src/a.ts', content: crossFileA },
+    { file: 'apps/api/src/b.ts', content: crossFileB },
+  ]);
+  assert.ok(
+    crossFileClones.some((clone) => clone.fileA !== clone.fileB),
+    'Must catch cross-file Type-2 literal-normalized clones.',
+  );
+
+  const tupleCatalogSample = [
+    'const TUPLES = [',
+    ...[1, 2, 3, 4, 5, 6, 7].map(
+      (idx) => `  ['k${idx}', 'L${idx}', 'S${idx}', 'Sub${idx}', 'Impact${idx}'],`,
+    ),
+    '] as const;',
+    'export const CATALOG = TUPLES.map(([key, label, shortLabel, subtitle, impact]) => ({',
+    '  key,',
+    '  label,',
+    '  shortLabel,',
+    '  subtitle,',
+    '  impact,',
+    '}));',
+  ].join('\n');
+  assert.equal(
+    detectSonarCpdClones([
+      { file: 'packages/shared/src/domain/tuple-catalog.ts', content: tupleCatalogSample },
+    ]).length,
+    0,
+    'Tuple-mapped catalogs must produce 0 Type-2 CPD clones.',
+  );
+
+  const sharedImports = Array.from({ length: 12 }, (_, idx) => `import { Sym${idx} } from './m${idx}';`).join('\n');
+  assert.equal(
+    detectSonarCpdClones([
+      { file: 'apps/web/src/f1.ts', content: `${sharedImports}\nexport const a = 1;\n` },
+      { file: 'apps/web/src/f2.ts', content: `${sharedImports}\nexport const b = 2;\n` },
+    ]).length,
+    0,
+    'Identical import blocks must be ignored by CPD (matching SonarJS).',
+  );
+
+  const shortBlock = [
+    'export function shortOne(x: number): number {',
+    '  return x + 1;',
+    '}',
+  ].join('\n');
+  assert.equal(
+    detectSonarCpdClones([
+      { file: 'apps/web/src/s1.ts', content: shortBlock },
+      { file: 'apps/web/src/s2.ts', content: shortBlock },
+    ]).length,
+    0,
+    'Short blocks below 10 lines / 100 tokens must not trigger false positives.',
+  );
+
+  const { filesCount, clones } = scanRepositorySonarCpd(REPO_ROOT, ['apps', 'packages']);
+  assert.ok(filesCount > 0, 'Expected TS/JS source files to be scanned for Type-2 CPD.');
+  assert.equal(
+    clones.length,
+    0,
+    `Expected 0 Type-2 literal-normalized CPD clones across repository, found:\n${clones.map((c) => `${c.fileA}:${c.startLineA}-${c.endLineA} <-> ${c.fileB}:${c.startLineB}-${c.endLineB}`).join('\n')}`,
+  );
+
+  assert.equal(isCpdTrackedFile('packages/shared/src/domain/character-presets.ts'), true);
+  assert.equal(isCpdTrackedFile('packages/shared/src/domain/character-rules.spec.ts'), false);
+  assert.equal(isCpdTrackedFile('apps/web/public/assets/draco/draco_decoder.js'), false);
+
+  const sonarGateScript = fs.readFileSync(
+    path.join(REPO_ROOT, 'scripts', 'sonar-quality-gate.mjs'),
+    'utf8',
+  );
+  assert.match(sonarGateScript, /scanRepositorySonarCpd/);
+
+  const fastCommitScript = fs.readFileSync(
+    path.join(REPO_ROOT, 'scripts', 'verify-commit-fast.mjs'),
+    'utf8',
+  );
+  assert.match(fastCommitScript, /detectSonarCpdClones/);
 });
