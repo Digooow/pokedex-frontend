@@ -15,7 +15,12 @@ import { createCachedPokemonBundleFixture } from '../../testing/pokemon-bundle-f
 import { resetBrowserPreferencesState } from '../../testing/test-fixtures.spec-helper';
 import { PokedexHolocronPanelComponent } from '../pokedex-device/components/visor-modes/pokedex-holocron-panel.component';
 import { mapPokemonBundleToView } from '../pokedex-device/services/pokedex-view-mapper.util';
-import { resolveHolocronPalette, resolveHolocronTextures } from './holocron-palette.util';
+import { formatAnimationClipLabel, pickDefaultClipIndex } from './holocron-animation.util';
+import {
+  resolveHolocronPalette,
+  resolveHolocronTextures,
+  resolvePokemonGlbCandidates,
+} from './holocron-palette.util';
 import { HolocronStore } from './holocron.store';
 
 describe('Holocron 3D & Web Audio Engine', () => {
@@ -134,5 +139,28 @@ describe('Holocron 3D & Web Audio Engine', () => {
       'Modo 2D · Fallback',
     );
     expect(host.querySelector('.holocron-stage__sprite')).not.toBeNull();
+  });
+
+  it('resolves GLB CDN candidates with shiny fallback and formats/picks animation clips', () => {
+    expect(resolvePokemonGlbCandidates(25, false)).toEqual([
+      'https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/opt/regular/25.glb',
+    ]);
+    expect(resolvePokemonGlbCandidates(25, true)).toEqual([
+      'https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/opt/shiny/25.glb',
+      'https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/opt/regular/25.glb',
+    ]);
+    expect(resolvePokemonGlbCandidates(10033, false)).toEqual([]);
+
+    expect(formatAnimationClipLabel('model_skeleton|001aidle', 0)).toBe('Idle');
+    expect(formatAnimationClipLabel('model_skeleton|001fight_b', 1)).toBe('Fight B');
+    expect(formatAnimationClipLabel('Impactrueno', 0)).toBe('Impactrueno');
+    expect(formatAnimationClipLabel('', 2)).toBe('Animação 3');
+
+    const clips = [
+      { name: 'model_skeleton|001fight_b' },
+      { name: 'model_skeleton|001aidle' },
+    ] as unknown as Parameters<typeof pickDefaultClipIndex>[0];
+    expect(pickDefaultClipIndex(clips)).toBe(1);
+    expect(pickDefaultClipIndex([])).toBe(-1);
   });
 });

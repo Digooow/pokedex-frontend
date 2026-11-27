@@ -72,16 +72,18 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
+      const el = this.aparelhoEl()?.nativeElement;
+      if (el) this.rpg.attachHost(el);
+    });
+    effect(() => {
       const selected = this.store.selectedPokemon();
       if (!selected) return;
       untracked(() => {
         this.transientBadge.set(null);
         this.rpg.syncCatalogSelection(selected.name);
+        if (this.visorDetail.activeMode() === 'holocron')
+          this.holocronStore.openWithPokemon(selected);
       });
-    });
-    effect(() => {
-      const el = this.aparelhoEl()?.nativeElement;
-      if (el) this.rpg.attachHost(el);
     });
   }
 
@@ -111,9 +113,7 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
 
   openPokedex = () => this.rpg.openCover(() => this.searchPanelCmp()?.focusInput());
   closePokedex = (rf = true) =>
-    this.rpg.closeCover(() => {
-      if (rf && this.isBrowser) this.coverCmp()?.focusTrigger();
-    });
+    this.rpg.closeCover(() => rf && this.isBrowser && this.coverCmp()?.focusTrigger());
   onCoverTriggerClick = () =>
     this.rpg.isDesiredOpen() ? this.closePokedex(true) : this.openPokedex();
   onDevicePointerMove = (e: PointerEvent) => {

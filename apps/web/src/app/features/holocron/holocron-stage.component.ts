@@ -17,7 +17,8 @@ import {
 import { AudioEngineService } from '../../core/audio/audio-engine.service';
 import { QualityStore } from '../../core/stores/quality.store';
 import type { PokemonDetailView } from '../pokedex-device/services/pokedex-view-mapper.util';
-import { resolveHolocronTextures, resolveLocalPokemonGlbUrl } from './holocron-palette.util';
+import type { HolocronMediaState } from './holocron-animation.util';
+import { resolveHolocronTextures, resolvePokemonGlbCandidates } from './holocron-palette.util';
 import type { HolocronSceneController } from './holocron-three.renderer';
 import { HolocronStore } from './holocron.store';
 
@@ -44,6 +45,11 @@ export class HolocronStageComponent implements OnDestroy {
   private readonly canvasRef = viewChild<ElementRef<HTMLCanvasElement>>('glCanvas');
   readonly initFailed = signal(false);
   readonly fallbackImageFailed = signal(false);
+  readonly mediaState = signal<HolocronMediaState>({
+    kind: 'loading',
+    animations: [],
+    activeAnimationIndex: -1,
+  });
 
   private controller: HolocronSceneController | null = null;
   private mounting = false;
@@ -51,7 +57,9 @@ export class HolocronStageComponent implements OnDestroy {
 
   readonly textures = computed(() => resolveHolocronTextures(this.pokemon(), this.shiny()));
   readonly spriteUrl = computed(() => this.textures().frontUrl);
-  readonly glbUrl = computed(() => resolveLocalPokemonGlbUrl(this.pokemon().id));
+  readonly glbCandidates = computed(() =>
+    resolvePokemonGlbCandidates(this.pokemon().id, this.shiny()),
+  );
 
   readonly canUseWebGl = computed(
     () =>
@@ -66,8 +74,12 @@ export class HolocronStageComponent implements OnDestroy {
     if (this.holocron.webglLost()) return 'Modo 2D · Fallback';
     if (this.quality.tier() === 'lite') return 'Modo 2D · LITE';
     if (!this.canUseWebGl()) return 'Modo 2D · Fallback';
-    const glbTag = this.glbUrl() ? 'GLB 3D' : 'Prisma 3D';
-    return this.quality.tier() === 'ultra' ? `${glbTag} · ULTRA` : `${glbTag} · EQUIL.`;
+    const suffix = this.quality.tier() === 'ultra' ? 'ULTRA' : 'EQUIL.';
+    const kind = this.mediaState().kind;
+    if (kind === 'loading') return 'Carregando 3D...';
+    if (kind === 'glb-animated') return `3D Animado · ${suffix}`;
+    if (kind === 'glb-procedural') return `Modelo 3D · ${suffix}`;
+    return `Prisma 3D · ${suffix}`;
   });
 
   constructor() {
@@ -91,7 +103,7 @@ export class HolocronStageComponent implements OnDestroy {
 
     effect(() => {
       const pk = this.pokemon();
-      this.controller?.updatePokemon(this.textures(), this.glbUrl(), pk.types);
+      this.controller?.updatePokemon(this.textures(), this.glbCandidates(), pk.types);
     });
 
     effect(() => {
@@ -106,6 +118,11 @@ export class HolocronStageComponent implements OnDestroy {
 
   onResetCamera(): void {
     this.controller?.resetCamera();
+  }
+
+  onSelectAnimation(index: number): void {
+    this.mediaState.update((prev) => ({ ...prev, activeAnimationIndex: index }));
+    this.controller?.selectAnimation(index);
   }
 
   onFallbackSpriteError(): void {
@@ -129,9 +146,12 @@ export class HolocronStageComponent implements OnDestroy {
         reducedMotion: this.quality.reducedMotion(),
         autoRotate: this.autoRotate(),
         textures: this.textures(),
-        glbUrl: this.glbUrl(),
+        glbCandidates: this.glbCandidates(),
         types: pk.types,
         readEnergy: (t) => this.audioEngine.readEnergyLevel(t),
+        onMediaStateChange: (next) => {
+          if (!this.disposed) this.mediaState.set(next);
+        },
         onContextLost: () => {
           this.disposeController();
           this.holocron.markWebGlLost();

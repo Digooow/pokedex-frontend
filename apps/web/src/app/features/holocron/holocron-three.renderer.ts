@@ -1,7 +1,8 @@
 import { type Color, type PerspectiveCamera, Scene, type WebGLRenderer } from 'three';
 import type { HardwareTier } from '@pokeverse/shared';
-import { type HolocronTexturePair, resolveHolocronPalette } from './holocron-palette.util';
+import type { HolocronMediaState } from './holocron-animation.util';
 import { createHologramMediaLoader } from './holocron-media-loader.util';
+import { type HolocronTexturePair, resolveHolocronPalette } from './holocron-palette.util';
 import {
   buildStageObjects,
   createRendererAndCamera,
@@ -15,9 +16,10 @@ export interface HolocronSceneOptions {
   readonly reducedMotion: boolean;
   readonly autoRotate: boolean;
   readonly textures: HolocronTexturePair;
-  readonly glbUrl: string | null;
+  readonly glbCandidates: readonly string[];
   readonly types: readonly string[];
   readonly readEnergy: (elapsedMs: number) => number;
+  readonly onMediaStateChange?: (media: HolocronMediaState) => void;
   readonly onContextLost: () => void;
   readonly onLowFps: () => void;
 }
@@ -25,9 +27,10 @@ export interface HolocronSceneOptions {
 export interface HolocronSceneController {
   readonly updatePokemon: (
     textures: HolocronTexturePair,
-    glbUrl: string | null,
+    glbCandidates: readonly string[],
     types: readonly string[],
   ) => void;
+  readonly selectAnimation: (index: number) => void;
   readonly setAutoRotate: (enabled: boolean) => void;
   readonly setReducedMotion: (reduced: boolean) => void;
   readonly nudgeOrbit: (deltaRad: number) => void;
@@ -79,7 +82,7 @@ function bindInteractionListeners(
   };
   const onWheel = (event: WheelEvent) => {
     event.preventDefault();
-    state.cameraRadius = Math.max(2.9, Math.min(5.6, state.cameraRadius + event.deltaY * 0.002));
+    state.cameraRadius = Math.max(2.2, Math.min(5.2, state.cameraRadius + event.deltaY * 0.002));
   };
   const onVisibilityChange = () => {
     if (document.hidden && state.rafId !== null) {
@@ -99,8 +102,8 @@ function bindInteractionListeners(
   };
 
   canvas.addEventListener('pointerdown', onPointerDown);
-  window.addEventListener('pointermove', onPointerMove);
-  window.addEventListener('pointerup', onPointerUp);
+  globalThis.addEventListener('pointermove', onPointerMove);
+  globalThis.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('webglcontextlost', handleContextLost);
   document.addEventListener('visibilitychange', onVisibilityChange);
@@ -111,8 +114,8 @@ function bindInteractionListeners(
   return () => {
     observer?.disconnect();
     canvas.removeEventListener('pointerdown', onPointerDown);
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
+    globalThis.removeEventListener('pointermove', onPointerMove);
+    globalThis.removeEventListener('pointerup', onPointerUp);
     canvas.removeEventListener('wheel', onWheel);
     canvas.removeEventListener('webglcontextlost', handleContextLost);
     document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -138,7 +141,7 @@ function createInitialOrbitState(options: HolocronSceneOptions): OrbitState {
     reducedMotion: options.reducedMotion,
     orbitAngle: 0,
     orbitPitch: 0.16,
-    cameraRadius: 4.1,
+    cameraRadius: 3.65,
     dragging: false,
     lastPointerX: 0,
     lastPointerY: 0,
@@ -157,6 +160,7 @@ function createFrameRenderer(
   camera: PerspectiveCamera,
   renderer: WebGLRenderer,
   stage: ReturnType<typeof buildStageObjects>,
+  mediaLoader: ReturnType<typeof createHologramMediaLoader>,
   state: OrbitState,
 ) {
   return (now: number) => {
@@ -169,16 +173,17 @@ function createFrameRenderer(
     if (uTime) uTime.value = now * 0.001;
     if (uEnergy) uEnergy.value = energy;
     if (!state.reducedMotion && state.autoRotate && !state.dragging) state.orbitAngle += dt * 0.72;
+    mediaLoader.tick(dt, now * 0.001, energy, state.reducedMotion);
     const bob = state.reducedMotion ? 0 : Math.sin(now * 0.0022) * 0.05 + energy * 0.08;
-    stage.prism.hologramGroup.position.y = 0.34 + bob;
+    stage.prism.hologramGroup.position.y = mediaLoader.hasLoadedGlb() ? 0 : 0.34 + bob;
     if (stage.particles && !state.reducedMotion) {
       stage.particles.points.rotation.y = state.orbitAngle * 0.65;
     }
     const horiz = Math.cos(state.orbitPitch) * state.cameraRadius;
     camera.position.x = Math.sin(state.orbitAngle) * horiz;
     camera.position.z = Math.cos(state.orbitAngle) * horiz;
-    camera.position.y = 0.22 + Math.sin(state.orbitPitch) * state.cameraRadius;
-    camera.lookAt(0, 0.22, 0);
+    camera.position.y = 0.14 + Math.sin(state.orbitPitch) * state.cameraRadius;
+    camera.lookAt(0, 0.14, 0);
     renderer.render(scene, camera);
     advanceFpsWatchdog(state, now, options.onLowFps);
   };
@@ -197,7 +202,7 @@ function buildSceneController(params: {
   const { scene, renderer, stage, state, mediaLoader, renderFrame, cleanupListeners, resize } =
     params;
   return {
-    updatePokemon(textures, glbUrl, types) {
+    updatePokemon(textures, glbCandidates, types) {
       const next = resolveHolocronPalette(types);
       stage.pedestal.ringMat.color.setHex(next.primary);
       stage.pedestal.innerMat.color.setHex(next.accent);
@@ -206,8 +211,9 @@ function buildSceneController(params: {
       const uColor = stage.beamMat.uniforms['uColor'];
       if (uColor) (uColor.value as Color).setHex(next.primary);
       stage.particles?.material.color.setHex(next.secondary);
-      mediaLoader.load(textures, glbUrl);
+      mediaLoader.load(textures, glbCandidates);
     },
+    selectAnimation: (index) => mediaLoader.selectAnimation(index),
     setAutoRotate: (enabled) => {
       state.autoRotate = enabled;
     },
@@ -221,7 +227,7 @@ function buildSceneController(params: {
     resetCamera: () => {
       state.orbitAngle = 0;
       state.orbitPitch = 0.16;
-      state.cameraRadius = 4.1;
+      state.cameraRadius = 3.65;
       renderFrame(performance.now());
     },
     resize,
@@ -246,8 +252,9 @@ export function mountHolocronThreeScene(options: HolocronSceneOptions): Holocron
     stage.prism,
     () => state.disposed,
     disposeObjectSubtree,
+    options.onMediaStateChange,
   );
-  mediaLoader.load(options.textures, options.glbUrl);
+  mediaLoader.load(options.textures, options.glbCandidates);
 
   const resize = () => {
     const parent = canvas.parentElement;
@@ -259,7 +266,15 @@ export function mountHolocronThreeScene(options: HolocronSceneOptions): Holocron
   };
   resize();
 
-  const renderFrame = createFrameRenderer(options, scene, camera, renderer, stage, state);
+  const renderFrame = createFrameRenderer(
+    options,
+    scene,
+    camera,
+    renderer,
+    stage,
+    mediaLoader,
+    state,
+  );
   const loop = (now: number) => {
     if (state.disposed || document.hidden) {
       state.rafId = null;

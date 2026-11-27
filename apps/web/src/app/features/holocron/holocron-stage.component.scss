@@ -24,19 +24,39 @@
   block-size: 13.75rem;
 }
 
-.holocron-stage__mode {
+@container visor (min-width: 680px) {
+  .holocron-stage.is-compact .holocron-stage__viewport {
+    min-block-size: 22rem;
+  }
+
+  .holocron-stage.is-compact .holocron-stage__canvas,
+  .holocron-stage.is-compact .holocron-stage__fallback {
+    block-size: 22rem;
+  }
+}
+
+.holocron-stage__mode,
+.holocron-stage__loading {
   position: absolute;
   inset-block-start: var(--pv-space-2);
-  inset-inline-start: var(--pv-space-2);
   z-index: 2;
   padding: 0.2rem 0.55rem;
   border-radius: var(--pv-radius-pill);
   border: 1px solid var(--pv-border-subtle);
   background: var(--pv-holocron-badge-bg);
-  color: var(--pv-cyan);
   font-family: var(--pv-font-mono);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 800;
+}
+
+.holocron-stage__mode {
+  inset-inline-start: var(--pv-space-2);
+  color: var(--pv-cyan);
+}
+
+.holocron-stage__loading {
+  inset-inline-end: var(--pv-space-2);
+  color: var(--pv-amber);
 }
 
 .holocron-stage__canvas {
@@ -83,6 +103,7 @@
   color: var(--pv-ink-muted);
 }
 
+.holocron-stage__clips,
 .holocron-stage__controls {
   display: flex;
   flex-wrap: wrap;
@@ -93,9 +114,8 @@
   min-inline-size: 0;
 }
 
+.holocron-clip-btn,
 .holocron-ctrl-btn {
-  min-block-size: 2.75rem;
-  padding: 0.35rem 0.75rem;
   border-radius: var(--pv-radius-sm);
   border: 1px solid var(--pv-border-subtle);
   background: var(--pv-holocron-control-bg);
@@ -104,10 +124,31 @@
   font-size: 0.75rem;
   font-weight: 700;
   cursor: pointer;
+  transition:
+    background-color var(--pv-motion-fast-ms) ease,
+    border-color var(--pv-motion-fast-ms) ease;
 }
 
+.holocron-clip-btn {
+  min-block-size: 2rem;
+  padding: 0.2rem 0.6rem;
+}
+
+.holocron-ctrl-btn {
+  min-block-size: 2.75rem;
+  padding: 0.35rem 0.75rem;
+}
+
+.holocron-clip-btn[aria-pressed='true'],
 .holocron-ctrl-btn[aria-pressed='true'] {
   border-color: var(--pv-border-gold);
   background: var(--pv-filter-btn-active-bg);
   color: var(--pv-filter-btn-active-ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .holocron-clip-btn,
+  .holocron-ctrl-btn {
+    transition: none;
+  }
 }

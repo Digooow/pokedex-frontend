@@ -33,6 +33,7 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
+  '.wasm': 'application/wasm',
   '.woff2': 'font/woff2',
   '.ico': 'image/x-icon',
 };
@@ -268,6 +269,23 @@ async function handleApiRoute(
   return handlePokedexRoute(req, res, pathname, slots);
 }
 
+function buildMinimalGlbBuffer(): Buffer {
+  const jsonBytes = Buffer.from(
+    JSON.stringify({ asset: { version: '2.0' }, scene: 0, scenes: [{ nodes: [] }] }),
+    'utf8',
+  );
+  const padLen = (4 - (jsonBytes.length % 4)) % 4;
+  const paddedJson = Buffer.concat([jsonBytes, Buffer.alloc(padLen, 0x20)]);
+  const totalLen = 12 + 8 + paddedJson.length;
+  const header = Buffer.alloc(20);
+  header.writeUInt32LE(0x46546c67, 0);
+  header.writeUInt32LE(2, 4);
+  header.writeUInt32LE(totalLen, 8);
+  header.writeUInt32LE(paddedJson.length, 12);
+  header.writeUInt32LE(0x4e4f534a, 16);
+  return Buffer.concat([header, paddedJson]);
+}
+
 export interface BffE2eHarness {
   readonly baseUrl: string;
   readonly consoleErrors: string[];
@@ -286,6 +304,15 @@ export const test = base.extend<{ bff: BffE2eHarness }>({
         consoleErrors.push(msg.text());
       }
     });
+
+    const minimalGlb = buildMinimalGlbBuffer();
+    await page.route('https://raw.githubusercontent.com/Pokemon-3D-api/**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'model/gltf-binary',
+        body: minimalGlb,
+      }),
+    );
 
     await page.routeWebSocket(/\/socket\.io\//, (ws) => {
       ws.send('0{"sid":"e2e-ws","upgrades":[],"pingInterval":25000,"pingTimeout":20000}');

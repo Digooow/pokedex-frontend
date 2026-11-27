@@ -10,7 +10,6 @@
 
 | ID | Prioridade | Area | Item / Descricao | Criterio de Conclusao |
 | :--- | :---: | :--- | :--- | :--- |
-| **MEL-01** | **P0** | Holocron 3D | **Pacote de Modelos 3D Leves (`.glb` Draco):** a infraestrutura `GLTFLoader` + registro `LOCAL_POKEMON_GLB_MODELS` ja esta conectada ao projetor, mas faltam os assets `.glb` reais dos Pokemon para substituir o prisma holografico 2D dupla-face. | Disponibilizar pacote curado de `.glb` leves (ou streaming S3/CDN com fallback ao prisma 3D) para iniciais/favoritos e validar carregamento sem travar FPS. |
 | **MEL-02** | **P0** | Tela Inicial (`/inicio`) | **Definicao de Identidade e Conteudo do Hub Inicial:** a tela `/inicio` foi entregue propositalmente enxuta (nao-Pokedex) apos a tela classica `Iniciar Jogo` (`/`) aguardando ideias do dono do projeto. | Definir blocos definitivos (ex.: atalhos rapidos, destaques do dia, resumo de perfil/slots, noticias/eventos) e evoluir o layout sem poluir a tela. |
 | **MEL-05** | **P2** | Museu das Regioes | **Museu Fase 2 (Mapas & Ginasios):** enriquecer o dossie limpo do Museu com lideres de ginasio, insignias e marcos visuais por regiao sem duplicar listas. | Exibir trilha de ginasios e insignias por regiao no inspetor sem recriar cards redundantes. |
 
@@ -30,6 +29,10 @@
 | **ENT-08** | Museu das Regioes (`/museu`) | Removida a grade duplicada de 9 cards abaixo da linha do tempo e reestruturado o dossie com foco unico, hierarquia limpa e integracao direta com Holocron e Enciclopedia dentro da Pokedex. | Concluido |
 | **ENT-09** | Pokedex 3D (Visor — `MEL-03`) | Adicionado botao **Expandir / Recolher** (`#btn-visor-expand`) no cabecalho do Visor LCD com modal expandida sobre o backdrop (`Esc`, clique no scrim ou fechamento da tampa recolhem), preservando 100% da carcaca 3D quando recolhido. | Concluido |
 | **ENT-10** | Calculadora Fase 2 (`MEL-04`) | Evoluida a calculadora com **25 naturezas oficiais**, **8 presets Smogon OU / VGC**, **Simulador de Dano 1v1** (STAB, eficacia 18 tipos Gen VI–IX, clima, critico, queimado, VGC spread, itens, golpe aprendido e 16 rolls + KO verdict) e **Import/Export Showdown** (`pokemon-battle-calc.ts` + `pokemon-showdown-spread.ts`). | Concluido |
+| **ENT-11** | Busca Esquerda | Compactado o bloco de pesquisa em uma linha (`Buscar`) ampliando a area visivel da lista de Pokemon e adicionado scroll vertical temporario em `.painel-busca` para visualizar filtros + lista em telas menores. | Concluido |
+| **ENT-12** | Visor Holograma (`MEL-03`) | Corrigido *stacking context* da aba esquerda sobre o visor expandido e adicionada animacao de projecao holografica: a Pokedex desliza para a base inferior como projetor enquanto feixe ciano (`.visor-holo-beam`) e visor translucido abrem acima. | Concluido |
+| **ENT-13** | Holocron 3D (`MEL-01`) | Conectado streaming `.glb` (`1..1025`, regular/shiny) da `Pokemon-3D-api/assets` com `DRACOLoader` auto-hospedado (`/assets/draco/` via `scripts/sync-draco-assets.mjs`), `AnimationMixer` com seletor de clipes, animacao procedural *idle* para modelos sem esqueleto e sincronizacao automatica ao buscar outro Pokemon na aba 3D. | Concluido |
+| **ENT-14** | Comparador 1v1 | Redesenhado `PokedexComparePanelComponent` para arena lado a lado (`Lado A` vs `Lado B`) com placar resumido `VS`, barras espelhadas, troca rapida inline e perfil defensivo limpo em layout compacto e expandido. | Concluido |
 
 ---
 

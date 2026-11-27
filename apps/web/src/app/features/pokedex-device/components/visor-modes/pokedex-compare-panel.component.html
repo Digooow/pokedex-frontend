@@ -1,8 +1,8 @@
 <section class="compare-embed" aria-label="Comparador 1v1 na Pokédex">
   <header class="compare-embed__head">
-    <div>
-      <span class="compare-embed__badge">ANÁLISE COMPARATIVA</span>
-      <h3 class="compare-embed__title">Comparador 1v1</h3>
+    <div class="compare-embed__titles">
+      <span class="compare-embed__badge">ARENA 1V1</span>
+      <h3 class="compare-embed__title">Comparador</h3>
     </div>
     <div class="compare-embed__actions">
       <button type="button" class="compare-btn" (click)="compare.swapSides()">
@@ -16,53 +16,80 @@
 
   <div class="compare-slots">
     @for (side of ['left', 'right']; track side) {
+      @let sideKey = side === 'left' ? 'left' : 'right';
       @let slotState = side === 'left' ? compare.leftState() : compare.rightState();
       @let suggestions = side === 'left' ? leftSuggestions() : rightSuggestions();
       @let queryVal = side === 'left' ? leftQuery() : rightQuery();
-      <section class="compare-slot" [attr.aria-label]="side === 'left' ? 'Pokémon A' : 'Pokémon B'">
+      @let isSuccess = slotState.status === 'success';
+      @let showForm = !isSuccess || isSideEditing(sideKey);
+
+      <section
+        class="compare-slot"
+        [attr.data-side]="sideKey"
+        [attr.data-pokemon-type]="isSuccess ? primaryTypeSlug(slotState.data) : null"
+        [attr.aria-label]="side === 'left' ? 'Pokémon A' : 'Pokémon B'"
+      >
         <div class="compare-slot__top">
-          <label class="compare-search__label" [for]="'compare-input-' + side">
+          <span class="compare-slot__tag" [attr.data-side]="sideKey">
             {{ side === 'left' ? 'Lado A' : 'Lado B' }}
-          </label>
-          @if (pokedex.selectedPokemon(); as active) {
-            <button
-              type="button"
-              class="compare-chip"
-              (click)="onUseSelectedOnSide(side === 'left' ? 'left' : 'right')"
-            >
-              Usar {{ active.displayName }}
-            </button>
-          }
-        </div>
-
-        <form class="compare-search" (submit)="onSubmitSide(side === 'left' ? 'left' : 'right', $event)">
-          <div class="compare-search__row">
-            <input
-              [id]="'compare-input-' + side"
-              type="text"
-              class="compare-search__input"
-              [value]="queryVal"
-              placeholder="Nome ou ID..."
-              (input)="onQueryInput(side === 'left' ? 'left' : 'right', $event)"
-            />
-            <button type="submit" class="compare-btn compare-btn--primary">
-              Carregar
-            </button>
-          </div>
-        </form>
-
-        @if (suggestions.length > 0) {
-          <div class="compare-suggestions">
-            @for (item of suggestions; track item.id) {
+          </span>
+          <div class="compare-slot__top-actions">
+            @if (pokedex.selectedPokemon(); as active) {
+              @if (!isSuccess || isSideEditing(sideKey)) {
+                <button
+                  type="button"
+                  class="compare-chip"
+                  (click)="onUseSelectedOnSide(sideKey)"
+                >
+                  Usar {{ active.displayName }}
+                </button>
+              }
+            }
+            @if (isSuccess) {
               <button
                 type="button"
-                class="compare-chip"
-                (click)="onPickSuggestion(side === 'left' ? 'left' : 'right', item.name)"
+                class="compare-btn compare-btn--compact"
+                (click)="onToggleEdit(sideKey)"
               >
-                #{{ item.id }} {{ item.displayName }}
+                {{ isSideEditing(sideKey) ? 'Cancelar' : 'Trocar' }}
               </button>
             }
           </div>
+        </div>
+
+        @if (showForm) {
+          <form class="compare-search" (submit)="onSubmitSide(sideKey, $event)">
+            <label class="sr-only-static" [for]="'compare-input-' + side">
+              {{ side === 'left' ? 'Buscar Pokémon para Lado A' : 'Buscar Pokémon para Lado B' }}
+            </label>
+            <div class="compare-search__row">
+              <input
+                [id]="'compare-input-' + side"
+                type="text"
+                class="compare-search__input"
+                [value]="queryVal"
+                placeholder="Nome ou ID..."
+                (input)="onQueryInput(sideKey, $event)"
+              />
+              <button type="submit" class="compare-btn compare-btn--primary compare-btn--compact">
+                Ir
+              </button>
+            </div>
+          </form>
+
+          @if (suggestions.length > 0) {
+            <div class="compare-suggestions">
+              @for (item of suggestions; track item.id) {
+                <button
+                  type="button"
+                  class="compare-chip"
+                  (click)="onPickSuggestion(sideKey, item.name)"
+                >
+                  #{{ item.id }} {{ item.displayName }}
+                </button>
+              }
+            </div>
+          }
         }
 
         @if (slotState.status === 'loading') {
@@ -73,55 +100,79 @@
             @if (slotState.error.retryable) {
               <button
                 type="button"
-                class="compare-btn"
-                (click)="compare.retrySide(side === 'left' ? 'left' : 'right')"
+                class="compare-btn compare-btn--compact"
+                (click)="compare.retrySide(sideKey)"
               >
                 Tentar novamente
               </button>
             }
           </div>
-        } @else if (slotState.status === 'success') {
+        } @else if (slotState.status === 'success' && !isSideEditing(sideKey)) {
           @let pk = slotState.data;
           <div class="compare-fighter">
-            @if (pk.spriteUrl) {
-              <img
-                class="compare-fighter__sprite"
-                [src]="pk.spriteUrl"
-                [alt]="pk.displayName"
-                width="68"
-                height="68"
-              />
-            }
-            <div class="compare-fighter__info">
-              <span class="compare-fighter__id tabular-nums">{{ pk.paddedId }}</span>
-              <h4 class="compare-fighter__name">{{ pk.displayName }}</h4>
-              @if (pk.types.length > 0) {
-                <ul class="compare-fighter__types" aria-label="Tipos">
-                  @for (typeName of pk.types; track typeName) {
-                    <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
-                      {{ typeName }}
-                    </li>
-                  }
-                </ul>
+            <div class="compare-fighter__avatar" [attr.data-pokemon-type]="primaryTypeSlug(pk)">
+              @if (pk.spriteUrl) {
+                <img
+                  class="compare-fighter__sprite"
+                  [src]="pk.spriteUrl"
+                  [alt]="pk.displayName"
+                  width="64"
+                  height="64"
+                />
               }
-              <p class="compare-fighter__meta">{{ pk.heightMeters }} · {{ pk.weightKg }}</p>
-              <button
-                type="button"
-                class="compare-link-btn"
-                (click)="onOpenInPokedex(pk.name)"
-              >
-                Abrir Ficha →
-              </button>
             </div>
+            <span class="compare-fighter__id tabular-nums">{{ pk.paddedId }}</span>
+            <h4 class="compare-fighter__name">{{ pk.displayName }}</h4>
+            @if (pk.types.length > 0) {
+              <ul class="compare-fighter__types" aria-label="Tipos">
+                @for (typeName of pk.types; track typeName) {
+                  <li class="pv-type-badge" [attr.data-pokemon-type]="typeSlug(typeName)">
+                    {{ typeName }}
+                  </li>
+                }
+              </ul>
+            }
+            <p class="compare-fighter__meta tabular-nums">
+              BST {{ bstOf(pk) }} · {{ pk.heightMeters }} · {{ pk.weightKg }}
+            </p>
+            <button
+              type="button"
+              class="compare-link-btn"
+              (click)="onOpenInPokedex(pk.name)"
+            >
+              Abrir Ficha →
+            </button>
           </div>
-        } @else {
-          <p class="compare-state">Selecione um Pokémon acima para comparar.</p>
+        } @else if (!isSuccess) {
+          <p class="compare-state">Escolha um Pokémon acima.</p>
         }
       </section>
     }
   </div>
 
   @if (bothReady()) {
+    @let summary = verdict();
+    <div class="compare-verdict" aria-label="Placar geral da comparação">
+      <div class="compare-verdict__side">
+        <span class="compare-verdict__name">{{ leftName() }}</span>
+        <strong class="compare-verdict__score tabular-nums">{{ summary.leftWins }}</strong>
+      </div>
+      <div class="compare-verdict__center">
+        <span class="compare-verdict__vs">VS</span>
+        <span class="compare-verdict__bst tabular-nums">
+          @if (summary.bstWinner === 'tie') {
+            BST Empate
+          } @else {
+            BST {{ summary.bstDelta > 0 ? '+' + summary.bstDelta : summary.bstDelta }}
+          }
+        </span>
+      </div>
+      <div class="compare-verdict__side compare-verdict__side--right">
+        <strong class="compare-verdict__score tabular-nums">{{ summary.rightWins }}</strong>
+        <span class="compare-verdict__name">{{ rightName() }}</span>
+      </div>
+    </div>
+
     <section class="compare-stats" aria-label="Comparativo de Base Stats">
       <h4 class="compare-section-title">Base Stats &amp; BST</h4>
       <ul class="compare-stats__list">
@@ -131,16 +182,26 @@
               {{ row.leftValue }}
             </span>
             <div class="compare-stat-row__track compare-stat-row__track--left">
-              <span class="compare-stat-row__fill compare-stat-row__fill--left" [style.width.%]="row.leftPercent"></span>
+              <span
+                class="compare-stat-row__fill compare-stat-row__fill--left"
+                [style.width.%]="row.leftPercent"
+              ></span>
             </div>
             <span class="compare-stat-row__label">
               {{ row.label }}
-              <small class="compare-stat-row__delta tabular-nums" [class.is-pos]="row.delta > 0" [class.is-neg]="row.delta < 0">
+              <small
+                class="compare-stat-row__delta tabular-nums"
+                [class.is-pos]="row.delta > 0"
+                [class.is-neg]="row.delta < 0"
+              >
                 {{ row.deltaLabel }}
               </small>
             </span>
             <div class="compare-stat-row__track">
-              <span class="compare-stat-row__fill compare-stat-row__fill--right" [style.width.%]="row.rightPercent"></span>
+              <span
+                class="compare-stat-row__fill compare-stat-row__fill--right"
+                [style.width.%]="row.rightPercent"
+              ></span>
             </div>
             <span class="compare-stat-row__val tabular-nums" [class.is-win]="row.winner === 'right'">
               {{ row.rightValue }}
@@ -154,9 +215,9 @@
       <h4 class="compare-section-title">Perfil Defensivo (0x–4x)</h4>
       <div class="compare-defense__grid">
         @for (entry of [
-          { label: 'Lado A', def: compare.leftDefense() },
-          { label: 'Lado B', def: compare.rightDefense() }
-        ]; track entry.label) {
+          { label: leftName(), def: compare.leftDefense() },
+          { label: rightName(), def: compare.rightDefense() }
+        ]; track $index) {
           <div class="compare-defense__card">
             <strong class="compare-defense__heading">{{ entry.label }}</strong>
             @if (entry.def; as def) {

@@ -474,6 +474,22 @@
   --pv-holocron-ring: oklch(76% 0.14 215 / 0.65);
   --pv-holocron-badge-bg: oklch(14% 0.025 255 / 0.9);
   --pv-holocron-control-bg: oklch(21% 0.03 255 / 0.92);
+
+  --pv-holo-surface: oklch(14% 0.032 228 / 0.9);
+  --pv-holo-surface-deep: oklch(11% 0.028 232 / 0.94);
+  --pv-holo-border: oklch(78% 0.14 210 / 0.85);
+  --pv-holo-glow: oklch(72% 0.16 210 / 0.34);
+  --pv-holo-beam-core: oklch(76% 0.15 208 / 0.32);
+  --pv-holo-beam-edge: oklch(68% 0.14 215 / 0);
+  --pv-holo-scanline: oklch(82% 0.12 208 / 0.045);
+
+  --pv-compare-vs-bg: oklch(24% 0.06 232 / 0.92);
+  --pv-compare-vs-border: oklch(76% 0.15 215 / 0.65);
+  --pv-compare-slot-a-accent: oklch(72% 0.16 225);
+  --pv-compare-slot-b-accent: oklch(80% 0.16 84);
+  --pv-compare-input-bg: oklch(13% 0.022 252);
+  --pv-compare-input-border: oklch(52% 0.04 245 / 0.65);
+  --pv-compare-input-ink: oklch(96% 0.01 250);
 }
 
 @media (forced-colors: active) {
@@ -551,6 +567,22 @@
     --pv-holocron-ring: CanvasText;
     --pv-holocron-badge-bg: Canvas;
     --pv-holocron-control-bg: ButtonFace;
+
+    --pv-holo-surface: Canvas;
+    --pv-holo-surface-deep: Canvas;
+    --pv-holo-border: Highlight;
+    --pv-holo-glow: Highlight;
+    --pv-holo-beam-core: Highlight;
+    --pv-holo-beam-edge: transparent;
+    --pv-holo-scanline: transparent;
+
+    --pv-compare-vs-bg: Canvas;
+    --pv-compare-vs-border: CanvasText;
+    --pv-compare-slot-a-accent: Highlight;
+    --pv-compare-slot-b-accent: Highlight;
+    --pv-compare-input-bg: Field;
+    --pv-compare-input-border: CanvasText;
+    --pv-compare-input-ink: FieldText;
 
     --pv-glass-bg: Canvas;
     --pv-glass-bg-blur: Canvas;

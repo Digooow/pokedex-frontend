@@ -15,6 +15,8 @@ export const COMPARE_STAT_SPECS: readonly CompareStatSpec[] = [
   { key: 'speed', label: 'SPE' },
 ];
 
+export type CompareWinner = 'left' | 'right' | 'tie';
+
 export interface CompareStatRow {
   readonly key: string;
   readonly label: string;
@@ -22,7 +24,7 @@ export interface CompareStatRow {
   readonly rightValue: number;
   readonly delta: number;
   readonly deltaLabel: string;
-  readonly winner: 'left' | 'right' | 'tie';
+  readonly winner: CompareWinner;
   readonly leftPercent: number;
   readonly rightPercent: number;
 }
@@ -33,6 +35,14 @@ export interface DefenseHighlights {
   readonly resistant: readonly string[];
   readonly quadResistant: readonly string[];
   readonly immune: readonly string[];
+}
+
+export interface CompareVerdictSummary {
+  readonly leftWins: number;
+  readonly rightWins: number;
+  readonly ties: number;
+  readonly bstDelta: number;
+  readonly bstWinner: CompareWinner;
 }
 
 function readStatValue(pokemon: PokemonDetailView, spec: CompareStatSpec): number {
@@ -46,7 +56,7 @@ function readStatValue(pokemon: PokemonDetailView, spec: CompareStatSpec): numbe
   return fallback?.value ?? 0;
 }
 
-function resolveWinner(left: number, right: number): 'left' | 'right' | 'tie' {
+function resolveWinner(left: number, right: number): CompareWinner {
   if (left > right) return 'left';
   if (right > left) return 'right';
   return 'tie';
@@ -112,10 +122,31 @@ export function buildDefenseHighlights(pokemon: PokemonDetailView): DefenseHighl
   const eff = pokemon.bundle?.typeEffectiveness;
   if (!eff) return null;
   return {
-    quadWeak: eff.quadWeak.map(formatPokeApiText),
-    weak: eff.weak.map(formatPokeApiText),
-    resistant: eff.resistant.map(formatPokeApiText),
-    quadResistant: eff.quadResistant.map(formatPokeApiText),
-    immune: eff.immune.map(formatPokeApiText),
+    quadWeak: eff.quadWeak.map((item) => formatPokeApiText(item)),
+    weak: eff.weak.map((item) => formatPokeApiText(item)),
+    resistant: eff.resistant.map((item) => formatPokeApiText(item)),
+    quadResistant: eff.quadResistant.map((item) => formatPokeApiText(item)),
+    immune: eff.immune.map((item) => formatPokeApiText(item)),
   };
+}
+
+export function summarizeCompareVerdict(rows: readonly CompareStatRow[]): CompareVerdictSummary {
+  let leftWins = 0;
+  let rightWins = 0;
+  let ties = 0;
+  let bstDelta = 0;
+  let bstWinner: CompareWinner = 'tie';
+
+  for (const row of rows) {
+    if (row.key === 'bst') {
+      bstDelta = row.delta;
+      bstWinner = row.winner;
+      continue;
+    }
+    if (row.winner === 'left') leftWins += 1;
+    else if (row.winner === 'right') rightWins += 1;
+    else ties += 1;
+  }
+
+  return { leftWins, rightWins, ties, bstDelta, bstWinner };
 }

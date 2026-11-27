@@ -8,7 +8,9 @@ import {
 } from '@angular/core';
 import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { type CompareSide, PokedexCompareStore } from '../../services/pokedex-compare.store';
+import { summarizeCompareVerdict } from '../../services/pokedex-compare.util';
 import { buildQuickCatalogSuggestions } from '../../services/pokedex-stat-calc.util';
+import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import { PokedexStore } from '../../services/pokedex.store';
 
 @Component({
@@ -27,6 +29,8 @@ export class PokedexComparePanelComponent {
 
   readonly leftQuery = signal('');
   readonly rightQuery = signal('');
+  readonly editingLeft = signal(false);
+  readonly editingRight = signal(false);
 
   readonly leftSuggestions = computed(() =>
     buildQuickCatalogSuggestions(this.pokedex.catalogState(), this.leftQuery()),
@@ -41,8 +45,38 @@ export class PokedexComparePanelComponent {
       this.compare.rightState().status === 'success',
   );
 
+  readonly verdict = computed(() => summarizeCompareVerdict(this.compare.statRows()));
+
+  readonly leftName = computed(() => {
+    const state = this.compare.leftState();
+    return state.status === 'success' ? state.data.displayName : 'Lado A';
+  });
+
+  readonly rightName = computed(() => {
+    const state = this.compare.rightState();
+    return state.status === 'success' ? state.data.displayName : 'Lado B';
+  });
+
   constructor() {
     this.pokedex.ensureCatalogLoaded();
+  }
+
+  isSideEditing(side: CompareSide): boolean {
+    return side === 'left' ? this.editingLeft() : this.editingRight();
+  }
+
+  onToggleEdit(side: CompareSide): void {
+    if (side === 'left') this.editingLeft.update((prev) => !prev);
+    else this.editingRight.update((prev) => !prev);
+  }
+
+  primaryTypeSlug(pokemon: PokemonDetailView): string | null {
+    return pokemon.types[0] ? this.typeSlug(pokemon.types[0]) : null;
+  }
+
+  bstOf(pokemon: PokemonDetailView): number {
+    if (pokemon.bundle?.pokemon.baseStatTotal) return pokemon.bundle.pokemon.baseStatTotal;
+    return pokemon.stats.reduce((sum, stat) => sum + stat.value, 0);
   }
 
   onQueryInput(side: CompareSide, event: Event): void {
@@ -55,18 +89,21 @@ export class PokedexComparePanelComponent {
     event.preventDefault();
     const raw = (side === 'left' ? this.leftQuery() : this.rightQuery()).trim();
     if (!raw) return;
+    this.closeEditor(side);
     this.compare.selectSide(side, raw);
   }
 
   onPickSuggestion(side: CompareSide, pokemonName: string): void {
     if (side === 'left') this.leftQuery.set(pokemonName);
     else this.rightQuery.set(pokemonName);
+    this.closeEditor(side);
     this.compare.selectSide(side, pokemonName);
   }
 
   onUseSelectedOnSide(side: CompareSide): void {
     const active = this.pokedex.selectedPokemon();
     if (!active) return;
+    this.closeEditor(side);
     if (side === 'left') {
       this.leftQuery.set(active.name);
       this.compare.openWithPokemon(active);
@@ -78,5 +115,10 @@ export class PokedexComparePanelComponent {
 
   onOpenInPokedex(pokemonName: string): void {
     this.openInPokedex.emit(pokemonName);
+  }
+
+  private closeEditor(side: CompareSide): void {
+    if (side === 'left') this.editingLeft.set(false);
+    else this.editingRight.set(false);
   }
 }

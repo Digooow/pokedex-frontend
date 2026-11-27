@@ -74,10 +74,12 @@ describe('Pokedex Visor Expand (MEL-03) & Competitive Calculator Phase 2 (MEL-04
     expect(visorSection.classList.contains('is-visor-expanded')).toBe(true);
     expect(visorSection.getAttribute('role')).toBe('dialog');
     expect(hostEl.querySelector('.visor-expand-backdrop')).not.toBeNull();
+    expect(hostEl.querySelector('.visor-holo-beam')).not.toBeNull();
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     fixture.detectChanges();
     expect(visorDetail.expanded()).toBe(false);
+    expect(hostEl.querySelector('.visor-holo-beam')).toBeNull();
     expect(store.coverOpen()).toBe(true);
 
     expandBtn.click();

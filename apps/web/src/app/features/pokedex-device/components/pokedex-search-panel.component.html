@@ -33,13 +33,13 @@
     >
       <div class="painel-cabecalho">
         <h2 id="titulo-busca" class="painel-titulo">Pesquisar Pokémon</h2>
+        <label for="pokemon-input" class="campo-label">
+          Nome ou ID <span aria-hidden="true">*</span>
+        </label>
       </div>
 
       <search>
         <form id="form-pokedex" class="form-pokedex" novalidate (submit)="onSubmit($event)">
-          <label for="pokemon-input" class="campo-label">
-            Nome ou ID <span aria-hidden="true">*</span>
-          </label>
           <div class="campo-linha">
             <input
               #searchInputEl
@@ -71,13 +71,14 @@
               class="btn-primario"
               [pvRpgFocusable]="'busca'"
               [pvRpgOrder]="1"
+              [attr.aria-label]="isSearching() ? 'Buscando... aguarde' : 'Buscar Pokémon'"
               [disabled]="isSearching()"
             >
-              {{ isSearching() ? 'Buscando...' : 'Buscar Pokémon' }}
+              {{ isSearching() ? 'Buscando...' : 'Buscar' }}
             </button>
           </div>
           <p id="pokemon-dica" class="campo-dica">
-            Filtre a lista abaixo ao digitar (aceita aproximação) ou use as setas para navegar.
+            Filtre ao digitar (aceita aproximação) ou navegue com as setas.
           </p>
           <div id="pokemon-erro-campo" class="mensagem-campo-erro" aria-live="polite">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">

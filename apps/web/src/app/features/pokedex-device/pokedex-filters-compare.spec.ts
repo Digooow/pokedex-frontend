@@ -162,10 +162,21 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     fixture.detectChanges();
 
     expect(compare.statRows()).toHaveLength(7);
+    expect(hostEl.querySelector('.compare-verdict')).not.toBeNull();
     expect(hostEl.querySelector('.compare-stats')).not.toBeNull();
     expect(hostEl.querySelector('.compare-defense')).not.toBeNull();
     expect(hostEl.querySelector('.pv-type-badge[data-pokemon-type="electric"]')).not.toBeNull();
     expect(hostEl.querySelector('.pv-type-badge[data-pokemon-type="psychic"]')).not.toBeNull();
+
+    const swapToggleBtn = hostEl.querySelector(
+      '.compare-slot[data-side="left"] .compare-slot__top-actions .compare-btn',
+    ) as HTMLButtonElement;
+    swapToggleBtn.click();
+    fixture.detectChanges();
+    expect(hostEl.querySelector('#compare-input-left')).not.toBeNull();
+    swapToggleBtn.click();
+    fixture.detectChanges();
+    expect(hostEl.querySelector('#compare-input-left')).toBeNull();
 
     compare.swapSides();
     fixture.detectChanges();

@@ -433,8 +433,10 @@
   }
 
   .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-livro {
+    top: 0;
     transform-style: flat;
     transform: none;
+    transition: top 420ms var(--pv-motion-ease-out);
   }
 
   .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-aba-giratoria {
@@ -486,6 +488,45 @@
     .pokedex-aparelho[data-aberta="true"].is-animando .pokedex-ala--base,
     .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-ala--base {
       box-shadow: 14px 20px 36px -8px rgba(0, 0, 0, 0.5);
+    }
+  }
+
+  .pokedex-palco.is-visor-expanded {
+    z-index: var(--pv-z-modal);
+    overflow: clip;
+  }
+
+  .pokedex-palco.is-visor-expanded .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-livro {
+    top: clamp(14rem, 42dvh, 22rem);
+  }
+
+  .pokedex-palco.is-visor-expanded .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-ala--base {
+    z-index: 20;
+    overflow: visible;
+  }
+
+  .pokedex-palco.is-visor-expanded .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-aba-giratoria {
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  .pokedex-palco.is-visor-expanded .pokedex-aparelho[data-aberta="true"]:not(.is-animando) :is(.ala-topo--base, .ala-topo--scanner) {
+    border-color: var(--pv-holo-border);
+    box-shadow:
+      0 0 18px var(--pv-holo-glow),
+      inset 0 1px 0 var(--pv-holo-border);
+  }
+
+  @media (min-width: 880px) {
+    .pokedex-palco.is-visor-expanded .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-livro {
+      top: clamp(15.5rem, 42dvh, 22.5rem);
+    }
+
+    .pokedex-palco.is-visor-expanded .pokedex-aparelho[data-aberta="true"]:not(.is-animando) .pokedex-aba-giratoria {
+      opacity: 1;
+      visibility: visible;
     }
   }
 

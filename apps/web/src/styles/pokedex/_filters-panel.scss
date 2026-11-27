@@ -54,10 +54,10 @@
   .filtros-painel {
     display: flex;
     flex-direction: column;
-    gap: var(--pv-space-3);
-    max-height: 16.5rem;
+    gap: var(--pv-space-2);
+    max-height: 12.5rem;
     overflow-y: auto;
-    padding: var(--pv-space-3);
+    padding: var(--pv-space-2);
     background-color: var(--pv-filter-panel-bg);
     color: var(--pv-ink-primary);
     border: 1px solid var(--pv-filter-panel-border);
@@ -85,7 +85,7 @@
     justify-content: center;
     gap: var(--pv-space-1);
     min-width: 0;
-    min-height: 44px;
+    min-height: 36px;
     padding: var(--pv-space-1) var(--pv-space-2);
     font: inherit;
     font-size: 0.75rem;
@@ -250,6 +250,12 @@
   .filtro-acao-btn:disabled {
     opacity: 0.45;
     cursor: not-allowed;
+  }
+
+  @media (pointer: coarse) {
+    .filtros-tab-btn {
+      min-height: 44px;
+    }
   }
 
   @media (prefers-reduced-motion: reduce) {

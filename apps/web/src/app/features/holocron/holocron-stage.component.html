@@ -5,6 +5,9 @@
 >
   <div class="holocron-stage__viewport">
     <span class="holocron-stage__mode">{{ renderModeLabel() }}</span>
+    @if (canUseWebGl() && mediaState().kind === 'loading') {
+      <span class="holocron-stage__loading" aria-live="polite">Sincronizando malha 3D</span>
+    }
 
     @if (canUseWebGl()) {
       <canvas #glCanvas class="holocron-stage__canvas">
@@ -32,6 +35,21 @@
       </div>
     }
   </div>
+
+  @if (canUseWebGl() && mediaState().animations.length > 1) {
+    <div class="holocron-stage__clips" aria-label="Animações do modelo 3D">
+      @for (clip of mediaState().animations; track clip.index) {
+        <button
+          type="button"
+          class="holocron-clip-btn"
+          [attr.aria-pressed]="mediaState().activeAnimationIndex === clip.index"
+          (click)="onSelectAnimation(clip.index)"
+        >
+          {{ clip.label }}
+        </button>
+      }
+    </div>
+  }
 
   <fieldset class="holocron-stage__controls">
     <legend class="visually-hidden">Controles do projetor</legend>

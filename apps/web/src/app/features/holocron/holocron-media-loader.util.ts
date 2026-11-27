@@ -1,13 +1,26 @@
 import {
-  Box3,
+  type AnimationAction,
+  type AnimationClip,
+  AnimationMixer,
   type Group,
   type MeshBasicMaterial,
   type Object3D,
   SRGBColorSpace,
   type Texture,
   TextureLoader,
-  Vector3,
 } from 'three';
+import type { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import {
+  type HolocronMediaState,
+  type LoadedGlbPayload,
+  type ProceduralRig,
+  applyProceduralIdleMotion,
+  createLazyGlbLoader,
+  fetchFirstValidGlb,
+  fitLoadedGlbModel,
+  formatAnimationClipLabel,
+  pickDefaultClipIndex,
+} from './holocron-animation.util';
 import type { HolocronTexturePair } from './holocron-palette.util';
 
 export interface HologramPrismRig {
@@ -24,18 +37,25 @@ interface MediaLoaderState {
   activeBack: Texture | null;
   activeGlbUrl: string | null;
   requestEpoch: number;
+  abortController: AbortController | null;
+  mixer: AnimationMixer | null;
+  actions: AnimationAction[];
+  activeClipIndex: number;
+  proceduralRig: ProceduralRig | null;
 }
 
-function fitLoadedGlbModel(model: Object3D): void {
-  const box = new Box3().setFromObject(model);
-  const size = new Vector3();
-  const center = new Vector3();
-  box.getSize(size);
-  box.getCenter(center);
-  const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-  const scale = 1.55 / maxDim;
-  model.scale.setScalar(scale);
-  model.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+function createInitialLoaderState(): MediaLoaderState {
+  return {
+    activeFront: null,
+    activeBack: null,
+    activeGlbUrl: null,
+    requestEpoch: 0,
+    abortController: null,
+    mixer: null,
+    actions: [],
+    activeClipIndex: -1,
+    proceduralRig: null,
+  };
 }
 
 function loadTextureAsync(
@@ -54,27 +74,20 @@ function loadTextureAsync(
   );
 }
 
-async function fetchGlbModel(
-  glbUrl: string,
-  isStale: () => boolean,
-  onDispose: (obj: Object3D) => void,
-): Promise<Object3D | null> {
-  try {
-    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-    if (isStale()) return null;
-    const gltf = await new GLTFLoader().loadAsync(glbUrl);
-    if (isStale()) {
-      onDispose(gltf.scene);
-      return null;
-    }
-    fitLoadedGlbModel(gltf.scene);
-    return gltf.scene;
-  } catch {
-    return null;
-  }
+function resetAnimationState(state: MediaLoaderState): void {
+  state.mixer?.stopAllAction();
+  state.mixer = null;
+  state.actions = [];
+  state.activeClipIndex = -1;
+  state.proceduralRig = null;
 }
 
-function clearAnchorChildren(prism: HologramPrismRig, onDispose: (obj: Object3D) => void): void {
+function clearAnchorChildren(
+  prism: HologramPrismRig,
+  state: MediaLoaderState,
+  onDispose: (obj: Object3D) => void,
+): void {
+  resetAnimationState(state);
   for (let i = prism.modelAnchor.children.length - 1; i >= 0; i -= 1) {
     const child = prism.modelAnchor.children[i];
     if (child) {
@@ -121,59 +134,145 @@ function applyTexturesForEpoch(params: {
   }
 }
 
+function attachLoadedModelToStage(params: {
+  readonly prism: HologramPrismRig;
+  readonly state: MediaLoaderState;
+  readonly payload: LoadedGlbPayload;
+  readonly onMediaState?: (media: HolocronMediaState) => void;
+}): void {
+  const { prism, state, payload, onMediaState } = params;
+  const { scene, animations } = payload.gltf;
+  const { baseScale, baseY } = fitLoadedGlbModel(scene);
+  prism.modelAnchor.add(scene);
+  prism.prismGroup.visible = false;
+  state.activeGlbUrl = payload.url;
+
+  if (animations.length > 0) {
+    const mixer = new AnimationMixer(scene);
+    const actions = animations.map((clip: AnimationClip) => mixer.clipAction(clip));
+    const defaultIndex = pickDefaultClipIndex(animations);
+    actions[defaultIndex]?.play();
+    state.mixer = mixer;
+    state.actions = actions;
+    state.activeClipIndex = defaultIndex;
+    onMediaState?.({
+      kind: 'glb-animated',
+      animations: animations.map((clip, idx) => ({
+        index: idx,
+        label: formatAnimationClipLabel(clip.name, idx),
+      })),
+      activeAnimationIndex: defaultIndex,
+    });
+    return;
+  }
+
+  state.proceduralRig = { target: scene, baseScale, baseY };
+  onMediaState?.({ kind: 'glb-procedural', animations: [], activeAnimationIndex: -1 });
+}
+
 async function syncGlbForEpoch(params: {
   readonly prism: HologramPrismRig;
   readonly state: MediaLoaderState;
-  readonly glbUrl: string | null;
+  readonly glbCandidates: readonly string[];
+  readonly signal: AbortSignal;
   readonly isStale: () => boolean;
+  readonly getLoader: () => Promise<GLTFLoader>;
   readonly onDisposeSubtree: (obj: Object3D) => void;
+  readonly onMediaState?: (media: HolocronMediaState) => void;
 }): Promise<void> {
-  const { prism, state, glbUrl, isStale, onDisposeSubtree } = params;
-  if (!glbUrl) {
-    clearAnchorChildren(prism, onDisposeSubtree);
+  const {
+    prism,
+    state,
+    glbCandidates,
+    signal,
+    isStale,
+    getLoader,
+    onDisposeSubtree,
+    onMediaState,
+  } = params;
+  if (glbCandidates.length === 0) {
+    clearAnchorChildren(prism, state, onDisposeSubtree);
     state.activeGlbUrl = null;
+    onMediaState?.({ kind: 'prism-2d', animations: [], activeAnimationIndex: -1 });
     return;
   }
-  if (glbUrl === state.activeGlbUrl && prism.modelAnchor.children.length > 0) return;
-  clearAnchorChildren(prism, onDisposeSubtree);
+  clearAnchorChildren(prism, state, onDisposeSubtree);
   state.activeGlbUrl = null;
-  const model = await fetchGlbModel(glbUrl, isStale, onDisposeSubtree);
-  if (!model) return;
-  prism.modelAnchor.add(model);
-  prism.prismGroup.visible = false;
-  state.activeGlbUrl = glbUrl;
+  onMediaState?.({ kind: 'loading', animations: [], activeAnimationIndex: -1 });
+
+  const payload = await fetchFirstValidGlb({
+    candidates: glbCandidates,
+    index: 0,
+    signal,
+    isStale,
+    getLoader,
+    onDispose: onDisposeSubtree,
+  });
+  if (isStale()) return;
+  if (!payload) {
+    onMediaState?.({ kind: 'prism-2d', animations: [], activeAnimationIndex: -1 });
+    return;
+  }
+  attachLoadedModelToStage({ prism, state, payload, onMediaState });
 }
 
 export function createHologramMediaLoader(
   prism: HologramPrismRig,
   isDisposed: () => boolean,
   onDisposeSubtree: (obj: Object3D) => void,
+  onMediaState?: (media: HolocronMediaState) => void,
 ) {
   const texLoader = new TextureLoader();
   texLoader.setCrossOrigin('anonymous');
-  const state: MediaLoaderState = {
-    activeFront: null,
-    activeBack: null,
-    activeGlbUrl: null,
-    requestEpoch: 0,
-  };
+  const glbLoader = createLazyGlbLoader();
+  const state = createInitialLoaderState();
 
   return {
-    load(textures: HolocronTexturePair, glbUrl: string | null) {
+    load(textures: HolocronTexturePair, glbCandidates: readonly string[]) {
       if (isDisposed()) return;
+      state.abortController?.abort();
+      const controller = new AbortController();
+      state.abortController = controller;
       const epoch = ++state.requestEpoch;
       const isStale = () => isDisposed() || epoch !== state.requestEpoch;
       applyTexturesForEpoch({ texLoader, prism, state, textures, isStale });
-      void syncGlbForEpoch({ prism, state, glbUrl, isStale, onDisposeSubtree });
+      void syncGlbForEpoch({
+        prism,
+        state,
+        glbCandidates,
+        signal: controller.signal,
+        isStale,
+        getLoader: () => glbLoader.getLoader(),
+        onDisposeSubtree,
+        onMediaState,
+      });
     },
+    selectAnimation(index: number) {
+      const next = state.actions[index];
+      if (!next || index === state.activeClipIndex) return;
+      const current = state.actions[state.activeClipIndex];
+      next.reset().play();
+      if (current) current.crossFadeTo(next, 0.25, false);
+      state.activeClipIndex = index;
+    },
+    tick(dt: number, elapsedSec: number, energy: number, reducedMotion: boolean) {
+      if (state.mixer && !reducedMotion) state.mixer.update(dt);
+      if (state.proceduralRig) {
+        applyProceduralIdleMotion(state.proceduralRig, elapsedSec, energy, reducedMotion);
+      }
+    },
+    hasLoadedGlb: () => state.activeGlbUrl !== null,
     disposeCurrent() {
       state.requestEpoch += 1;
+      state.abortController?.abort();
+      state.abortController = null;
       state.activeFront?.dispose();
       state.activeBack?.dispose();
       state.activeFront = null;
       state.activeBack = null;
-      clearAnchorChildren(prism, onDisposeSubtree);
+      clearAnchorChildren(prism, state, onDisposeSubtree);
       state.activeGlbUrl = null;
+      glbLoader.dispose();
     },
   };
 }

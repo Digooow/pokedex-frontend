@@ -258,7 +258,10 @@ function walkSourceFiles(dirPath, out = []) {
     const fullPath = path.join(dirPath, entry.name);
     const rel = path.relative(REPO_ROOT, fullPath).replaceAll('\\', '/');
     if (entry.isDirectory()) {
-      if (!rel.startsWith('apps/api/prisma/migrations')) {
+      if (
+        !rel.startsWith('apps/api/prisma/migrations') &&
+        !rel.startsWith('apps/web/public/assets/draco')
+      ) {
         walkSourceFiles(fullPath, out);
       }
       continue;

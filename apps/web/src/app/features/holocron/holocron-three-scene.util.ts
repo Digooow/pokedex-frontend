@@ -1,5 +1,6 @@
 import type { HardwareTier } from '@pokeverse/shared';
 import {
+  ACESFilmicToneMapping,
   AdditiveBlending,
   AmbientLight,
   BoxGeometry,
@@ -12,6 +13,7 @@ import {
   DoubleSide,
   FrontSide,
   Group,
+  HemisphereLight,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -22,6 +24,7 @@ import {
   Points,
   PointsMaterial,
   RingGeometry,
+  SRGBColorSpace,
   Scene,
   ShaderMaterial,
   TorusGeometry,
@@ -50,17 +53,21 @@ const BEAM_FRAGMENT_SHADER = `
   void main() {
     float scan = 0.5 + 0.5 * sin((vUv.y * 28.0) - (uTime * 4.2));
     float fade = smoothstep(0.0, 0.25, vUv.y) * (1.0 - smoothstep(0.55, 1.0, vUv.y));
-    float alpha = (0.14 + (0.16 * scan) + (0.24 * uEnergy)) * fade;
-    gl_FragColor = vec4(uColor, clamp(alpha, 0.0, 0.65));
+    float alpha = (0.12 + (0.12 * scan) + (0.18 * uEnergy)) * fade;
+    gl_FragColor = vec4(uColor, clamp(alpha, 0.0, 0.32));
   }
 `;
 
 export function addHolocronLights(scene: Scene, primaryColor: number): PointLight {
-  scene.add(new AmbientLight(0xffffff, 0.85));
-  const keyLight = new DirectionalLight(0xffffff, 1.35);
+  scene.add(new AmbientLight(0xffffff, 0.55));
+  scene.add(new HemisphereLight(0xe0f2fe, 0x1e293b, 1.15));
+  const keyLight = new DirectionalLight(0xffffff, 1.65);
   keyLight.position.set(2.5, 4, 3);
   scene.add(keyLight);
-  const rimLight = new PointLight(primaryColor, 2.2, 8);
+  const fillLight = new DirectionalLight(0xbae6fd, 0.65);
+  fillLight.position.set(-2.5, 2, -2.5);
+  scene.add(fillLight);
+  const rimLight = new PointLight(primaryColor, 1.8, 8);
   rimLight.position.set(0, -0.35, 1.2);
   scene.add(rimLight);
   return rimLight;
@@ -144,7 +151,12 @@ export function disposeObjectSubtree(root: Object3D): void {
     const mesh = obj as Partial<Mesh & Points>;
     mesh.geometry?.dispose();
     for (const mat of collectObjMaterials(mesh.material)) {
+      const pbr = mat as unknown as Partial<MeshStandardMaterial>;
       mat.map?.dispose();
+      pbr.emissiveMap?.dispose();
+      pbr.normalMap?.dispose();
+      pbr.roughnessMap?.dispose();
+      pbr.metalnessMap?.dispose();
       mat.dispose();
     }
   });
@@ -197,8 +209,8 @@ function createHologramPrism(palette: HolocronPalette): HologramPrismRig {
 
 export function createRendererAndCamera(canvas: HTMLCanvasElement, tier: HardwareTier) {
   const camera = new PerspectiveCamera(38, 1, 0.1, 40);
-  camera.position.set(0, 0.85, 4.1);
-  camera.lookAt(0, 0.22, 0);
+  camera.position.set(0, 0.85, 3.65);
+  camera.lookAt(0, 0.14, 0);
 
   const renderer = new WebGLRenderer({
     canvas,
@@ -206,7 +218,10 @@ export function createRendererAndCamera(canvas: HTMLCanvasElement, tier: Hardwar
     antialias: tier === 'ultra',
     powerPreference: tier === 'ultra' ? 'high-performance' : 'default',
   });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, tier === 'ultra' ? 2 : 1.5));
+  renderer.outputColorSpace = SRGBColorSpace;
+  renderer.toneMapping = ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
+  renderer.setPixelRatio(Math.min(globalThis.devicePixelRatio || 1, tier === 'ultra' ? 2 : 1.5));
   return { camera, renderer };
 }
 

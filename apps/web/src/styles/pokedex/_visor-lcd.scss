@@ -35,29 +35,110 @@
   .visor-expand-backdrop {
     position: fixed;
     inset: 0;
-    z-index: calc(var(--pv-z-modal) - 1);
+    z-index: calc(var(--pv-z-modal) - 2);
     border: 0;
     padding: 0;
     margin: 0;
     appearance: none;
     background-color: var(--pv-backdrop-scrim);
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(5px);
     cursor: pointer;
+    animation: visor-backdrop-in 240ms ease-out both;
+  }
+
+  .visor-holo-beam {
+    position: fixed;
+    inset-inline: 0;
+    bottom: clamp(4.2rem, 11dvh, 6.2rem);
+    height: clamp(4.5rem, 12dvh, 7.5rem);
+    z-index: calc(var(--pv-z-modal) - 1);
+    pointer-events: none;
+    background: linear-gradient(
+      to top,
+      var(--pv-holo-beam-core) 0%,
+      var(--pv-holo-beam-edge) 100%
+    );
+    clip-path: polygon(16% 0, 84% 0, 62% 100%, 38% 100%);
+    animation: visor-holo-beam-in 320ms var(--pv-motion-ease-out) both;
   }
 
   .painel-resultado.is-visor-expanded {
     position: fixed;
-    inset: clamp(0.6rem, 2.2vh, 1.5rem) clamp(0.6rem, 3vw, 2.5rem);
+    inset: 0.55rem 0.55rem 4.25rem 0.55rem;
     z-index: var(--pv-z-modal);
     width: auto;
     height: auto;
-    max-width: 72rem;
-    max-height: calc(100dvh - 1.2rem);
-    margin: auto;
-    border-color: var(--pv-border-gold);
+    max-width: 74rem;
+    margin-inline: auto;
+    background-color: var(--pv-holo-surface);
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        var(--pv-holo-scanline) 0 1px,
+        transparent 1px 4px
+      ),
+      radial-gradient(
+        ellipse 85% 65% at 50% 0%,
+        var(--pv-holo-glow),
+        transparent 68%
+      );
+    backdrop-filter: blur(10px);
+    border: 2px solid var(--pv-holo-border);
     box-shadow:
+      0 0 0 1px var(--pv-holo-glow),
+      0 0 34px var(--pv-holo-glow),
       var(--pv-shadow-dialog-strong),
-      inset 0 3px 12px rgba(0, 0, 0, 0.72);
+      inset 0 0 28px var(--pv-holo-glow);
+    animation: visor-holo-unfold 340ms var(--pv-motion-ease-out) both;
+  }
+
+  @media (min-width: 880px) {
+    .painel-resultado.is-visor-expanded {
+      top: clamp(3.6rem, 6.2dvh, 4.5rem);
+      bottom: clamp(7.2rem, 19dvh, 10rem);
+      left: clamp(1rem, 3.5vw, 3rem);
+      right: clamp(1rem, 3.5vw, 3rem);
+    }
+  }
+
+  .painel-resultado.is-visor-expanded .resultado-conteudo {
+    background-color: var(--pv-holo-surface-deep);
+    border-color: var(--pv-holo-border);
+  }
+
+  @keyframes visor-backdrop-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes visor-holo-beam-in {
+    from {
+      opacity: 0;
+      transform: scaleY(0.35);
+      transform-origin: bottom center;
+    }
+    to {
+      opacity: 1;
+      transform: scaleY(1);
+      transform-origin: bottom center;
+    }
+  }
+
+  @keyframes visor-holo-unfold {
+    from {
+      opacity: 0;
+      transform: translateY(24px) scaleY(0.9) scaleX(0.96);
+      transform-origin: bottom center;
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      transform-origin: bottom center;
+    }
   }
 
   .visor-header-actions {
@@ -662,7 +743,8 @@
     box-shadow: none;
   }
 
-  html[data-perf-tier="lite"] .visor-expand-backdrop {
+  html[data-perf-tier="lite"] .visor-expand-backdrop,
+  html[data-perf-tier="lite"] .painel-resultado.is-visor-expanded {
     backdrop-filter: none;
   }
 }
@@ -700,7 +782,10 @@
     .pokedex-palco .catalogo-item,
     .pokedex-palco .btn-sugestao,
     .pokedex-palco .btn-slot-acao,
-    .pokedex-palco .visor-expand-btn {
+    .pokedex-palco .visor-expand-btn,
+    .pokedex-palco .visor-expand-backdrop,
+    .pokedex-palco .visor-holo-beam,
+    .pokedex-palco .painel-resultado.is-visor-expanded {
       animation: none;
       transition: none;
     }

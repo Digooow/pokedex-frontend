@@ -13,6 +13,9 @@ export interface HolocronTexturePair {
 }
 
 export const LOCAL_POKEMON_GLB_MODELS: Readonly<Record<number, string>> = {};
+export const POKEMON_3D_CDN_BASE =
+  'https://raw.githubusercontent.com/Pokemon-3D-api/assets/main/models/opt/';
+export const MAX_STANDARD_POKEDEX_ID = 1025;
 
 const DEFAULT_PALETTE: HolocronPalette = {
   primary: 0x38bdf8,
@@ -90,4 +93,17 @@ export function resolveHolocronTextures(
 
 export function resolveLocalPokemonGlbUrl(pokemonId: number): string | null {
   return LOCAL_POKEMON_GLB_MODELS[pokemonId] ?? null;
+}
+
+export function resolvePokemonGlbCandidates(pokemonId: number, shiny: boolean): readonly string[] {
+  const local = LOCAL_POKEMON_GLB_MODELS[pokemonId];
+  if (local) return [local];
+  if (!Number.isInteger(pokemonId) || pokemonId < 1 || pokemonId > MAX_STANDARD_POKEDEX_ID) {
+    return [];
+  }
+  const regularUrl = `${POKEMON_3D_CDN_BASE}regular/${pokemonId}.glb`;
+  if (shiny) {
+    return [`${POKEMON_3D_CDN_BASE}shiny/${pokemonId}.glb`, regularUrl];
+  }
+  return [regularUrl];
 }

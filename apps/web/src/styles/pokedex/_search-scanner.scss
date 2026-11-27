@@ -27,13 +27,17 @@
     color: var(--texto-formulario);
     border: 3px solid var(--pv-scanner-border);
     border-radius: var(--raio-medio);
-    padding: var(--espaco-4);
+    padding: var(--espaco-2) var(--espaco-3);
+    gap: var(--espaco-2);
     box-shadow:
       inset 0 1px 0 rgba(255, 255, 255, 0.56),
       inset 1px 0 0 rgba(255, 255, 255, 0.28),
       inset 0 -3px 8px rgba(15, 23, 42, 0.42),
       0 3px 8px rgba(15, 2, 5, 0.4);
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--pv-scanner-scrollbar) transparent;
     cursor: auto;
   }
 
@@ -141,9 +145,9 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-3);
+    gap: var(--espaco-1);
     flex-shrink: 0;
-    padding: var(--espaco-3) var(--espaco-4);
+    padding: var(--espaco-2) var(--espaco-3);
     background-color: var(--bg-subpainel-busca-form);
     background-image: radial-gradient(
       ellipse 92% 84% at 50% 42%,
@@ -206,32 +210,44 @@
       );
   }
 
+  .painel-busca-form .painel-titulo {
+    font-size: 0.875rem;
+    line-height: 1.2;
+  }
+
   .form-pokedex {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: var(--espaco-1);
     flex-shrink: 0;
   }
 
   .campo-label {
-    font-size: 0.875rem;
-    font-weight: 800;
+    font-size: 0.75rem;
+    font-weight: 700;
     color: var(--texto-subpainel-busca);
   }
 
   .campo-linha {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--espaco-2);
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--espaco-1);
+  }
+
+  @media (max-width: 340px) {
+    .campo-linha {
+      flex-wrap: wrap;
+    }
   }
 
   .campo-input {
     font: inherit;
-    font-size: max(1rem, 1em);
-    flex: 1 1 11rem;
+    font-size: 0.9375rem;
+    flex: 1 1 0;
     min-width: 0;
-    min-height: 44px;
-    padding: 0.55rem 0.85rem;
+    min-height: 40px;
+    padding: 0.35rem 0.65rem;
     background-color: var(--bg-input);
     color: var(--texto-formulario);
     border: 2px solid var(--borda-input);
@@ -252,10 +268,10 @@
   }
 
   .campo-dica {
-    margin-top: 0.125rem;
-    font-size: 0.75rem;
+    margin-top: 0;
+    font-size: 0.7rem;
     font-weight: 600;
-    line-height: 1.45;
+    line-height: 1.3;
     color: var(--texto-subpainel-busca-secundario);
   }
 
@@ -273,6 +289,13 @@
   }
 
   .btn-primario,
+  .painel-busca-form .btn-primario {
+    min-height: 40px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
   .btn-secundario {
     display: inline-flex;
     align-items: center;
@@ -318,6 +341,13 @@
       0 0 0 rgba(2, 6, 23, 0.55);
   }
 
+  .painel-busca-form .btn-primario {
+    min-height: 40px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+
   .btn-secundario {
     background-color: var(--bg-dado-celula);
     color: var(--texto-lcd-principal);
@@ -342,10 +372,10 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
-    flex: 1;
-    min-height: 0;
-    padding: var(--espaco-3) var(--espaco-4);
+    gap: var(--espaco-1);
+    flex: 1 0 auto;
+    min-height: 13.5rem;
+    padding: var(--espaco-2) var(--espaco-3);
     background-color: var(--bg-catalogo-area);
     background-image: radial-gradient(
       ellipse 90% 85% at 50% 42%,
@@ -412,7 +442,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--espaco-2);
-    min-height: 36px;
+    min-height: 32px;
     padding-bottom: var(--pv-space-1);
     border-bottom: 1px solid var(--pv-scanner-divider);
     flex-shrink: 0;
@@ -420,26 +450,32 @@
 
   .catalogo-quick-actions {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     justify-content: space-between;
     gap: var(--espaco-1);
-    padding: 0.3rem 0.45rem;
+    padding: 0.2rem 0.45rem;
     border-radius: var(--raio-pequeno);
     background-color: var(--bg-catalogo-item);
     border: 1px solid var(--borda-catalogo);
     flex-shrink: 0;
+    min-width: 0;
   }
 
   .catalogo-quick-label {
     font-size: 0.75rem;
     font-weight: 800;
     color: var(--texto-formulario);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .catalogo-quick-btns {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
     gap: 0.35rem;
   }
 
@@ -479,9 +515,9 @@
   .pokemon-catalogo-lista {
     display: flex;
     flex-direction: column;
-    gap: var(--espaco-2);
+    gap: 0.35rem;
     flex: 1;
-    min-height: 0;
+    min-height: 8.5rem;
     overflow-y: auto;
     list-style: none;
     padding: 0.25rem 0.375rem 0.25rem 0.25rem;
@@ -494,7 +530,7 @@
     flex-shrink: 0;
     contain: layout style paint;
     content-visibility: auto;
-    contain-intrinsic-size: auto 48px;
+    contain-intrinsic-size: auto 42px;
   }
 
   .catalogo-item {
@@ -503,8 +539,8 @@
     justify-content: space-between;
     gap: var(--espaco-2);
     width: 100%;
-    min-height: 44px;
-    padding: 0.55rem 0.9rem 0.55rem 1.05rem;
+    min-height: 40px;
+    padding: 0.35rem 0.75rem 0.35rem 0.9rem;
     font: inherit;
     text-align: left;
     background-color: var(--bg-catalogo-item);
@@ -516,6 +552,12 @@
       background-color 120ms ease,
       border-color 120ms ease,
       transform 110ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  @media (pointer: coarse) {
+    .catalogo-item {
+      min-height: 44px;
+    }
   }
 
   .catalogo-item:hover {
