@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+
+echo "[pre-push] Running full pre-push verification (commit gates + unit tests + build)..."
+npm run verify:push

@@ -90,7 +90,7 @@ function mapGraphQlPokemonRow(
   const types = [...row.pokemontypes]
     .sort((a, b) => (a.slot ?? 99) - (b.slot ?? 99))
     .map((entry) => entry.type.name.toLowerCase())
-    .filter(isPokemonTypeName)
+    .filter((name) => isPokemonTypeName(name))
     .slice(0, 2);
 
   const baseStatTotal = row.pokemonstats.reduce(
@@ -124,7 +124,7 @@ export function mapGraphQlCatalogToEnriched(
   }
 
   const items = parsed.data.data.pokemon
-    .map(mapGraphQlPokemonRow)
+    .map((row) => mapGraphQlPokemonRow(row))
     .sort((a, b) => a.id - b.id);
 
   return EnrichedCatalogPayloadSchema.parse({

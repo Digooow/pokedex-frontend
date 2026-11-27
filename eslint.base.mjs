@@ -13,6 +13,7 @@ export const maxLinesRule = (max) => [
 export function createWorkspaceEslintConfig({
   ignores = ["eslint.config.mjs"],
   typeChecked = false,
+  typeAwareSonarRules = false,
   languageOptions = {},
   extraRules = {},
   specFiles = ["src/**/*.spec.ts"],
@@ -22,6 +23,7 @@ export function createWorkspaceEslintConfig({
   const tsConfigs = typeChecked
     ? tseslint.configs.recommendedTypeChecked
     : tseslint.configs.recommended;
+  const enableTypeAwareSonar = typeChecked || typeAwareSonarRules;
 
   return defineConfig(
     { ignores },
@@ -43,12 +45,16 @@ export function createWorkspaceEslintConfig({
           "error",
           { max: 65, skipBlankLines: true, skipComments: true, IIFEs: true },
         ],
-        ...(typeChecked
+        ...(enableTypeAwareSonar
           ? {
+              "require-await": "off",
+              "@typescript-eslint/require-await": "error",
               "@typescript-eslint/prefer-optional-chain": "error",
               "@typescript-eslint/prefer-readonly": "error",
             }
-          : {}),
+          : {
+              "require-await": "error",
+            }),
         ...extraRules,
       },
     },
@@ -65,7 +71,6 @@ export function createWorkspaceEslintConfig({
         "sonarjs/no-clear-text-protocols": "off",
         "sonarjs/no-hardcoded-ip": "off",
         "sonarjs/no-hardcoded-passwords": "off",
-        "sonarjs/no-nested-conditional": "off",
       },
     },
     ...extraConfigs,

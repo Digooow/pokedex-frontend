@@ -26,7 +26,7 @@ describe('PokedexDevicePageComponent & Pokédex 3D', () => {
     resetBrowserPreferencesState();
   });
 
-  it('starts Pokédex 3D closed on initial view, focuses #main-heading cleanly, and opens on trigger click', async () => {
+  it('starts Pokédex 3D closed on initial view, focuses #main-heading cleanly, and opens on trigger click', () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const store = TestBed.inject(PokedexStore);
     const fixture = TestBed.createComponent(PokedexDevicePageComponent);

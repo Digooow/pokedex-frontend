@@ -102,7 +102,7 @@ describe('PrivacyConsentStore & Cloudflare Proxy', () => {
       ),
     ).toBe('__Secure-pokeverse_refresh=abc; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Lax');
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
       const headers = new Headers();
       headers.append(
         'set-cookie',
@@ -112,7 +112,7 @@ describe('PrivacyConsentStore & Cloudflare Proxy', () => {
         'set-cookie',
         '__Secure-pokeverse_refresh=ref1; Domain=pokeverse-api.azurecontainerapps.io; Path=/api/v1/auth; HttpOnly; Secure; SameSite=Lax',
       );
-      return new Response(JSON.stringify({ ok: true }), { status: 200, headers });
+      return Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200, headers }));
     });
 
     try {

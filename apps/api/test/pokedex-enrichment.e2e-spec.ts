@@ -293,12 +293,14 @@ describe('Pokédex Enrichment HTTP Edge E2E (/bundle, /encounters, /forms)', () 
       if (failUpstream) {
         return Promise.resolve(new Response('Upstream down', { status: 503 }));
       }
-      const url =
-        typeof input === 'string'
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : input.url;
+      let url: string;
+      if (typeof input === 'string') {
+        url = input;
+      } else if (input instanceof URL) {
+        url = input.toString();
+      } else {
+        url = input.url;
+      }
       const path = new URL(url).pathname.replace('/api/v2', '');
       const fixture = UPSTREAM_FIXTURES[path];
       if (fixture !== undefined) {

@@ -108,7 +108,7 @@ const PRESENTERS: { [K in EncyclopediaDetailPayload['kind']]: DetailPresenter<K>
     title: formatPokeApiText(d.name),
     subtitle: d.category ? `Item · ${formatPokeApiText(d.category)}` : 'Item',
     spriteUrl: d.spriteUrl,
-    badges: d.attributes.map(formatPokeApiText),
+    badges: d.attributes.map((attr) => formatPokeApiText(attr)),
     metrics: [
       { label: 'Custo', value: `${d.cost} ₽` },
       { label: 'Fling', value: d.flingPower !== null ? String(d.flingPower) : '—' },
@@ -151,7 +151,7 @@ const PRESENTERS: { [K in EncyclopediaDetailPayload['kind']]: DetailPresenter<K>
       ? `Região · ${formatPokeApiText(d.mainGeneration)}`
       : 'Região Pokémon',
     spriteUrl: null,
-    badges: d.versionGroups.map(formatPokeApiText),
+    badges: d.versionGroups.map((vg) => formatPokeApiText(vg)),
     metrics: [
       { label: 'Pokédexes', value: String(d.pokedexes.length) },
       { label: 'Localidades', value: String(d.locations.length) },
@@ -178,7 +178,7 @@ const PRESENTERS: { [K in EncyclopediaDetailPayload['kind']]: DetailPresenter<K>
     title: formatPokeApiText(d.name),
     subtitle: d.region ? `Pokédex de ${formatPokeApiText(d.region)}` : 'Pokédex Nacional/Regional',
     spriteUrl: null,
-    badges: d.versionGroups.map(formatPokeApiText),
+    badges: d.versionGroups.map((vg) => formatPokeApiText(vg)),
     metrics: [{ label: 'Entradas', value: String(d.totalEntries) }],
     description: d.description,
     relatedTitle: null,
@@ -197,7 +197,7 @@ const PRESENTERS: { [K in EncyclopediaDetailPayload['kind']]: DetailPresenter<K>
     title: d.localizedName ?? formatPokeApiText(d.name),
     subtitle: d.region ? `Região: ${formatPokeApiText(d.region)}` : 'Localidade',
     spriteUrl: null,
-    badges: d.generations.map(formatPokeApiText),
+    badges: d.generations.map((gen) => formatPokeApiText(gen)),
     metrics: [{ label: 'Áreas', value: String(d.areas.length) }],
     description:
       d.areas.length > 0
@@ -279,7 +279,7 @@ const PRESENTERS: { [K in EncyclopediaDetailPayload['kind']]: DetailPresenter<K>
     ],
     description:
       d.damageRelations.noDamageFrom.length > 0
-        ? `Imune a: ${d.damageRelations.noDamageFrom.map(formatPokeApiText).join(', ')}.`
+        ? `Imune a: ${d.damageRelations.noDamageFrom.map((item) => formatPokeApiText(item)).join(', ')}.`
         : null,
     relatedTitle: d.moves.length > 0 ? 'Golpes deste tipo (amostra)' : null,
     relatedLinks: d.moves.slice(0, 14).map((m) => ({

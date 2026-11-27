@@ -17,8 +17,10 @@
     "build": "npm run build:shared && npm run build:api && npm run build:web",
     "dev:api": "npm run start:dev --workspace=pokeverse-api",
     "dev:web": "npm run start --workspace=pokeverse-web",
+    "prepare": "node scripts/setup-git-hooks.mjs",
     "typecheck": "npm run typecheck --workspace=@pokeverse/shared && npm run typecheck --workspace=pokeverse-api && npm run typecheck --workspace=pokeverse-web",
-    "test": "npm run test --workspace=@pokeverse/shared && npm run test --workspace=pokeverse-api && npm run test --workspace=pokeverse-web -- --watch=false",
+    "test:quality-gates": "node --test scripts/quality-gate.spec.mjs",
+    "test": "npm run test:quality-gates && npm run test --workspace=@pokeverse/shared && npm run test --workspace=pokeverse-api && npm run test --workspace=pokeverse-web -- --watch=false",
     "test:e2e:api": "npm run test:e2e --workspace=pokeverse-api",
     "test:e2e:web": "npm run test:e2e --workspace=pokeverse-web",
     "test:e2e": "npm run test:e2e:api && npm run test:e2e:web",
@@ -30,7 +32,9 @@
     "audit:duplication": "node scripts/sonar-quality-gate.mjs --mode=local",
     "audit:sonar:local": "npm run lint && npm run audit:duplication",
     "audit:sonar": "node scripts/sonar-quality-gate.mjs --mode=remote",
-    "audit:ui": "node scripts/ui-quality-gate.mjs"
+    "audit:ui": "node scripts/ui-quality-gate.mjs",
+    "verify:commit": "npm run format:check && npm run typecheck && npm run audit:sonar:local && npm run test:quality-gates",
+    "verify:push": "npm run verify:commit && npm run test && npm run build"
   },
   "devDependencies": {
     "@neon/config": "^1.14.4",

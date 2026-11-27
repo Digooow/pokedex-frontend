@@ -36,7 +36,10 @@ export function isAllowedWebSocketOrigin(
 
   const rawAllowed =
     env['CORS_ORIGINS'] ?? 'http://localhost:4200,http://127.0.0.1:4200';
-  const allowed = rawAllowed.split(',').map(normalizeOrigin).filter(Boolean);
+  const allowed = rawAllowed
+    .split(',')
+    .map((entry) => normalizeOrigin(entry))
+    .filter(Boolean);
 
   return allowed.includes(normalizeOrigin(origin));
 }

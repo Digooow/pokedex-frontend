@@ -69,15 +69,31 @@ export class VisorStatsTabComponent {
     const matrix = this.pokemon().bundle?.typeEffectiveness;
     if (!matrix) return [];
     const groups: EffectivenessBucketView[] = [
-      { label: '4x', variant: 'quad-weak', types: matrix.quadWeak.map(formatPokeApiText) },
-      { label: '2x', variant: 'weak', types: matrix.weak.map(formatPokeApiText) },
-      { label: '0.5x', variant: 'resist', types: matrix.resistant.map(formatPokeApiText) },
+      {
+        label: '4x',
+        variant: 'quad-weak',
+        types: matrix.quadWeak.map((item) => formatPokeApiText(item)),
+      },
+      {
+        label: '2x',
+        variant: 'weak',
+        types: matrix.weak.map((item) => formatPokeApiText(item)),
+      },
+      {
+        label: '0.5x',
+        variant: 'resist',
+        types: matrix.resistant.map((item) => formatPokeApiText(item)),
+      },
       {
         label: '0.25x',
         variant: 'quad-resist',
-        types: matrix.quadResistant.map(formatPokeApiText),
+        types: matrix.quadResistant.map((item) => formatPokeApiText(item)),
       },
-      { label: '0x', variant: 'immune', types: matrix.immune.map(formatPokeApiText) },
+      {
+        label: '0x',
+        variant: 'immune',
+        types: matrix.immune.map((item) => formatPokeApiText(item)),
+      },
     ];
     return groups.filter((group) => group.types.length > 0);
   });

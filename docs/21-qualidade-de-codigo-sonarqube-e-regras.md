@@ -49,8 +49,11 @@ flowchart LR
 ```
 
 1. **Camada 1 — Autoria Preventiva (Agentes de IA & Desenvolvedores):** consulta obrigatória à skill **`sonarqube-clean-code`** antes e durante a escrita/refatoração de código TypeScript, JavaScript, HTML/Angular e CSS/SCSS, somada à skill **`sonarqube-quality-gate`** antes de qualquer `git push`.
-2. **Camada 2 — Portão Local (`npm run audit:sonar:local`):** executa `eslint --max-warnings=0` nos 3 workspaces via [`eslint.base.mjs`](../eslint.base.mjs) e aciona [`scripts/sonar-quality-gate.mjs`](../scripts/sonar-quality-gate.mjs) (`--mode=local`) com detector CPD (`jscpd` `--threshold 0`) e varredura estática de paridade SonarCloud (`runLocalSonarParityGate`) em arquivos `.ts`, `.js`, `.html` e `.scss`.
-3. **Camada 3 — Bloqueio Remoto em CI/CD ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml) + [`.sonarcloud.properties`](../.sonarcloud.properties)):** o job `verify` roda Gitleaks, `npm audit --omit=dev --audit-level=high`, `typecheck`, `lint`, `format:check`, `audit:duplication`, unitários, E2E, `build`, `audit:ui`, Playwright e Trivy; em seguida, o job `sonarqube` (`needs: [verify]`) consulta o SonarCloud e falha o pipeline se qualquer métrica fugir de `0`.
+2. **Camada 2 — Portão Local + Git Hooks (`npm run verify:commit` / `npm run verify:push`):**
+   - [`eslint.base.mjs`](../eslint.base.mjs) ativa regras *type-aware* (`@typescript-eslint/require-await`, `prefer-optional-chain`, `prefer-readonly`) nos **3 workspaces** (`@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`) e aplica `sonarjs/no-nested-conditional` (`S3358`) inclusive em `.spec.ts` / `.e2e-spec.ts`.
+   - [`scripts/sonar-quality-gate.mjs`](../scripts/sonar-quality-gate.mjs) (`--mode=local`) executa `jscpd` (`--threshold 0`) e o motor modular [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) sobre `.ts`, `.js`, `.html` e `.scss`.
+   - [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) (`npm run test:quality-gates`, integrado a `npm run test`) valida **regressivamente** todas as regras SonarCloud (paridade + AST real do ESLint/Prettier) e todos os invariantes de falhas históricas do CI antes de qualquer commit/push via [`.githooks/pre-commit`](../.githooks/pre-commit) e [`.githooks/pre-push`](../.githooks/pre-push).
+3. **Camada 3 — Bloqueio Remoto em CI/CD ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml) + [`.sonarcloud.properties`](../.sonarcloud.properties)):** o job `verify` roda Gitleaks, `npm audit --omit=dev --audit-level=high`, `typecheck`, `lint`, `format:check`, `audit:duplication`, unitários (+ `test:quality-gates`), E2E, `build`, `audit:ui`, Playwright e Trivy; em seguida, o job `sonarqube` (`needs: [verify]`) consulta o SonarCloud e falha o pipeline se qualquer métrica fugir de `0`.
 
 ---
 
@@ -127,19 +130,31 @@ Para evitar ciclos de retrabalho após falhas no CI/CD, o ambiente de agentes ma
 
 ---
 
-## 5. Checklist Obrigatório Pré-Commit e Pré-Push
+## 5. Protocolo "Nunca Falhar Duas Vezes" & Matriz de Regressão Histórica
+
+Qualquer erro ocorrido em CI/CD, SonarCloud, Prettier, Vitest/Jest ou UI Gate deve ser transformado em verificação local + teste de regressão em [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) na mesma correção:
+
+| Origem Histórica | Falhas Cobertas | Defesa Local & Teste de Regressão (`test:quality-gates`) |
+| :--- | :--- | :--- |
+| **SonarCloud JS/TS (AST & Type-Checked)** | `S9382` (`no-await-in-loop`), `S3358` (ternário aninhado em prod e specs), `S3776` (`cognitive-complexity`), `S7503` (`require-await`), `S6582` (`prefer-optional-chain`), `S2933` (`prefer-readonly`), `S8786` (`super-linear-regex`), `S5869` (`duplicates-in-character-class`), `S4624` (`no-nested-template-literals`), `S3516` (`no-invariant-returns`), `S5906` (`prefer-specific-assertions`), `S107` (`max-params`), `prettier/prettier` (Run `45352864410`) | [`eslint.base.mjs`](../eslint.base.mjs) (`typeAwareSonarRules: true` em `shared`, `api`, `web`) + **Suite 2** em [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) |
+| **SonarCloud TS Parity** | `S6582`, `S7747`, `S7763`, `S7758`, `S7766`, `S7727`, `S7649`, `S7781`, `S7780`, proibição `NOSONAR`/`cpd-ignore` | [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) + **Suite 1 & Suite 4** em [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) |
+| **SonarCloud HTML (`Web:*`)** | `Web:S6819`, `Web:S1082` (`MouseEventWithoutKeyboardEquivalentCheck`), `Web:S6825`, `Web:S6843`, `Web:S6853`, `Web:S7927` | [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) + **Suite 1 & Suite 4** |
+| **SonarCloud CSS/SCSS (`css:*`)** | `css:S9440` (`prefers-reduced-motion`), `css:S4656` (propriedade duplicada), `css:S4666` (seletor duplicado — Run `45919655938`) | [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) (scanner com suporte a `#{...}`) + **Suite 1 & Suite 4** |
+| **SonarCloud PL/SQL & Draco** | `plsql:VarcharUsageCheck`, `plsql:CharVarchar`, `plsql:S1192`, assets `draco` (Run `45919655938`) | Exclusões validadas em [`.sonarcloud.properties`](../.sonarcloud.properties) (**Suite 3**) |
+| **Falhas de Pipeline CI/CD** | Kafka `0.0.0.0` (Run `45106052067`), `ui-quality-gate` DevTools timeout & `.wasm` MIME (Runs `44711820371`, `44871732673`), OAuth E2E não hermético (Run `45373283111`), bleed de estado Vitest `PokedexDevice` (Run `45909358834`) e completude do `ci.yml` | Invariantes estruturais automatizados em **Suite 3** de [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) |
+
+---
+
+## 6. Checklist Obrigatório Pré-Commit e Pré-Push
 
 ```bash
-npm run format:check
-npm run typecheck
-npm run audit:sonar:local
-npm run test
-npm run build
-npm run audit:sonar
+npm run verify:commit   # executado automaticamente pelo .githooks/pre-commit
+npm run verify:push     # executado automaticamente pelo .githooks/pre-push
+npm run audit:sonar     # verificação remota pós-push no SonarCloud
 ```
 
 - [ ] `npm run format:check` aprovado em 100% dos arquivos `.ts`.
-- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7758`, `S7763`, `S7766`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S7927`, `css:S9440`).
-- [ ] `npm run typecheck`, `npm run test` e `npm run build` aprovados após a última edição.
+- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7758`, `S7763`, `S7766`, `S7727`, `S7649`, `S7780`, `S7781`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S6843`, `Web:S6853`, `Web:S7927`, `css:S4656`, `css:S4666`, `css:S9440`).
+- [ ] `npm run test:quality-gates`, `npm run typecheck`, `npm run test` e `npm run build` aprovados após a última edição.
 - [ ] Em mudanças de UI, `npm run audit:ui` e conferência visual real Desktop/Mobile aprovados.
 - [ ] `npm run audit:sonar` confirma `Quality Gate OK`, `0` issues abertos, `0` hotspots `TO_REVIEW` e `0` duplicações após o push.

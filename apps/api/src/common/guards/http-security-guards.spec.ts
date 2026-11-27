@@ -46,13 +46,15 @@ describe('HTTP Security Guards (SessionAuthGuard, CsrfOriginGuard, TrainerThrott
     let isPublic = true;
     let allowMfaPending = false;
     const reflector = {
-      getAllAndOverride: jest.fn((key: string) =>
-        key === IS_PUBLIC_KEY
-          ? isPublic
-          : key === ALLOW_MFA_PENDING_KEY
-            ? allowMfaPending
-            : false,
-      ),
+      getAllAndOverride: jest.fn((key: string) => {
+        if (key === IS_PUBLIC_KEY) {
+          return isPublic;
+        }
+        if (key === ALLOW_MFA_PENDING_KEY) {
+          return allowMfaPending;
+        }
+        return false;
+      }),
     } as unknown as Reflector;
 
     const getSessionByRawSid = jest.fn();

@@ -39,12 +39,13 @@ export class PokedexFiltersPanelComponent {
 
   readonly availableTypes = computed<readonly PokemonTypeName[]>(() => {
     const meta = this.filters.metaState();
-    if (meta.status !== 'success') return POKEMON_TYPES;
+    const fallback: readonly PokemonTypeName[] = POKEMON_TYPES;
+    if (meta.status !== 'success') return fallback;
     const allowed = new Set<string>(POKEMON_TYPES);
-    const filtered = meta.data.types
+    const filtered: readonly PokemonTypeName[] = meta.data.types
       .map((item) => item.name.toLowerCase())
       .filter((name): name is PokemonTypeName => allowed.has(name));
-    return filtered.length > 0 ? filtered : POKEMON_TYPES;
+    return filtered.length > 0 ? filtered : fallback;
   });
 
   readonly generationOptions = computed(() => {

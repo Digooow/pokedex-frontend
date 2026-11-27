@@ -235,11 +235,12 @@ function extractCookiePair(
   cookieName: string,
 ): string | undefined {
   const raw: unknown = Reflect.get(headers, 'set-cookie');
-  const entries = Array.isArray(raw)
-    ? raw.filter((item): item is string => typeof item === 'string')
-    : typeof raw === 'string'
-      ? [raw]
-      : [];
+  let entries: string[] = [];
+  if (Array.isArray(raw)) {
+    entries = raw.filter((item): item is string => typeof item === 'string');
+  } else if (typeof raw === 'string') {
+    entries = [raw];
+  }
   const prefix = `${cookieName}=`;
   return entries.find((entry) => entry.startsWith(prefix))?.split(';')[0];
 }

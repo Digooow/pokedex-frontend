@@ -2,6 +2,10 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { runJscpd } from 'jscpd';
+import {
+  formatParityFinding,
+  scanRepositoryParity,
+} from './sonar-parity-rules.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const DEFAULT_SONAR_HOST = 'https://sonarcloud.io';
@@ -231,225 +235,23 @@ function runLocalDuplicationGate(props) {
   );
 }
 
-const SKIP_DIRS = new Set(['node_modules', 'dist', 'coverage', '.angular']);
-const NATIVE_ROLE_REPLACEMENTS = new Set([
-  'region',
-  'group',
-  'img',
-  'button',
-  'link',
-  'navigation',
-  'main',
-  'banner',
-  'contentinfo',
-  'list',
-  'listitem',
-  'heading',
-  'article',
-  'complementary',
-  'form',
-  'search',
-]);
-
-function walkSourceFiles(dirPath, out = []) {
-  if (!fs.existsSync(dirPath)) return out;
-  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
-    if (SKIP_DIRS.has(entry.name)) continue;
-    const fullPath = path.join(dirPath, entry.name);
-    const rel = path.relative(REPO_ROOT, fullPath).replaceAll('\\', '/');
-    if (entry.isDirectory()) {
-      if (
-        !rel.startsWith('apps/api/prisma/migrations') &&
-        !rel.startsWith('apps/web/public/assets/draco')
-      ) {
-        walkSourceFiles(fullPath, out);
-      }
-      continue;
-    }
-    if (/\.(ts|js|html|scss)$/.test(entry.name)) {
-      out.push({ fullPath, rel });
-    }
-  }
-  return out;
-}
-
-function lineNumberAt(content, index) {
-  let line = 1;
-  for (let i = 0; i < index; i += 1) {
-    if (content.codePointAt(i) === 10) line += 1;
-  }
-  return line;
-}
-
-function collectImportedIdentifiers(content) {
-  const imported = new Set();
-  const importRegex = /import\s+(?:type\s+)?([\s\S]*?)\s+from\s+['"][^'"]+['"]/g;
-  for (const match of content.matchAll(importRegex)) {
-    const clause = (match[1] ?? '').trim();
-    const braceMatch = /\{([\s\S]*?)\}/.exec(clause);
-    if (braceMatch?.[1]) {
-      for (const spec of braceMatch[1].split(',')) {
-        const cleaned = spec.replace(/^\s*type\s+/, '').trim();
-        if (!cleaned) continue;
-        const aliasParts = cleaned.split(/\s+as\s+/);
-        imported.add((aliasParts[1] ?? aliasParts[0] ?? '').trim());
-      }
-    }
-    const defaultPart = clause.split('{')[0]?.replace(',', '').trim();
-    if (defaultPart && !defaultPart.startsWith('*')) imported.add(defaultPart);
-  }
-  return imported;
-}
-
-function checkTypeScriptParity(rel, content, findings) {
-  if (
-    rel.endsWith('.spec.ts') ||
-    rel.endsWith('.e2e-spec.ts') ||
-    rel.endsWith('.spec-helper.ts')
-  ) {
-    return;
-  }
-  const copyLoopRegex =
-    /for\s*\(\s*(?:const|let|var)\s+[^)]+\s+of\s+(?:\[\s*\.\.\.|Array\.from\s*\()/g;
-  for (const m of content.matchAll(copyLoopRegex)) {
-    findings.push(
-      `[typescript:S7747] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Avoid copying iterable inside for...of; iterate directly or use reverse index loop.`,
-    );
-  }
-
-  const imported = collectImportedIdentifiers(content);
-  const bareExportRegex = /(?:^|\n)export\s*\{([^}]+)\}\s*;/g;
-  for (const m of content.matchAll(bareExportRegex)) {
-    const specs = (m[1] ?? '').split(',');
-    for (const spec of specs) {
-      const cleaned = spec.replace(/^\s*type\s+/, '').trim();
-      const localName = cleaned.split(/\s+as\s+/)[0]?.trim();
-      if (localName && imported.has(localName)) {
-        findings.push(
-          `[typescript:S7763] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Use "export ... from '...'" to re-export "${localName}".`,
-        );
-      }
-    }
-  }
-
-  const optionalChainRegex =
-    /\bif\s*\(\s*([a-zA-Z_$][\w$]*)\s*&&\s*\1(?:\.[a-zA-Z_$][\w$]*)+(?:\([^)]*\))?\s*(?:===|==|>=|<=|>|<|\))/g;
-  for (const m of content.matchAll(optionalChainRegex)) {
-    findings.push(
-      `[typescript:S6582] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Prefer optional chaining ("${m[1]}?....") instead of "${m[1]} && ${m[1]}...".`,
-    );
-  }
-
-  const charCodeAtRegex = /\.charCodeAt\s*\(/g;
-  for (const m of content.matchAll(charCodeAtRegex)) {
-    findings.push(
-      `[typescript:S7758] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Prefer String#codePointAt() over String#charCodeAt().`,
-    );
-  }
-
-  const ternaryFloorZeroRegex =
-    /(?:\breturn\s+|[=:(,]\s*)([a-zA-Z_$][\w$]*)\s*>=?\s*0\s*\?\s*\1\s*:\s*0\b/g;
-  for (const m of content.matchAll(ternaryFloorZeroRegex)) {
-    findings.push(
-      `[typescript:S7766] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Prefer Math.max(${m[1]}, 0) instead of ternary expression.`,
-    );
-  }
-}
-
-function checkHtmlParity(rel, content, findings) {
-  const roleRegex = /(?<!\[attr\.)\brole\s*=\s*["']([a-z-]+)["']/g;
-  for (const m of content.matchAll(roleRegex)) {
-    const roleName = m[1] ?? '';
-    if (NATIVE_ROLE_REPLACEMENTS.has(roleName)) {
-      findings.push(
-        `[Web:S6819] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Use native HTML element instead of role="${roleName}".`,
-      );
-    }
-  }
-
-  const nonInteractiveClickRegex =
-    /<(div|span|section|article|p|li|img|header|footer)\b([^>]*)>/gs;
-  for (const m of content.matchAll(nonInteractiveClickRegex)) {
-    const attrs = m[2] ?? '';
-    if (
-      /\(click\)\s*=/.test(attrs) &&
-      !/\(click\)\s*=\s*["']\$event\.stopPropagation\(\)["']/.test(attrs) &&
-      !/\(key(down|up)\b/.test(attrs)
-    ) {
-      findings.push(
-        `[Web:S1082] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Non-native clickable <${m[1]}> needs keyboard handler or <button>.`,
-      );
-    }
-  }
-
-  const tagWithAriaHiddenRegex = /<([a-zA-Z][\w-]*)\b([^>]*)>/gs;
-  for (const m of content.matchAll(tagWithAriaHiddenRegex)) {
-    const tag = (m[1] ?? '').toLowerCase();
-    const attrs = m[2] ?? '';
-    if (!/\baria-hidden\s*=\s*["']true["']/.test(attrs)) continue;
-    const isFocusable =
-      tag === 'button' ||
-      tag === 'a' ||
-      tag === 'input' ||
-      tag === 'select' ||
-      tag === 'textarea' ||
-      /\btabindex\s*=\s*["']0["']/.test(attrs);
-    if (isFocusable) {
-      findings.push(
-        `[Web:S6825] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> aria-hidden="true" must not be set on focusable <${tag}>.`,
-      );
-    }
-  }
-
-  const selectWithAriaLabelRegex = /<select\b([^>]*)>/gs;
-  for (const m of content.matchAll(selectWithAriaLabelRegex)) {
-    const attrs = m[1] ?? '';
-    if (/\baria-label\s*=/.test(attrs)) {
-      findings.push(
-        `[Web:S7927] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Avoid aria-label directly on <select>; associate a <label for="..."> (or .sr-only-static) instead.`,
-      );
-    }
-  }
-}
-
-function checkScssParity(rel, content, findings) {
-  if (!rel.startsWith('apps/web/src/app/')) return;
-  if (/prefers-reduced-motion/.test(content)) return;
-  const motionMatch = /(?:^|[\s;{])(?:transition|animation)\s*:\s*(?!none\b)/m.exec(
-    content,
-  );
-  if (motionMatch) {
-    findings.push(
-      `[css:S9440] ${rel}:${lineNumberAt(content, motionMatch.index)} -> Respect @media (prefers-reduced-motion: reduce) when declaring transitions/animations.`,
-    );
-  }
-}
-
 function runLocalSonarParityGate(props) {
-  const files = props.sources.flatMap((src) =>
-    walkSourceFiles(path.join(REPO_ROOT, src)),
+  const { filesCount, findings } = scanRepositoryParity(
+    REPO_ROOT,
+    props.sources,
   );
-  const findings = [];
-  for (const file of files) {
-    const content = fs.readFileSync(file.fullPath, 'utf8');
-    if (file.rel.endsWith('.ts') || file.rel.endsWith('.js')) {
-      checkTypeScriptParity(file.rel, content, findings);
-    } else if (file.rel.endsWith('.html')) {
-      checkHtmlParity(file.rel, content, findings);
-    } else if (file.rel.endsWith('.scss')) {
-      checkScssParity(file.rel, content, findings);
-    }
-  }
   if (findings.length > 0) {
     console.error(
       `[sonar-gate:local] FAILED: ${findings.length} SonarCloud parity issue(s) found:`,
     );
-    for (const item of findings) console.error(`  - ${item}`);
+    for (const item of findings) {
+      console.error(`  - ${formatParityFinding(item)}`);
+    }
     process.exitCode = 1;
     return;
   }
   console.log(
-    `[sonar-gate:local] PASSED: 0 SonarCloud parity issues across ${files.length} source files.`,
+    `[sonar-gate:local] PASSED: 0 SonarCloud parity issues across ${filesCount} source files.`,
   );
 }
 

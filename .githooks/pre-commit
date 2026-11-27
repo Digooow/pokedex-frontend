@@ -1,0 +1,5 @@
+#!/bin/sh
+set -e
+
+echo "[pre-commit] Running format, typecheck, local Sonar parity, and regression gates..."
+npm run verify:commit

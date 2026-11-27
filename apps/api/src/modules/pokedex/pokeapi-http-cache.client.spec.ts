@@ -202,12 +202,14 @@ describe('PokeApiHttpCacheClient', () => {
     const fetchSpy = jest
       .spyOn(globalThis, 'fetch')
       .mockImplementation((input) => {
-        const url =
-          typeof input === 'string'
-            ? input
-            : input instanceof URL
-              ? input.toString()
-              : input.url;
+        let url: string;
+        if (typeof input === 'string') {
+          url = input;
+        } else if (input instanceof URL) {
+          url = input.toString();
+        } else {
+          url = input.url;
+        }
         if (new URL(url).hostname === 'graphql.pokeapi.co') {
           return Promise.resolve(new Response('GraphQL down', { status: 503 }));
         }

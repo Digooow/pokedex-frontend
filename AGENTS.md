@@ -9,9 +9,11 @@ Diretrizes aplicadas a todo agente ou subagente atuando neste workspace (preced�
 1. **Precedência `P0-CI`:**
    - Conformidade integral com o pipeline [`.github/workflows/ci.yml`](.github/workflows/ci.yml) e com o portão **SonarQube** (`0` issues em aberto de qualquer severidade — inclusive `MINOR`/`INFO` —, `0` Security Hotspots `TO_REVIEW` e `0%` de duplicação CPD), além de `npm run audit:sonar:local`, `npm run format:check`, `npm run typecheck`, testes e verificações de segurança (`Gitleaks`, `npm audit`, `CodeQL`, `Trivy`), **precede toda e qualquer feature, melhoria visual, refatoração ou item da fila prioritária**.
    - Se houver **qualquer** issue aberta no SonarCloud ou falha no CI/CD, sua resolução interrompe e antecede imediatamente qualquer outra tarefa.
-2. **Skills Preventivas & Portão Pré-Push Obrigatório:**
+2. **Skills Preventivas, Git Hooks & Portão Pré-Commit / Pré-Push Obrigatório:**
    - Durante a escrita e refatoração de código TS/JS, HTML/Angular e CSS/SCSS, consulte e aplique proativamente a skill **`sonarqube-clean-code`** e o catálogo [docs/21-qualidade-de-codigo-sonarqube-e-regras.md](docs/21-qualidade-de-codigo-sonarqube-e-regras.md) para aprovação de primeira.
-   - Antes de qualquer `git push`, execute obrigatoriamente `npm run audit:sonar:local` (`npm run lint` + `npm run audit:duplication` com `jscpd` a `0%` e paridade estática TS/HTML/SCSS) e `npm run audit:sonar` (skill `sonarqube-quality-gate`).
+   - Os hooks versionados em [`.githooks/pre-commit`](.githooks/pre-commit) e [`.githooks/pre-push`](.githooks/pre-push) (ativados automaticamente via `prepare` -> [`scripts/setup-git-hooks.mjs`](scripts/setup-git-hooks.mjs)) executam `npm run verify:commit` e `npm run verify:push`. Antes de qualquer `git push`, execute obrigatoriamente `npm run verify:push` (inclui `format:check`, `typecheck`, `audit:sonar:local`, `test:quality-gates`, `test` e `build`) e `npm run audit:sonar` (skill `sonarqube-quality-gate`).
+3. **Regra "Nunca Falhar Duas Vezes" (Regressão de Pipeline):**
+   - Toda falha nova capturada no SonarCloud, ESLint, Prettier, UI Gate, E2E ou CI/CD **DEVE**, na mesma correção, ganhar uma verificação local preventiva ([`eslint.base.mjs`](eslint.base.mjs) ou [`scripts/sonar-parity-rules.mjs`](scripts/sonar-parity-rules.mjs)) **e** um caso de teste de regressão em [`scripts/quality-gate.spec.mjs`](scripts/quality-gate.spec.mjs) (`npm run test:quality-gates`), garantindo que o mesmo erro nunca volte a falhar após commit/push.
 
 ---
 

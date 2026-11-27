@@ -177,7 +177,7 @@ export class PokedexStore implements OnDestroy {
   }
 
   findCatalogIndex(pokemonNameOrId: string | number | null): number {
-    if (pokemonNameOrId === null || pokemonNameOrId === undefined) {
+    if (pokemonNameOrId === null) {
       return -1;
     }
     const target = String(pokemonNameOrId).trim().toLowerCase();

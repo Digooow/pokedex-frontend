@@ -4,7 +4,14 @@ import { createWorkspaceEslintConfig, maxLinesRule } from '../../eslint.base.mjs
 
 export default createWorkspaceEslintConfig({
   ignores: ['dist/**', 'eslint.config.mjs'],
-  languageOptions: { globals: { ...globals.node } },
+  typeAwareSonarRules: true,
+  languageOptions: {
+    globals: { ...globals.node },
+    parserOptions: {
+      projectService: true,
+      tsconfigRootDir: import.meta.dirname,
+    },
+  },
   extraConfigs: [
     {
       files: ['src/domain/pokemon-lab.ts'],
