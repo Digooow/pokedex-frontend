@@ -26,8 +26,8 @@
   <img alt="Redis" src="https://img.shields.io/badge/Redis-7-DC382D?logo=redis&logoColor=white">
   <img alt="Kafka" src="https://img.shields.io/badge/Kafka-Redpanda-231F20?logo=apachekafka&logoColor=white">
   <img alt="Zod" src="https://img.shields.io/badge/Zod-v4-3E67B1">
-  <img alt="Testes" src="https://img.shields.io/badge/testes-226_unit_%2B_9_quality_gates_%2B_26_E2E_%2B_4_integra%C3%A7%C3%A3o-3ddc84">
-  <img alt="Fase" src="https://img.shields.io/badge/fase-4B_ux_unificada_e_melhorias-ffd23f">
+  <img alt="Testes" src="https://img.shields.io/badge/testes-241_unit_%2B_9_quality_gates_%2B_29_E2E_%2B_4_integra%C3%A7%C3%A3o-3ddc84">
+  <img alt="Fase" src="https://img.shields.io/badge/fase-4B_e_passo1_personagem-ffd23f">
 </p>
 
 # PokéVerse OS
@@ -64,7 +64,7 @@ O projeto começou como a **atividade final de Front-end no Senac**: uma Pokéde
 
 ## Estado atual em um olhar
 
-A entrada da plataforma abre na **Tela Inicial retrô (`/`)** com o botão **Iniciar Jogo** (sem barra superior) e leva ao **Hub Inicial (`/inicio`)**. A partir dele e do seletor de módulos na barra superior ao lado de **PokéVerse OS** (ou pelos atalhos `1` a `4`), você acessa os **quatro módulos**. Hoje a prioridade é o módulo 2, a Pokédex, que centraliza todo dado informativo e de pesquisa: fichas, Holocron 3D, comparador 1v1, calculadora de atributos, Enciclopédia Global e Atlas das Regiões dentro do próprio visor (`/enciclopedia` e `/museu` redirecionam automaticamente para `/pokedex`). Os outros módulos usarão os dados dela.
+A entrada da plataforma abre na **Tela Inicial retrô (`/`)** com o botão **Iniciar Jogo** (sem barra superior) e leva ao **Hub Inicial (`/inicio`)**. A partir dele e do seletor de módulos na barra superior ao lado de **PokéVerse OS** (ou pelos atalhos `1` a `5`), você acessa os **cinco módulos**. Hoje a prioridade é a **Pokédex 3D** (módulo 2, que centraliza fichas, Holocron 3D, comparador 1v1, calculadora de atributos, Enciclopédia Global e Atlas das Regiões em `/pokedex`) e o novo módulo **Personagem** (módulo 5 em `/personagem`, com criação livre sem classes, aparência modular SVG, 7 atributos iniciais e Ficha Viva).
 
 | # | Módulo | Rota | Acesso | Estado | Progresso |
 | :-: | :--- | :--- | :---: | :--- | :--- |
@@ -73,6 +73,7 @@ A entrada da plataforma abre na **Tela Inicial retrô (`/`)** com o botão **Ini
 | 2 | **Pokédex 3D** | `/pokedex` (`/enciclopedia` e `/museu` redirecionam) | Público | **Em produção** (Ficha, 3D, 1v1, Calc, Enciclo + Atlas das Regiões) | `██████████` Fase 4B |
 | 3 | **Arcade Retrô** (WASM + cloud saves) | `/arcade` | Treinador | Em construção (tela de status) | `█░░░░░░░░░` 14% |
 | 4 | **Battle Frontier** (PvE/PvP e mini-games) | `/arena` | Treinador | Em construção (tela de status) | `██░░░░░░░░` 28% |
+| 5 | **Personagem** (Criação Livre & Ficha Viva) | `/personagem` | Público (prévia) / Treinador (salvar) | **Em produção** (Passo 1 — aparência SVG, 7 atributos e Ficha Viva) | `██████████` Passo 1 |
 
 > Os percentuais são os exibidos nas telas de módulo em construção ([`under-construction.data.ts`](apps/web/src/app/features/under-construction/under-construction.data.ts)). Eles medem preparação (modelagem, contratos, schema), não entrega do módulo.
 

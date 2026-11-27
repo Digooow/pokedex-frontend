@@ -17,16 +17,19 @@ Enquanto **Phaser 3 / PixiJS** desenha o mundo explorável 2D/HD-2D e **Three.js
 flowchart TD
   Root["/ (Tela Retrô Iniciar Jogo - sem topbar)"] -->|"Iniciar Jogo"| HubRoute["/inicio (Home Hub - PokéVerse OS)"]
   HubRoute -->|"Módulo 2 / Abrir"| PokedexRoute["/pokedex (Público: Ficha, 3D, 1v1, Calc, Enciclo + Regiões)"]
+  HubRoute -->|"Módulo 5 / Criar"| CharacterRoute["/personagem (Público: Prévia Livre / Treinador: Salvar & Ficha Viva)"]
   MuseumRoute["/museu (Legado)"] -->|"Redirect"| PokedexReg["/pokedex?mode=enciclopedia&cat=region"]
   EncRoute["/enciclopedia (Legado)"] -->|"Redirect"| PokedexEnc["/pokedex?mode=enciclopedia"]
   HubRoute -->|"Entrar como Treinador"| LoginModal["Modal /auth/login & /auth/register"]
 
   LoginModal -->|"Sessão BFF Válida"| OverworldRoute["/mundo (AuthGuard - Overworld Phaser)"]
   OverworldRoute --> PokedexCloud["/pokedex (Sync + Swap 10 Slots Nuvem)"]
+  OverworldRoute --> CharacterCloud["/personagem (Persistência PostgreSQL + Alocação)"]
   OverworldRoute --> ArcadeRoute["/arcade (AuthGuard - ROMs + Save Cloud)"]
   OverworldRoute --> ArenaRoute["/arena (AuthGuard - Team Builder, PvE/PvP, Mini-Games)"]
 
   PokedexRoute -.->|"Clica em Slot / Overworld / Arcade / Arena"| LockedPrompt["Dialog: Recurso Exclusivo para Treinadores"]
+  CharacterRoute -.->|"Salvar / Alocar sem Sessão (preserva rascunho)"| LockedPrompt
   LockedPrompt -->|"Fazer Login"| LoginModal
 ```
 
@@ -44,11 +47,12 @@ O HUD envolve o canvas sem bloquear cliques nos momentos de exploração e segue
 
 1. **Top Bar Tática Unificada (`.hud-topbar`):**
    - Ocupa `100%` da largura da tela (`grade` de 3 colunas no desktop `>= 960px` para ancorar os controles esquerdo e direito nas extremidades e manter o ticker centralizado sem deslocar os botões).
-   - À esquerda: emblema **PokéVerse OS** (`<pv-pokeball-mark>`, navegando para `/inicio`) e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 4 módulos com atalhos `1` a `4`, rota dedicada `/pokedex` e rodapé para `/inicio`, além de ícone de cadeado `[pvRequiresTrainer]` quando visitante:
+   - À esquerda: emblema **PokéVerse OS** (`<pv-pokeball-mark>`, navegando para `/inicio`) e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 5 módulos com atalhos `1` a `5`, rota dedicada `/pokedex`, `/personagem` e rodapé para `/inicio`, além de ícone de cadeado `[pvRequiresTrainer]` quando visitante:
      1. **Overworld (Vila Central)** — *cadeado se visitante*;
      2. **Pokédex 3D** *(inclui Ficha, Holocron 3D, Comparador 1v1, Calculadora, Enciclopédia & Atlas das Regiões)* — *sempre liberado*;
      3. **Arcade Retrô 3D** — *cadeado se visitante*;
-     4. **Battle Frontier (Team Builder / Arena / Mini-Games)** — *cadeado se visitante*.
+     4. **Battle Frontier (Team Builder / Arena / Mini-Games)** — *cadeado se visitante*;
+     5. **Personagem (Criação Livre & Ficha Viva)** — *sempre liberado em prévia / salvar requer sessão*.
    - Ao centro: **Ticker de Eventos Globais** alimentado pelo Kafka -> WebSocket (ex.: *"Treinador_Ash venceu Líder Brock na Battle Frontier"*), exibido temporariamente por `6s` (`activeNotification`) com animação suave de entrada e saída (`280ms`, classe `.is-exiting`) sem exibir eventos antigos (`> 30s`) em reconexões, mantendo o histórico recente no `WorldTickerStore`.
    - À direita (ordem fixa):
      - **Painel do Jogador (`HudUserMenuComponent`):** botão de visitante (*Modo Visitante • Entrar*) ou emblema do Treinador (`username • ELO`) que abre o painel da conta (insígnias, status 2FA/e-mail, `Segurança, 2FA & Dados da Conta`, verificação OTP e `Sair da conta`);
@@ -99,6 +103,7 @@ export class AuthStore {
 | **`MuseumStore`** | **Implementada + Unificada na Pokédex (`ENT-19`)** | Estado do Atlas das 9 Regiões (`Kanto–Paldea`) dentro de `Enciclopédia -> Regiões & História` (`RegionsAtlasPanelComponent`), linha do tempo única `1996–2022`, cache em memória de regiões/pokédexes regionais, filtro de localizações e navegação direta sem recarregamento para Ficha, Holocron 3D, Pokédexes e Localizações (`/museu` redireciona) | `EncyclopediaApiClient` (`/regions/:id` e `/pokedexes/:id`) |
 | **`QualityStore` & `ScenarioStore`** | **Implementadas (Fases 1–4A)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com `FpsWatchdog` e rotação de cenários WebP (`-desktop`/`-mobile`) com opt-in LGPD | Hardware probe + preferências opcionais via `PrivacyConsentStore` |
 | **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar + fase dinâmica (`POKEVERSE_PHASE`) | NestJS `/health/ready` e `/api/v1/system/bootstrap` |
+| **`CharacterStudioStore` & `CharacterApiClient`** | **Implementadas (Passo 1)** | Rascunho livre (*classless*) no `/personagem`, distribuição dos 10 pontos iniciais nos 7 atributos, prévia SVG modular, preservação automática do rascunho durante fluxo de login, listagem paginada e alocação de pontos na **Ficha Viva** | NestJS `/api/v1/characters/*` + regras puras `@pokeverse/shared` |
 | **`WorldStore`** | **Planejada (Fase 3)** | Mapa atual, coordenadas do jogador no Overworld e treinadores conectados | WebSocket `WorldGateway` + Phaser `EventBus` |
 | **`ArcadeStore`** | **Planejada (Fase 5)** | Catálogo de ROMs disponíveis, jogo ativo no console 3D, progresso do download e Save States | NestJS `/arcade/roms` + MinIO Stream + WebAssembly |
 | **`BattleStore`** | **Planejada (Fase 6)** | Fila de matchmaking PvP, estado turno-a-turno da partida, HP, buffs, log e times | WebSocket `BattleGateway` + NestJS `/teams` |

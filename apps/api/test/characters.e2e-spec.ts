@@ -237,8 +237,14 @@ describe('Characters API (e2e)', () => {
         consumeJson: jest.fn().mockResolvedValue(null),
         addToSetWithTtl: jest.fn().mockResolvedValue(undefined),
         getSetMembers: jest.fn().mockResolvedValue([]),
-        getJson: jest.fn().mockResolvedValue(null),
-        setJsonEx: jest.fn().mockResolvedValue(undefined),
+        getJson: jest.fn((key: string) => {
+          const raw = sessionStore.get(key);
+          return Promise.resolve(raw ? (JSON.parse(raw) as unknown) : null);
+        }),
+        setJsonEx: jest.fn((key: string, _ttl: number, value: unknown) => {
+          sessionStore.set(key, JSON.stringify(value));
+          return Promise.resolve();
+        }),
         acquireIdempotencyLock: jest.fn().mockResolvedValue(true),
         incrementThrottle: jest.fn().mockResolvedValue({
           totalHits: 1,

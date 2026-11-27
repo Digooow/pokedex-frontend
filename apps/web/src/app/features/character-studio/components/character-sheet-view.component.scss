@@ -237,6 +237,13 @@
   gap: var(--pv-space-2);
 }
 
+.sheet-alloc-actions .pv-btn:disabled {
+  opacity: 1;
+  background: var(--pv-surface-solid);
+  border-color: var(--pv-border-subtle);
+  color: var(--pv-ink-muted);
+}
+
 .starter-kit-grid {
   grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
 }

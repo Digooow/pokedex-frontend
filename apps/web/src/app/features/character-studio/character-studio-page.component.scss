@@ -17,6 +17,7 @@
 
 .studio-header__copy {
   display: grid;
+  justify-items: start;
   gap: var(--pv-space-1);
   max-inline-size: 42rem;
 }

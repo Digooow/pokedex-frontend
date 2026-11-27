@@ -12,6 +12,8 @@ O **PostgreSQL** é a fonte de verdade transacional (**ACID**) para contas de tr
 erDiagram
   TRAINER ||--o{ REFRESH_TOKEN : "possui sessões"
   TRAINER ||--o{ POKEDEX_SLOT : "salva até 10 slots"
+  TRAINER ||--o{ CHARACTER : "cria até 5 personagens"
+  CHARACTER ||--|| CHARACTER_ATTRIBUTE : "aloca 7 atributos"
   TRAINER ||--o{ POKEMON_TEAM : "monta equipes"
   POKEMON_TEAM ||--o{ POKEMON_TEAM_MEMBER : "contém até 6"
   TRAINER ||--o{ ARCADE_SAVE_STATE : "salva progresso"
@@ -326,13 +328,14 @@ model OutboxEvent {
 
 ---
 
-## 5. Status Atual de Aplicação (Pós-Onda 4)
+## 5. Status Atual de Aplicação (Pós-Onda 4 + Passo 1 Personagem)
 
-- **Versão instalada e estrutura:** Prisma **`6.19.3`** (`prisma` e `@prisma/client` para compatibilidade direta CJS com NestJS 11 e Jest), definindo **`14` modelos** e **`5` enums** (`ArcadeConsole`, `OutboxStatus`, `BattleMode`, `BattleStatus`, `TrainerRole`) em [`schema.prisma`](../apps/api/prisma/schema.prisma).
-- **Migrations aplicadas (`3` migrations):**
+- **Versão instalada e estrutura:** Prisma **`6.19.3`** (`prisma` e `@prisma/client` para compatibilidade direta CJS com NestJS 11 e Jest), definindo **`16` modelos** e **`6` enums** (`ArcadeConsole`, `OutboxStatus`, `BattleMode`, `BattleStatus`, `TrainerRole`, `CharacterPresenceMode`) em [`schema.prisma`](../apps/api/prisma/schema.prisma).
+- **Migrations aplicadas (`4` migrations):**
   1. `apps/api/prisma/migrations/20261118073124_init_pokeverse_schema/migration.sql` (10 tabelas base de domínio + índice parcial `"idx_outbox_pending"` em `"OutboxEvent" ("createdAt" ASC) WHERE "status" = 'PENDING'`).
   2. `apps/api/prisma/migrations/20261118082535_iam_enterprise_foundation/migration.sql` (evolução do `Trainer` com `passwordHash` opcional, `emailVerifiedAt`, `mfaEnabled`, `totpSecretEncrypted`, mais os modelos `MfaBackupCode`, `TrainerOAuthAccount` e `TrainerPasskey`).
   3. `apps/api/prisma/migrations/20261123080000_onda4_rbac_and_audit_log/migration.sql` (enum `TrainerRole`, coluna `Trainer.role`, tabela `AuditLog` e trigger SQL `prevent_audit_log_mutation()` tornando `AuditLog` *append-only* imutável contra `UPDATE` e `DELETE`).
+  4. `apps/api/prisma/migrations/20261127120000_add_character_creation_core/migration.sql` (enum `CharacterPresenceMode`, tabelas `Character` e `CharacterAttribute` com `CHECK` constraints de atributos `>= 1`, nível `>= 1`, pontos disponíveis `>= 0`, unicidade global `normalizedName` e índice composto `(accountId, createdAt DESC, id)`).
 - **Expurgo temporal ativo:** limpeza periódica de `RefreshToken` expirados/revogados e `OutboxEvent` publicados roda a cada `6h` via `SessionManagementService` (`AuditLog` é preservado fora desse expurgo).
 - **Expansão Planejada para a Pokédex Definitiva (`TrainerPokemonSnapshot` — Próximo Marco de Dados):**
   - Para permitir que o treinador continue consultando e operando os Pokémon da própria lista mesmo durante quedas temporárias das APIs externas (PokéAPI / TCG) — e já criar a ponte para cálculos futuros de jogo —, será adicionado um modelo/extensão vinculado a `Trainer` / `PokedexSlot` (ex.: `TrainerPokemonSnapshot`) armazenando snapshot JSONB versionado (`stats`, `types`, `abilities`, `moves`, `evolutionSummary`, `mediaRefs`, `sourceVersion`, `syncedAt`).
