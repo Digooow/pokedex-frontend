@@ -376,13 +376,44 @@
 
 .compare-defense__row {
   display: grid;
-  gap: 0.2rem;
+  gap: 0.3rem;
 }
 
-.compare-defense__label,
 .compare-defense__heading {
   font-size: 0.75rem;
   font-weight: 700;
+}
+
+.compare-defense__label {
+  display: inline-flex;
+  align-items: center;
+  inline-size: fit-content;
+  max-inline-size: 100%;
+  padding: 0.12rem 0.5rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--borda-lcd-suave);
+  font-family: var(--pv-font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.compare-defense__label--weak {
+  background-color: var(--pv-eff-weak-bg);
+  border-color: var(--pv-eff-weak-border);
+  color: var(--pv-eff-weak-ink);
+}
+
+.compare-defense__label--strong {
+  background-color: var(--pv-eff-resist-bg);
+  border-color: var(--pv-eff-resist-border);
+  color: var(--pv-eff-resist-ink);
+}
+
+.compare-defense__label--immune {
+  background-color: var(--pv-eff-immune-bg);
+  border-color: var(--pv-eff-immune-border);
+  color: var(--pv-eff-immune-ink);
 }
 
 @container visor (min-width: 600px) {

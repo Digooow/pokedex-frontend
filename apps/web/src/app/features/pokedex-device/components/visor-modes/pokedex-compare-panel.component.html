@@ -227,7 +227,9 @@
             <strong class="compare-defense__heading">{{ entry.label }}</strong>
             @if (entry.def; as def) {
               <div class="compare-defense__row">
-                <span class="compare-defense__label">Fraquezas (4x/2x):</span>
+                <span class="compare-defense__label compare-defense__label--weak">
+                  {{ defenseLabels.weak }}:
+                </span>
                 @let weaknesses = def.quadWeak.concat(def.weak);
                 @if (weaknesses.length > 0) {
                   <ul class="compare-defense__chips">
@@ -238,11 +240,13 @@
                     }
                   </ul>
                 } @else {
-                  <span class="compare-defense__empty">Nenhuma</span>
+                  <span class="compare-defense__empty">Nenhum</span>
                 }
               </div>
               <div class="compare-defense__row">
-                <span class="compare-defense__label">Resistências (0.5x/0.25x):</span>
+                <span class="compare-defense__label compare-defense__label--strong">
+                  {{ defenseLabels.strong }}:
+                </span>
                 @let resistances = def.resistant.concat(def.quadResistant);
                 @if (resistances.length > 0) {
                   <ul class="compare-defense__chips">
@@ -253,11 +257,13 @@
                     }
                   </ul>
                 } @else {
-                  <span class="compare-defense__empty">Nenhuma</span>
+                  <span class="compare-defense__empty">Nenhum</span>
                 }
               </div>
               <div class="compare-defense__row">
-                <span class="compare-defense__label">Imunidades (0x):</span>
+                <span class="compare-defense__label compare-defense__label--immune">
+                  {{ defenseLabels.immune }}:
+                </span>
                 @if (def.immune.length > 0) {
                   <ul class="compare-defense__chips">
                     @for (typeName of def.immune; track typeName) {
@@ -267,7 +273,7 @@
                     }
                   </ul>
                 } @else {
-                  <span class="compare-defense__empty">Nenhuma</span>
+                  <span class="compare-defense__empty">Nenhum</span>
                 }
               </div>
             } @else {

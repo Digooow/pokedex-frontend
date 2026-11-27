@@ -38,16 +38,18 @@
   </div>
   @if (effectivenessBuckets().length > 0) {
     <div class="visor-eff-groups">
-      @for (bucket of effectivenessBuckets(); track bucket.label) {
+      @for (bucket of effectivenessBuckets(); track bucket.variant) {
         <div class="visor-eff-group">
           <span [class]="'visor-eff-badge visor-eff-badge--' + bucket.variant">
             {{ bucket.label }}
           </span>
-          @for (typeLabel of bucket.types; track typeLabel) {
-            <span class="tipo-badge" [attr.data-pokemon-type]="typeSlug(typeLabel)">
-              {{ typeLabel }}
-            </span>
-          }
+          <ul class="visor-eff-types" [attr.aria-label]="bucket.label">
+            @for (typeLabel of bucket.types; track typeLabel) {
+              <li class="tipo-badge" [attr.data-pokemon-type]="typeSlug(typeLabel)">
+                {{ typeLabel }}
+              </li>
+            }
+          </ul>
         </div>
       }
     </div>

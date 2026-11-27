@@ -3,6 +3,10 @@ import { type AsyncState, formatPokeApiText } from '@pokeverse/shared';
 import type { AbilityDetail } from '@pokeverse/shared/pokedex-encyclopedia';
 import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { PvRpgFocusableDirective } from '../../directives/rpg-focusable.directive';
+import {
+  type EffectivenessBucketView,
+  buildDefensiveEffectivenessBuckets,
+} from '../../services/pokedex-defense-matrix.util';
 import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import {
   computeStatBarPercent,

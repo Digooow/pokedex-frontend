@@ -9,6 +9,7 @@ import {
 import { resolvePokemonTypeSlug } from '../../../../shared/utils/pokemon-type-style.util';
 import { type CompareSide, PokedexCompareStore } from '../../services/pokedex-compare.store';
 import { summarizeCompareVerdict } from '../../services/pokedex-compare.util';
+import { COMPARE_DEFENSE_LABELS } from '../../services/pokedex-defense-matrix.util';
 import { buildQuickCatalogSuggestions } from '../../services/pokedex-stat-calc.util';
 import type { PokemonDetailView } from '../../services/pokedex-view-mapper.util';
 import { PokedexStore } from '../../services/pokedex.store';
