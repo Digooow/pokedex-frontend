@@ -316,7 +316,7 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(groupTexts).toEqual([
       { badge: expect.stringContaining('visor-eff-badge--quad-weak'), types: ['fire'] },
       { badge: expect.stringContaining('visor-eff-badge--weak'), types: ['ice', 'fighting'] },
-      { badge: expect.stringContaining('visor-eff-badge--resist'), types: ['water', 'normal'] },
+      { badge: expect.stringContaining('visor-eff-badge--resist'), types: ['normal', 'water'] },
       { badge: expect.stringContaining('visor-eff-badge--quad-resist'), types: ['grass'] },
       { badge: expect.stringContaining('visor-eff-badge--immune'), types: ['poison'] },
     ]);
