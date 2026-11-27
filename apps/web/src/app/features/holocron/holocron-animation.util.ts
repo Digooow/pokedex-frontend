@@ -28,10 +28,14 @@ export interface LoadedGlbPayload {
 
 const IDLE_CLIP_HINTS = ['idle', 'stand', 'wait', 'breathe'];
 const DRACO_DECODER_PATH = '/assets/draco/';
+const ASCII_DIGIT_MIN = 48;
+const ASCII_DIGIT_MAX = 57;
 
 function stripLeadingDigitsAndVariant(token: string): string {
   let idx = 0;
-  while (idx < token.length && token.charCodeAt(idx) >= 48 && token.charCodeAt(idx) <= 57) {
+  while (idx < token.length) {
+    const code = token.codePointAt(idx) ?? -1;
+    if (code < ASCII_DIGIT_MIN || code > ASCII_DIGIT_MAX) break;
     idx += 1;
   }
   if (idx === 0) return token;
@@ -60,7 +64,7 @@ export function pickDefaultClipIndex(clips: readonly AnimationClip[]): number {
     const lower = clip.name.toLowerCase();
     return IDLE_CLIP_HINTS.some((hint) => lower.includes(hint));
   });
-  return preferredIdx >= 0 ? preferredIdx : 0;
+  return Math.max(preferredIdx, 0);
 }
 
 export function applyProceduralIdleMotion(

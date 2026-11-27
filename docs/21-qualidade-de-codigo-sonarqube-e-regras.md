@@ -73,6 +73,8 @@ flowchart LR
 | **`typescript:S107` (`max-params`)** | Máximo de **7 parâmetros** por função/método *(acima de 3–4, usar objeto de opções)* | `fn(a, b, c, d, e, f, g, h)` | `fn(params: { ... })` *(exceção documentada em [`apps/api/eslint.config.mjs`](../apps/api/eslint.config.mjs) apenas para 2 construtores DI legados de Auth aprovados no SonarCloud)* |
 | **`typescript:S9382` (`no-await-in-loop`)** | Proibido `await` dentro de loops | `for (const id of ids) await fetch(id);` | `await Promise.all(ids.map((id) => fetch(id)))` |
 | **`typescript:S7764` / `S5906`** | Preferir `globalThis` a `window`/`typeof navigator` e matchers específicos em testes | `expect(x).toBe(undefined)` / `window.localStorage` | `expect(x).toBeUndefined()` / `globalThis.localStorage` |
+| **`typescript:S7758`** | Preferir `String#codePointAt()` a `String#charCodeAt()` | `token.charCodeAt(idx)` | `token.codePointAt(idx)` |
+| **`typescript:S7766`** | Usar `Math.max()` / `Math.min()` em vez de ternário simples de limite | `idx >= 0 ? idx : 0` | `Math.max(idx, 0)` |
 
 ### 3.2. Segurança Estática & Prevenção de Vulnerabilidades (Conexão com [Doc 13](13-dossie-de-seguranca-e-blindagem.md))
 
@@ -99,6 +101,7 @@ As regras estáticas atuam em conjunto com **Gitleaks**, **CodeQL** e **SonarClo
 ### 3.4. CSS & SCSS (`css:S9440` + Design System)
 
 - **`css:S9440`:** toda folha `.scss` de componente em `apps/web/src/app/**` que declarar `transition:` ou `animation:` (diferente de `none`) **deve** incluir bloco `@media (prefers-reduced-motion: reduce)` anulando a animação/transição.
+- **`css:S4656` & `css:S4666`:** proibido declarar a mesma propriedade duas vezes dentro do mesmo bloco (`css:S4656`) ou repetir o mesmo seletor em blocos separados no mesmo escopo (`css:S4666`); consolide as propriedades em um único seletor.
 - **Zero hardcode visual:** cores hex/rgb literais avulsas são proibidas em `apps/web/src/app/**` — usar tokens semânticos `--pv-*` de [`_tokens.scss`](../apps/web/src/styles/_tokens.scss) ([doc 20](20-polimento-visual-e-design-system-frontend.md)), validados em conjunto com `npm run audit:ui`.
 
 ### 3.5. Zero Duplicação (CPD `0%`) & Limites de Coesão
@@ -136,7 +139,7 @@ npm run audit:sonar
 ```
 
 - [ ] `npm run format:check` aprovado em 100% dos arquivos `.ts`.
-- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7763`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S7927`, `css:S9440`).
+- [ ] `npm run audit:sonar:local` aprovado com `0` erros/warnings de lint, `0` clones CPD e `0` violações de paridade estática (`S6582`, `S7747`, `S7758`, `S7763`, `S7766`, `Web:S6819`, `Web:S1082`, `Web:S6825`, `Web:S7927`, `css:S9440`).
 - [ ] `npm run typecheck`, `npm run test` e `npm run build` aprovados após a última edição.
 - [ ] Em mudanças de UI, `npm run audit:ui` e conferência visual real Desktop/Mobile aprovados.
 - [ ] `npm run audit:sonar` confirma `Quality Gate OK`, `0` issues abertos, `0` hotspots `TO_REVIEW` e `0` duplicações após o push.

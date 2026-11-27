@@ -161,6 +161,12 @@ describe('Holocron 3D & Web Audio Engine', () => {
       { name: 'model_skeleton|001aidle' },
     ] as unknown as Parameters<typeof pickDefaultClipIndex>[0];
     expect(pickDefaultClipIndex(clips)).toBe(1);
+    expect(
+      pickDefaultClipIndex([
+        { name: 'model_skeleton|001fight_b' },
+        { name: 'model_skeleton|001attack' },
+      ] as unknown as Parameters<typeof pickDefaultClipIndex>[0]),
+    ).toBe(0);
     expect(pickDefaultClipIndex([])).toBe(-1);
   });
 });

@@ -276,7 +276,7 @@ function walkSourceFiles(dirPath, out = []) {
 function lineNumberAt(content, index) {
   let line = 1;
   for (let i = 0; i < index; i += 1) {
-    if (content.charCodeAt(i) === 10) line += 1;
+    if (content.codePointAt(i) === 10) line += 1;
   }
   return line;
 }
@@ -337,6 +337,21 @@ function checkTypeScriptParity(rel, content, findings) {
   for (const m of content.matchAll(optionalChainRegex)) {
     findings.push(
       `[typescript:S6582] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Prefer optional chaining ("${m[1]}?....") instead of "${m[1]} && ${m[1]}...".`,
+    );
+  }
+
+  const charCodeAtRegex = /\.charCodeAt\s*\(/g;
+  for (const m of content.matchAll(charCodeAtRegex)) {
+    findings.push(
+      `[typescript:S7758] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Prefer String#codePointAt() over String#charCodeAt().`,
+    );
+  }
+
+  const ternaryFloorZeroRegex =
+    /(?:\breturn\s+|[=:(,]\s*)([a-zA-Z_$][\w$]*)\s*>=?\s*0\s*\?\s*\1\s*:\s*0\b/g;
+  for (const m of content.matchAll(ternaryFloorZeroRegex)) {
+    findings.push(
+      `[typescript:S7766] ${rel}:${lineNumberAt(content, m.index ?? 0)} -> Prefer Math.max(${m[1]}, 0) instead of ternary expression.`,
     );
   }
 }
