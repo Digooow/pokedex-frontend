@@ -49,11 +49,12 @@ flowchart LR
 ```
 
 1. **Camada 1 — Autoria Preventiva (Agentes de IA & Desenvolvedores):** consulta obrigatória à skill **`sonarqube-clean-code`** antes e durante a escrita/refatoração de código TypeScript, JavaScript, HTML/Angular e CSS/SCSS, somada à skill **`sonarqube-quality-gate`** antes de qualquer `git push`.
-2. **Camada 2 — Portão Local + Git Hooks (`npm run verify:commit` / `npm run verify:push`):**
+2. **Camada 2 — Portão Local + Git Hooks (`npm run verify:commit` / `npm test` / `npm run verify:push`):**
    - [`eslint.base.mjs`](../eslint.base.mjs) ativa regras *type-aware* (`@typescript-eslint/require-await`, `prefer-optional-chain`, `prefer-readonly`) nos **3 workspaces** (`@pokeverse/shared`, `pokeverse-api`, `pokeverse-web`) e aplica `sonarjs/no-nested-conditional` (`S3358`) inclusive em `.spec.ts` / `.e2e-spec.ts`.
    - [`scripts/sonar-quality-gate.mjs`](../scripts/sonar-quality-gate.mjs) (`--mode=local`) executa `jscpd` (`--threshold 0`) e o motor modular [`scripts/sonar-parity-rules.mjs`](../scripts/sonar-parity-rules.mjs) sobre `.ts`, `.js`, `.html` e `.scss`.
    - [`scripts/ci-parity-checks.mjs`](../scripts/ci-parity-checks.mjs) e [`scripts/verify-docker-build.mjs`](../scripts/verify-docker-build.mjs) validam localmente todas as etapas não-Sonar do CI/CD: detecção de segredos estilo Gitleaks (`audit:secrets`), `prisma validate` + ordem de migrations (`audit:prisma`), simulação isolada de contexto/lifecycle hooks de `infra/docker/api.Dockerfile` + `docker build` (`audit:docker`) e invariantes de `deploy.yml`/`_headers`/`_routes.json`.
-   - [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) (`npm run test:quality-gates`, integrado a `npm run test` e `verify:commit`) valida **regressivamente** todas as regras SonarCloud (paridade + AST real do ESLint/Prettier), paridade Gitleaks, simulação negativa/positiva do build Docker e invariantes de `ci.yml`/`deploy.yml`/Prisma antes de qualquer commit/push via [`.githooks/pre-commit`](../.githooks/pre-commit) e [`.githooks/pre-push`](../.githooks/pre-push).
+   - [`scripts/verify-commit-fast.mjs`](../scripts/verify-commit-fast.mjs) mantém o [`.githooks/pre-commit`](../.githooks/pre-commit) ágil (~1–3s para não travar o Source Control do VS Code) executando `audit:secrets`, paridade Sonar/Prettier nos arquivos *staged* e `audit:prisma` condicional. Já [`scripts/run-verify-suite.mjs`](../scripts/run-verify-suite.mjs) concentra as verificações pesadas em ondas paralelas no `npm test` (`--mode=test`: todas as checagens estáticas + `test:quality-gates` + `test:unit:*` localmente, ou apenas testes no `CI=true`) e no [`.githooks/pre-push`](../.githooks/pre-push) (`--mode=push`: paridade integral de CI com cache por *tree SHA* limpo e `--no-cache`).
+   - [`scripts/quality-gate.spec.mjs`](../scripts/quality-gate.spec.mjs) (`npm run test:quality-gates`, integrado a `npm run test` e `verify:push`) valida **regressivamente** todas as regras SonarCloud (paridade + AST real do ESLint/Prettier), paridade Gitleaks, simulação negativa/positiva do build Docker e invariantes de `ci.yml`/`deploy.yml`/Prisma/hooks antes de qualquer push.
 3. **Camada 3 — Bloqueio Remoto em CI/CD ([`.github/workflows/ci.yml`](../.github/workflows/ci.yml) + [`.sonarcloud.properties`](../.sonarcloud.properties)):** o job `verify` roda Gitleaks, `npm audit --omit=dev --audit-level=high`, `typecheck`, `lint`, `format:check`, `audit:duplication`, unitários (+ `test:quality-gates`), E2E, `build`, `audit:ui`, Playwright e Trivy; em seguida, o job `sonarqube` (`needs: [verify]`) consulta o SonarCloud e falha o pipeline se qualquer métrica fugir de `0`.
 
 ---
@@ -150,8 +151,9 @@ Qualquer erro ocorrido em CI/CD, SonarCloud, Prettier, Vitest/Jest ou UI Gate de
 ## 6. Checklist Obrigatório Pré-Commit e Pré-Push
 
 ```bash
-npm run verify:commit   # executado automaticamente pelo .githooks/pre-commit (secrets, prisma, format, build:shared, typecheck, sonar:local, quality-gates)
-npm run verify:push     # executado automaticamente pelo .githooks/pre-push (verify:commit + audit:deps + test:unit + test:e2e:api + build + audit:ui + test:e2e:web + audit:docker)
+npm run verify:commit   # executado pelo .githooks/pre-commit (fast: secrets + staged Prettier/Sonar parity + Prisma condicional)
+npm test                # executado localmente via run-verify-suite.mjs --mode=test (estáticos + quality-gates + unitários em paralelo)
+npm run verify:push     # executado pelo .githooks/pre-push (ondas paralelas com 100% de paridade CI + cache por tree SHA limpo)
 npm run audit:sonar     # verificação remota pós-push no SonarCloud
 ```
 

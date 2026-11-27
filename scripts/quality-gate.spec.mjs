@@ -13,6 +13,9 @@ import {
   validatePrismaSchema,
 } from './ci-parity-checks.mjs';
 import {
+  getAllStagesForMode,
+} from './run-verify-suite.mjs';
+import {
   checkHtmlParity,
   checkScssParity,
   checkSuppressionBypass,
@@ -20,6 +23,11 @@ import {
   formatParityFinding,
   scanRepositoryParity,
 } from './sonar-parity-rules.mjs';
+import {
+  hasPrismaChanges,
+  isParityTrackedFile,
+  isPrettierTrackedFile,
+} from './verify-commit-fast.mjs';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const WEB_DIR = path.join(REPO_ROOT, 'apps', 'web');
@@ -607,35 +615,88 @@ test('Suite 7 — Deploy Workflow, Edge Config, Prisma & Full-Stage Hook Parity'
     `Expected Prisma schema & migrations to pass, got:\n${prismaErrors.join('\n')}`,
   );
 
-  const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
-  const verifyCommit = pkg.scripts?.['verify:commit'] ?? '';
-  const verifyPush = pkg.scripts?.['verify:push'] ?? '';
-  const combinedHooks = `${verifyCommit} ${verifyPush}`;
+  assert.equal(isPrettierTrackedFile('apps/web/src/app/app.ts'), true);
+  assert.equal(isPrettierTrackedFile('apps/web/playwright.config.ts'), true);
+  assert.equal(isPrettierTrackedFile('README.md'), false);
+  assert.equal(isParityTrackedFile('apps/web/src/app/app.html'), true);
+  assert.equal(
+    isParityTrackedFile('apps/api/prisma/migrations/20261118073124_init_pokeverse_schema/migration.sql'),
+    false,
+  );
+  assert.equal(
+    isParityTrackedFile('apps/web/public/assets/draco/draco_decoder.js'),
+    false,
+  );
+  assert.equal(isParityTrackedFile('README.md'), false);
+  assert.equal(hasPrismaChanges(['apps/api/prisma/schema.prisma']), true);
+  assert.equal(hasPrismaChanges(['apps/web/src/main.ts']), false);
 
-  for (const requiredStage of [
+  const expectedLocalTestStages = [
     'audit:secrets',
     'audit:prisma',
     'format:check',
     'build:shared',
-    'typecheck',
-    'audit:sonar:local',
+    'typecheck:shared',
+    'typecheck:api',
+    'typecheck:web',
+    'lint:shared',
+    'lint:api',
+    'lint:web',
+    'audit:duplication',
     'test:quality-gates',
+    'test:unit:shared',
+    'test:unit:api',
+    'test:unit:web',
+  ];
+  const localTestStages = getAllStagesForMode('test', false);
+  for (const stage of expectedLocalTestStages) {
+    assert.ok(
+      localTestStages.includes(stage),
+      `Local npm test missing CI-parity stage: ${stage}`,
+    );
+  }
+
+  const ciTestStages = getAllStagesForMode('test', true);
+  for (const stage of [
+    'test:quality-gates',
+    'test:unit:shared',
+    'test:unit:api',
+    'test:unit:web',
+  ]) {
+    assert.ok(ciTestStages.includes(stage), `CI npm test missing stage: ${stage}`);
+  }
+  assert.equal(
+    ciTestStages.some((stage) => stage.startsWith('lint:') || stage.startsWith('typecheck:')),
+    false,
+    'CI npm test must not duplicate lint:* or typecheck:* already run in ci.yml.',
+  );
+
+  const pushStages = getAllStagesForMode('push', false);
+  for (const requiredStage of [
+    ...expectedLocalTestStages,
     'audit:deps',
-    'test:unit',
     'test:e2e:api',
-    'build',
+    'build:api',
+    'build:web',
     'audit:ui',
     'test:e2e:web',
     'audit:docker',
   ]) {
     assert.ok(
-      combinedHooks.includes(requiredStage),
-      `verify:commit / verify:push missing CI-parity stage: ${requiredStage}`,
+      pushStages.includes(requiredStage),
+      `verify:push missing CI-parity stage: ${requiredStage}`,
     );
   }
+
+  const pkg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+  assert.equal(pkg.scripts?.['verify:commit'], 'node scripts/verify-commit-fast.mjs');
+  assert.equal(pkg.scripts?.['verify:push'], 'node scripts/run-verify-suite.mjs --mode=push');
+  assert.equal(pkg.scripts?.test, 'node scripts/run-verify-suite.mjs --mode=test');
 
   const preCommitHook = fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-commit'), 'utf8');
   const prePushHook = fs.readFileSync(path.join(REPO_ROOT, '.githooks', 'pre-push'), 'utf8');
   assert.match(preCommitHook, /npm run verify:commit/);
   assert.match(prePushHook, /npm run verify:push/);
+  assert.equal(preCommitHook.includes('\r'), false, '.githooks/pre-commit must use LF line endings.');
+  assert.equal(prePushHook.includes('\r'), false, '.githooks/pre-push must use LF line endings.');
 });

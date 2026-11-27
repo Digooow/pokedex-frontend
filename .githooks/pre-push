@@ -1,5 +1,5 @@
 #!/bin/sh
 set -e
 
-echo "[pre-push] Running full CI-parity verification (commit gates + audit + unit + API E2E + build + UI gate + Web E2E + Docker)..."
+echo "[pre-push] Running parallel CI-parity verification (full static gates + unit/E2E + build + UI + Docker)..."
 npm run verify:push
