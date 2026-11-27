@@ -7,6 +7,18 @@ import path from 'node:path';
 
 const REPO_ROOT = path.resolve(import.meta.dirname, '..');
 const DIST_BROWSER_DIR = path.join(REPO_ROOT, 'apps', 'web', 'dist', 'pokeverse-web', 'browser');
+const HEADERS_PATH = path.join(REPO_ROOT, 'apps', 'web', 'public', '_headers');
+
+function readProductionCspHeader() {
+  const lines = fs.readFileSync(HEADERS_PATH, 'utf8').split(/\r?\n/);
+  const cspLine = lines.find((line) => line.trim().startsWith('Content-Security-Policy:'));
+  if (!cspLine) {
+    throw new Error(`Missing Content-Security-Policy directive in ${HEADERS_PATH}`);
+  }
+  return cspLine.trim().slice('Content-Security-Policy:'.length).trim();
+}
+
+const PRODUCTION_CSP = readProductionCspHeader();
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -368,7 +380,11 @@ function serveDistAsset(pathname, res) {
   }
 
   const ext = path.extname(targetPath);
-  res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+  const headers = { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' };
+  if (ext === '.html') {
+    headers['Content-Security-Policy'] = PRODUCTION_CSP;
+  }
+  res.writeHead(200, headers);
   fs.createReadStream(targetPath).pipe(res);
 }
 

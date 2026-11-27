@@ -113,7 +113,7 @@ flowchart LR
 
 ### 2.2. Instrumentação no Front-end Angular (`apps/web`) e Túnel BFF
 
-O navegador no **PokéVerse OS** opera sob **Content Security Policy (CSP) estrito** em [`apps/web/public/_headers`](../apps/web/public/_headers) (`connect-src 'self' https://pokeapi.co`), impedindo conexões arbitrárias a endpoints externos de telemetria e protegendo o usuário contra exfiltração.
+O navegador no **PokéVerse OS** opera sob **Content Security Policy (CSP) estrito** em [`apps/web/public/_headers`](../apps/web/public/_headers) (`connect-src 'self' blob: https://pokeapi.co https://raw.githubusercontent.com`), impedindo conexões arbitrárias a endpoints externos de telemetria e protegendo o usuário contra exfiltração.
 
 Por isso, a telemetria Web segue o padrão **Same-Origin BFF Telemetry Tunnel**:
 

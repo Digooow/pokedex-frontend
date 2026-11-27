@@ -421,9 +421,27 @@ test('Suite 3 — Historical CI Pipeline Failure Invariants', () => {
     'probePageTarget',
     'waitForPageTarget',
     "'.wasm': 'application/wasm'",
+    'readProductionCspHeader',
+    "'Content-Security-Policy'",
   ]) {
     assert.ok(uiGate.includes(symbol), `ui-quality-gate.mjs missing safeguard: ${symbol}`);
   }
+
+  const headersFile = fs.readFileSync(path.join(REPO_ROOT, 'apps', 'web', 'public', '_headers'), 'utf8');
+  const cspLine = headersFile
+    .split(/\r?\n/)
+    .find((line) => line.trim().startsWith('Content-Security-Policy:'));
+  assert.ok(cspLine, 'apps/web/public/_headers must define Content-Security-Policy.');
+  assert.match(cspLine, /script-src[^;]*'wasm-unsafe-eval'/);
+  assert.match(cspLine, /worker-src[^;]*\bblob:/);
+  assert.match(cspLine, /img-src[^;]*\bblob:/);
+  assert.match(
+    cspLine,
+    /connect-src[^;]*\bblob:/,
+    'connect-src must allow blob: so Three.js ImageBitmapLoader can decode embedded GLB WebP textures.',
+  );
+  assert.match(cspLine, /connect-src[^;]*https:\/\/pokeapi\.co/);
+  assert.match(cspLine, /connect-src[^;]*https:\/\/raw\.githubusercontent\.com/);
 
   const jestE2e = JSON.parse(
     fs.readFileSync(path.join(REPO_ROOT, 'apps', 'api', 'test', 'jest-e2e.json'), 'utf8'),
