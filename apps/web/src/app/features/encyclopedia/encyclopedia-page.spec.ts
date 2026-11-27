@@ -91,25 +91,14 @@ describe('PokedexEncyclopediaPanelComponent (Embedded Encyclopedia)', () => {
     expect(hostEl.querySelectorAll('.ency-badge[data-pokemon-type]').length).toBeGreaterThan(0);
   });
 
-  it('unifies Regions & History atlas inside Enciclopédia and transitions to location details', () => {
+  it('unifies Regions & History atlas inside Enciclopédia and transitions to location details even when initialCategory is region', () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const fixture = TestBed.createComponent(PokedexEncyclopediaPanelComponent);
+    fixture.componentRef.setInput('initialCategory', 'region');
     const selectedPokemon: string[] = [];
     const holocronRequests: string[] = [];
     fixture.componentInstance.pokemonSelected.subscribe((name) => selectedPokemon.push(name));
     fixture.componentInstance.holocronRequested.subscribe((name) => holocronRequests.push(name));
-    fixture.detectChanges();
-
-    httpMock
-      .expectOne('/api/v1/pokedex/moves?limit=24&offset=0&q=')
-      .flush(createEncyclopediaMovesListFixture());
-    fixture.detectChanges();
-
-    const hostEl = fixture.nativeElement as HTMLElement;
-    const regionsBtn = Array.from(hostEl.querySelectorAll('.ency-cat-btn')).find((el) =>
-      el.textContent?.includes('Regiões & História'),
-    ) as HTMLButtonElement;
-    regionsBtn.click();
     fixture.detectChanges();
 
     httpMock.expectNone('/api/v1/pokedex/regions?limit=24&offset=0&q=');
@@ -147,6 +136,7 @@ describe('PokedexEncyclopediaPanelComponent (Embedded Encyclopedia)', () => {
     });
     fixture.detectChanges();
 
+    const hostEl = fixture.nativeElement as HTMLElement;
     expect(hostEl.querySelectorAll('.timeline-step')).toHaveLength(9);
     expect(hostEl.querySelector('.inspector')?.textContent).toContain('Pallet Town');
 

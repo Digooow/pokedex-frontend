@@ -7,6 +7,7 @@ import {
   inject,
   input,
   output,
+  untracked,
 } from '@angular/core';
 import { isCanonicalAtlasRegion } from '../../../../shared/data/regions-atlas.data';
 import { ENCYCLOPEDIA_CATEGORIES } from '../../../encyclopedia/encyclopedia-catalog.config';
@@ -43,16 +44,18 @@ export class PokedexEncyclopediaPanelComponent implements OnInit {
     effect(() => {
       const cat = this.initialCategory();
       const item = this.initialItem();
-      if (!this.initialized) return;
-      if (cat && cat !== this.store.activeCategory()) {
-        this.store.initFromParams(cat, item);
-      } else if (item && item !== this.store.selectedName()) {
-        if (this.store.activeCategory() === 'region' && isCanonicalAtlasRegion(item)) {
-          this.store.setRegionSelection(item);
-        } else {
-          this.store.selectItem(item);
+      untracked(() => {
+        if (!this.initialized) return;
+        if (cat && cat !== this.store.activeCategory()) {
+          this.store.initFromParams(cat, item);
+        } else if (item && item !== this.store.selectedName()) {
+          if (this.store.activeCategory() === 'region' && isCanonicalAtlasRegion(item)) {
+            this.store.setRegionSelection(item);
+          } else {
+            this.store.selectItem(item);
+          }
         }
-      }
+      });
     });
   }
 

@@ -15,8 +15,7 @@
 
       @if (liveRegionData(); as live) {
         <p class="inspector__meta">
-          <strong>Catalogação PokéAPI:</strong>
-          <span class="numero-tabular">{{ live.pokedexes.length }} Pokédexes · {{ live.locations.length }} localidades</span>
+          <strong>Catalogação PokéAPI:</strong>{{ ' ' }}<span class="numero-tabular">{{ live.pokedexes.length }} {{ live.pokedexes.length === 1 ? 'Pokédex' : 'Pokédexes' }} · {{ live.locations.length }} {{ live.locations.length === 1 ? 'localidade' : 'localidades' }}</span>
         </p>
         @if (live.versionGroups.length > 0) {
           <ul class="inspector__versions" aria-label="Edições e grupos de versões da região">
