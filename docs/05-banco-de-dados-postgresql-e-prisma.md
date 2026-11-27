@@ -137,6 +137,7 @@ model Trainer {
 
   refreshTokens RefreshToken[]
   pokedexSlots  PokedexSlot[]
+  characters    Character[]
   teams         PokemonTeam[]
   saveStates    ArcadeSaveState[]
   scores        MinigameScore[]
