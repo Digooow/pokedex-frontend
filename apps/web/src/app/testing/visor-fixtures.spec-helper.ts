@@ -156,6 +156,7 @@ export function createEnrichedCatalogFixture(): CachedEnrichedCatalogResponse {
         isMythical: false,
         isBaby: false,
         baseStatTotal: 318,
+        eggGroups: ['monster', 'plant'],
       },
       {
         id: 25,
@@ -170,6 +171,7 @@ export function createEnrichedCatalogFixture(): CachedEnrichedCatalogResponse {
         isMythical: false,
         isBaby: false,
         baseStatTotal: 320,
+        eggGroups: ['ground', 'fairy'],
       },
       {
         id: 150,
@@ -184,6 +186,7 @@ export function createEnrichedCatalogFixture(): CachedEnrichedCatalogResponse {
         isMythical: false,
         isBaby: false,
         baseStatTotal: 680,
+        eggGroups: ['no-eggs'],
       },
     ],
   };

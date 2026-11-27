@@ -158,9 +158,38 @@
 
   .visor-media-actions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(6.2rem, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: var(--pv-space-2);
     width: 100%;
+  }
+
+  .visor-holo-launcher {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pv-space-2);
+    padding: var(--pv-space-2);
+    border-radius: var(--pv-radius-sm);
+    border: 1px solid var(--pv-holo-border);
+    background-color: var(--pv-holo-surface);
+    box-shadow: inset 0 0 14px var(--pv-holo-glow);
+  }
+
+  .visor-holo-launcher__title {
+    font-family: var(--pv-font-mono);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--pv-cyan);
+  }
+
+  .visor-holo-launcher__primary {
+    border-color: var(--pv-holo-border);
+    box-shadow: 0 0 12px var(--pv-holo-glow);
+  }
+
+  .visor-empty-holo-btn {
+    max-width: 17rem;
   }
 
   .visor-media-btn {

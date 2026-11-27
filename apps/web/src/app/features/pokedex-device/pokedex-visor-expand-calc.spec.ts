@@ -96,12 +96,13 @@ describe('Pokedex Visor Expand (MEL-03) & Competitive Calculator Phase 2 (MEL-04
     expect(visorDetail.expanded()).toBe(false);
   });
 
-  it('applies Smogon/VGC presets, simulates 1v1 damage with retry, and imports/exports Showdown spreads', () => {
+  it('opens Stat Calculator inside Holograma, applies Smogon/VGC presets, simulates 1v1 damage with retry, and imports/exports Showdown spreads', () => {
     const { httpMock, visorDetail, fixture } = mountWithPikachuAndCatalog();
     const hostEl = fixture.nativeElement as HTMLElement;
 
-    (hostEl.querySelector('#visor-mode-calculadora') as HTMLButtonElement).click();
+    (hostEl.querySelector('#btn-calc-stats') as HTMLButtonElement).click();
     fixture.detectChanges();
+    expect(visorDetail.expanded()).toBe(true);
     expect(visorDetail.activeMode()).toBe('calculadora');
 
     const presetSelect = hostEl.querySelector('#calc-competitive-preset') as HTMLSelectElement;

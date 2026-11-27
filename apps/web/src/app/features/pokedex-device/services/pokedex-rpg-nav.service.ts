@@ -108,7 +108,6 @@ export class PokedexRpgNavService {
     if (!this.pokedex.coverOpen()) return;
     const isDesktop = !this.isBrowser || window.innerWidth >= rpgNav.DESKTOP_MIN_WIDTH_PX;
     const controlsCount = this.collectScreenControls(this.activeFocusGroup()).length;
-    const hasVisorTabs = !this.slotsStore.editMode() && this.pokedex.selectedPokemon() !== null;
     const action = rpgNav.resolveRpgNavigationAction(
       this.rpgLevel(),
       this.rpgScreen(),
@@ -116,7 +115,7 @@ export class PokedexRpgNavService {
       isDesktop,
       this.rpgSlotFocusIndex(),
       controlsCount,
-      hasVisorTabs,
+      this.hasActiveVisorTabs(),
     );
     if (action.kind === 'screen') {
       if (action.nextScreen) this.rpgScreen.set(action.nextScreen);
@@ -178,7 +177,7 @@ export class PokedexRpgNavService {
   confirmCurrentSelection(onToggleConfig: (moveFocus: boolean) => void): void {
     if (this.rpgLevel() === 'telas') return this.enterScreen(this.rpgScreen());
     if (this.rpgLevel() === 'itens' && this.rpgScreen() === 'lista') {
-      const picked = this.pokedex.filteredCatalog().items[this.rpgCatalogIndex()];
+      const picked = this.pokedex.displayCatalog().items[this.rpgCatalogIndex()];
       if (picked) this.pokedex.selectFromCatalog(picked.name);
       return;
     }
@@ -200,7 +199,7 @@ export class PokedexRpgNavService {
   }
 
   syncCatalogSelection(pokemonName: string): void {
-    const idx = rpgNav.findCatalogIndexByName(this.pokedex.filteredCatalog().items, pokemonName);
+    const idx = rpgNav.findCatalogIndexByName(this.pokedex.displayCatalog().items, pokemonName);
     if (idx < 0) return;
     this.rpgCatalogIndex.set(idx);
     this.pokedex.ensureCatalogIndexVisible(idx);
@@ -287,7 +286,7 @@ export class PokedexRpgNavService {
   private moveCatalogCursor(offset: number): void {
     this.pokedex.ensureCatalogLoaded();
     const { status } = this.pokedex.catalogState();
-    const filteredLen = this.pokedex.filteredCatalog().items.length;
+    const filteredLen = this.pokedex.displayCatalog().items.length;
     const total = this.pokedex.catalogTotalCount();
     const nextIdx = rpgNav.resolveCatalogCursorTarget(
       status,
@@ -303,6 +302,11 @@ export class PokedexRpgNavService {
     this.focusRegistry.afterTick(() => this.syncFocusVisuals(true));
   }
 
+  private readonly hasActiveVisorTabs = (): boolean =>
+    !this.slotsStore.editMode() &&
+    this.visorDetail.expanded() &&
+    this.visorDetail.activeMode() === 'ficha' &&
+    this.pokedex.selectedPokemon() !== null;
   private readonly activeFocusGroup = (): RpgFocusGroup =>
     rpgNav.resolveFocusGroup(this.rpgLevel(), this.rpgScreen());
   private readonly collectScreenControls = (group: RpgFocusGroup) =>

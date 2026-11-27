@@ -58,12 +58,14 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     return { httpMock, store, visorDetail, quality, rpg, fixture };
   }
 
-  it('switches among the 5 tabs via clicks and D-Pad navigation, and toggles Shiny/Sprite/Cry', () => {
+  it('shows compact Resumo without duplicated tabs, then expands Holograma for 5 tabs, D-Pad navigation, and media toggles', () => {
     const { visorDetail, quality, rpg, fixture } = setupDeviceWithPikachu();
     const hostEl = fixture.nativeElement as HTMLElement;
 
-    const tabs = hostEl.querySelectorAll('[role="tab"]') as NodeListOf<HTMLButtonElement>;
-    expect(tabs).toHaveLength(5);
+    expect(visorDetail.expanded()).toBe(false);
+    expect(hostEl.querySelectorAll('[role="tab"]')).toHaveLength(0);
+    expect(hostEl.querySelector('.visor-modes')).toBeNull();
+    expect(hostEl.querySelector('.visor-holo-launcher')).not.toBeNull();
     expect(visorDetail.activeTab()).toBe('resumo');
     expect(hostEl.querySelector('.pokemon-imagem-box')?.getAttribute('data-pokemon-type')).toBe(
       'electric',
@@ -111,6 +113,14 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
       vi.unstubAllGlobals();
     }
 
+    (hostEl.querySelector('#btn-visor-expand') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(visorDetail.expanded()).toBe(true);
+    expect(hostEl.querySelector('.visor-modes')).not.toBeNull();
+    expect(hostEl.querySelector('.visor-holo-launcher')).toBeNull();
+    const tabs = hostEl.querySelectorAll('[role="tab"]') as NodeListOf<HTMLButtonElement>;
+    expect(tabs).toHaveLength(5);
+
     rpg.setScreenFocus('visor', 'itens');
     rpg.navigate('direita');
     fixture.detectChanges();
@@ -121,12 +131,14 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(visorDetail.activeTab()).toBe('resumo');
   });
 
-  it('renders Stats tab with Base Stats, EV Yield, 0x-4x matrix, and lazy Ability inspect with retry', () => {
-    const { httpMock, fixture } = setupDeviceWithPikachu();
+  it('opens Stats tab in Holograma with Base Stats, EV Yield, 0x-4x matrix, and lazy Ability inspect with retry', () => {
+    const { httpMock, visorDetail, fixture } = setupDeviceWithPikachu();
     const hostEl = fixture.nativeElement as HTMLElement;
 
-    (hostEl.querySelector('#visor-tab-stats') as HTMLButtonElement).click();
+    (hostEl.querySelector('#btn-ficha-completa') as HTMLButtonElement).click();
     fixture.detectChanges();
+    expect(visorDetail.expanded()).toBe(true);
+    expect(visorDetail.activeTab()).toBe('stats');
 
     expect(hostEl.querySelector('.visor-bst-badge')?.textContent).toContain('BST 320');
     expect(hostEl.textContent).toContain('+2 Spe EV');
@@ -159,10 +171,12 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(hostEl.textContent).toContain('30% chance of paralyzing');
   });
 
-  it('lazy-loads Forms on Evolution tab and loads clicked evolution species in visor', () => {
+  it('lazy-loads Forms on Evolution tab in Holograma and loads clicked evolution species in visor', () => {
     const { httpMock, store, fixture } = setupDeviceWithPikachu();
     const hostEl = fixture.nativeElement as HTMLElement;
 
+    (hostEl.querySelector('#btn-visor-expand') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (hostEl.querySelector('#visor-tab-evolucao') as HTMLButtonElement).click();
     fixture.detectChanges();
     httpMock
@@ -184,10 +198,12 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(store.selectedPokemon()?.name).toBe('raichu');
   });
 
-  it('filters Moves by learn method and lazy-loads Move details and Encounters/Map tab', () => {
+  it('filters Moves by learn method and lazy-loads Move details and Encounters/Map tab inside Holograma', () => {
     const { httpMock, fixture } = setupDeviceWithPikachu();
     const hostEl = fixture.nativeElement as HTMLElement;
 
+    (hostEl.querySelector('#btn-visor-expand') as HTMLButtonElement).click();
+    fixture.detectChanges();
     (hostEl.querySelector('#visor-tab-golpes') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect(hostEl.querySelector('.visor-segmented')).not.toBeNull();
@@ -220,12 +236,13 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
     expect(hostEl.textContent).toContain('Red Blue');
   });
 
-  it('switches into embedded Stat Calculator and computes level, nature, IVs, EVs, and XP', () => {
+  it('opens Stat Calculator in Holograma and computes level, nature, IVs, EVs, and XP', () => {
     const { visorDetail, fixture } = setupDeviceWithPikachu();
     const hostEl = fixture.nativeElement as HTMLElement;
 
-    (hostEl.querySelector('#visor-mode-calculadora') as HTMLButtonElement).click();
+    (hostEl.querySelector('#btn-calc-stats') as HTMLButtonElement).click();
     fixture.detectChanges();
+    expect(visorDetail.expanded()).toBe(true);
     expect(visorDetail.activeMode()).toBe('calculadora');
 
     const levelInput = hostEl.querySelector('#calc-level-input') as HTMLInputElement;

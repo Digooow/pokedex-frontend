@@ -137,38 +137,63 @@
       </fieldset>
     }
 
-    <div class="visor-media-group visor-media-actions">
-      <button
-        type="button"
-        id="btn-comparar-1v1"
-        class="visor-media-btn visor-media-btn--action"
-        [pvRpgFocusable]="'visor'"
-        [pvRpgOrder]="16"
-        (click)="compareRequested.emit()"
-      >
-        Comparar 1v1
-      </button>
-      <button
-        type="button"
-        id="btn-holocron-3d"
-        class="visor-media-btn visor-media-btn--action"
-        [pvRpgFocusable]="'visor'"
-        [pvRpgOrder]="17"
-        (click)="holocronRequested.emit()"
-      >
-        Holocron 3D
-      </button>
-      <button
-        type="button"
-        id="btn-calc-stats"
-        class="visor-media-btn visor-media-btn--action"
-        [pvRpgFocusable]="'visor'"
-        [pvRpgOrder]="18"
-        (click)="calculatorRequested.emit()"
-      >
-        Calculadora
-      </button>
-    </div>
+    @if (!expanded()) {
+      <section class="visor-holo-launcher" aria-label="Projetar análises no Holograma">
+        <span class="visor-holo-launcher__title">Projetar no Holograma</span>
+        <button
+          type="button"
+          id="btn-comparar-1v1"
+          class="visor-media-btn visor-media-btn--action visor-holo-launcher__primary"
+          [pvRpgFocusable]="'visor'"
+          [pvRpgOrder]="16"
+          (click)="compareRequested.emit()"
+        >
+          Comparar 1v1 no Holograma
+        </button>
+        <div class="visor-media-group visor-media-actions">
+          <button
+            type="button"
+            id="btn-ficha-completa"
+            class="visor-media-btn visor-media-btn--action"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="17"
+            (click)="fullDetailsRequested.emit()"
+          >
+            Ficha Completa
+          </button>
+          <button
+            type="button"
+            id="btn-holocron-3d"
+            class="visor-media-btn visor-media-btn--action"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="18"
+            (click)="holocronRequested.emit()"
+          >
+            Holocron 3D
+          </button>
+          <button
+            type="button"
+            id="btn-calc-stats"
+            class="visor-media-btn visor-media-btn--action"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="19"
+            (click)="calculatorRequested.emit()"
+          >
+            Calculadora
+          </button>
+          <button
+            type="button"
+            id="btn-enciclopedia"
+            class="visor-media-btn visor-media-btn--action"
+            [pvRpgFocusable]="'visor'"
+            [pvRpgOrder]="20"
+            (click)="encyclopediaRequested.emit()"
+          >
+            Enciclopédia
+          </button>
+        </div>
+      </section>
+    }
   </div>
   @if (playingCry() !== null) {
     <pv-cry-spectrogram [active]="true" [compact]="true" />

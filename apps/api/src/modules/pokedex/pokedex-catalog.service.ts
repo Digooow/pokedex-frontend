@@ -58,6 +58,11 @@ query EnrichedPokedexCatalog {
       pokemonshape {
         name
       }
+      pokemonegggroups {
+        egggroup {
+          name
+        }
+      }
     }
   }
 }

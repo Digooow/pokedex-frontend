@@ -11,6 +11,7 @@
 | ID | Prioridade | Area | Item / Descricao | Criterio de Conclusao |
 | :--- | :---: | :--- | :--- | :--- |
 | **MEL-02** | **P0** | Tela Inicial (`/inicio`) | **Definicao de Identidade e Conteudo do Hub Inicial:** a tela `/inicio` foi entregue propositalmente enxuta (nao-Pokedex) apos a tela classica `Iniciar Jogo` (`/`) aguardando ideias do dono do projeto. | Definir blocos definitivos (ex.: atalhos rapidos, destaques do dia, resumo de perfil/slots, noticias/eventos) e evoluir o layout sem poluir a tela. |
+| **MEL-06** | **P1** | Pokédex 3D (Busca & Matchups) | **Pesquisa de Forca x Fraqueza na Lista:** adicionar botao de pesquisa por matchups elementais — ao selecionar um Pokemon (ex.: Pikachu), listar Pokemon fortes contra ele e Pokemon fracos contra ele usando a matriz oficial de 18 tipos. | Botao dedicado na busca/ficha alternando ou segmentando a lista entre contadores/ameacas (2x/4x) e alvos vantajosos, com envio direto para o Comparador 1v1 no Holograma. |
 | **MEL-05** | **P2** | Museu das Regioes | **Museu Fase 2 (Mapas & Ginasios):** enriquecer o dossie limpo do Museu com lideres de ginasio, insignias e marcos visuais por regiao sem duplicar listas. | Exibir trilha de ginasios e insignias por regiao no inspetor sem recriar cards redundantes. |
 
 ---
@@ -33,6 +34,9 @@
 | **ENT-12** | Visor Holograma (`MEL-03`) | Corrigido *stacking context* da aba esquerda sobre o visor expandido e adicionada animacao de projecao holografica: a Pokedex desliza para a base inferior como projetor enquanto feixe ciano (`.visor-holo-beam`) e visor translucido abrem acima. | Concluido |
 | **ENT-13** | Holocron 3D (`MEL-01`) | Conectado streaming `.glb` (`1..1025`, regular/shiny) da `Pokemon-3D-api/assets` com `DRACOLoader` auto-hospedado (`/assets/draco/` via `scripts/sync-draco-assets.mjs`), `AnimationMixer` com seletor de clipes, animacao procedural *idle* para modelos sem esqueleto e sincronizacao automatica ao buscar outro Pokemon na aba 3D. | Concluido |
 | **ENT-14** | Comparador 1v1 | Redesenhado `PokedexComparePanelComponent` para arena lado a lado (`Lado A` vs `Lado B`) com placar resumido `VS`, barras espelhadas, troca rapida inline e perfil defensivo limpo em layout compacto e expandido. | Concluido |
+| **ENT-15** | Visor Holograma-First & Zero Duplicacao | Visor compacto focado no Resumo do Pokemon com lancadores unicos para o Holograma; `Comparar 1v1` (amplo lado a lado com genus e habilidades), `Holocron 3D`, `Calculadora`, `Enciclopedia` e abas detalhadas (`Stats`, `Evolucao`, `Golpes`, `Mapa`) abrem diretamente no Holograma expandido, eliminando barras/botoes duplicados na busca e nos cabecalhos internos. | Concluido |
+| **ENT-16** | Lista Esquerda Contextual | Criado `pokedex-catalog-companions.util.ts` (`buildCatalogDisplayList`) e integrado ao `PokedexStore`/`PokedexSearchPanelComponent`: buscas ou filtros que retornam 1 unico Pokemon sao completados automaticamente com evolucoes, mesmo tipo e vizinhos de ID em `Relacionados & Proximos`. | Concluido |
+| **ENT-17** | Busca Multi-Atributos | Enriquecido `/catalog/enriched` com `eggGroups`, estendido `PokedexAdvancedQuerySchema` com `region` e `eggGroup`, e adicionado filtro por Elemento (PT-BR), Raca (Grupo de Ovo), Mapa/Regiao/Habitat, Jogo/Versao, Golpe e Habilidade + atalho 1-clique na busca principal (`PokedexAttributeLookupService` + 3 abas em `PokedexFiltersPanelComponent`). | Concluido |
 
 ---
 

@@ -51,7 +51,7 @@
               [pvRpgOrder]="0"
               [class.user-invalid-fallback]="showFieldError()"
               [value]="store.query()"
-              placeholder="Ex.: pikachu, pikaxu ou 25"
+              placeholder="Ex.: pikachu, fogo, kanto ou 25"
               required
               [attr.pattern]="nonWhitespacePattern"
               autocorrect="off"
@@ -65,6 +65,17 @@
               (blur)="onInputBlur()"
               (input)="onInput($event)"
             />
+            @if (store.query().trim().length > 0) {
+              <button
+                type="button"
+                id="btn-limpar-busca"
+                class="btn-limpar-campo"
+                aria-label="Limpar pesquisa"
+                (click)="onClearSearchInput($event)"
+              >
+                ×
+              </button>
+            }
             <button
               type="submit"
               id="btn-buscar"
@@ -78,7 +89,7 @@
             </button>
           </div>
           <p id="pokemon-dica" class="campo-dica">
-            Filtre ao digitar (aceita aproximação) ou navegue com as setas.
+            Busque por nome, ID ou atributos (elemento, raça, mapa, jogo, golpe).
           </p>
           <div id="pokemon-erro-campo" class="mensagem-campo-erro" aria-live="polite">
             <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
@@ -131,27 +142,33 @@
         <pv-pokedex-filters-panel />
       }
 
-      @if (quickTarget(); as target) {
-        <div class="catalogo-quick-actions" aria-label="Enviar Pokémon selecionado para módulos">
-          <span class="catalogo-quick-label">{{ target.displayName }}:</span>
-          <div class="catalogo-quick-btns">
+      @if (attributeShortcut(); as shortcut) {
+        <div class="catalogo-attr-shortcut">
+          <span class="catalogo-attr-shortcut__hint">Pesquisar atributo:</span>
+          <button
+            type="button"
+            id="btn-aplicar-atalho-atributo"
+            class="catalogo-attr-shortcut__btn"
+            (click)="onApplyShortcut(shortcut, $event)"
+          >
+            Filtrar por {{ shortcut.label }}
+          </button>
+        </div>
+      }
+
+      @if (filters.activeFilterChips().length > 0) {
+        <div class="catalogo-active-pills" aria-label="Filtros ativos">
+          @for (chip of filters.activeFilterChips(); track chip.key) {
             <button
               type="button"
-              id="btn-busca-holocron"
-              class="btn-catalogo-recarregar"
-              (click)="onSendQuickAction('holocron', $event)"
+              class="catalogo-active-pill"
+              [attr.aria-label]="'Remover filtro ' + chip.label"
+              (click)="onRemoveFilterChip(chip.key, $event)"
             >
-              Holocron 3D
+              <span>{{ chip.label }}</span>
+              <span aria-hidden="true">×</span>
             </button>
-            <button
-              type="button"
-              id="btn-busca-comparar"
-              class="btn-catalogo-recarregar"
-              (click)="onSendQuickAction('compare', $event)"
-            >
-              Comparar 1v1
-            </button>
-          </div>
+          }
         </div>
       }
 
@@ -172,13 +189,18 @@
             </li>
           }
           @case ('success') {
-            @let filtered = store.filteredCatalog();
-            @if (filtered.items.length === 0) {
+            @let display = store.displayCatalog();
+            @if (display.items.length === 0) {
               <li class="catalogo-vazio">
                 Nenhum Pokémon parecido foi localizado na lista. Você ainda pode pesquisar diretamente acima.
               </li>
             } @else {
-              @for (item of filtered.items; track item.id; let idx = $index) {
+              @for (item of display.items; track item.id; let idx = $index) {
+                @if (idx === display.primaryCount && display.companionCount > 0) {
+                  <li class="catalogo-divisor" aria-hidden="true">
+                    <span>Relacionados &amp; Próximos</span>
+                  </li>
+                }
                 <li class="catalogo-item-wrapper">
                   <button
                     type="button"
@@ -188,6 +210,7 @@
                     [class.is-selecionado]="store.selectedId() === item.id"
                     [class.is-cursor]="rpg.rpgCatalogIndex() === idx"
                     [class.is-rpg-foco]="rpg.isVisorSelectingList() && rpg.rpgCatalogIndex() === idx"
+                    [class.catalogo-item--companion]="item.isCompanion"
                     [attr.aria-current]="store.selectedId() === item.id ? 'true' : null"
                     (click)="onCatalogItemClick(item, idx, $event)"
                   >
@@ -195,7 +218,9 @@
                       <span class="catalogo-item-id">#{{ formatCatalogId(item.id) }}</span>
                       <span class="catalogo-item-nome">{{ item.displayName }}</span>
                     </span>
-                    @if (item.approximate) {
+                    @if (item.relationLabel; as relLabel) {
+                      <span class="catalogo-item-tag catalogo-item-tag--relation">{{ relLabel }}</span>
+                    } @else if (item.approximate) {
                       <span class="catalogo-item-tag">Aproximado</span>
                     }
                   </button>

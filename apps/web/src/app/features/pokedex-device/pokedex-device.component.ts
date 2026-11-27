@@ -146,20 +146,6 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     this.visorDetail.setMode(mode);
   }
 
-  onSendToMode(mode: 'holocron' | 'comparar', pokemonName: string): void {
-    this.slotsStore.setEditMode(false);
-    const active = this.store.selectedPokemon();
-    const isSamePokemon = active?.name.toLowerCase() === pokemonName.toLowerCase();
-    if (active && isSamePokemon) {
-      this.openPokemonInMode(mode, active);
-      return;
-    }
-    this.store.searchOrSelect(pokemonName);
-    if (mode === 'holocron') this.holocronStore.openByIdentifier(pokemonName);
-    else this.compareStore.selectSide('left', pokemonName);
-    this.visorDetail.setMode(mode);
-  }
-
   toggleSlotsConfig = (moveFocus: boolean) =>
     this.rpg.applySlotsConfigTransition(!this.slotsStore.editMode(), moveFocus);
 

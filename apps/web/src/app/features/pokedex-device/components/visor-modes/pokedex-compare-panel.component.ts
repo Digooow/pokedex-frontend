@@ -25,7 +25,6 @@ export class PokedexComparePanelComponent {
   readonly typeSlug = resolvePokemonTypeSlug;
 
   readonly openInPokedex = output<string>();
-  readonly backToFicha = output<void>();
 
   readonly leftQuery = signal('');
   readonly rightQuery = signal('');
@@ -35,9 +34,13 @@ export class PokedexComparePanelComponent {
   readonly leftSuggestions = computed(() =>
     buildQuickCatalogSuggestions(this.pokedex.catalogState(), this.leftQuery()),
   );
-  readonly rightSuggestions = computed(() =>
-    buildQuickCatalogSuggestions(this.pokedex.catalogState(), this.rightQuery()),
-  );
+  readonly rightSuggestions = computed(() => {
+    const leftState = this.compare.leftState();
+    const excludeName = leftState.status === 'success' ? leftState.data.name : null;
+    const raw = buildQuickCatalogSuggestions(this.pokedex.catalogState(), this.rightQuery(), 6);
+    if (!excludeName) return raw.slice(0, 5);
+    return raw.filter((item) => item.name !== excludeName).slice(0, 5);
+  });
 
   readonly bothReady = computed(
     () =>

@@ -49,23 +49,37 @@ export class PokedexVisorDetailStore implements OnDestroy {
   readonly abilityDetails = signal<Readonly<Record<string, AsyncState<AbilityDetail>>>>({});
 
   setMode(mode: VisorModeId): void {
-    if (VISOR_MODES.some((entry) => entry.id === mode)) {
-      this.activeMode.set(mode);
+    if (!VISOR_MODES.some((entry) => entry.id === mode)) return;
+    this.activeMode.set(mode);
+    if (mode !== 'ficha') {
+      this.expanded.set(true);
     }
   }
 
   setExpanded(value: boolean): void {
     this.expanded.set(value);
+    if (!value) {
+      this.activeMode.set('ficha');
+      this.activeTab.set('resumo');
+    }
   }
 
   toggleExpanded(): void {
-    this.expanded.update((prev) => !prev);
+    this.setExpanded(!this.expanded());
   }
 
   collapseIfExpanded(): boolean {
     if (!this.expanded()) return false;
-    this.expanded.set(false);
+    this.setExpanded(false);
     return true;
+  }
+
+  openHologram(mode: VisorModeId = 'ficha', tab?: VisorTabId, pokemonName?: string | null): void {
+    this.activeMode.set(mode);
+    if (mode === 'ficha' && tab) {
+      this.selectTab(tab, pokemonName ?? this.currentPokemonName);
+    }
+    this.expanded.set(true);
   }
 
   resetForPokemon(pokemonName: string | null): void {
@@ -85,6 +99,9 @@ export class PokedexVisorDetailStore implements OnDestroy {
 
   selectTab(tab: VisorTabId, pokemonName: string | null): void {
     this.activeTab.set(tab);
+    if (tab !== 'resumo') {
+      this.expanded.set(true);
+    }
     if (!pokemonName) return;
     if (tab === 'evolucao') this.ensureFormsLoaded(pokemonName);
     if (tab === 'mapa') this.ensureEncountersLoaded(pokemonName);

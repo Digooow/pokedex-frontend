@@ -8,6 +8,10 @@ import {
 import { Subscription, firstValueFrom } from 'rxjs';
 import { type ScenarioId, ScenarioStore } from '../../../core/stores/scenario.store';
 import { PokedexApiClient } from './pokedex-api.client';
+import {
+  type CatalogDisplayList,
+  buildCatalogDisplayList,
+} from './pokedex-catalog-companions.util';
 import { PokedexFiltersStore } from './pokedex-filters.store';
 import {
   type PokedexCacheSource,
@@ -15,6 +19,7 @@ import {
   type ResolvedPokemonForSlot,
   buildAdvancedCatalogResult,
   buildPokemonFetchErrorMessage,
+  findPokemonIndexByIdentifier,
   mapCatalogEntriesToSearchable,
   mapResolvedPokemonToView,
   toResolvedPokemonForSlot,
@@ -71,11 +76,17 @@ export class PokedexStore implements OnDestroy {
     if (enriched.status !== 'success') {
       return { totalMatches: 0, result: { mode: 'exact' as const, items: [] } };
     }
+    const remoteState = this.filtersStore.remoteAllowedState();
+    if (this.filtersStore.hasRemoteLookupActive() && remoteState.status !== 'success') {
+      return { totalMatches: 0, result: { mode: 'exact' as const, items: [] } };
+    }
+    const allowedSet = remoteState.status === 'success' ? remoteState.data : null;
     return buildAdvancedCatalogResult(
       enriched.data,
       this.filtersStore.buildQueryPayload(this.querySignal()),
       Boolean(this.querySignal().trim()),
       this.batchLimitSignal(),
+      allowedSet,
     );
   });
 
@@ -93,6 +104,19 @@ export class PokedexStore implements OnDestroy {
     const list = state.status === 'success' ? state.data : [];
     const maxResults = this.querySignal().trim() ? undefined : this.batchLimitSignal();
     return filterPokemonCatalog(list, this.querySignal(), maxResults);
+  });
+
+  readonly displayCatalog = computed<CatalogDisplayList>(() => {
+    const state = this.catalogStateSignal();
+    const fullCatalog = state.status === 'success' ? state.data : [];
+    const enriched = this.filtersStore.enrichedState();
+    const enrichedCatalog = enriched.status === 'success' ? enriched.data : [];
+    return buildCatalogDisplayList({
+      primaryItems: this.filteredCatalog().items,
+      fullCatalog,
+      enrichedCatalog,
+      selectedPokemon: this.selectedPokemon(),
+    });
   });
 
   readonly hasMoreCatalog = computed(() => {
@@ -177,29 +201,13 @@ export class PokedexStore implements OnDestroy {
   }
 
   findCatalogIndex(pokemonNameOrId: string | number | null): number {
-    if (pokemonNameOrId === null) {
-      return -1;
-    }
-    const target = String(pokemonNameOrId).trim().toLowerCase();
-    if (!target) {
-      return -1;
-    }
-    const numericId = Number.parseInt(target.replace(/^#/, ''), 10);
     if (this.querySignal().trim() || this.filtersStore.hasActiveFilters()) {
-      const filtered = this.filteredCatalog().items;
-      return filtered.findIndex(
-        (item) =>
-          item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
-      );
+      return findPokemonIndexByIdentifier(this.displayCatalog().items, pokemonNameOrId);
     }
     const state = this.catalogStateSignal();
-    if (state.status !== 'success') {
-      return -1;
-    }
-    return state.data.findIndex(
-      (item) =>
-        item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
-    );
+    return state.status === 'success'
+      ? findPokemonIndexByIdentifier(state.data, pokemonNameOrId)
+      : -1;
   }
 
   loadMoreCatalog(): void {

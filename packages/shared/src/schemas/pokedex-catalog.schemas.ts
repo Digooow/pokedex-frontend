@@ -20,9 +20,11 @@ export const EnrichedCatalogEntrySchema = z.object({
   isMythical: z.boolean(),
   isBaby: z.boolean(),
   baseStatTotal: z.number().int().nonnegative(),
+  eggGroups: z.array(z.string().min(1)).default([]),
 });
 
 export type EnrichedCatalogEntry = z.infer<typeof EnrichedCatalogEntrySchema>;
+export type EnrichedCatalogEntryInput = z.input<typeof EnrichedCatalogEntrySchema>;
 
 export const EnrichedCatalogPayloadSchema = z.object({
   source: EnrichedCatalogSourceSchema,
@@ -75,7 +77,7 @@ export type CachedPokedexMetaFiltersResponse = z.infer<
 >;
 
 export function hydrateEnrichedCatalog(
-  entries: readonly EnrichedCatalogEntry[],
+  entries: readonly EnrichedCatalogEntryInput[],
 ): readonly EnrichedCatalogItem[] {
   return entries.map((entry) => ({
     ...buildSearchableCatalogItem(entry.id, entry.name),
@@ -89,5 +91,6 @@ export function hydrateEnrichedCatalog(
     isMythical: entry.isMythical,
     isBaby: entry.isBaby,
     baseStatTotal: entry.baseStatTotal,
+    eggGroups: entry.eggGroups ?? [],
   }));
 }

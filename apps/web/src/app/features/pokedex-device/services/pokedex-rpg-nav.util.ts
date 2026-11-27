@@ -256,16 +256,6 @@ export function resolveSlotsConfigTransitionPlan(opening: boolean): {
     : { screen: 'slots', visorIndex: null, slotFocusIndex: TOTAL_SLOTS_AZUIS };
 }
 
-export function resolveCatalogQuickTarget(
-  selected: { readonly name: string; readonly displayName: string } | null,
-  items: ReadonlyArray<{ readonly name: string; readonly displayName: string }>,
-  cursorIndex: number,
-): { readonly name: string; readonly displayName: string } | null {
-  if (selected) return { name: selected.name, displayName: selected.displayName };
-  const item = items[cursorIndex];
-  return item ? { name: item.name, displayName: item.displayName } : null;
-}
-
 export type StepBackPlan =
   | { readonly kind: 'restore-prev'; readonly target: string }
   | { readonly kind: 'clear-to-target'; readonly target: string }

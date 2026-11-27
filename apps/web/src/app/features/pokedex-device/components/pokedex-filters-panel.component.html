@@ -32,9 +32,25 @@
         (click)="selectTab('primary')"
         (keydown)="onTabKeyDown($event)"
       >
-        <span>Tipos & Gen</span>
+        <span>Tipos & Mundo</span>
         @if (primaryActiveCount() > 0) {
           <span class="filtros-tab-count">{{ primaryActiveCount() }}</span>
+        }
+      </button>
+      <button
+        type="button"
+        id="filtro-tab-attributes"
+        role="tab"
+        class="filtros-tab-btn"
+        [class.is-active]="activeTab() === 'attributes'"
+        [attr.aria-selected]="activeTab() === 'attributes' ? 'true' : 'false'"
+        aria-controls="filtro-panel-attributes"
+        (click)="selectTab('attributes')"
+        (keydown)="onTabKeyDown($event)"
+      >
+        <span>Raça & Golpe</span>
+        @if (attributesActiveCount() > 0) {
+          <span class="filtros-tab-count">{{ attributesActiveCount() }}</span>
         }
       </button>
       <button
@@ -48,150 +64,289 @@
         (click)="selectTab('taxonomy')"
         (keydown)="onTabKeyDown($event)"
       >
-        <span>Taxonomia & Ordem</span>
+        <span>Taxonomia</span>
         @if (taxonomyActiveCount() > 0) {
           <span class="filtros-tab-count">{{ taxonomyActiveCount() }}</span>
         }
       </button>
     </div>
 
-    @if (activeTab() === 'primary') {
-      <div
-        id="filtro-panel-primary"
-        class="filtros-tabpanel"
-        role="tabpanel"
-        aria-labelledby="filtro-tab-primary"
-      >
-        <div>
-          <span class="filtros-bloco-titulo">Tipos (até 2)</span>
-          <div class="filtros-chips">
-            @for (type of availableTypes(); track type) {
-              <button
-                type="button"
-                class="filtro-chip"
-                [attr.data-pokemon-type]="type"
-                [attr.aria-pressed]="isTypeSelected(type)"
-                (click)="filters.toggleType(type)"
-              >
-                {{ formatLabel(type) }}
-              </button>
-            }
+    @switch (activeTab()) {
+      @case ('primary') {
+        <div
+          id="filtro-panel-primary"
+          class="filtros-tabpanel"
+          role="tabpanel"
+          aria-labelledby="filtro-tab-primary"
+        >
+          <div>
+            <span class="filtros-bloco-titulo">Elementos / Tipos (até 2)</span>
+            <div class="filtros-chips">
+              @for (type of availableTypes(); track type) {
+                <button
+                  type="button"
+                  class="filtro-chip"
+                  [attr.data-pokemon-type]="type"
+                  [attr.aria-pressed]="isTypeSelected(type)"
+                  (click)="filters.toggleType(type)"
+                >
+                  {{ formatTypePt(type) }}
+                </button>
+              }
+            </div>
           </div>
-        </div>
 
-        <label class="filtro-campo">
-          Geração
-          <select
-            class="filtro-select"
-            [value]="filters.generation() ?? ''"
-            (change)="onGenerationChange($event)"
-          >
-            <option value="">Todas</option>
-            @for (gen of generationOptions(); track gen.id) {
-              <option [value]="gen.id">
-                Gen {{ gen.id }}{{ gen.regionName ? ' · ' + formatLabel(gen.regionName) : '' }}
-              </option>
-            }
-          </select>
-        </label>
-
-        <div>
-          <span class="filtros-bloco-titulo">Raridade e Forma</span>
-          <div class="filtros-chips">
-            @for (flag of flagToggles; track flag.key) {
-              <button
-                type="button"
-                class="filtro-chip"
-                [attr.aria-pressed]="isFlagActive(flag.key)"
-                (click)="filters.toggleFlag(flag.key)"
-              >
-                {{ flag.label }}
-              </button>
-            }
-          </div>
-        </div>
-      </div>
-    } @else {
-      <div
-        id="filtro-panel-taxonomy"
-        class="filtros-tabpanel"
-        role="tabpanel"
-        aria-labelledby="filtro-tab-taxonomy"
-      >
-        <div class="filtros-grid">
-          <label class="filtro-campo">
-            Ordenação
-            <select class="filtro-select" [value]="filters.sortBy()" (change)="onSortChange($event)">
-              <option value="id-asc"># Crescente</option>
-              <option value="id-desc"># Decrescente</option>
-              <option value="name-asc">Nome A–Z</option>
-              <option value="bst-desc">Maior BST</option>
-            </select>
-          </label>
-
-          <label class="filtro-campo">
-            BST mínimo
-            <input
-              type="number"
-              min="0"
-              max="1200"
-              step="10"
-              class="filtro-input"
-              [value]="filters.minBst() > 0 ? filters.minBst() : ''"
-              placeholder="Ex.: 500"
-              (input)="onMinBstInput($event)"
-            />
-          </label>
-
-          @if (habitatOptions().length > 0) {
+          <div class="filtros-grid">
             <label class="filtro-campo">
-              Habitat
+              Mapa / Região
               <select
+                id="filtro-region-select"
                 class="filtro-select"
-                [value]="filters.habitat() ?? ''"
-                (change)="onHabitatChange($event)"
-              >
-                <option value="">Todos</option>
-                @for (item of habitatOptions(); track item.id) {
-                  <option [value]="item.name">{{ formatLabel(item.name) }}</option>
-                }
-              </select>
-            </label>
-          }
-
-          @if (colorOptions().length > 0) {
-            <label class="filtro-campo">
-              Cor
-              <select
-                class="filtro-select"
-                [value]="filters.color() ?? ''"
-                (change)="onColorChange($event)"
+                [value]="filters.region() ?? ''"
+                (change)="onRegionChange($event)"
               >
                 <option value="">Todas</option>
-                @for (item of colorOptions(); track item.id) {
-                  <option [value]="item.name">{{ formatLabel(item.name) }}</option>
+                @for (reg of regionOptions; track reg.slug) {
+                  <option [value]="reg.slug">{{ reg.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="filtro-campo">
+              Jogo / Versão
+              <select
+                id="filtro-game-select"
+                class="filtro-select"
+                [value]="filters.game() ?? ''"
+                (change)="onGameChange($event)"
+              >
+                <option value="">Todos</option>
+                @for (gm of gameOptions; track gm.id) {
+                  <option [value]="gm.id">{{ gm.label }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="filtro-campo">
+              Geração
+              <select
+                id="filtro-generation-select"
+                class="filtro-select"
+                [value]="filters.generation() ?? ''"
+                (change)="onGenerationChange($event)"
+              >
+                <option value="">Todas</option>
+                @for (gen of generationOptions(); track gen.id) {
+                  <option [value]="gen.id">
+                    Gen {{ gen.id }}{{ gen.regionName ? ' · ' + formatLabel(gen.regionName) : '' }}
+                  </option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <span class="filtros-bloco-titulo">Raridade e Forma</span>
+            <div class="filtros-chips">
+              @for (flag of flagToggles; track flag.key) {
+                <button
+                  type="button"
+                  class="filtro-chip"
+                  [attr.aria-pressed]="isFlagActive(flag.key)"
+                  (click)="filters.toggleFlag(flag.key)"
+                >
+                  {{ flag.label }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      @case ('attributes') {
+        <div
+          id="filtro-panel-attributes"
+          class="filtros-tabpanel"
+          role="tabpanel"
+          aria-labelledby="filtro-tab-attributes"
+        >
+          @if (eggGroupOptions().length > 0) {
+            <label class="filtro-campo">
+              Raça (Grupo de Ovo)
+              <select
+                id="filtro-egggroup-select"
+                class="filtro-select"
+                [value]="filters.eggGroup() ?? ''"
+                (change)="onEggGroupChange($event)"
+              >
+                <option value="">Todas</option>
+                @for (item of eggGroupOptions(); track item.id) {
+                  <option [value]="item.name">{{ formatEggGroupPt(item.name) }}</option>
                 }
               </select>
             </label>
           }
 
-          @if (shapeOptions().length > 0) {
-            <label class="filtro-campo">
-              Formato
-              <select
-                class="filtro-select"
-                [value]="filters.shape() ?? ''"
-                (change)="onShapeChange($event)"
+          <form class="filtro-campo" (submit)="onApplyMove($event)">
+            <label for="filtro-move-input">Golpe (Move)</label>
+            <div class="filtro-inline">
+              <input
+                id="filtro-move-input"
+                type="text"
+                class="filtro-input"
+                [value]="moveDraft()"
+                placeholder="Ex.: thunderbolt, surf"
+                (input)="onMoveDraftInput($event)"
+              />
+              <button type="submit" id="btn-filtro-move-apply" class="filtro-acao-btn">
+                Aplicar
+              </button>
+            </div>
+          </form>
+
+          <div class="filtros-chips" aria-label="Golpes populares">
+            @for (mv of quickMoves; track mv.slug) {
+              <button
+                type="button"
+                class="filtro-chip"
+                [attr.aria-pressed]="filters.moveFilter() === mv.slug"
+                (click)="onPickQuickMove(mv.slug)"
               >
-                <option value="">Todos</option>
-                @for (item of shapeOptions(); track item.id) {
-                  <option [value]="item.name">{{ formatLabel(item.name) }}</option>
-                }
-              </select>
-            </label>
+                {{ mv.label }}
+              </button>
+            }
+          </div>
+
+          <form class="filtro-campo" (submit)="onApplyAbility($event)">
+            <label for="filtro-ability-input">Habilidade (Ability)</label>
+            <div class="filtro-inline">
+              <input
+                id="filtro-ability-input"
+                type="text"
+                class="filtro-input"
+                [value]="abilityDraft()"
+                placeholder="Ex.: static, levitate"
+                (input)="onAbilityDraftInput($event)"
+              />
+              <button type="submit" id="btn-filtro-ability-apply" class="filtro-acao-btn">
+                Aplicar
+              </button>
+            </div>
+          </form>
+
+          <div class="filtros-chips" aria-label="Habilidades populares">
+            @for (ab of quickAbilities; track ab.slug) {
+              <button
+                type="button"
+                class="filtro-chip"
+                [attr.aria-pressed]="filters.abilityFilter() === ab.slug"
+                (click)="onPickQuickAbility(ab.slug)"
+              >
+                {{ ab.label }}
+              </button>
+            }
+          </div>
+
+          @if (filters.remoteAllowedState().status === 'loading') {
+            <p class="filtros-estado">Consultando atributo na PokéAPI...</p>
+          } @else if (filters.remoteAllowedState().status === 'error') {
+            <div class="filtros-estado filtros-estado--erro" role="alert">
+              <span>Não foi possível consultar esse atributo agora.</span>
+              <button
+                type="button"
+                class="filtro-acao-btn"
+                (click)="filters.retryRemoteLookups()"
+              >
+                Tentar novamente
+              </button>
+            </div>
           }
         </div>
-      </div>
+      }
+
+      @default {
+        <div
+          id="filtro-panel-taxonomy"
+          class="filtros-tabpanel"
+          role="tabpanel"
+          aria-labelledby="filtro-tab-taxonomy"
+        >
+          <div class="filtros-grid">
+            <label class="filtro-campo">
+              Ordenação
+              <select class="filtro-select" [value]="filters.sortBy()" (change)="onSortChange($event)">
+                <option value="id-asc"># Crescente</option>
+                <option value="id-desc"># Decrescente</option>
+                <option value="name-asc">Nome A–Z</option>
+                <option value="bst-desc">Maior BST</option>
+              </select>
+            </label>
+
+            <label class="filtro-campo">
+              BST mínimo
+              <input
+                type="number"
+                min="0"
+                max="1200"
+                step="10"
+                class="filtro-input"
+                [value]="filters.minBst() > 0 ? filters.minBst() : ''"
+                placeholder="Ex.: 500"
+                (input)="onMinBstInput($event)"
+              />
+            </label>
+
+            @if (habitatOptions().length > 0) {
+              <label class="filtro-campo">
+                Habitat (Bioma)
+                <select
+                  id="filtro-habitat-select"
+                  class="filtro-select"
+                  [value]="filters.habitat() ?? ''"
+                  (change)="onHabitatChange($event)"
+                >
+                  <option value="">Todos</option>
+                  @for (item of habitatOptions(); track item.id) {
+                    <option [value]="item.name">{{ formatHabitatPt(item.name) }}</option>
+                  }
+                </select>
+              </label>
+            }
+
+            @if (colorOptions().length > 0) {
+              <label class="filtro-campo">
+                Cor
+                <select
+                  class="filtro-select"
+                  [value]="filters.color() ?? ''"
+                  (change)="onColorChange($event)"
+                >
+                  <option value="">Todas</option>
+                  @for (item of colorOptions(); track item.id) {
+                    <option [value]="item.name">{{ formatLabel(item.name) }}</option>
+                  }
+                </select>
+              </label>
+            }
+
+            @if (shapeOptions().length > 0) {
+              <label class="filtro-campo">
+                Formato
+                <select
+                  class="filtro-select"
+                  [value]="filters.shape() ?? ''"
+                  (change)="onShapeChange($event)"
+                >
+                  <option value="">Todos</option>
+                  @for (item of shapeOptions(); track item.id) {
+                    <option [value]="item.name">{{ formatLabel(item.name) }}</option>
+                  }
+                </select>
+              </label>
+            }
+          </div>
+        </div>
+      }
     }
 
     <div class="filtros-rodape">
@@ -199,7 +354,7 @@
         type="button"
         class="filtro-acao-btn"
         [disabled]="!filters.hasActiveFilters()"
-        (click)="filters.resetFilters()"
+        (click)="onResetAll()"
       >
         Limpar filtros
       </button>

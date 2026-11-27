@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, signal } from '@angular/core';
 import { type ParsedShowdownSpread, formatPokeApiText } from '@pokeverse/shared';
 import {
   COMPETITIVE_SPREAD_PRESETS,
@@ -27,7 +27,6 @@ type CalcSectionId = 'stats' | 'damage' | 'io';
 })
 export class PokedexStatCalcPanelComponent {
   readonly pokemon = input<PokemonDetailView | null>(null);
-  readonly backToFicha = output<void>();
 
   readonly fields = STAT_FIELDS;
   readonly natures = POKEMON_NATURES;

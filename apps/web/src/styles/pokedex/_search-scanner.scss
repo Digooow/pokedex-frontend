@@ -333,6 +333,26 @@
       0 0 0 rgba(2, 6, 23, 0.55);
   }
 
+  .btn-limpar-campo {
+    flex: 0 0 auto;
+    min-width: 36px;
+    min-height: 40px;
+    padding: 0 0.45rem;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--texto-formulario);
+    background-color: var(--bg-input);
+    border: 2px solid var(--borda-input);
+    border-radius: var(--raio-pequeno);
+    cursor: pointer;
+  }
+
+  .btn-limpar-campo:hover {
+    background-color: var(--bg-catalogo-item-hover);
+  }
+
   .painel-busca-form .btn-primario {
     min-height: 40px;
     padding: 0.35rem 0.75rem;
@@ -440,35 +460,33 @@
     flex-shrink: 0;
   }
 
-  .catalogo-quick-actions {
+  .catalogo-divisor {
     display: flex;
-    flex-wrap: nowrap;
     align-items: center;
-    justify-content: space-between;
-    gap: var(--espaco-1);
-    padding: 0.2rem 0.45rem;
-    border-radius: var(--raio-pequeno);
-    background-color: var(--bg-catalogo-item);
-    border: 1px solid var(--borda-catalogo);
-    flex-shrink: 0;
-    min-width: 0;
-  }
-
-  .catalogo-quick-label {
-    font-size: 0.75rem;
+    gap: var(--espaco-2);
+    padding: 0.2rem 0.25rem 0.1rem;
+    font-family: var(--fonte-mono);
+    font-size: 0.72rem;
     font-weight: 800;
-    color: var(--texto-formulario);
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--texto-formulario-secundario);
   }
 
-  .catalogo-quick-btns {
-    display: flex;
-    flex-wrap: nowrap;
-    flex-shrink: 0;
-    gap: 0.35rem;
+  .catalogo-divisor::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background-color: var(--pv-scanner-divider);
+  }
+
+  .catalogo-item--companion {
+    border-style: dashed;
+  }
+
+  .catalogo-item-tag--relation {
+    background-color: var(--palette-sky-100);
+    color: var(--palette-sky-800);
   }
 
   .catalogo-status {

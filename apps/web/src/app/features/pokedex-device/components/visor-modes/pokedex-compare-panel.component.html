@@ -1,15 +1,12 @@
 <section class="compare-embed" aria-label="Comparador 1v1 na Pokédex">
   <header class="compare-embed__head">
     <div class="compare-embed__titles">
-      <span class="compare-embed__badge">ARENA 1V1</span>
-      <h3 class="compare-embed__title">Comparador</h3>
+      <span class="compare-embed__badge">HOLOGRAMA · ARENA 1V1</span>
+      <h3 class="compare-embed__title">Comparador Amplo</h3>
     </div>
     <div class="compare-embed__actions">
       <button type="button" class="compare-btn" (click)="compare.swapSides()">
         Inverter A ↔ B
-      </button>
-      <button type="button" class="compare-btn" (click)="backToFicha.emit()">
-        Ver Ficha
       </button>
     </div>
   </header>
@@ -123,6 +120,9 @@
             </div>
             <span class="compare-fighter__id tabular-nums">{{ pk.paddedId }}</span>
             <h4 class="compare-fighter__name">{{ pk.displayName }}</h4>
+            @if (pk.bundle?.species?.genus; as genus) {
+              <p class="compare-fighter__genus">{{ genus }}</p>
+            }
             @if (pk.types.length > 0) {
               <ul class="compare-fighter__types" aria-label="Tipos">
                 @for (typeName of pk.types; track typeName) {
@@ -135,6 +135,11 @@
             <p class="compare-fighter__meta tabular-nums">
               BST {{ bstOf(pk) }} · {{ pk.heightMeters }} · {{ pk.weightKg }}
             </p>
+            @if (pk.abilities.length > 0) {
+              <p class="compare-fighter__abilities">
+                Habilidades: {{ pk.abilities.join(', ') }}
+              </p>
+            }
             <button
               type="button"
               class="compare-link-btn"

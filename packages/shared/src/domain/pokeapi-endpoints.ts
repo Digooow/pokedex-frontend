@@ -123,13 +123,28 @@ function buildPokeApiEndpointCatalog(): readonly PokeApiEndpointSpec[] {
 export const POKEAPI_V2_ENDPOINTS: readonly PokeApiEndpointSpec[] =
   /* @__PURE__ */ buildPokeApiEndpointCatalog();
 
+export const REGION_TO_GENERATION_ID: Readonly<Record<string, number>> = {
+  kanto: 1,
+  johto: 2,
+  hoenn: 3,
+  sinnoh: 4,
+  unova: 5,
+  kalos: 6,
+  alola: 7,
+  galar: 8,
+  hisui: 8,
+  paldea: 9,
+};
+
 export const PokedexAdvancedQuerySchema = z.object({
   term: z.string().max(80).default(''),
   types: z.array(z.enum(POKEMON_TYPES)).max(2).default([]),
   generation: z.number().int().min(1).max(9).nullable().default(null),
+  region: z.string().trim().max(40).nullable().default(null),
   habitat: z.string().trim().max(40).nullable().default(null),
   color: z.string().trim().max(40).nullable().default(null),
   shape: z.string().trim().max(40).nullable().default(null),
+  eggGroup: z.string().trim().max(40).nullable().default(null),
   onlyLegendary: z.boolean().default(false),
   onlyMythical: z.boolean().default(false),
   onlyBaby: z.boolean().default(false),
@@ -148,6 +163,7 @@ export interface EnrichedCatalogItem extends SearchablePokemonItem {
   readonly habitat?: string | null;
   readonly color?: string | null;
   readonly shape?: string | null;
+  readonly eggGroups?: readonly string[];
   readonly isLegendary?: boolean;
   readonly isMythical?: boolean;
   readonly isBaby?: boolean;
@@ -196,6 +212,12 @@ function matchesEnrichedFilters(
   if (parsed.generation !== null && item.generation !== parsed.generation) {
     return false;
   }
+  if (parsed.region) {
+    const expectedGen = REGION_TO_GENERATION_ID[parsed.region.toLowerCase()];
+    if (!expectedGen || item.generation !== expectedGen) {
+      return false;
+    }
+  }
   if (!matchesOptionalLabel(item.habitat, parsed.habitat)) {
     return false;
   }
@@ -204,6 +226,13 @@ function matchesEnrichedFilters(
   }
   if (!matchesOptionalLabel(item.shape, parsed.shape)) {
     return false;
+  }
+  if (parsed.eggGroup) {
+    const targetGroup = parsed.eggGroup.toLowerCase();
+    const groups = item.eggGroups ?? [];
+    if (!groups.some((group) => group.toLowerCase() === targetGroup)) {
+      return false;
+    }
   }
   return matchesSpeciesFlags(item, parsed);
 }

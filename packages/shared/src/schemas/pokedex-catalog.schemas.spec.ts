@@ -115,6 +115,7 @@ describe('pokedex-catalog.schemas', () => {
         isMythical: false,
         isBaby: false,
         baseStatTotal: 320,
+        eggGroups: ['ground', 'fairy'],
       },
       {
         id: 10080,
@@ -129,6 +130,7 @@ describe('pokedex-catalog.schemas', () => {
         isMythical: false,
         isBaby: false,
         baseStatTotal: 320,
+        eggGroups: ['ground', 'fairy'],
       },
     ]);
 

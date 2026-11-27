@@ -36,8 +36,8 @@
         type="button"
         class="visor-expand-btn"
         [attr.aria-expanded]="visorDetail.expanded()"
-        [attr.aria-label]="visorDetail.expanded() ? 'Recolher visor para a Pokédex 3D' : 'Expandir visor da Pokédex'"
-        [title]="visorDetail.expanded() ? 'Recolher visor (Esc)' : 'Expandir visor'"
+        [attr.aria-label]="visorDetail.expanded() ? 'Recolher visor para a Pokédex 3D' : 'Expandir holograma da Pokédex'"
+        [title]="visorDetail.expanded() ? 'Recolher visor (Esc)' : 'Abrir holograma expandido'"
         (click)="onToggleExpand($event)"
       >
         <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -47,12 +47,12 @@
             <path d="M10 2h4v4M6 14H2v-4M14 2l-4 4M2 14l4-4" />
           }
         </svg>
-        <span>{{ visorDetail.expanded() ? 'Recolher' : 'Expandir' }}</span>
+        <span>{{ visorDetail.expanded() ? 'Recolher' : 'Holograma' }}</span>
       </button>
     </div>
   </div>
 
-  @if (!slotsStore.editMode()) {
+  @if (visorDetail.expanded() && !slotsStore.editMode()) {
     <nav class="visor-modes" aria-label="Modos do Visor da Pokédex">
       @for (mode of modes; track mode.id) {
         @let selected = visorDetail.activeMode() === mode.id;
@@ -84,23 +84,20 @@
         (slotOpened)="slotOpened.emit($event)"
       />
     } @else {
-      @switch (visorDetail.activeMode()) {
+      @switch (visorDetail.expanded() ? visorDetail.activeMode() : 'ficha') {
         @case ('holocron') {
           <pv-pokedex-holocron-panel
             (selectSpecies)="onSelectSpecies($event)"
-            (backToFicha)="visorDetail.setMode('ficha')"
           />
         }
         @case ('comparar') {
           <pv-pokedex-compare-panel
             (openInPokedex)="onSelectFromMode($event)"
-            (backToFicha)="visorDetail.setMode('ficha')"
           />
         }
         @case ('calculadora') {
           <pv-pokedex-stat-calc-panel
             [pokemon]="pokemonData()"
-            (backToFicha)="visorDetail.setMode('ficha')"
           />
         }
         @case ('enciclopedia') {
@@ -189,36 +186,39 @@
 
             @case ('success') {
               @if (pokemonData(); as pokemon) {
-                <div class="visor-tabs" role="tablist" aria-label="Abas do visor da Pokédex">
-                  @for (tab of tabs; track tab.id) {
-                    @let selected = visorDetail.activeTab() === tab.id;
-                    <button
-                      type="button"
-                      role="tab"
-                      class="visor-tab-btn"
-                      [id]="'visor-tab-' + tab.id"
-                      [class.is-active]="selected"
-                      [attr.aria-selected]="selected ? 'true' : 'false'"
-                      [attr.aria-controls]="'visor-panel-' + tab.id"
-                      [attr.aria-label]="tab.label"
-                      (click)="onSelectTab(tab.id, pokemon.name, $event)"
-                      (keydown)="onTabKeyDown($event, pokemon.name)"
-                    >
-                      {{ tab.shortLabel }}
-                    </button>
-                  }
-                </div>
+                @if (visorDetail.expanded()) {
+                  <div class="visor-tabs" role="tablist" aria-label="Abas do visor da Pokédex">
+                    @for (tab of tabs; track tab.id) {
+                      @let selected = visorDetail.activeTab() === tab.id;
+                      <button
+                        type="button"
+                        role="tab"
+                        class="visor-tab-btn"
+                        [id]="'visor-tab-' + tab.id"
+                        [class.is-active]="selected"
+                        [attr.aria-selected]="selected ? 'true' : 'false'"
+                        [attr.aria-controls]="'visor-panel-' + tab.id"
+                        [attr.aria-label]="tab.label"
+                        (click)="onSelectTab(tab.id, pokemon.name, $event)"
+                        (keydown)="onTabKeyDown($event, pokemon.name)"
+                      >
+                        {{ tab.shortLabel }}
+                      </button>
+                    }
+                  </div>
+                }
 
                 <div
                   class="visor-tabpanel"
-                  role="tabpanel"
-                  [id]="'visor-panel-' + visorDetail.activeTab()"
-                  [attr.aria-labelledby]="'visor-tab-' + visorDetail.activeTab()"
+                  [attr.role]="visorDetail.expanded() ? 'tabpanel' : null"
+                  [id]="'visor-panel-' + (visorDetail.expanded() ? visorDetail.activeTab() : 'resumo')"
+                  [attr.aria-labelledby]="visorDetail.expanded() ? 'visor-tab-' + visorDetail.activeTab() : null"
                 >
-                  @switch (visorDetail.activeTab()) {
+                  @switch (visorDetail.expanded() ? visorDetail.activeTab() : 'resumo') {
                     @case ('resumo') {
                       <pv-visor-overview-tab
                         [pokemon]="pokemon"
+                        [expanded]="visorDetail.expanded()"
                         [spriteMode]="visorDetail.spriteMode()"
                         [shiny]="visorDetail.shiny()"
                         [isLite]="isLite()"
@@ -230,6 +230,8 @@
                         (compareRequested)="compareRequested.emit(pokemon)"
                         (holocronRequested)="holocronRequested.emit(pokemon)"
                         (calculatorRequested)="calculatorRequested.emit()"
+                        (fullDetailsRequested)="onOpenFullDetails(pokemon.name)"
+                        (encyclopediaRequested)="onOpenEncyclopedia()"
                       />
                     }
                     @case ('stats') {
@@ -276,6 +278,16 @@
                 </svg>
                 <h3>{{ emptyStateTitle }}</h3>
                 <p>{{ emptyStateDescription }}</p>
+                <button
+                  id="btn-empty-enciclopedia"
+                  type="button"
+                  class="visor-media-btn visor-media-btn--action visor-empty-holo-btn"
+                  [pvRpgFocusable]="'visor'"
+                  [pvRpgOrder]="0"
+                  (click)="onOpenEncyclopedia($event)"
+                >
+                  Abrir Enciclopédia no Holograma
+                </button>
               </div>
             }
           }

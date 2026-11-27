@@ -1,12 +1,31 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { POKEMON_TYPES, type PokemonTypeName, formatPokeApiText } from '@pokeverse/shared';
+import {
+  DEFAULT_GENERATION_OPTIONS,
+  type FilterPanelTab,
+  GAME_FILTER_OPTIONS,
+  QUICK_ABILITY_PRESETS,
+  QUICK_MOVE_PRESETS,
+  REGION_FILTER_OPTIONS,
+  formatEggGroupLabelPt,
+  formatHabitatLabelPt,
+  formatTypeLabelPt,
+  stepFilterTab,
+} from '../services/pokedex-attribute-search.util';
 import {
   type CatalogSortOption,
   type FilterFlagKey,
   PokedexFiltersStore,
 } from '../services/pokedex-filters.store';
 
-export type FilterPanelTab = 'primary' | 'taxonomy';
+export type { FilterPanelTab } from '../services/pokedex-attribute-search.util';
 
 @Component({
   selector: 'pv-pokedex-filters-panel',
@@ -17,63 +36,13 @@ export type FilterPanelTab = 'primary' | 'taxonomy';
 export class PokedexFiltersPanelComponent {
   readonly filters = inject(PokedexFiltersStore);
   readonly activeTab = signal<FilterPanelTab>('primary');
+  readonly moveDraft = signal('');
+  readonly abilityDraft = signal('');
 
-  readonly primaryActiveCount = computed(
-    () =>
-      this.filters.types().length +
-      (this.filters.generation() !== null ? 1 : 0) +
-      Number(this.filters.onlyLegendary()) +
-      Number(this.filters.onlyMythical()) +
-      Number(this.filters.onlyBaby()) +
-      Number(this.filters.excludeAlternateForms()),
-  );
-
-  readonly taxonomyActiveCount = computed(
-    () =>
-      (this.filters.sortBy() !== 'id-asc' ? 1 : 0) +
-      (this.filters.minBst() > 0 ? 1 : 0) +
-      (this.filters.habitat() !== null ? 1 : 0) +
-      (this.filters.color() !== null ? 1 : 0) +
-      (this.filters.shape() !== null ? 1 : 0),
-  );
-
-  readonly availableTypes = computed<readonly PokemonTypeName[]>(() => {
-    const meta = this.filters.metaState();
-    const fallback: readonly PokemonTypeName[] = POKEMON_TYPES;
-    if (meta.status !== 'success') return fallback;
-    const allowed = new Set<string>(POKEMON_TYPES);
-    const filtered: readonly PokemonTypeName[] = meta.data.types
-      .map((item) => item.name.toLowerCase())
-      .filter((name): name is PokemonTypeName => allowed.has(name));
-    return filtered.length > 0 ? filtered : fallback;
-  });
-
-  readonly generationOptions = computed(() => {
-    const meta = this.filters.metaState();
-    if (meta.status === 'success' && meta.data.generations.length > 0) {
-      return meta.data.generations;
-    }
-    return Array.from({ length: 9 }, (_, idx) => ({
-      id: idx + 1,
-      name: `generation-${idx + 1}`,
-      regionName: null,
-    }));
-  });
-
-  readonly habitatOptions = computed(() => {
-    const meta = this.filters.metaState();
-    return meta.status === 'success' ? meta.data.habitats : [];
-  });
-
-  readonly colorOptions = computed(() => {
-    const meta = this.filters.metaState();
-    return meta.status === 'success' ? meta.data.colors : [];
-  });
-
-  readonly shapeOptions = computed(() => {
-    const meta = this.filters.metaState();
-    return meta.status === 'success' ? meta.data.shapes : [];
-  });
+  readonly regionOptions = REGION_FILTER_OPTIONS;
+  readonly gameOptions = GAME_FILTER_OPTIONS;
+  readonly quickMoves = QUICK_MOVE_PRESETS;
+  readonly quickAbilities = QUICK_ABILITY_PRESETS;
 
   readonly flagToggles: readonly { readonly key: FilterFlagKey; readonly label: string }[] = [
     { key: 'onlyLegendary', label: 'Lendário' },
@@ -82,11 +51,66 @@ export class PokedexFiltersPanelComponent {
     { key: 'excludeAlternateForms', label: 'Sem formas alt.' },
   ];
 
-  readonly formatLabel = (raw: string | null | undefined): string => formatPokeApiText(raw);
-
-  isTypeSelected(type: PokemonTypeName): boolean {
-    return this.filters.types().includes(type);
+  constructor() {
+    effect(() => this.moveDraft.set(this.filters.moveFilter() ?? ''));
+    effect(() => this.abilityDraft.set(this.filters.abilityFilter() ?? ''));
   }
+
+  readonly primaryActiveCount = computed(
+    () =>
+      this.filters.types().length +
+      Number(this.filters.region() !== null) +
+      Number(this.filters.game() !== null) +
+      Number(this.filters.generation() !== null) +
+      Number(this.filters.onlyLegendary()) +
+      Number(this.filters.onlyMythical()) +
+      Number(this.filters.onlyBaby()) +
+      Number(this.filters.excludeAlternateForms()),
+  );
+
+  readonly attributesActiveCount = computed(
+    () =>
+      Number(this.filters.eggGroup() !== null) +
+      Number(this.filters.moveFilter() !== null) +
+      Number(this.filters.abilityFilter() !== null),
+  );
+
+  readonly taxonomyActiveCount = computed(
+    () =>
+      Number(this.filters.sortBy() !== 'id-asc') +
+      Number(this.filters.minBst() > 0) +
+      Number(this.filters.habitat() !== null) +
+      Number(this.filters.color() !== null) +
+      Number(this.filters.shape() !== null),
+  );
+
+  readonly availableTypes = computed<readonly PokemonTypeName[]>(() => {
+    const meta = this.filters.metaState();
+    if (meta.status !== 'success') return POKEMON_TYPES;
+    const allowed = new Set<string>(POKEMON_TYPES);
+    const filtered: readonly PokemonTypeName[] = meta.data.types
+      .map((item) => item.name.toLowerCase())
+      .filter((name): name is PokemonTypeName => allowed.has(name));
+    return filtered.length > 0 ? filtered : POKEMON_TYPES;
+  });
+
+  readonly generationOptions = computed(() => {
+    const meta = this.filters.metaState();
+    return meta.status === 'success' && meta.data.generations.length > 0
+      ? meta.data.generations
+      : DEFAULT_GENERATION_OPTIONS;
+  });
+
+  readonly eggGroupOptions = computed(() => this.metaList('eggGroups'));
+  readonly habitatOptions = computed(() => this.metaList('habitats'));
+  readonly colorOptions = computed(() => this.metaList('colors'));
+  readonly shapeOptions = computed(() => this.metaList('shapes'));
+
+  readonly formatLabel = (raw: string | null | undefined): string => formatPokeApiText(raw);
+  readonly formatTypePt = (type: PokemonTypeName): string => formatTypeLabelPt(type);
+  readonly formatEggGroupPt = (slug: string): string => formatEggGroupLabelPt(slug);
+  readonly formatHabitatPt = (slug: string): string => formatHabitatLabelPt(slug);
+  isTypeSelected = (type: PokemonTypeName): boolean => this.filters.types().includes(type);
 
   isFlagActive(flag: FilterFlagKey): boolean {
     if (flag === 'onlyLegendary') return this.filters.onlyLegendary();
@@ -96,30 +120,41 @@ export class PokedexFiltersPanelComponent {
   }
 
   onGenerationChange(event: Event): void {
-    const raw = (event.target as HTMLSelectElement).value;
-    const parsed = Number.parseInt(raw, 10);
+    const parsed = Number.parseInt((event.target as HTMLSelectElement).value, 10);
     this.filters.setGeneration(Number.isNaN(parsed) ? null : parsed);
   }
 
-  onHabitatChange(event: Event): void {
-    this.filters.setHabitat((event.target as HTMLSelectElement).value || null);
+  onRegionChange = (e: Event) => this.filters.setRegion(this.readValue(e) || null);
+  onGameChange = (e: Event) => this.filters.setGame(this.readValue(e) || null);
+  onEggGroupChange = (e: Event) => this.filters.setEggGroup(this.readValue(e) || null);
+  onHabitatChange = (e: Event) => this.filters.setHabitat(this.readValue(e) || null);
+  onColorChange = (e: Event) => this.filters.setColor(this.readValue(e) || null);
+  onShapeChange = (e: Event) => this.filters.setShape(this.readValue(e) || null);
+  onSortChange = (e: Event) => this.filters.setSortBy(this.readValue(e) as CatalogSortOption);
+  onMinBstInput = (e: Event) => this.filters.setMinBst(Number(this.readValue(e) || 0));
+  onMoveDraftInput = (e: Event) => this.moveDraft.set(this.readValue(e));
+  onAbilityDraftInput = (e: Event) => this.abilityDraft.set(this.readValue(e));
+
+  onApplyMove(event: Event): void {
+    event.preventDefault();
+    this.filters.setMoveFilter(this.moveDraft().trim() || null);
   }
 
-  onColorChange(event: Event): void {
-    this.filters.setColor((event.target as HTMLSelectElement).value || null);
+  onPickQuickMove(slug: string): void {
+    const next = this.filters.moveFilter() === slug ? null : slug;
+    this.moveDraft.set(next ?? '');
+    this.filters.setMoveFilter(next);
   }
 
-  onShapeChange(event: Event): void {
-    this.filters.setShape((event.target as HTMLSelectElement).value || null);
+  onApplyAbility(event: Event): void {
+    event.preventDefault();
+    this.filters.setAbilityFilter(this.abilityDraft().trim() || null);
   }
 
-  onSortChange(event: Event): void {
-    this.filters.setSortBy((event.target as HTMLSelectElement).value as CatalogSortOption);
-  }
-
-  onMinBstInput(event: Event): void {
-    const raw = (event.target as HTMLInputElement).value;
-    this.filters.setMinBst(raw ? Number(raw) : 0);
+  onPickQuickAbility(slug: string): void {
+    const next = this.filters.abilityFilter() === slug ? null : slug;
+    this.abilityDraft.set(next ?? '');
+    this.filters.setAbilityFilter(next);
   }
 
   onPanelKeyDown(event: KeyboardEvent): void {
@@ -135,27 +170,28 @@ export class PokedexFiltersPanelComponent {
     this.filters.ensureLoaded(true);
   }
 
-  selectTab(tab: FilterPanelTab): void {
-    this.activeTab.set(tab);
+  onResetAll(): void {
+    this.moveDraft.set('');
+    this.abilityDraft.set('');
+    this.filters.resetFilters();
   }
 
+  selectTab = (tab: FilterPanelTab) => this.activeTab.set(tab);
+
   onTabKeyDown(event: KeyboardEvent): void {
-    if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
-      event.preventDefault();
-      event.stopPropagation();
-      this.activeTab.update((curr) => (curr === 'primary' ? 'taxonomy' : 'primary'));
-      return;
-    }
-    if (event.key === 'Home') {
-      event.preventDefault();
-      event.stopPropagation();
-      this.activeTab.set('primary');
-      return;
-    }
-    if (event.key === 'End') {
-      event.preventDefault();
-      event.stopPropagation();
-      this.activeTab.set('taxonomy');
-    }
+    const next = stepFilterTab(this.activeTab(), event.key);
+    if (!next) return;
+    event.preventDefault();
+    event.stopPropagation();
+    this.activeTab.set(next);
+  }
+
+  private readValue(event: Event): string {
+    return (event.target as HTMLInputElement | HTMLSelectElement).value;
+  }
+
+  private metaList(key: 'eggGroups' | 'habitats' | 'colors' | 'shapes') {
+    const meta = this.filters.metaState();
+    return meta.status === 'success' ? meta.data[key] : [];
   }
 }

@@ -43,6 +43,13 @@ export const GraphQlEnrichedPokemonRowSchema = z.object({
         .object({ name: z.string().min(1) })
         .nullable()
         .optional(),
+      pokemonegggroups: z
+        .array(
+          z.object({
+            egggroup: z.object({ name: z.string().min(1) }),
+          }),
+        )
+        .default([]),
     })
     .nullable()
     .optional(),

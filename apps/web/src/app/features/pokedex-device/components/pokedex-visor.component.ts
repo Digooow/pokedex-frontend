@@ -148,8 +148,17 @@ export class PokedexVisorComponent {
   }
 
   onSelectFromMode(pokemonName: string): void {
-    this.visorDetail.setMode('ficha');
+    this.visorDetail.openHologram('ficha', 'resumo', pokemonName);
     this.selectSuggestion.emit(pokemonName);
+  }
+
+  onOpenFullDetails(pokemonName: string): void {
+    this.visorDetail.openHologram('ficha', 'stats', pokemonName);
+  }
+
+  onOpenEncyclopedia(event?: Event): void {
+    event?.stopPropagation();
+    this.visorDetail.openHologram('enciclopedia');
   }
 
   onSelectTab(tabId: VisorTabId, pokemonName: string, event: Event): void {

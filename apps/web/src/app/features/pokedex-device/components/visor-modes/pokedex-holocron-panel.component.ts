@@ -21,7 +21,6 @@ export class PokedexHolocronPanelComponent {
   private readonly audioEngine = inject(AudioEngineService);
 
   readonly selectSpecies = output<string>();
-  readonly backToFicha = output<void>();
 
   readonly activePokemon = computed(() => {
     const state = this.holocron.pokemonState();

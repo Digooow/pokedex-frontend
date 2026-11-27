@@ -24,16 +24,13 @@
             <span class="holocron-embed__badge">HOLOCRON 3D</span>
             <h3 class="holocron-embed__title">{{ pk.paddedId }} {{ pk.displayName }}</h3>
           </div>
-          <button type="button" class="holocron-embed__btn" (click)="backToFicha.emit()">
-            Ver Ficha
-          </button>
         </header>
 
         <pv-holocron-stage
           [pokemon]="pk"
           [shiny]="holocron.shiny()"
           [autoRotate]="holocron.autoRotate()"
-          [compact]="true"
+          [compact]="false"
           (toggleShiny)="holocron.toggleShiny()"
           (toggleAutoRotate)="holocron.toggleAutoRotate()"
         />

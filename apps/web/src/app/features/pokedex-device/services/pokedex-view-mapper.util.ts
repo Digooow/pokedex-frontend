@@ -12,6 +12,7 @@ import {
   filterCatalogWithAdvancedQuery,
   formatPokeApiText,
 } from '@pokeverse/shared';
+import { matchesAllowedSpeciesSet } from './pokedex-attribute-search.util';
 
 export type PokedexCacheSource = 'hit' | 'miss' | 'stale-fallback' | 'direct';
 
@@ -186,8 +187,12 @@ export function buildAdvancedCatalogResult(
   queryPayload: PokedexAdvancedQuery,
   hasTerm: boolean,
   batchLimit: number,
+  remoteAllowedNames: ReadonlySet<string> | null = null,
 ): { readonly totalMatches: number; readonly result: CatalogFilterResult } {
-  const matches = filterCatalogWithAdvancedQuery(enriched, queryPayload);
+  const baseMatches = filterCatalogWithAdvancedQuery(enriched, queryPayload);
+  const matches = remoteAllowedNames
+    ? baseMatches.filter((item) => matchesAllowedSpeciesSet(item.name, remoteAllowedNames))
+    : baseMatches;
   const sliced = hasTerm ? matches : matches.slice(0, batchLimit);
   return {
     totalMatches: matches.length,
@@ -209,6 +214,7 @@ export function buildAdvancedCatalogResult(
 export function resolveCatalogStatusLabel(params: {
   readonly hasActiveFilters: boolean;
   readonly enrichedStatus: string;
+  readonly remoteLookupStatus?: string;
   readonly catalogStatus: string;
   readonly totalCount: number;
   readonly term: string;
@@ -216,8 +222,12 @@ export function resolveCatalogStatusLabel(params: {
   readonly filterMode: string;
 }): string {
   if (params.hasActiveFilters) {
-    if (params.enrichedStatus === 'loading') return 'Aplicando filtros avançados...';
-    if (params.enrichedStatus === 'error') return 'Filtros avançados indisponíveis.';
+    if (params.enrichedStatus === 'loading' || params.remoteLookupStatus === 'loading') {
+      return 'Aplicando filtros avançados...';
+    }
+    if (params.enrichedStatus === 'error' || params.remoteLookupStatus === 'error') {
+      return 'Filtros avançados indisponíveis.';
+    }
     return params.totalCount === 0
       ? 'Nenhum Pokémon com os filtros ativos'
       : `${params.totalCount} Pokémon com filtros ativos`;
@@ -249,4 +259,18 @@ export function resolveVisorBadge(
   if (src === 'hit') return { variant: 'sucesso', label: 'Encontrado · Redis' };
   if (src === 'stale-fallback') return { variant: 'sucesso', label: 'Encontrado · Reserva' };
   return { variant: 'sucesso', label: 'Encontrado' };
+}
+
+export function findPokemonIndexByIdentifier(
+  items: ReadonlyArray<{ readonly id: number; readonly name: string }>,
+  rawIdentifier: string | number | null,
+): number {
+  if (rawIdentifier === null) return -1;
+  const target = String(rawIdentifier).trim().toLowerCase();
+  if (!target) return -1;
+  const numericId = Number.parseInt(target.replace(/^#/, ''), 10);
+  return items.findIndex(
+    (item) =>
+      item.name.toLowerCase() === target || (!Number.isNaN(numericId) && item.id === numericId),
+  );
 }

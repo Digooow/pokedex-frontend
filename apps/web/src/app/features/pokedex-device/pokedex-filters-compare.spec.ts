@@ -88,7 +88,7 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     expect(hostEl.querySelector('#filtro-panel-taxonomy')).toBeNull();
 
     const electricChip = Array.from(hostEl.querySelectorAll('.filtro-chip')).find((el) =>
-      el.textContent?.includes('Electric'),
+      el.textContent?.includes('Elétrico'),
     ) as HTMLButtonElement;
     expect(electricChip.getAttribute('data-pokemon-type')).toBe('electric');
     electricChip.click();
@@ -97,6 +97,15 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     expect(filters.activeFilterCount()).toBe(1);
     expect(primaryTab.querySelector('.filtros-tab-count')?.textContent).toContain('1');
     expect(store.filteredCatalog().items.map((item) => item.name)).toEqual(['pikachu']);
+    expect(store.displayCatalog().items.length).toBeGreaterThan(1);
+    expect(hostEl.querySelector('.catalogo-divisor')?.textContent).toContain('Relacionados');
+    expect(hostEl.querySelector('.catalogo-quick-actions')).toBeNull();
+
+    const attributesTab = hostEl.querySelector('#filtro-tab-attributes') as HTMLButtonElement;
+    attributesTab.click();
+    fixture.detectChanges();
+    expect(attributesTab.getAttribute('aria-selected')).toBe('true');
+    expect(hostEl.querySelector('#filtro-panel-attributes')).not.toBeNull();
 
     taxonomyTab.click();
     fixture.detectChanges();
@@ -110,6 +119,11 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     expect(taxonomyTab.querySelector('.filtros-tab-count')?.textContent).toContain('1');
 
     taxonomyTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    fixture.detectChanges();
+    expect(attributesTab.getAttribute('aria-selected')).toBe('true');
+    expect(hostEl.querySelector('#filtro-panel-attributes')).not.toBeNull();
+
+    attributesTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
     fixture.detectChanges();
     expect(primaryTab.getAttribute('aria-selected')).toBe('true');
     expect(hostEl.querySelector('#filtro-panel-primary')).not.toBeNull();
@@ -146,8 +160,10 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    expect(visorDetail.expanded()).toBe(true);
     expect(visorDetail.activeMode()).toBe('comparar');
     expect(compare.leftState().status).toBe('success');
+    expect(hostEl.querySelector('.compare-embed__actions')?.textContent).not.toContain('Ver Ficha');
 
     compare.selectSide('right', 'mewtwo');
     fixture.detectChanges();

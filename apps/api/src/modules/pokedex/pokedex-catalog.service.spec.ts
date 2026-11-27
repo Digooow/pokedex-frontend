@@ -43,6 +43,10 @@ const GRAPHQL_CATALOG_FIXTURE = {
           pokemonhabitat: { name: 'forest' },
           pokemoncolor: { name: 'yellow' },
           pokemonshape: { name: 'quadruped' },
+          pokemonegggroups: [
+            { egggroup: { name: 'ground' } },
+            { egggroup: { name: 'fairy' } },
+          ],
         },
       },
     ],
@@ -142,6 +146,7 @@ describe('PokedexCatalogService', () => {
           habitat: 'forest',
           color: 'yellow',
           shape: 'quadruped',
+          eggGroups: ['ground', 'fairy'],
           baseStatTotal: 320,
         },
       ],

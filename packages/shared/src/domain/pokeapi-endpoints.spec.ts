@@ -216,4 +216,23 @@ describe('pokeapi-endpoints domain catalog and advanced query', () => {
     expect(() => filterCatalogWithAdvancedQuery(SAMPLE_CATALOG, { limit: 0 })).toThrow();
     expect(() => filterCatalogWithAdvancedQuery(SAMPLE_CATALOG, { generation: 10 })).toThrow();
   });
+
+  it('filters by region and eggGroup (raça) accurately', () => {
+    const withEggGroups: readonly EnrichedCatalogItem[] = SAMPLE_CATALOG.map((item) => ({
+      ...item,
+      eggGroups: item.name === 'charizard' ? ['monster', 'dragon'] : ['field'],
+    }));
+
+    expect(
+      filterCatalogWithAdvancedQuery(withEggGroups, { region: 'kanto', eggGroup: 'Dragon' }).map(
+        (entry) => entry.name,
+      ),
+    ).toEqual(['charizard']);
+
+    expect(
+      filterCatalogWithAdvancedQuery(withEggGroups, { region: 'johto' }).map((entry) => entry.name),
+    ).toEqual(['pichu']);
+
+    expect(filterCatalogWithAdvancedQuery(withEggGroups, { region: 'unknown-region' })).toEqual([]);
+  });
 });

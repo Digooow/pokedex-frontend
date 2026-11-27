@@ -33,6 +33,7 @@ import {
 export class VisorOverviewTabComponent {
   readonly typeSlug = resolvePokemonTypeSlug;
   readonly pokemon = input.required<PokemonDetailView>();
+  readonly expanded = input<boolean>(false);
   readonly primaryTypeSlug = computed(() => resolvePokemonTypeSlug(this.pokemon().types[0] ?? ''));
   readonly spriteMode = input.required<VisorSpriteMode>();
   readonly shiny = input.required<boolean>();
@@ -46,6 +47,8 @@ export class VisorOverviewTabComponent {
   readonly compareRequested = output<void>();
   readonly holocronRequested = output<void>();
   readonly calculatorRequested = output<void>();
+  readonly fullDetailsRequested = output<void>();
+  readonly encyclopediaRequested = output<void>();
 
   private readonly usedFallbackSprite = signal(false);
   readonly imageFailed = signal(false);

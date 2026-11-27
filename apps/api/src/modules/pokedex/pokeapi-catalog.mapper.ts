@@ -68,16 +68,25 @@ function mapSpecyAttributes(specy: GraphQlEnrichedPokemonRow['pokemonspecy']) {
       habitat: null,
       color: null,
       shape: null,
+      eggGroups: [] as string[],
       isLegendary: false,
       isMythical: false,
       isBaby: false,
     };
   }
+  const eggGroups = Array.from(
+    new Set(
+      specy.pokemonegggroups
+        .map((entry) => entry.egggroup.name.trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
   return {
     generation: normalizeGenerationId(specy.generation_id),
     habitat: specy.pokemonhabitat?.name.toLowerCase() ?? null,
     color: specy.pokemoncolor?.name.toLowerCase() ?? null,
     shape: specy.pokemonshape?.name.toLowerCase() ?? null,
+    eggGroups,
     isLegendary: specy.is_legendary,
     isMythical: specy.is_mythical,
     isBaby: specy.is_baby,
@@ -153,6 +162,7 @@ export function mapRestCatalogToDegradedEnriched(
       habitat: null,
       color: null,
       shape: null,
+      eggGroups: [],
       isLegendary: false,
       isMythical: false,
       isBaby: false,

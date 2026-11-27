@@ -61,6 +61,8 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
 
     const pikachuItem = page.locator('.catalogo-item', { hasText: 'Pikachu' }).first();
     await expect(pikachuItem).toBeVisible();
+    await expect(page.locator('.catalogo-item')).toHaveCount(3);
+    await expect(page.locator('.catalogo-divisor')).toContainText('Relacionados');
 
     await pikachuItem.click();
     await expect(pikachuItem).toHaveClass(/is-cursor/);
@@ -68,8 +70,10 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
 
     await pikachuItem.click();
     await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
+    await expect(page.locator('.visor-tabs')).toHaveCount(0);
 
-    await page.locator('#visor-tab-stats').click();
+    await page.locator('#btn-ficha-completa').click();
+    await expect(page.locator('#resultado-area')).toHaveClass(/is-visor-expanded/);
     await expect(page.locator('.visor-bst-badge')).toContainText('BST 320');
 
     await page.locator('#visor-tab-evolucao').click();
@@ -84,6 +88,8 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
 
     await page.locator('#visor-tab-resumo').click();
     await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
+    await page.locator('#btn-visor-expand').click();
+    await expect(page.locator('#resultado-area')).not.toHaveClass(/is-visor-expanded/);
 
     const slotZero = page.locator('.btn-slot-azul[data-slot-index="0"]');
     await slotZero.click();
@@ -109,8 +115,9 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
 
     await page.locator('#btn-filtros-catalogo').click();
     await expect(page.locator('#pokedex-filtros-painel')).toBeVisible();
-    await page.locator('.filtro-chip', { hasText: 'Electric' }).click();
+    await page.locator('.filtro-chip', { hasText: 'Elétrico' }).click();
     await expect(page.locator('#catalogo-status')).toContainText('1 Pokémon com filtros ativos');
+    await expect(page.locator('.catalogo-item')).toHaveCount(3);
 
     const pikachuItem = page.locator('.catalogo-item', { hasText: 'Pikachu' }).first();
     await pikachuItem.click();
@@ -118,12 +125,14 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await expect(page.locator('.pokemon-nome')).toContainText('Pikachu');
 
     await page.locator('#btn-comparar-1v1').click();
+    await expect(page.locator('#resultado-area')).toHaveClass(/is-visor-expanded/);
+    await expect(page.locator('#btn-visor-expand')).toHaveAttribute('aria-expanded', 'true');
     const comparePanel = page.locator('.compare-embed');
     await expect(comparePanel).toBeVisible();
     await comparePanel
       .locator('.compare-slot')
       .nth(1)
-      .locator('.compare-chip', { hasText: 'Pikachu' })
+      .locator('.compare-chip', { hasText: 'Bulbasaur' })
       .first()
       .click();
     await expect(comparePanel.locator('.compare-stats')).toBeVisible();
@@ -132,12 +141,12 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await expect(page.locator('.calc-panel')).toBeVisible();
     await expect(page.locator('.calc-footer__total')).toBeVisible();
 
-    await page.locator('#btn-visor-expand').click();
-    await expect(page.locator('#btn-visor-expand')).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#resultado-area')).toHaveClass(/is-visor-expanded/);
     await page.keyboard.press('Escape');
     await expect(page.locator('#btn-visor-expand')).toHaveAttribute('aria-expanded', 'false');
     await expect(page.locator('#pokedex-aparelho')).toHaveAttribute('data-aberta', 'true');
+
+    await page.locator('#btn-calc-stats').click();
+    await expect(page.locator('#resultado-area')).toHaveClass(/is-visor-expanded/);
 
     await page.locator('#calc-competitive-preset').selectOption('vgc-fast-special');
     await expect(page.locator('.calc-head__title')).toContainText('Nv. 50');
