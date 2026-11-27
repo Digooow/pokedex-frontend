@@ -1,11 +1,6 @@
 import { type PokemonBundle, formatPokeApiText } from '@pokeverse/shared';
 
-export type EffectivenessBucketVariant =
-  | 'quad-weak'
-  | 'weak'
-  | 'resist'
-  | 'quad-resist'
-  | 'immune';
+export type EffectivenessBucketVariant = 'quad-weak' | 'weak' | 'resist' | 'quad-resist' | 'immune';
 
 export interface EffectivenessBucketView {
   readonly label: string;

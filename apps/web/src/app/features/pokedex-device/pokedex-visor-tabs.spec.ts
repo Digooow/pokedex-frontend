@@ -142,14 +142,19 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
 
     expect(hostEl.querySelector('.visor-bst-badge')?.textContent).toContain('BST 320');
     expect(hostEl.textContent).toContain('+2 Spe EV');
-    expect(hostEl.querySelector('.visor-eff-badge--weak')?.textContent).toContain('2x');
-    expect(
-      hostEl.querySelector('.visor-eff-group .tipo-badge')?.getAttribute('data-pokemon-type'),
-    ).toBe('ground');
+    expect(hostEl.querySelector('.visor-eff-badge--weak')?.textContent).toContain(
+      'Fraco contra (2x)',
+    );
+    expect(hostEl.querySelector('.visor-eff-badge--resist')?.textContent).toContain(
+      'Forte contra (0.5x)',
+    );
     expect(
       hostEl.querySelector('.visor-eff-group .tipo-badge')?.getAttribute('data-pokemon-type'),
     ).toBe('ground');
     expect(hostEl.textContent).toContain('Ground');
+    expect(hostEl.querySelector('.visor-eff-badge--quad-weak')).toBeNull();
+    expect(hostEl.querySelector('.visor-eff-badge--quad-resist')).toBeNull();
+    expect(hostEl.querySelector('.visor-eff-badge--immune')).toBeNull();
 
     const abilityTrigger = hostEl.querySelector('.visor-accordion-trigger') as HTMLButtonElement;
     abilityTrigger.click();
@@ -257,5 +262,63 @@ describe('Pokedex Visor 2.0 (5 LCD Tabs & Lazy Endpoints)', () => {
 
     expect(hostEl.querySelector('.calc-head__title')?.textContent).toContain('Pikachu · Nv. 100');
     expect(hostEl.querySelector('.calc-footer__total')?.textContent?.trim()).not.toBe('0');
+  });
+
+  it('renders all 5 explicit defensive matrix buckets (4x, 2x, 0.5x, 0.25x, 0x) in order and omits empty buckets', () => {
+    const { httpMock, store, fixture } = setupDeviceWithPikachu();
+    const hostEl = fixture.nativeElement as HTMLElement;
+
+    store.loadPokemonDetail('ferrothorn');
+    fixture.detectChanges();
+    httpMock.expectOne('/api/v1/pokedex/pokemon/ferrothorn/bundle').flush(
+      createCachedPokemonBundleFixture({
+        id: 598,
+        name: 'ferrothorn',
+        typeName: 'grass',
+        defensiveRelations: [
+          {
+            typeName: 'grass',
+            doubleDamageFrom: ['fire', 'ice'],
+            halfDamageFrom: ['water', 'grass'],
+            noDamageFrom: [],
+          },
+          {
+            typeName: 'steel',
+            doubleDamageFrom: ['fire', 'fighting'],
+            halfDamageFrom: ['normal', 'grass'],
+            noDamageFrom: ['poison'],
+          },
+        ],
+      }),
+    );
+    fixture.detectChanges();
+
+    (hostEl.querySelector('#btn-ficha-completa') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    const badges = Array.from(hostEl.querySelectorAll('.visor-eff-badge')).map((el) =>
+      el.textContent?.trim(),
+    );
+    expect(badges).toEqual([
+      'Fraco contra (4x)',
+      'Fraco contra (2x)',
+      'Forte contra (0.5x)',
+      'Forte contra (0.25x)',
+      'Imune a (0x)',
+    ]);
+
+    const groupTexts = Array.from(hostEl.querySelectorAll('.visor-eff-group')).map((group) => ({
+      badge: group.querySelector('.visor-eff-badge')?.className,
+      types: Array.from(group.querySelectorAll('.tipo-badge')).map((chip) =>
+        chip.getAttribute('data-pokemon-type'),
+      ),
+    }));
+    expect(groupTexts).toEqual([
+      { badge: expect.stringContaining('visor-eff-badge--quad-weak'), types: ['fire'] },
+      { badge: expect.stringContaining('visor-eff-badge--weak'), types: ['ice', 'fighting'] },
+      { badge: expect.stringContaining('visor-eff-badge--resist'), types: ['water', 'normal'] },
+      { badge: expect.stringContaining('visor-eff-badge--quad-resist'), types: ['grass'] },
+      { badge: expect.stringContaining('visor-eff-badge--immune'), types: ['poison'] },
+    ]);
   });
 });

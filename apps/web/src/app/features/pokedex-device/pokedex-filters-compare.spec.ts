@@ -181,6 +181,13 @@ describe('Pokedex Filters Panel & 1v1 Comparator', () => {
     expect(hostEl.querySelector('.compare-verdict')).not.toBeNull();
     expect(hostEl.querySelector('.compare-stats')).not.toBeNull();
     expect(hostEl.querySelector('.compare-defense')).not.toBeNull();
+    expect(hostEl.querySelector('.compare-defense')?.textContent).toContain(
+      'Fraco contra (4x/2x):',
+    );
+    expect(hostEl.querySelector('.compare-defense')?.textContent).toContain(
+      'Forte contra (0.5x/0.25x):',
+    );
+    expect(hostEl.querySelector('.compare-defense')?.textContent).toContain('Imune a (0x):');
     expect(hostEl.querySelector('.pv-type-badge[data-pokemon-type="electric"]')).not.toBeNull();
     expect(hostEl.querySelector('.pv-type-badge[data-pokemon-type="psychic"]')).not.toBeNull();
 

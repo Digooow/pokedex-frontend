@@ -636,6 +636,15 @@
     }
   }
 
+  @container visor (min-width: 480px) {
+    .visor-eff-group {
+      display: grid;
+      grid-template-columns: minmax(11.5rem, auto) minmax(0, 1fr);
+      align-items: start;
+      gap: var(--pv-space-2);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .visor-tab-btn,
     .visor-media-btn {

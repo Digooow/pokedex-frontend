@@ -15,12 +15,6 @@ import {
   translateStatName,
 } from '../../services/pokedex-visor-format.util';
 
-interface EffectivenessBucketView {
-  readonly label: string;
-  readonly variant: 'quad-weak' | 'weak' | 'resist' | 'quad-resist' | 'immune';
-  readonly types: readonly string[];
-}
-
 @Component({
   selector: 'pv-visor-stats-tab',
   imports: [PvRpgFocusableDirective],
@@ -69,38 +63,9 @@ export class VisorStatsTabComponent {
 
   readonly evYields = computed(() => this.statsRows().filter((row) => row.effort > 0));
 
-  readonly effectivenessBuckets = computed<readonly EffectivenessBucketView[]>(() => {
-    const matrix = this.pokemon().bundle?.typeEffectiveness;
-    if (!matrix) return [];
-    const groups: EffectivenessBucketView[] = [
-      {
-        label: '4x',
-        variant: 'quad-weak',
-        types: matrix.quadWeak.map((item) => formatPokeApiText(item)),
-      },
-      {
-        label: '2x',
-        variant: 'weak',
-        types: matrix.weak.map((item) => formatPokeApiText(item)),
-      },
-      {
-        label: '0.5x',
-        variant: 'resist',
-        types: matrix.resistant.map((item) => formatPokeApiText(item)),
-      },
-      {
-        label: '0.25x',
-        variant: 'quad-resist',
-        types: matrix.quadResistant.map((item) => formatPokeApiText(item)),
-      },
-      {
-        label: '0x',
-        variant: 'immune',
-        types: matrix.immune.map((item) => formatPokeApiText(item)),
-      },
-    ];
-    return groups.filter((group) => group.types.length > 0);
-  });
+  readonly effectivenessBuckets = computed<readonly EffectivenessBucketView[]>(() =>
+    buildDefensiveEffectivenessBuckets(this.pokemon().bundle?.typeEffectiveness),
+  );
 
   readonly abilities = computed(() => {
     const bundleAbilities = this.pokemon().bundle?.pokemon.abilities;

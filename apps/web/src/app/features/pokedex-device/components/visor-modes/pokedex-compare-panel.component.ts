@@ -24,6 +24,7 @@ export class PokedexComparePanelComponent {
   readonly compare = inject(PokedexCompareStore);
   readonly pokedex = inject(PokedexStore);
   readonly typeSlug = resolvePokemonTypeSlug;
+  readonly defenseLabels = COMPARE_DEFENSE_LABELS;
 
   readonly openInPokedex = output<string>();
 

@@ -36,6 +36,7 @@ export interface PokemonBundleFixtureParams {
   readonly weight?: number;
   readonly isLegendary?: boolean;
   readonly minimalMedia?: boolean;
+  readonly defensiveRelations?: Parameters<typeof computeDefensiveTypeEffectiveness>[0];
 }
 
 export function createCachedPokemonBundleFixture(
@@ -48,14 +49,17 @@ export function createCachedPokemonBundleFixture(
     ? null
     : `${POKEAPI_SPRITE_BASE}/other/showdown/${params.id}.gif`;
   const defaultSprite = `${POKEAPI_SPRITE_BASE}/${params.id}.png`;
-  const eff = computeDefensiveTypeEffectiveness([
-    {
-      typeName: params.typeName,
-      doubleDamageFrom: params.typeName === 'electric' ? ['ground'] : ['fire'],
-      halfDamageFrom: params.typeName === 'electric' ? ['electric', 'flying', 'steel'] : ['water'],
-      noDamageFrom: [],
-    },
-  ]);
+  const eff = computeDefensiveTypeEffectiveness(
+    params.defensiveRelations ?? [
+      {
+        typeName: params.typeName,
+        doubleDamageFrom: params.typeName === 'electric' ? ['ground'] : ['fire'],
+        halfDamageFrom:
+          params.typeName === 'electric' ? ['electric', 'flying', 'steel'] : ['water'],
+        noDamageFrom: [],
+      },
+    ],
+  );
 
   const baseMoves = [
     {
