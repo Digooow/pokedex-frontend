@@ -16,7 +16,15 @@
   gap: var(--pv-space-3);
 }
 
+.inspector__head-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-inline-size: 0;
+  flex: 1 1 20rem;
+}
+
 .inspector__badge {
+  justify-self: start;
   display: inline-block;
   padding: 0.2rem 0.6rem;
   border-radius: var(--pv-radius-pill);
@@ -28,7 +36,7 @@
 }
 
 .inspector__title {
-  margin: var(--pv-space-2) 0 0;
+  margin: var(--pv-space-1) 0 0;
   font-size: 1.3rem;
   color: var(--pv-ink-primary);
 }
@@ -41,6 +49,25 @@
 
 .inspector__meta strong {
   color: var(--pv-ink-primary);
+}
+
+.inspector__versions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pv-space-1);
+  margin: var(--pv-space-2) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inspector__version-tag {
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-museum-chip-bg);
+  color: var(--pv-ink-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
 }
 
 .inspector__actions {
@@ -215,6 +242,11 @@
 .inspector-chip[aria-pressed='true'] {
   border-color: var(--pv-border-gold);
   background: var(--pv-museum-chip-active-bg);
+}
+
+.inspector-chip--link {
+  border-color: var(--pv-border-gold);
+  color: var(--pv-border-gold);
 }
 
 .inspector-search {

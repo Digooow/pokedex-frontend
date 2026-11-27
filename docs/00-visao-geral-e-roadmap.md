@@ -22,25 +22,21 @@ flowchart TB
   Title -->|"Modo Visitante"| PublicAccess["Acesso Público Somente Leitura"]
   Title -->|"Entrar no Mundo"| AuthAccess["Overworld Vivo + Viagem Rápida (HUD)"]
 
-  PublicAccess --> DexMod["Módulo 01: Pokédex 3D & Holocron (Leitura)"]
-  PublicAccess --> MuseumMod["Módulo 02: Museu das Regiões & História"]
+  PublicAccess --> DexMod["Módulo 02: Pokédex 3D, Holocron, Enciclopédia & Atlas das Regiões (Leitura)"]
 
   AuthAccess --> Overworld["Phaser 3 / PixiJS (Vila Central & Portais)"]
   AuthAccess --> QuickTravel["HUD Angular (Dock de Viagem Rápida)"]
 
   Overworld --> DexModCloud["Pokédex 3D + 10 Slots na Nuvem"]
-  Overworld --> MuseumMod
   Overworld --> ArcadeMod["Módulo 03: Arcade Retrô 3D (WebAssembly + MinIO/S3)"]
   Overworld --> ArenaMod["Módulo 04: Battle Frontier (Team Builder, PvE, PvP & Mini-Games)"]
 
   QuickTravel --> DexModCloud
-  QuickTravel --> MuseumMod
   QuickTravel --> ArcadeMod
   QuickTravel --> ArenaMod
 
   DexMod -->|"HTTP REST"| NestAPI["Back-end NestJS (API + WebSockets)"]
   DexModCloud -->|"HTTP REST + WS"| NestAPI
-  MuseumMod -->|"HTTP REST"| NestAPI
   ArcadeMod -->|"Presigned Stream + Saves"| NestAPI
   ArenaMod -->|"REST + WebSockets"| NestAPI
 
@@ -61,7 +57,7 @@ flowchart TB
 | **Overworld Explorável** | Phaser 3 / PixiJS | Vila Central com prédios interativos, ciclo dia/noite, clima e presença multiplayer | Caminhada 2D/HD-2D com portais físicos para cada módulo |
 | **Dispositivo de Campo (Pokédex)** | Pokédex 3D Atual + Holocron 3D | Busca fonética/Damerau-Levenshtein, slots salvos, *cries* (Web Audio), evoluções e tipos | Carcaça metálica realista já implementada + projeção holográfica |
 | **Arcade Retrô** | WebAssembly + Three.js + MinIO/S3 | Catálogo fixo no servidor em 1 clique para GB/GBC/GBA/NDS + *Cloud Save States* | Jogo rodando ao vivo dentro da tela do console portátil 3D |
-| **Museu das Regiões & Lore** | Angular + Three.js / Canvas | Atlas interativo de Kanto a Paldea, Líderes, Elite Four e linha do tempo (1996–presente) | Enciclopédia viva navegável sem necessidade de conta |
+| **Museu / Atlas das Regiões & Lore (na Pokédex)** | Angular + Three.js / Canvas | Atlas interativo de Kanto a Paldea, Líderes, Elite Four e linha do tempo (1996–presente) dentro da Enciclopédia da Pokédex | Enciclopédia viva navegável sem necessidade de conta |
 | **Battle Frontier** | Angular + WebSockets + Kafka + Redis | Team Builder (IVs/EVs/Natures), Mini-Games competitivos e Batalhas Turn-Based (PvE/PvP) | Arena tática em tempo real com placares globais ao vivo |
 
 ---
@@ -90,7 +86,7 @@ O controle de acesso segue política estrita de **Login Obrigatório para recurs
 
 1. **Tela de Título Cinemática ("Press Start"):**
    - Ao carregar o site, uma cena em **Three.js + Shaders GLSL** sobreposta ao cenário vivo do Overworld apresenta o logotipo em relevo 3D, partículas atmosféricas e trilha tema opcional (respeitando políticas de autoplay dos navegadores e `prefers-reduced-motion`).
-   - Dois botões principais: **Entrar como Treinador (Login / Cadastro)** e **Explorar como Visitante (Pokédex & Museu)**.
+   - Dois botões principais: **Entrar como Treinador (Login / Cadastro)** e **Explorar como Visitante (Pokédex, Enciclopédia & Atlas das Regiões)**.
 2. **Navegação Dupla para Treinadores Autenticados:**
    - **Exploração Física (Phaser Overworld):** caminhar pela Vila Central até o *Laboratório Pokémon* (Pokédex + Holocron), *Museu Nacional* (Regiões & História), *Game Corner* (Arcade Retrô) e *Battle Frontier* (Team Builder, Mini-Games e Arena).
    - **Viagem Rápida (Angular HUD Dock):** barra fixa tática com ícones dos módulos e inventário para saltar diretamente para qualquer sistema em 1 clique sem obrigatoriedade de caminhada longa.

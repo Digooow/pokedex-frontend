@@ -146,6 +146,23 @@ export class PokedexDevicePageComponent implements OnInit, OnDestroy {
     this.visorDetail.setMode(mode);
   }
 
+  openSpeciesInHolocron(speciesName: string): void {
+    const normalized = speciesName.trim().toLowerCase();
+    const current = this.store.selectedPokemon();
+    if (current?.name === normalized) {
+      this.openPokemonInMode('holocron', current);
+      return;
+    }
+    this.onSelectFromVisor(normalized);
+    this.holocronStore.openByIdentifier(normalized);
+    this.visorDetail.setMode('holocron');
+  }
+
+  onOpenEncyclopediaCategory(category: string | null): void {
+    this.encyCat.set(category);
+    this.encyItem.set(null);
+  }
+
   toggleSlotsConfig = (moveFocus: boolean) =>
     this.rpg.applySlotsConfigTransition(!this.slotsStore.editMode(), moveFocus);
 

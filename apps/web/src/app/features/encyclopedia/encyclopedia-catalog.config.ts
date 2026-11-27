@@ -73,8 +73,8 @@ export const ENCYCLOPEDIA_CATEGORIES: readonly EncyclopediaCategoryConfig[] = [
   ),
   createCategory(
     'region',
-    'Regiões',
-    'Regiões oficiais, Pokédexes associadas e localidades exploráveis.',
+    'Regiões & História',
+    'Atlas histórico das 9 gerações canônicas (1996–2022), iniciais, lendários, Pokédexes regionais e localidades.',
   ),
   createCategory('pokedex', 'Pokédexes', 'Listagens regionais numeradas e espécies catalogadas.', {
     endpointPath: 'pokedexes',

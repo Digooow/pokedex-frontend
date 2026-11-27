@@ -1,0 +1,29 @@
+<section class="regions-atlas" aria-label="Atlas Histórico das Regiões (1996 a 2022)">
+  <nav class="museum-timeline" aria-label="Linha do tempo histórica dos jogos (1996 a 2022)">
+    @for (region of regions; track region.id) {
+      <button
+        type="button"
+        class="timeline-step"
+        [class.is-active]="activeCanonicalRegionId() === region.id"
+        [attr.aria-pressed]="activeCanonicalRegionId() === region.id"
+        (click)="onSelectRegion(region.id)"
+      >
+        <span class="timeline-step__top">
+          <span class="timeline-step__year numero-tabular">{{ region.releaseYear }}</span>
+          <span class="timeline-step__gen">{{ region.generation }}</span>
+        </span>
+        <span class="timeline-step__name">{{ region.name }}</span>
+        <span class="timeline-step__platform">{{ region.platform }}</span>
+      </button>
+    }
+  </nav>
+
+  @if (!hasCustomNonCanonicalRegion()) {
+    <pv-museum-region-inspector
+      (pokemonSelected)="pokemonSelected.emit($event)"
+      (holocronRequested)="holocronRequested.emit($event)"
+      (locationSelected)="locationSelected.emit($event)"
+      (pokedexSelected)="pokedexSelected.emit($event)"
+    />
+  }
+</section>

@@ -34,15 +34,13 @@
 }
 
 @supports (backdrop-filter: blur(12px)) {
-  .uc-card,
-  .uc-regions {
+  .uc-card {
     background: var(--pv-uc-card-bg-blur);
     backdrop-filter: blur(12px);
   }
 }
 
-:host-context(html[data-perf-tier='lite']) .uc-card,
-:host-context(html[data-perf-tier='lite']) .uc-regions {
+:host-context(html[data-perf-tier='lite']) .uc-card {
   backdrop-filter: none;
   background: var(--pv-uc-card-bg-lite);
 }
@@ -239,8 +237,7 @@
 }
 
 .uc-tab:focus-visible,
-.uc-cta:focus-visible,
-.uc-region-card a:focus-visible {
+.uc-cta:focus-visible {
   outline: 2px solid var(--pv-ring-focus);
   outline-offset: 2px;
 }
@@ -401,76 +398,4 @@
 .uc-plaque-role {
   font-size: 0.76rem;
   color: var(--pv-ink-muted);
-}
-
-.uc-regions {
-  display: grid;
-  gap: var(--pv-space-3);
-  padding: var(--pv-space-4);
-  border-radius: var(--pv-radius-lg);
-  border: 1px solid var(--pv-border-subtle);
-  background: var(--pv-uc-card-bg);
-}
-
-.uc-regions-head {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: var(--pv-space-2);
-}
-
-.uc-regions-head h2 {
-  margin: 0;
-  font-size: 1.15rem;
-}
-
-.uc-regions-head span {
-  font-size: 0.82rem;
-  color: var(--pv-ink-muted);
-}
-
-.uc-regions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--pv-space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.uc-region-card {
-  display: grid;
-  gap: 0.35rem;
-  padding: var(--pv-space-3);
-  border-radius: var(--pv-radius-md);
-  border: 1px solid var(--pv-border-subtle);
-  background: var(--pv-uc-region-bg);
-}
-
-.uc-region-gen {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--pv-sapphire);
-}
-
-.uc-region-card h3 {
-  margin: 0;
-  font-size: 1.05rem;
-}
-
-.uc-region-card p {
-  margin: 0;
-  font-size: 0.82rem;
-  color: var(--pv-ink-muted);
-}
-
-.uc-region-card a {
-  display: inline-flex;
-  align-items: center;
-  min-block-size: 2.75rem;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--pv-border-gold);
-  text-decoration: none;
 }

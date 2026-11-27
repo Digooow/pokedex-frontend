@@ -31,10 +31,10 @@ export const POKEMON_TYPES = [
 export type PokemonTypeName = (typeof POKEMON_TYPES)[number];
 
 export interface PlatformModuleMeta {
-  readonly id: 'overworld' | 'pokedex' | 'museum' | 'arcade' | 'arena';
+  readonly id: 'overworld' | 'pokedex' | 'arcade' | 'arena';
   readonly label: string;
   readonly route: string;
-  readonly shortcut: '1' | '2' | '3' | '4' | '5';
+  readonly shortcut: '1' | '2' | '3' | '4';
   readonly requiresTrainer: boolean;
   readonly summary: string;
 }
@@ -54,21 +54,14 @@ export const PLATFORM_MODULES: readonly PlatformModuleMeta[] = [
     route: '/pokedex',
     shortcut: '2',
     requiresTrainer: false,
-    summary: 'Dispositivo de campo com busca fonética/Damerau-Levenshtein e dados da PokéAPI.',
-  },
-  {
-    id: 'museum',
-    label: 'Museu',
-    route: '/museu',
-    shortcut: '3',
-    requiresTrainer: false,
-    summary: 'Atlas das regiões de Kanto a Paldea, líderes de ginásio e linha do tempo.',
+    summary:
+      'Computador de campo com busca inteligente, Holocron 3D, Comparador 1v1, Calculadora, Enciclopédia e Atlas das Regiões.',
   },
   {
     id: 'arcade',
     label: 'Arcade Retrô',
     route: '/arcade',
-    shortcut: '4',
+    shortcut: '3',
     requiresTrainer: true,
     summary: 'Console portátil 3D em WebGL2 integrado a emulação WebAssembly e Cloud Saves.',
   },
@@ -76,7 +69,7 @@ export const PLATFORM_MODULES: readonly PlatformModuleMeta[] = [
     id: 'arena',
     label: 'Battle Frontier',
     route: '/arena',
-    shortcut: '5',
+    shortcut: '4',
     requiresTrainer: true,
     summary: 'Team Builder competitivo, mini-games em tempo real e batalhas PvE/PvP.',
   },

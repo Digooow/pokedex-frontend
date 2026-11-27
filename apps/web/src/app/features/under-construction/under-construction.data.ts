@@ -1,4 +1,4 @@
-export type UnderConstructionModuleId = 'overworld' | 'museum' | 'arcade' | 'arena';
+export type UnderConstructionModuleId = 'overworld' | 'arcade' | 'arena';
 
 export interface UnderConstructionModuleConfig {
   readonly id: UnderConstructionModuleId;
@@ -53,7 +53,7 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
       },
       {
         title: 'Portais & Ciclo Dia/Noite',
-        detail: 'Acesso físico ao Laboratório, Museu, Arcade e Arena.',
+        detail: 'Acesso físico ao Laboratório, Arcade e Arena.',
       },
       {
         title: 'Presença Multiplayer Live',
@@ -61,48 +61,12 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
       },
     ],
   },
-  museum: {
-    id: 'museum',
-    route: '/museu',
-    tabLabel: '3 Museu',
-    requiresTrainer: false,
-    badge: 'MÓDULO 03 · MUSEU DAS REGIÕES & LORE · EM CONSTRUÇÃO',
-    title: 'Museu das Regiões — Funcionalidade em construção',
-    subtitle:
-      'O Atlas interativo em globo 3D (Three.js), acervo de Líderes de Ginásio, Elite Four e linha do tempo desde 1996 está em construção enquanto lapidamos a Pokédex Suprema. Abaixo você já pode explorar as regiões iniciais.',
-    milestoneLabel: 'Base Enciclopédica Pronta · Globo 3D na Etapa 4B/6',
-    progressPercent: 36,
-    accentHue: 'amber',
-    pokemonId: 151,
-    pokemonCode: '#0151',
-    pokemonName: 'Mew',
-    pokemonQuery: 'mew',
-    pokemonRole: 'Guardião Ancestral da História Pokémon',
-    pokemonArtworkUrl:
-      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/151.png',
-    pokemonFallbackUrl:
-      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/151.png',
-    specs: [
-      {
-        title: 'Atlas de Kanto a Paldea',
-        detail: 'Mapa interativo conectando regiões, rotas e habitats.',
-      },
-      {
-        title: 'Líderes & Elite Four',
-        detail: 'Equipes históricas, insígnias e lore de cada geração.',
-      },
-      {
-        title: 'Linha do Tempo Completa',
-        detail: 'Jogos, gerações, cartas TCG e arcos marcantes.',
-      },
-    ],
-  },
   arcade: {
     id: 'arcade',
     route: '/arcade',
-    tabLabel: '4 Arcade Retrô',
+    tabLabel: '3 Arcade Retrô',
     requiresTrainer: true,
-    badge: 'MÓDULO 04 · ARCADE RETRÔ WASM · EM DESENVOLVIMENTO',
+    badge: 'MÓDULO 03 · ARCADE RETRÔ WASM · EM DESENVOLVIMENTO',
     title: 'Arcade Retrô 3D — Funcionalidade ainda não implementada',
     subtitle:
       'O console portátil 3D com núcleo em WebAssembly e saves automáticos na nuvem entrará após concluirmos a Pokédex Suprema e os cálculos do Back-end. Seu acesso de treinador já está pronto para quando inaugurarmos!',
@@ -136,9 +100,9 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
   arena: {
     id: 'arena',
     route: '/arena',
-    tabLabel: '5 Battle Frontier',
+    tabLabel: '4 Battle Frontier',
     requiresTrainer: true,
-    badge: 'MÓDULO 05 · BATTLE FRONTIER & LABORATÓRIO · EM DESENVOLVIMENTO',
+    badge: 'MÓDULO 04 · BATTLE FRONTIER & LABORATÓRIO · EM DESENVOLVIMENTO',
     title: 'Battle Frontier — Funcionalidade ainda não implementada',
     subtitle:
       'A arena tática PvE/PvP e o Laboratório Genético (nível, chances de evolução, replicação, clonagem e aperfeiçoamento por capturas sem uso) já tiveram suas fórmulas modeladas em @pokeverse/shared e serão conectados logo após os 51 endpoints da Pokédex.',
@@ -173,7 +137,6 @@ export const UNDER_CONSTRUCTION_MODULES: Record<
 
 export const UNDER_CONSTRUCTION_TABS: readonly UnderConstructionModuleConfig[] = [
   UNDER_CONSTRUCTION_MODULES.overworld,
-  UNDER_CONSTRUCTION_MODULES.museum,
   UNDER_CONSTRUCTION_MODULES.arcade,
   UNDER_CONSTRUCTION_MODULES.arena,
 ];

@@ -1,10 +1,10 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { Router, provideRouter } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { POKEAPI_SPRITE_BASE } from '../../testing/pokemon-bundle-fixture.spec-helper';
-import { MuseumPageComponent } from './museum-page.component';
 import { MuseumStore } from './museum.store';
+import { RegionsAtlasPanelComponent } from './regions-atlas-panel.component';
 
 function createRegionPayload(name: string, pokedexName: string, locationName: string) {
   return {
@@ -52,10 +52,10 @@ function createRegionalPokedexPayload(name: string) {
   };
 }
 
-describe('MuseumPageComponent & MuseumStore', () => {
+describe('RegionsAtlasPanelComponent & MuseumStore', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MuseumPageComponent],
+      imports: [RegionsAtlasPanelComponent],
       providers: [provideRouter([]), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
@@ -63,7 +63,7 @@ describe('MuseumPageComponent & MuseumStore', () => {
   it('renders single timeline 1996-2022 without duplicated region cards and loads live Kanto data', () => {
     const httpMock = TestBed.inject(HttpTestingController);
     const museum = TestBed.inject(MuseumStore);
-    const fixture = TestBed.createComponent(MuseumPageComponent);
+    const fixture = TestBed.createComponent(RegionsAtlasPanelComponent);
     fixture.detectChanges();
 
     httpMock
@@ -79,6 +79,7 @@ describe('MuseumPageComponent & MuseumStore', () => {
     expect(host.querySelectorAll('.timeline-step')).toHaveLength(9);
     expect(host.textContent).toContain('Pallet Town');
     expect(host.textContent).toContain('Bulbasaur');
+    expect(host.textContent).toContain('Red Blue');
 
     museum.setLocationQuery('cerulean');
     fixture.detectChanges();
@@ -106,11 +107,17 @@ describe('MuseumPageComponent & MuseumStore', () => {
     httpMock.expectNone('/api/v1/pokedex/regions/kanto');
   });
 
-  it('handles region error with retry and navigates into Pokedex Holocron 3D mode', () => {
+  it('handles region error with retry and emits in-Pokédex navigation events', () => {
     const httpMock = TestBed.inject(HttpTestingController);
-    const router = TestBed.inject(Router);
-    const navSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
-    const fixture = TestBed.createComponent(MuseumPageComponent);
+    const fixture = TestBed.createComponent(RegionsAtlasPanelComponent);
+    const pokemonEvents: string[] = [];
+    const holocronEvents: string[] = [];
+    const locationEvents: string[] = [];
+    const pokedexEvents: string[] = [];
+    fixture.componentInstance.pokemonSelected.subscribe((name) => pokemonEvents.push(name));
+    fixture.componentInstance.holocronRequested.subscribe((name) => holocronEvents.push(name));
+    fixture.componentInstance.locationSelected.subscribe((name) => locationEvents.push(name));
+    fixture.componentInstance.pokedexSelected.subscribe((name) => pokedexEvents.push(name));
     fixture.detectChanges();
 
     httpMock
@@ -132,10 +139,14 @@ describe('MuseumPageComponent & MuseumStore', () => {
       .flush(createRegionalPokedexPayload('kanto'));
     fixture.detectChanges();
 
-    const holocronBtn = host.querySelector('.species-holocron-btn') as HTMLButtonElement;
-    holocronBtn.click();
-    expect(navSpy).toHaveBeenCalledWith(['/pokedex'], {
-      queryParams: { q: 'bulbasaur', mode: 'holocron' },
-    });
+    (host.querySelector('.species-link') as HTMLButtonElement).click();
+    (host.querySelector('.species-holocron-btn') as HTMLButtonElement).click();
+    (host.querySelector('.location-chip') as HTMLButtonElement).click();
+    (host.querySelector('.inspector-chip--link') as HTMLButtonElement).click();
+
+    expect(pokemonEvents).toEqual(['bulbasaur']);
+    expect(holocronEvents).toEqual(['bulbasaur']);
+    expect(locationEvents).toEqual(['pallet-town']);
+    expect(pokedexEvents).toEqual(['kanto']);
   });
 });

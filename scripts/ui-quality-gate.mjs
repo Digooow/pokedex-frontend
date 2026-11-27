@@ -972,7 +972,7 @@ async function runAudit() {
       { name: 'pokedex-open-pikachu', route: '/pokedex?q=pikachu', auth: false, openPokedex: true },
       { name: 'pokedex-calculator', route: '/pokedex?q=pikachu&mode=calculadora', auth: false, openPokedex: true },
       { name: 'pokedex-encyclopedia', route: '/pokedex?mode=enciclopedia', auth: false, openPokedex: true },
-      { name: 'museu', route: '/museu', auth: false, openPokedex: false },
+      { name: 'pokedex-regions-atlas', route: '/pokedex?mode=enciclopedia&cat=region', auth: false, openPokedex: true },
       { name: 'mundo-em-construcao', route: '/mundo', auth: true, openPokedex: false },
     ];
 

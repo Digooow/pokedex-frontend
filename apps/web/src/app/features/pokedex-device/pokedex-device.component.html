@@ -54,6 +54,8 @@
             (slotOpened)="onSelectFromVisor($event)"
             (compareRequested)="openPokemonInMode('comparar', $event)"
             (holocronRequested)="openPokemonInMode('holocron', $event)"
+            (holocronSpeciesRequested)="openSpeciesInHolocron($event)"
+            (encyclopediaCategoryRequested)="onOpenEncyclopediaCategory($event)"
             (calculatorRequested)="visorDetail.setMode('calculadora')"
           />
 

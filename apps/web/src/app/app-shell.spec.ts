@@ -9,7 +9,6 @@ import { AuthStore } from './core/stores/auth.store';
 import { PrivacyConsentStore } from './core/stores/privacy-consent.store';
 import { QualityStore } from './core/stores/quality.store';
 import { ScenarioStore } from './core/stores/scenario.store';
-import { MuseumPageComponent } from './features/regions-museum/museum-page.component';
 import { UnderConstructionComponent } from './features/under-construction/under-construction.component';
 import {
   createTrainerFixture,
@@ -71,7 +70,7 @@ describe('PokéVerse OS Shell', () => {
 
     expect(modulesPopover.classList.contains('is-open')).toBe(true);
     expect(modulesPopover.hasAttribute('inert')).toBe(false);
-    expect(compiled.querySelectorAll('#pv-modules-popover .hud-menu-item')).toHaveLength(5);
+    expect(compiled.querySelectorAll('#pv-modules-popover .hud-menu-item')).toHaveLength(4);
 
     const lockedButtons = compiled.querySelectorAll('button.hud-menu-item--locked');
     expect(lockedButtons).toHaveLength(3);
@@ -92,6 +91,7 @@ describe('PokéVerse OS Shell', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
+    expect(router.url).toContain('/pokedex?mode=enciclopedia&cat=region');
     const heading = fixture.nativeElement.querySelector('#main-heading') as HTMLHeadingElement;
     expect(heading).not.toBeNull();
     const skipLink = fixture.nativeElement.querySelector('a.skip-link') as HTMLAnchorElement;
@@ -151,19 +151,13 @@ describe('PokéVerse OS Shell', () => {
     fixture.detectChanges();
 
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1#main-heading')?.textContent).toContain(
-      'Museu das Regiões & História',
-    );
-    expect(compiled.querySelector('.museum-page__header')).not.toBeNull();
+    expect(router.url).toContain('/pokedex?mode=enciclopedia&cat=region');
+    expect(compiled.querySelector('#resultado-area.is-visor-expanded')).not.toBeNull();
     expect(compiled.querySelectorAll('.timeline-step')).toHaveLength(9);
     expect(compiled.querySelectorAll('.region-card')).toHaveLength(0);
     httpMock
-      .match((req) => req.url.startsWith('/api/v1/pokedex/regions/'))
+      .match((req) => req.url.startsWith('/api/v1/pokedex/'))
       .forEach((req) => req.flush(null, { status: 404, statusText: 'Not Found' }));
-
-    const museumFixture = TestBed.createComponent(MuseumPageComponent);
-    museumFixture.detectChanges();
-    expect(museumFixture.nativeElement.querySelectorAll('.region-card')).toHaveLength(0);
 
     const ucFixture = TestBed.createComponent(UnderConstructionComponent);
     ucFixture.detectChanges();
@@ -175,7 +169,7 @@ describe('PokéVerse OS Shell', () => {
 
     const activeLinks = compiled.querySelectorAll('#pv-modules-popover .hud-menu-item.is-active');
     expect(activeLinks).toHaveLength(1);
-    expect(activeLinks[0]?.textContent).toContain('Museu');
+    expect(activeLinks[0]?.textContent).toContain('Pokédex 3D');
 
     const auth = TestBed.inject(AuthStore);
     const lockedArcade = compiled.querySelectorAll(

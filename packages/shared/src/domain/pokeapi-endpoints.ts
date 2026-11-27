@@ -49,7 +49,7 @@ item-category|/api/v2/item-category/{idOrName}|items-berries|static-lookup-7d|fa
 item-fling-effect|/api/v2/item-fling-effect/{idOrName}|items-berries|static-lookup-7d|false|Move Fling Resolution
 item-pocket|/api/v2/item-pocket/{idOrName}|items-berries|static-lookup-7d|false|Trainer Bag UI
 language|/api/v2/language/{idOrName}|contests-meta|static-lookup-7d|false|Multilingual Localization
-location|/api/v2/location/{idOrName}|world-encounters|lazy-tab-24h|true|Regions Museum & Radar
+location|/api/v2/location/{idOrName}|world-encounters|lazy-tab-24h|true|Pokédex Regions Atlas & Radar
 location-area|/api/v2/location-area/{idOrName}|world-encounters|lazy-tab-24h|false|Zone Encounter Tables
 machine|/api/v2/machine/{id}|combat-mechanics|static-lookup-7d|false|TM/HM Move Acquisition
 move|/api/v2/move/{idOrName}|combat-mechanics|lazy-tab-24h|true|Moveset Inspector & Damage Calc

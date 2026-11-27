@@ -90,4 +90,95 @@ describe('PokedexEncyclopediaPanelComponent (Embedded Encyclopedia)', () => {
     expect(hostEl.querySelector('.ency-card__title')?.textContent).toContain('Electric');
     expect(hostEl.querySelectorAll('.ency-badge[data-pokemon-type]').length).toBeGreaterThan(0);
   });
+
+  it('unifies Regions & History atlas inside Enciclopédia and transitions to location details', () => {
+    const httpMock = TestBed.inject(HttpTestingController);
+    const fixture = TestBed.createComponent(PokedexEncyclopediaPanelComponent);
+    const selectedPokemon: string[] = [];
+    const holocronRequests: string[] = [];
+    fixture.componentInstance.pokemonSelected.subscribe((name) => selectedPokemon.push(name));
+    fixture.componentInstance.holocronRequested.subscribe((name) => holocronRequests.push(name));
+    fixture.detectChanges();
+
+    httpMock
+      .expectOne('/api/v1/pokedex/moves?limit=24&offset=0&q=')
+      .flush(createEncyclopediaMovesListFixture());
+    fixture.detectChanges();
+
+    const hostEl = fixture.nativeElement as HTMLElement;
+    const regionsBtn = Array.from(hostEl.querySelectorAll('.ency-cat-btn')).find((el) =>
+      el.textContent?.includes('Regiões & História'),
+    ) as HTMLButtonElement;
+    regionsBtn.click();
+    fixture.detectChanges();
+
+    httpMock.expectNone('/api/v1/pokedex/regions?limit=24&offset=0&q=');
+    httpMock.expectOne('/api/v1/pokedex/regions/kanto').flush({
+      cache: 'hit',
+      region: {
+        id: 1,
+        name: 'kanto',
+        mainGeneration: 'generation-i',
+        pokedexes: [{ id: 2, name: 'kanto' }],
+        versionGroups: ['red-blue'],
+        locations: [{ id: 10, name: 'pallet-town' }],
+      },
+    });
+    httpMock.expectOne('/api/v1/pokedex/pokedexes/kanto').flush({
+      cache: 'hit',
+      pokedex: {
+        id: 2,
+        name: 'kanto',
+        isMainSeries: true,
+        region: 'kanto',
+        description: 'Pokédex regional de Kanto',
+        versionGroups: ['red-blue'],
+        totalEntries: 1,
+        entries: [
+          {
+            entryNumber: 1,
+            speciesId: 1,
+            speciesName: 'bulbasaur',
+            artworkUrl:
+              'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png',
+          },
+        ],
+      },
+    });
+    fixture.detectChanges();
+
+    expect(hostEl.querySelectorAll('.timeline-step')).toHaveLength(9);
+    expect(hostEl.querySelector('.inspector')?.textContent).toContain('Pallet Town');
+
+    (hostEl.querySelector('.species-link') as HTMLButtonElement).click();
+    (hostEl.querySelector('.species-holocron-btn') as HTMLButtonElement).click();
+    expect(selectedPokemon).toEqual(['bulbasaur']);
+    expect(holocronRequests).toEqual(['bulbasaur']);
+
+    (hostEl.querySelector('.location-chip') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    httpMock.expectOne('/api/v1/pokedex/locations?limit=24&offset=0&q=').flush({
+      cache: 'hit',
+      resource: 'location',
+      total: 1,
+      limit: 24,
+      offset: 0,
+      hasMore: false,
+      items: [{ id: 10, name: 'pallet-town', displayName: 'Pallet Town', subtitle: 'kanto' }],
+    });
+    httpMock.expectOne('/api/v1/pokedex/locations/pallet-town').flush({
+      cache: 'hit',
+      location: {
+        id: 10,
+        name: 'pallet-town',
+        localizedName: 'Pallet Town',
+        region: 'kanto',
+        generations: ['generation-i'],
+        areas: [],
+      },
+    });
+    fixture.detectChanges();
+
+    expect(hostEl.querySelector('.ency-card__title')?.textContent).toContain('Pallet Town');
+  });
 });

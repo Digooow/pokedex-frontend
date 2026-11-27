@@ -83,6 +83,8 @@ export class PokedexVisorComponent {
   readonly slotOpened = output<string>();
   readonly compareRequested = output<PokemonDetailView>();
   readonly holocronRequested = output<PokemonDetailView>();
+  readonly holocronSpeciesRequested = output<string>();
+  readonly encyclopediaCategoryRequested = output<string | null>();
   readonly calculatorRequested = output<void>();
 
   private readonly expandToggleBtn = viewChild<ElementRef<HTMLButtonElement>>('expandToggleBtn');
@@ -156,8 +158,9 @@ export class PokedexVisorComponent {
     this.visorDetail.openHologram('ficha', 'stats', pokemonName);
   }
 
-  onOpenEncyclopedia(event?: Event): void {
+  onOpenEncyclopedia(category: string | null = null, event?: Event): void {
     event?.stopPropagation();
+    this.encyclopediaCategoryRequested.emit(category);
     this.visorDetail.openHologram('enciclopedia');
   }
 

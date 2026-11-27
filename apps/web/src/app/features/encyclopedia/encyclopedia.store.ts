@@ -5,6 +5,7 @@ import {
   type EncyclopediaResourceKey,
 } from '@pokeverse/shared/pokedex-encyclopedia';
 import { Subscription } from 'rxjs';
+import { isCanonicalAtlasRegion } from '../../shared/data/regions-atlas.data';
 import { EncyclopediaApiClient } from './encyclopedia-api.client';
 import {
   ENCYCLOPEDIA_CATEGORY_MAP,
@@ -50,10 +51,19 @@ export class EncyclopediaStore implements OnDestroy {
     this.offset.set(0);
     this.committedQuery.set('');
     this.searchQuery.set('');
-    this.loadList();
 
-    if (itemParam?.trim()) {
-      this.selectItem(itemParam.trim().toLowerCase());
+    const normalizedItem = itemParam?.trim().toLowerCase() ?? '';
+    if (nextCat === 'region') {
+      this.selectedName.set(normalizedItem || null);
+      if (normalizedItem && !isCanonicalAtlasRegion(normalizedItem)) {
+        this.selectItem(normalizedItem);
+      }
+      return;
+    }
+
+    this.loadList();
+    if (normalizedItem) {
+      this.selectItem(normalizedItem);
     }
   }
 
@@ -69,7 +79,16 @@ export class EncyclopediaStore implements OnDestroy {
       status: 'empty',
       reason: 'Selecione um registro na lista para consultar detalhes e busca reversa.',
     });
-    this.loadList();
+    if (category !== 'region') {
+      this.loadList();
+    }
+  }
+
+  setRegionSelection(regionId: string): void {
+    const normalized = regionId.trim().toLowerCase();
+    if (normalized) {
+      this.selectedName.set(normalized);
+    }
   }
 
   setSearchQuery(value: string): void {
@@ -150,8 +169,16 @@ export class EncyclopediaStore implements OnDestroy {
     this.offset.set(0);
     this.searchQuery.set('');
     this.committedQuery.set('');
+    const normalized = itemName.trim().toLowerCase();
+    if (category === 'region') {
+      this.selectedName.set(normalized || null);
+      if (normalized && !isCanonicalAtlasRegion(normalized)) {
+        this.selectItem(normalized);
+      }
+      return;
+    }
     this.loadList();
-    this.selectItem(itemName);
+    this.selectItem(normalized);
   }
 
   ngOnDestroy(): void {

@@ -26,6 +26,11 @@ export function buildOfficialArtworkUrl(speciesId: number): string {
   return `${ARTWORK_URL_PREFIX}${speciesId}.png`;
 }
 
+export function isCanonicalAtlasRegion(id: string | null | undefined): boolean {
+  const normalized = id?.trim().toLowerCase() ?? '';
+  return REGIONS_ATLAS_PREVIEW.some((item) => item.id === normalized);
+}
+
 function sp(id: number, name: string, displayName: string): MuseumSpeciesRef {
   return { id, name, displayName };
 }

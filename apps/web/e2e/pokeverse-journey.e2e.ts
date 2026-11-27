@@ -180,19 +180,21 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     expect(bff.consoleErrors).toEqual([]);
   });
 
-  test('explores single-timeline 9-region Museum without duplicated cards and opens embedded Holocron 3D in Pokédex', async ({
+  test('redirects /museu into Pokédex Enciclopédia Regiões & História and opens embedded Holocron 3D', async ({
     page,
     bff,
   }) => {
     await page.goto(`${bff.baseUrl}/museu`, { waitUntil: 'domcontentloaded' });
-    await expect(page.locator('h1#main-heading')).toContainText('Museu das Regiões');
+    await expect(page).toHaveURL(/\/pokedex\?mode=enciclopedia&cat=region$/);
+    await expect(page.locator('#pokedex-aparelho')).toHaveAttribute('data-aberta', 'true');
+    await expect(page.locator('#resultado-area')).toHaveClass(/is-visor-expanded/);
+    await expect(page.locator('.ency-embed')).toBeVisible();
     await expect(page.locator('.region-card')).toHaveCount(0);
     await expect(page.locator('.timeline-step')).toHaveCount(9);
     await expect(page.locator('.inspector')).toContainText('Pallet Town');
     await expect(page.locator('.native-grid')).toContainText('Bulbasaur');
 
     await page.locator('.species-holocron-btn').first().click();
-    await expect(page).toHaveURL(/\/pokedex\?q=bulbasaur&mode=holocron$/);
     await expect(page.locator('.holocron-embed')).toBeVisible();
     await expect(page.locator('.holocron-embed .cry-spec')).toBeVisible();
 

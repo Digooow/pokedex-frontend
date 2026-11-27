@@ -49,9 +49,16 @@ export const routes: Routes = [
   },
   {
     path: 'museu',
-    title: 'Museu das Regiões — PokéVerse OS',
-    loadComponent: () =>
-      import('./features/regions-museum/museum-page.component').then((m) => m.MuseumPageComponent),
+    redirectTo: (activatedRoute) => {
+      const regiao = activatedRoute.queryParams['regiao'];
+      return inject(Router).createUrlTree(['/pokedex'], {
+        queryParams: {
+          mode: 'enciclopedia',
+          cat: 'region',
+          ...(typeof regiao === 'string' && regiao.trim() ? { item: regiao.trim() } : {}),
+        },
+      });
+    },
   },
   {
     path: 'enciclopedia',

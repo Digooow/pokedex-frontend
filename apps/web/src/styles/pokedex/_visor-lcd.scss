@@ -255,6 +255,13 @@
     color: var(--texto-lcd-secundario);
   }
 
+  .visor-empty-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--pv-space-2);
+  }
+
   .estado-alerta--aviso {
     background-color: var(--bg-hud-aviso);
     border: 2px solid var(--borda-hud-aviso);

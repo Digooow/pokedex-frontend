@@ -18,7 +18,7 @@ export class HudUserMenuComponent {
     this.closed.emit();
     this.auth.requestTrainerAccess(
       'Modo Visitante Ativo',
-      'Explore Pokédex e Museu livremente. Entre ou cadastre sua conta de Treinador para sincronizar os 10 slots e salvar progresso na nuvem.',
+      'Explore a Pokédex livremente (incluindo Enciclopédia, Atlas das Regiões, Holocron 3D, Comparador 1v1 e Calculadora). Entre ou cadastre sua conta de Treinador para sincronizar os 10 slots e salvar progresso na nuvem.',
     );
   }
 

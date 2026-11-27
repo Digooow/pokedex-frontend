@@ -105,6 +105,7 @@
             [initialCategory]="encyclopediaCategory()"
             [initialItem]="encyclopediaItem()"
             (pokemonSelected)="onSelectFromMode($event)"
+            (holocronRequested)="holocronSpeciesRequested.emit($event)"
           />
         }
         @default {
@@ -231,7 +232,7 @@
                         (holocronRequested)="holocronRequested.emit(pokemon)"
                         (calculatorRequested)="calculatorRequested.emit()"
                         (fullDetailsRequested)="onOpenFullDetails(pokemon.name)"
-                        (encyclopediaRequested)="onOpenEncyclopedia()"
+                        (encyclopediaRequested)="onOpenEncyclopedia(null)"
                       />
                     }
                     @case ('stats') {
@@ -278,16 +279,28 @@
                 </svg>
                 <h3>{{ emptyStateTitle }}</h3>
                 <p>{{ emptyStateDescription }}</p>
-                <button
-                  id="btn-empty-enciclopedia"
-                  type="button"
-                  class="visor-media-btn visor-media-btn--action visor-empty-holo-btn"
-                  [pvRpgFocusable]="'visor'"
-                  [pvRpgOrder]="0"
-                  (click)="onOpenEncyclopedia($event)"
-                >
-                  Abrir Enciclopédia no Holograma
-                </button>
+                <div class="visor-empty-actions">
+                  <button
+                    id="btn-empty-enciclopedia"
+                    type="button"
+                    class="visor-media-btn visor-media-btn--action visor-empty-holo-btn"
+                    [pvRpgFocusable]="'visor'"
+                    [pvRpgOrder]="0"
+                    (click)="onOpenEncyclopedia(null, $event)"
+                  >
+                    Abrir Enciclopédia no Holograma
+                  </button>
+                  <button
+                    id="btn-empty-regioes"
+                    type="button"
+                    class="visor-media-btn visor-media-btn--action visor-empty-holo-btn"
+                    [pvRpgFocusable]="'visor'"
+                    [pvRpgOrder]="1"
+                    (click)="onOpenEncyclopedia('region', $event)"
+                  >
+                    Atlas das Regiões
+                  </button>
+                </div>
               </div>
             }
           }

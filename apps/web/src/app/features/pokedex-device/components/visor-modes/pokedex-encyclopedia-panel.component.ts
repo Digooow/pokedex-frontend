@@ -2,18 +2,21 @@ import {
   ChangeDetectionStrategy,
   Component,
   OnInit,
+  computed,
   effect,
   inject,
   input,
   output,
 } from '@angular/core';
+import { isCanonicalAtlasRegion } from '../../../../shared/data/regions-atlas.data';
 import { ENCYCLOPEDIA_CATEGORIES } from '../../../encyclopedia/encyclopedia-catalog.config';
 import { EncyclopediaDetailPanelComponent } from '../../../encyclopedia/encyclopedia-detail-panel.component';
 import { EncyclopediaStore } from '../../../encyclopedia/encyclopedia.store';
+import { RegionsAtlasPanelComponent } from '../../../regions-museum/regions-atlas-panel.component';
 
 @Component({
   selector: 'pv-pokedex-encyclopedia-panel',
-  imports: [EncyclopediaDetailPanelComponent],
+  imports: [EncyclopediaDetailPanelComponent, RegionsAtlasPanelComponent],
   providers: [EncyclopediaStore],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './pokedex-encyclopedia-panel.component.html',
@@ -26,6 +29,13 @@ export class PokedexEncyclopediaPanelComponent implements OnInit {
   readonly initialCategory = input<string | null>(null);
   readonly initialItem = input<string | null>(null);
   readonly pokemonSelected = output<string>();
+  readonly holocronRequested = output<string>();
+
+  readonly isRegionsAtlasActive = computed(() => this.store.activeCategory() === 'region');
+  readonly showNonCanonicalRegionDetail = computed(() => {
+    const selected = this.store.selectedName();
+    return this.isRegionsAtlasActive() && Boolean(selected && !isCanonicalAtlasRegion(selected));
+  });
 
   private initialized = false;
 
@@ -37,7 +47,11 @@ export class PokedexEncyclopediaPanelComponent implements OnInit {
       if (cat && cat !== this.store.activeCategory()) {
         this.store.initFromParams(cat, item);
       } else if (item && item !== this.store.selectedName()) {
-        this.store.selectItem(item);
+        if (this.store.activeCategory() === 'region' && isCanonicalAtlasRegion(item)) {
+          this.store.setRegionSelection(item);
+        } else {
+          this.store.selectItem(item);
+        }
       }
     });
   }

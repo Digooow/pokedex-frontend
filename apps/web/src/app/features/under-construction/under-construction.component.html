@@ -140,25 +140,4 @@
       </div>
     </aside>
   </article>
-
-  @if (mod.id === 'museum') {
-    <section class="uc-regions" aria-label="Prévia das regiões históricas">
-      <div class="uc-regions-head">
-        <h2>Prévia do Atlas das Regiões</h2>
-        <span>Clique em qualquer região para abrir seu Pokémon inicial direto na Pokédex 3D.</span>
-      </div>
-      <ul class="uc-regions-grid">
-        @for (region of regions; track region.id) {
-          <li class="uc-region-card">
-            <span class="uc-region-gen">{{ region.generation }}</span>
-            <h3>{{ region.name }}</h3>
-            <p>{{ region.landmark }}</p>
-            <a [routerLink]="['/pokedex']" [queryParams]="{ q: region.starterQuery }">
-              Inspecionar inicial na Pokédex →
-            </a>
-          </li>
-        }
-      </ul>
-    </section>
-  }
 </section>

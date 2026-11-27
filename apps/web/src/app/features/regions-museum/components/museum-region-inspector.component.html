@@ -2,9 +2,9 @@
 
 <section class="inspector" aria-labelledby="inspector-region-title">
   <header class="inspector__head">
-    <div>
+    <div class="inspector__head-copy">
       <span class="inspector__badge">{{ region.generation }} · {{ region.releaseYear }}</span>
-      <h2 id="inspector-region-title" class="inspector__title">{{ region.name }} — Dossiê &amp; Atlas Vivo</h2>
+      <h4 id="inspector-region-title" class="inspector__title">{{ region.name }} — Dossiê &amp; Atlas Vivo</h4>
       <p class="inspector__meta">
         <strong>Console:</strong> {{ region.platform }} ({{ region.flagshipGames }}) ·
         <strong>Era visual:</strong> {{ region.visualEra }}
@@ -12,92 +12,73 @@
       <p class="inspector__meta">
         <strong>Marcos históricos:</strong> {{ region.landmark }}
       </p>
+
+      @if (liveRegionData(); as live) {
+        <p class="inspector__meta">
+          <strong>Catalogação PokéAPI:</strong>
+          <span class="numero-tabular">{{ live.pokedexes.length }} Pokédexes · {{ live.locations.length }} localidades</span>
+        </p>
+        @if (live.versionGroups.length > 0) {
+          <ul class="inspector__versions" aria-label="Edições e grupos de versões da região">
+            @for (vg of live.versionGroups; track vg) {
+              <li class="inspector__version-tag">{{ formatName(vg) }}</li>
+            }
+          </ul>
+        }
+      }
     </div>
 
-    <div class="inspector__actions">
-      <a
-        [routerLink]="['/pokedex']"
-        [queryParams]="{ mode: 'enciclopedia', cat: 'region', item: region.id }"
-        class="inspector-btn inspector-btn--secondary"
-      >
-        Ver na Enciclopédia →
-      </a>
-      @if (region.arcadeSupported) {
+    @if (region.arcadeSupported) {
+      <div class="inspector__actions">
         <a [routerLink]="['/arcade']" class="inspector-btn inspector-btn--primary">
           Jogar no Arcade 3D →
         </a>
-      }
-    </div>
+      </div>
+    }
   </header>
 
   <div class="inspector__highlights">
-    <section class="inspector-box" aria-label="Iniciais da região">
-      <h3 class="inspector-box__title">Iniciais da Região</h3>
-      <ul class="species-cards">
-        @for (starter of region.starters; track starter.id) {
-          <li class="species-card">
-            <img
-              [src]="artworkUrl(starter.id)"
-              [alt]="starter.displayName"
-              width="64"
-              height="64"
-              loading="lazy"
-            />
-            <div class="species-card__info">
-              <span class="species-card__name">{{ starter.displayName }}</span>
-              <div class="species-card__links">
-                <a [routerLink]="['/pokedex']" [queryParams]="{ q: starter.name }" class="species-link">
-                  Pokédex
-                </a>
-                <button
-                  type="button"
-                  class="species-holocron-btn"
-                  (click)="holocronRequested.emit(starter.name)"
-                >
-                  Holocron 3D
-                </button>
+    @for (group of highlightGroups(); track group.id) {
+      <section class="inspector-box" [attr.aria-label]="group.ariaLabel">
+        <h5 class="inspector-box__title">{{ group.title }}</h5>
+        <ul class="species-cards">
+          @for (species of group.items; track species.id) {
+            <li class="species-card">
+              <img
+                [src]="artworkUrl(species.id)"
+                [alt]="species.displayName"
+                width="64"
+                height="64"
+                loading="lazy"
+              />
+              <div class="species-card__info">
+                <span class="species-card__name">{{ species.displayName }}</span>
+                <div class="species-card__links">
+                  <button
+                    type="button"
+                    class="species-link"
+                    (click)="pokemonSelected.emit(species.name)"
+                  >
+                    Pokédex
+                  </button>
+                  <button
+                    type="button"
+                    class="species-holocron-btn"
+                    (click)="holocronRequested.emit(species.name)"
+                  >
+                    Holocron 3D
+                  </button>
+                </div>
               </div>
-            </div>
-          </li>
-        }
-      </ul>
-    </section>
-
-    <section class="inspector-box" aria-label="Guardiões lendários">
-      <h3 class="inspector-box__title">Guardiões Lendários</h3>
-      <ul class="species-cards">
-        @for (legend of region.legendaries; track legend.id) {
-          <li class="species-card">
-            <img
-              [src]="artworkUrl(legend.id)"
-              [alt]="legend.displayName"
-              width="64"
-              height="64"
-              loading="lazy"
-            />
-            <div class="species-card__info">
-              <span class="species-card__name">{{ legend.displayName }}</span>
-              <div class="species-card__links">
-                <a [routerLink]="['/pokedex']" [queryParams]="{ q: legend.name }" class="species-link">
-                  Pokédex
-                </a>
-                <button
-                  type="button"
-                  class="species-holocron-btn"
-                  (click)="holocronRequested.emit(legend.name)"
-                >
-                  Holocron 3D
-                </button>
-              </div>
-            </div>
-          </li>
-        }
-      </ul>
-    </section>
+            </li>
+          }
+        </ul>
+      </section>
+    }
   </div>
 
   <section class="inspector-box" aria-label="Dados vivos da PokéAPI">
-    <h3 class="inspector-box__title">Dados Vivos da PokéAPI (BFF)</h3>
+    <h5 class="inspector-box__title">Dados Vivos da PokéAPI (BFF)</h5>
 
     @switch (museum.regionDetailState().status) {
       @case ('loading') {
@@ -130,6 +111,15 @@
                       (click)="museum.selectPokedex(dex.name)"
                     >
                       {{ formatName(dex.name) }}
+                    </button>
+                  }
+                  @if (museum.selectedPokedexName(); as selectedDex) {
+                    <button
+                      type="button"
+                      class="inspector-chip inspector-chip--link"
+                      (click)="pokedexSelected.emit(selectedDex)"
+                    >
+                      Ver ficha da Pokédex →
                     </button>
                   }
                 </div>
@@ -174,9 +164,13 @@
                             <span class="native-card__name">{{ formatName(entry.speciesName) }}</span>
                           </div>
                           <div class="native-card__actions">
-                            <a [routerLink]="['/pokedex']" [queryParams]="{ q: entry.speciesName }" class="species-link">
+                            <button
+                              type="button"
+                              class="species-link"
+                              (click)="pokemonSelected.emit(entry.speciesName)"
+                            >
                               Pokédex
-                            </a>
+                            </button>
                             <button
                               type="button"
                               class="species-holocron-btn"
@@ -221,13 +215,13 @@
               } @else {
                 <div class="location-chips">
                   @for (loc of museum.filteredLocations(); track loc.id) {
-                    <a
-                      [routerLink]="['/pokedex']"
-                      [queryParams]="{ mode: 'enciclopedia', cat: 'location', item: loc.name }"
+                    <button
+                      type="button"
                       class="location-chip"
+                      (click)="locationSelected.emit(loc.name)"
                     >
                       {{ formatName(loc.name) }}
-                    </a>
+                    </button>
                   }
                 </div>
               }

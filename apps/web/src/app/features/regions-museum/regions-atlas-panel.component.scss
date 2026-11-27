@@ -1,46 +1,7 @@
-.museum-page {
+.regions-atlas {
   display: grid;
-  gap: var(--pv-space-4);
-  inline-size: min(72rem, 100%);
-  margin-inline: auto;
-  padding: var(--pv-space-5) var(--pv-space-3);
-}
-
-.museum-page__header {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
   gap: var(--pv-space-3);
-  padding: var(--pv-space-4) var(--pv-space-5);
-  box-shadow: var(--pv-museum-shadow);
-}
-
-.museum-page__copy {
-  display: grid;
-  gap: var(--pv-space-1);
-  max-inline-size: 44rem;
-}
-
-.museum-page__tag {
-  justify-self: start;
-  background: var(--pv-holocron-badge-bg);
-}
-
-.museum-page__title {
-  margin: var(--pv-space-1) 0 0;
-  color: var(--pv-ink-primary);
-  font-size: clamp(1.5rem, 3vw, 2.2rem);
-}
-
-.museum-page__subtitle {
-  margin: 0;
-  color: var(--pv-ink-muted);
-  font-size: 0.9375rem;
-}
-
-.museum-page__cta {
-  text-decoration: none;
+  min-inline-size: 0;
 }
 
 .museum-timeline {

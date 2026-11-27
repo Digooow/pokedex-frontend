@@ -9,7 +9,6 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthStore } from '../../core/stores/auth.store';
-import { REGIONS_ATLAS_PREVIEW } from '../../shared/data/regions-atlas.data';
 import { PvMainHeadingDirective } from '../../shared/directives/main-heading.directive';
 import { RequiresTrainerDirective } from '../../shared/directives/requires-trainer.directive';
 import {
@@ -20,7 +19,7 @@ import {
 } from './under-construction.data';
 
 function resolveModuleId(raw: unknown): UnderConstructionModuleId {
-  if (raw === 'overworld' || raw === 'museum' || raw === 'arcade' || raw === 'arena') {
+  if (raw === 'overworld' || raw === 'arcade' || raw === 'arena') {
     return raw;
   }
   return 'overworld';
@@ -42,7 +41,6 @@ export class UnderConstructionComponent {
   });
 
   readonly tabs = UNDER_CONSTRUCTION_TABS;
-  readonly regions = REGIONS_ATLAS_PREVIEW;
   readonly useFallbackArtwork = signal(false);
   readonly imageFailed = signal(false);
 

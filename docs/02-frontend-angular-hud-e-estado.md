@@ -16,14 +16,13 @@ Enquanto **Phaser 3 / PixiJS** desenha o mundo explorável 2D/HD-2D e **Three.js
 ```mermaid
 flowchart TD
   Root["/ (Tela Retrô Iniciar Jogo - sem topbar)"] -->|"Iniciar Jogo"| HubRoute["/inicio (Home Hub - PokéVerse OS)"]
-  HubRoute -->|"Módulo 2 / Abrir"| PokedexRoute["/pokedex (Público: Ficha, 3D, 1v1, Calc, Enciclo)"]
-  HubRoute -->|"Módulo 3 / Abrir"| MuseumRoute["/museu (Público - Linha do tempo 9 Regiões)"]
+  HubRoute -->|"Módulo 2 / Abrir"| PokedexRoute["/pokedex (Público: Ficha, 3D, 1v1, Calc, Enciclo + Regiões)"]
+  MuseumRoute["/museu (Legado)"] -->|"Redirect"| PokedexReg["/pokedex?mode=enciclopedia&cat=region"]
   EncRoute["/enciclopedia (Legado)"] -->|"Redirect"| PokedexEnc["/pokedex?mode=enciclopedia"]
   HubRoute -->|"Entrar como Treinador"| LoginModal["Modal /auth/login & /auth/register"]
 
   LoginModal -->|"Sessão BFF Válida"| OverworldRoute["/mundo (AuthGuard - Overworld Phaser)"]
   OverworldRoute --> PokedexCloud["/pokedex (Sync + Swap 10 Slots Nuvem)"]
-  OverworldRoute --> MuseumRoute
   OverworldRoute --> ArcadeRoute["/arcade (AuthGuard - ROMs + Save Cloud)"]
   OverworldRoute --> ArenaRoute["/arena (AuthGuard - Team Builder, PvE/PvP, Mini-Games)"]
 
@@ -45,12 +44,11 @@ O HUD envolve o canvas sem bloquear cliques nos momentos de exploração e segue
 
 1. **Top Bar Tática Unificada (`.hud-topbar`):**
    - Ocupa `100%` da largura da tela (`grade` de 3 colunas no desktop `>= 960px` para ancorar os controles esquerdo e direito nas extremidades e manter o ticker centralizado sem deslocar os botões).
-   - À esquerda: emblema **PokéVerse OS** (`<pv-pokeball-mark>`, navegando para `/inicio`) e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 5 módulos com atalhos `1` a `5`, rota dedicada `/pokedex` e rodapé para `/inicio`, além de ícone de cadeado `[pvRequiresTrainer]` quando visitante:
+   - À esquerda: emblema **PokéVerse OS** (`<pv-pokeball-mark>`, navegando para `/inicio`) e seletor único de módulos (**`HudModulesMenuComponent`**) agrupando os 4 módulos com atalhos `1` a `4`, rota dedicada `/pokedex` e rodapé para `/inicio`, além de ícone de cadeado `[pvRequiresTrainer]` quando visitante:
      1. **Overworld (Vila Central)** — *cadeado se visitante*;
-     2. **Pokédex 3D & Holocron** — *sempre liberado*;
-     3. **Museu das Regiões & Jogos** — *sempre liberado*;
-     4. **Arcade Retrô 3D** — *cadeado se visitante*;
-     5. **Battle Frontier (Team Builder / Arena / Mini-Games)** — *cadeado se visitante*.
+     2. **Pokédex 3D** *(inclui Ficha, Holocron 3D, Comparador 1v1, Calculadora, Enciclopédia & Atlas das Regiões)* — *sempre liberado*;
+     3. **Arcade Retrô 3D** — *cadeado se visitante*;
+     4. **Battle Frontier (Team Builder / Arena / Mini-Games)** — *cadeado se visitante*.
    - Ao centro: **Ticker de Eventos Globais** alimentado pelo Kafka -> WebSocket (ex.: *"Treinador_Ash venceu Líder Brock na Battle Frontier"*), exibido temporariamente por `6s` (`activeNotification`) com animação suave de entrada e saída (`280ms`, classe `.is-exiting`) sem exibir eventos antigos (`> 30s`) em reconexões, mantendo o histórico recente no `WorldTickerStore`.
    - À direita (ordem fixa):
      - **Painel do Jogador (`HudUserMenuComponent`):** botão de visitante (*Modo Visitante • Entrar*) ou emblema do Treinador (`username • ELO`) que abre o painel da conta (insígnias, status 2FA/e-mail, `Segurança, 2FA & Dados da Conta`, verificação OTP e `Sair da conta`);
@@ -98,7 +96,7 @@ export class AuthStore {
 | **`EncyclopediaStore` & `EncyclopediaApiClient`** | **Implementadas + Integradas no Visor** | 11 recursos do BFF (`move`, `ability`, `item`, `berry`, `type`, `nature`, `region`, `pokedex`, `location`, `egg-group`, `growth-rate`) embutidos dentro do visor da Pokédex (`/enciclopedia` redireciona para `/pokedex?mode=enciclopedia`) com busca reversa direta para a ficha | NestJS `/api/v1/pokedex/{moves,abilities,items,berries,regions,pokedexes,locations,egg-groups,growth-rates,natures,types}` |
 | **`AudioStore` & `AudioEngineService`** | **Implementadas (Passo 2B.3)** | Controle global de mudo (`pokeverse_audio_muted`) e efeitos táteis (`pokeverse_audio_sfx`) registrados em `PrivacyConsentStore`, reprodução de *cries* com `AnalyserNode` + espectrograma Canvas 2D (`CrySpectrogramComponent`) e osciladores Web Audio respeitando `LITE`/`reduced-motion` | Web Audio API + `localStorage` sob consentimento LGPD |
 | **`HolocronStore`** | **Implementada + Giro 3D Real & `GLTFLoader`** | Estado do modo **Holocron 3D** embutido no visor (`@defer`, `three` + `GLTFLoader` sob demanda em `holocron-media-loader.util.ts`), prisma 3D sem contra-rotação de sprite, rotação orbital 360° e inclinação vertical, alternância Shiny/Auto-Giro e fallback 2D em `LITE`/`webglcontextlost` | `PokedexApiClient` (`/pokemon/:idOrName/bundle`) + `holocron-three.renderer.ts` |
-| **`MuseumStore`** | **Implementada + Layout Enxuto** | Estado do Museu das 9 Regiões (`Kanto–Paldea`), linha do tempo única `1996–2022` (sem cards duplicados), cache em memória de regiões/pokédexes regionais, filtro de localizações e atalhos para `/pokedex` (`mode=holocron`/`enciclopedia`) | `EncyclopediaApiClient` (`/regions/:id` e `/pokedexes/:id`) |
+| **`MuseumStore`** | **Implementada + Unificada na Pokédex (`ENT-19`)** | Estado do Atlas das 9 Regiões (`Kanto–Paldea`) dentro de `Enciclopédia -> Regiões & História` (`RegionsAtlasPanelComponent`), linha do tempo única `1996–2022`, cache em memória de regiões/pokédexes regionais, filtro de localizações e navegação direta sem recarregamento para Ficha, Holocron 3D, Pokédexes e Localizações (`/museu` redireciona) | `EncyclopediaApiClient` (`/regions/:id` e `/pokedexes/:id`) |
 | **`QualityStore` & `ScenarioStore`** | **Implementadas (Fases 1–4A)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com `FpsWatchdog` e rotação de cenários WebP (`-desktop`/`-mobile`) com opt-in LGPD | Hardware probe + preferências opcionais via `PrivacyConsentStore` |
 | **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar + fase dinâmica (`POKEVERSE_PHASE`) | NestJS `/health/ready` e `/api/v1/system/bootstrap` |
 | **`WorldStore`** | **Planejada (Fase 3)** | Mapa atual, coordenadas do jogador no Overworld e treinadores conectados | WebSocket `WorldGateway` + Phaser `EventBus` |
