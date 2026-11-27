@@ -71,3 +71,7 @@ obj/
 test-results/
 playwright-report/
 apps/web/public/assets/draco/
+
+# Documentos e notas locais privados (nao versionados)
+docs/**/privado/
+*.private.md

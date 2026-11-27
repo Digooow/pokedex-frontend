@@ -1,6 +1,7 @@
 # 19 — Observabilidade Híbrida, Telemetria (OpenTelemetry) e Monitoramento (Grafana Stack + Sentry + Datadog)
 
 > **Escopo deste documento:** consolidar o planejamento arquitetural, a instrumentação de código (Back-end NestJS + Front-end Angular + Mensageria Kafka/Outbox), a orquestração da stack local em Docker (`OTel Collector`, `Prometheus`, `Exporters`, `Grafana Loki`, `Promtail`, `Grafana Tempo`, `Grafana` e perfil paralelo `Datadog Agent`) e o fluxo de *Crash Reporting* com `Sentry`, cobrindo integralmente os **Três Pilares da Observabilidade** sem *vendor lock-in* e em conformidade com a **LGPD** e o catálogo [`REQ-SEC-01..35`](16-cookies-lgpd-e-requisitos.md#43-catálogo-normativo-de-requisitos-de-segurança-req-sec-01-a-req-sec-35).
+> Para o guia prático de consulta dos dados **em produção hoje** (Cloudflare, Neon, Upstash, Aiven, Azure e Resend), métricas de negócio faltantes (`MEL-08`) e a especificação do **Painel Admin (`/admin` — `MEL-09`)**, consulte [`22 — Observabilidade em Produção, Guia de Uso Operacional e Painel Admin`](22-observabilidade-em-producao-uso-e-painel-admin.md).
 
 ---
 
@@ -309,3 +310,4 @@ Após subir os serviços:
 2. Abra o dashboard **`PokéVerse OS — Observabilidade 360 (RED, USE, Negocio & RUM)`** na pasta `Pokeverse OS`.
 3. Em **`http://127.0.0.1:9090/targets`**, confirme que todos os alvos (`otel-collector`, `prometheus`, `postgres-exporter`, `redis-exporter`, `redpanda`, `minio`) estão com estado **`UP`**.
 4. Para testar a correlação ponta a ponta: aceite os cookies/telemetria no banner LGPD, navegue até `/pokedex`, busque um Pokémon e clique em qualquer linha de log com `trace_id` no painel **Loki** do Grafana para abrir a árvore completa de spans no **Tempo**.
+5. Para acompanhar **visitantes, contas criadas, Outbox, Redis e Kafka em produção** (e conferir a especificação do futuro painel **`/admin`**), consulte [`22 — Observabilidade em Produção, Guia de Uso Operacional e Painel Admin`](22-observabilidade-em-producao-uso-e-painel-admin.md).

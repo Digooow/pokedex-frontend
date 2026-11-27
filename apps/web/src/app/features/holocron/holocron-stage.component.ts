@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   ElementRef,
+  InjectionToken,
   OnDestroy,
   PLATFORM_ID,
   computed,
@@ -19,8 +20,18 @@ import { QualityStore } from '../../core/stores/quality.store';
 import type { PokemonDetailView } from '../pokedex-device/services/pokedex-view-mapper.util';
 import type { HolocronMediaState } from './holocron-animation.util';
 import { resolveHolocronTextures, resolvePokemonGlbCandidates } from './holocron-palette.util';
-import type { HolocronSceneController } from './holocron-three.renderer';
+import type { HolocronSceneController, HolocronSceneOptions } from './holocron-three.renderer';
 import { HolocronStore } from './holocron.store';
+
+export type HolocronSceneMounter = (options: HolocronSceneOptions) => HolocronSceneController;
+
+export const HOLOCRON_SCENE_MOUNTER = new InjectionToken<() => Promise<HolocronSceneMounter>>(
+  'HOLOCRON_SCENE_MOUNTER',
+  {
+    providedIn: 'root',
+    factory: () => async () => (await import('./holocron-three.renderer')).mountHolocronThreeScene,
+  },
+);
 
 @Component({
   selector: 'pv-holocron-stage',
@@ -33,6 +44,7 @@ export class HolocronStageComponent implements OnDestroy {
   private readonly quality = inject(QualityStore);
   private readonly audioEngine = inject(AudioEngineService);
   private readonly holocron = inject(HolocronStore);
+  private readonly loadSceneMounter = inject(HOLOCRON_SCENE_MOUNTER);
 
   readonly pokemon = input.required<PokemonDetailView>();
   readonly shiny = input.required<boolean>();
@@ -103,12 +115,16 @@ export class HolocronStageComponent implements OnDestroy {
 
     effect(() => {
       const pk = this.pokemon();
-      this.controller?.updatePokemon(this.textures(), this.glbCandidates(), pk.types);
+      const textures = this.textures();
+      const glbCandidates = this.glbCandidates();
+      this.controller?.updatePokemon(textures, glbCandidates, pk.types);
     });
 
     effect(() => {
-      this.controller?.setAutoRotate(this.autoRotate());
-      this.controller?.setReducedMotion(this.quality.reducedMotion());
+      const autoRotate = this.autoRotate();
+      const reducedMotion = this.quality.reducedMotion();
+      this.controller?.setAutoRotate(autoRotate);
+      this.controller?.setReducedMotion(reducedMotion);
     });
   }
 
@@ -137,10 +153,10 @@ export class HolocronStageComponent implements OnDestroy {
   private async mountScene(canvas: HTMLCanvasElement): Promise<void> {
     this.mounting = true;
     try {
-      const mod = await import('./holocron-three.renderer');
+      const mountHolocronThreeScene = await this.loadSceneMounter();
       if (this.disposed || !this.canUseWebGl()) return;
       const pk = this.pokemon();
-      this.controller = mod.mountHolocronThreeScene({
+      this.controller = mountHolocronThreeScene({
         canvas,
         tier: this.quality.tier(),
         reducedMotion: this.quality.reducedMotion(),

@@ -1,5 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AudioEngineService } from '../../core/audio/audio-engine.service';
@@ -21,7 +22,40 @@ import {
   resolveHolocronTextures,
   resolvePokemonGlbCandidates,
 } from './holocron-palette.util';
+import { HOLOCRON_SCENE_MOUNTER } from './holocron-stage.component';
+import type { HolocronSceneController } from './holocron-three.renderer';
 import { HolocronStore } from './holocron.store';
+
+function createWebGlStageTestHarness() {
+  const reducedMotion = signal(false);
+  const controllerSpy: HolocronSceneController = {
+    updatePokemon: vi.fn(),
+    selectAnimation: vi.fn(),
+    setAutoRotate: vi.fn(),
+    setReducedMotion: vi.fn(),
+    nudgeOrbit: vi.fn(),
+    resetCamera: vi.fn(),
+    resize: vi.fn(),
+    dispose: vi.fn(),
+  };
+  const mountSpy = vi.fn(() => controllerSpy);
+  const qualityStub = {
+    tier: signal<'ultra'>('ultra'),
+    profile: signal({
+      tier: 'ultra' as const,
+      preference: 'ultra' as const,
+      reducedMotion: false,
+      coarsePointer: false,
+      webgl2Supported: true,
+      saveData: false,
+      deviceMemoryGb: 8,
+      hardwareConcurrency: 8,
+    }),
+    reducedMotion,
+    downgradeAutoTier: vi.fn(),
+  };
+  return { reducedMotion, controllerSpy, mountSpy, qualityStub };
+}
 
 describe('Holocron 3D & Web Audio Engine', () => {
   beforeEach(async () => {
@@ -168,5 +202,66 @@ describe('Holocron 3D & Web Audio Engine', () => {
       ] as unknown as Parameters<typeof pickDefaultClipIndex>[0]),
     ).toBe(0);
     expect(pickDefaultClipIndex([])).toBe(-1);
+  });
+
+  it('propagates Pausar Giro / Auto-Giro, Shiny, and reducedMotion to the Three.js controller after async mount', async () => {
+    const { reducedMotion, controllerSpy, mountSpy, qualityStub } = createWebGlStageTestHarness();
+    TestBed.resetTestingModule();
+    await TestBed.configureTestingModule({
+      imports: [PokedexHolocronPanelComponent],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: QualityStore, useValue: qualityStub },
+        { provide: HOLOCRON_SCENE_MOUNTER, useValue: () => Promise.resolve(mountSpy) },
+      ],
+    }).compileComponents();
+
+    const holocron = TestBed.inject(HolocronStore);
+    holocron.openWithPokemon(
+      mapPokemonBundleToView(
+        createCachedPokemonBundleFixture({ id: 25, name: 'pikachu', typeName: 'electric' }).bundle,
+      ),
+    );
+    const fixture = TestBed.createComponent(PokedexHolocronPanelComponent);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(mountSpy).toHaveBeenCalledTimes(1);
+    expect(mountSpy).toHaveBeenCalledWith(expect.objectContaining({ autoRotate: true }));
+
+    const host = fixture.nativeElement as HTMLElement;
+    const findControl = (label: string) =>
+      Array.from(host.querySelectorAll('.holocron-ctrl-btn')).find((b) =>
+        b.textContent?.includes(label),
+      ) as HTMLButtonElement;
+
+    const spinBtn = findControl('Pausar Giro');
+    spinBtn.click();
+    fixture.detectChanges();
+    expect(holocron.autoRotate()).toBe(false);
+    expect(spinBtn.textContent?.trim()).toBe('Auto-Giro');
+    expect(spinBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(controllerSpy.setAutoRotate).toHaveBeenCalledWith(false);
+
+    spinBtn.click();
+    fixture.detectChanges();
+    expect(holocron.autoRotate()).toBe(true);
+    expect(spinBtn.textContent?.trim()).toBe('Pausar Giro');
+    expect(controllerSpy.setAutoRotate).toHaveBeenCalledWith(true);
+
+    findControl('Shiny').click();
+    fixture.detectChanges();
+    expect(controllerSpy.updatePokemon).toHaveBeenCalledWith(
+      expect.objectContaining({ frontUrl: expect.stringContaining('/shiny/') }),
+      expect.arrayContaining([expect.stringContaining('/shiny/')]),
+      ['Electric'],
+    );
+
+    reducedMotion.set(true);
+    fixture.detectChanges();
+    expect(controllerSpy.setReducedMotion).toHaveBeenCalledWith(true);
   });
 });
