@@ -207,8 +207,10 @@ export class PokedexAttributeLookupService {
   }
 }
 
-function intersectSets(sets: readonly (ReadonlySet<string> | null)[]): ReadonlySet<string> | null {
-  if (sets.some((set) => set === null)) return null;
+export function intersectSets(
+  sets: readonly (ReadonlySet<string> | null)[],
+): ReadonlySet<string> | null {
+  if (sets.includes(null)) return null;
   const nonNull = sets.filter((set): set is ReadonlySet<string> => set !== null);
   const first = nonNull[0];
   if (!first) return null;

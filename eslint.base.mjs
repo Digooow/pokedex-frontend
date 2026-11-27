@@ -49,6 +49,7 @@ export function createWorkspaceEslintConfig({
           ? {
               "require-await": "off",
               "@typescript-eslint/require-await": "error",
+              "@typescript-eslint/prefer-includes": "error",
               "@typescript-eslint/prefer-optional-chain": "error",
               "@typescript-eslint/prefer-readonly": "error",
             }

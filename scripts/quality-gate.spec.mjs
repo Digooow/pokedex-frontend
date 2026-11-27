@@ -55,7 +55,7 @@ function assertHasRule(findings, ruleId) {
   );
 }
 
-test('Suite 1 — SonarCloud Parity Engine: TypeScript rules (S6582, S7747, S7763, S7758, S7766, S7727, S7649, S7781, S7780, suppression)', () => {
+test('Suite 1 — SonarCloud Parity Engine: TypeScript rules (S6582, S7747, S7763, S7758, S7765, S7766, S7727, S7649, S7781, S7780, suppression)', () => {
   assertHasRule(
     checkTypeScriptParity('apps/web/src/a.ts', 'if (active && active.name === q) {}'),
     'typescript:S6582',
@@ -112,6 +112,41 @@ test('Suite 1 — SonarCloud Parity Engine: TypeScript rules (S6582, S7747, S776
   );
   assert.equal(
     checkTypeScriptParity('apps/web/src/a.ts', 'return Math.max(idx, 0);').length,
+    0,
+  );
+
+  assertHasRule(
+    checkTypeScriptParity(
+      'apps/web/src/a.ts',
+      'if (sets.some((set) => set === null)) return null;',
+    ),
+    'typescript:S7765',
+  );
+  assertHasRule(
+    checkTypeScriptParity(
+      'apps/web/src/a.ts',
+      'const ok = items.some((item) => target === item);',
+    ),
+    'typescript:S7765',
+  );
+  assertHasRule(
+    checkTypeScriptParity(
+      'apps/web/src/a.ts',
+      "const ok = items.some((item: string | null) => { return item === 'pikachu'; });",
+    ),
+    'typescript:S7765',
+  );
+  assert.equal(
+    checkTypeScriptParity(
+      'apps/web/src/a.ts',
+      [
+        'if (sets.includes(null)) return null;',
+        'const byProp = modes.some((entry) => entry.id === mode);',
+        'const hasNonNull = sets.some((set) => set !== null);',
+        'const either = items.some((item) => item === a || item === b);',
+        'const sameCase = items.some((item) => item === item.toLowerCase());',
+      ].join('\n'),
+    ).length,
     0,
   );
 
@@ -389,6 +424,11 @@ test('Suite 2 — Real ESLint + SonarJS AST catches all historical JS/TS SonarCl
       name: 'typescript:S107 (max-params)',
       rule: 'max-params',
       code: 'export function tooMany(a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number): number {\n  return a + b + c + d + e + f + g + h;\n}\n',
+    },
+    {
+      name: 'typescript:S7765 (prefer-includes)',
+      rule: '@typescript-eslint/prefer-includes',
+      code: 'export function hasTarget(items: readonly string[], target: string): boolean {\n  return items.indexOf(target) !== -1;\n}\n',
     },
     {
       name: 'prettier/prettier formatting mismatch',

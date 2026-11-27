@@ -156,6 +156,30 @@ function checkRegexReplaceAll(rel, content, findings) {
   }
 }
 
+function checkSomePreferIncludes(rel, content, findings) {
+  const someEqualityRegex =
+    /\.some\(\s*(?:\(\s*([a-zA-Z_$][\w$]*)(?:\s*:[^,)]+)?\s*\)|([a-zA-Z_$][\w$]*))\s*=>\s*(?:\{\s*return\s+)?([^;{}()=]+?)\s*(?<![!=])===?\s*([^;{}()=]+?)(?:\s*;?\s*\})?\s*\)/g;
+  for (const m of content.matchAll(someEqualityRegex)) {
+    const param = m[1] ?? m[2] ?? '';
+    const left = (m[3] ?? '').trim();
+    const right = (m[4] ?? '').trim();
+    if (!param || (left !== param && right !== param)) {
+      continue;
+    }
+    const other = left === param ? right : left;
+    const otherIdentifiers = other.split(/[^a-zA-Z0-9_$]+/);
+    if (!other || /[&|?:,]/.test(other) || otherIdentifiers.includes(param)) {
+      continue;
+    }
+    findings.push({
+      rule: 'typescript:S7765',
+      file: rel,
+      line: lineNumberAt(content, m.index ?? 0),
+      message: `Use .includes(${other}) instead of .some() when checking value existence.`,
+    });
+  }
+}
+
 export function checkTypeScriptParity(rel, content) {
   const findings = [];
   checkReexports(rel, content, findings);
@@ -230,6 +254,7 @@ export function checkTypeScriptParity(rel, content) {
 
   checkRegexReplaceAll(rel, content, findings);
   checkStringRawCandidates(rel, content, findings);
+  checkSomePreferIncludes(rel, content, findings);
   return findings;
 }
 
