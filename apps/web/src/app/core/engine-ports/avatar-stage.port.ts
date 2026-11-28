@@ -22,6 +22,7 @@ export interface CharacterHologramSceneOptions {
   readonly autoRotate: boolean;
   readonly bodyModel: CharacterBodyModel;
   readonly originKey: CharacterOriginKey;
+  readonly enablePhysics?: boolean;
   readonly onMediaStateChange?: (media: CharacterHologramMediaState) => void;
   readonly onContextLost: () => void;
   readonly onLowFps: () => void;
@@ -48,6 +49,6 @@ export const CHARACTER_HOLOGRAM_MOUNTER = new InjectionToken<
 >('CHARACTER_HOLOGRAM_MOUNTER', {
   providedIn: 'root',
   factory: () => async () =>
-    (await import('../../features/character-studio/services/character-hologram-three.renderer'))
+    (await import('../../features/character-studio/services/character-hologram-babylon.renderer'))
       .mountCharacterHologramScene,
 });

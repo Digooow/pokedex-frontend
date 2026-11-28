@@ -12,6 +12,7 @@ COPY package.json package-lock.json tsconfig.base.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY apps/mcp/package.json apps/mcp/
 
 RUN npm ci --workspace=@pokeverse/shared --workspace=pokeverse-api --include-workspace-root
 
@@ -34,6 +35,7 @@ COPY package.json package-lock.json ./
 COPY packages/shared/package.json packages/shared/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
+COPY apps/mcp/package.json apps/mcp/
 COPY apps/api/prisma/ apps/api/prisma/
 
 RUN npm ci --omit=dev --workspace=@pokeverse/shared --workspace=pokeverse-api --include-workspace-root \

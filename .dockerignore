@@ -9,6 +9,8 @@ node_modules
 .angular
 apps/web/*
 !apps/web/package.json
+apps/mcp/*
+!apps/mcp/package.json
 docs
 assets
 *.md

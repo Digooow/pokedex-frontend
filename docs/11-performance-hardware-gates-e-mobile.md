@@ -56,7 +56,7 @@ flowchart TD
 | Subsistema | `ULTRA` (Desktop GPU) | `BALANCED` (Mobile Médio / Laptop) | `LITE` (Celular de Entrada / Hardware Fraco) |
 | :--- | :--- | :--- | :--- |
 | **Pixel Ratio (`DPR`)** | `Math.min(dpr, 2.0)` | `Math.min(dpr, 1.5)` | `1.0` fixo (reduz pixels renderizados em até 75%) |
-| **Three.js (Title / Holocron / Console)** | Bloom + GLSL shaders + `100%` partículas + sombras suaves | Sem *UnrealBloomPass*, `40%` partículas, materiais *Lambert/Standard* leves | Substituição elegante para visualização 2D CSS/Sprite HD sem contexto WebGL pesado (ou malha mínima sem shader complexo) |
+| **Babylon.js 9 + Havok (Holocron / Personagem / Console / Title)** | Glow/PBR + GLSL shaders + `100%` partículas + sombras suaves | Sem *post-processing* pesado, `40%` partículas, materiais PBR/Standard leves | Substituição elegante para visualização 2D CSS/Sprite HD sem contexto WebGL pesado (ou malha mínima sem shader complexo) |
 | **Phaser Overworld** | Ciclo dia/noite com `Light2D` + partículas de chuva/vagalumes + `60–120 FPS` | Iluminação por tintura leve, `30%` partículas, alvo `60 FPS` | Mapa limpo sem filtros por câmera, partículas desligadas, alvo `30–60 FPS` estável |
 | **Assets & Cenários** | Desktop WebP/AVIF (`1920px`, `~300–500 KB`), apenas ativo decodificado | Mobile/Tablet WebP/AVIF (`1080px`, `~150–250 KB`), apenas ativo no DOM | Mobile WebP (`720px–800px`, `< 100 KB`), carregamento único sob demanda |
 | **CSS Skeuomórfico (Pokédex 3D)** | Gradientes `oklch`, reflexos e microtexturas em bitmap pré-assado | Mesmo visual nítido sem animar `filter`/`box-shadow` ou `backdrop-filter` | Sem `backdrop-filter`, sem `mix-blend-mode`, sombras simplificadas para compositing instantâneo |
@@ -85,7 +85,7 @@ Como a plataforma atende Web Desktop e Smartphones modernos ou modestos:
 5. **Isolamento de Pintura em Listas Longas:**
    - Listagens como o catálogo de `1.300+` Pokémon e inventário usam `contain: layout style paint` e `content-visibility: auto` (com `contain-intrinsic-size` exato) ou virtualização quando visíveis simultaneamente.
 6. **Economia de Bateria:**
-   - Pausa automática de áudio (`AudioContext.suspend()`), timers e render loops Three.js/Phaser no evento `visibilitychange` quando o navegador móvel vai para segundo plano.
+   - Pausa automática de áudio (`AudioContext.suspend()`), timers e render loops Babylon.js/Phaser no evento `visibilitychange` quando o navegador móvel vai para segundo plano.
 
 ---
 
@@ -100,10 +100,10 @@ Nenhuma estimativa subjetiva: toda camada tem metas numéricas verificáveis.
 | **LCP (*Largest Contentful Paint*)** | `<= 1.8 s` | `<= 2.5 s` (4G lento emulado) | Lighthouse CI + RUM `PerformanceObserver` |
 | **INP (*Interaction to Next Paint*)** | `<= 100 ms` | `<= 200 ms` | Chrome Traces + RUM `event` observer |
 | **CLS (*Cumulative Layout Shift*)** | `<= 0.02` | `<= 0.05` | Lighthouse CI + Playwright |
-| **Bundle JS Inicial (Shell Angular)** | `<= 220 KB` gzip | `<= 220 KB` gzip (Phaser/Three/WASM em *lazy chunks*) | `angular.json` budgets no build |
+| **Bundle JS Inicial (Shell Angular)** | `<= 220 KB` gzip | `<= 220 KB` gzip (Phaser/Babylon/Havok/WASM em *lazy chunks*) | `angular.json` budgets no build |
 | **Sustained Frame Rate (Cenas Ativas)** | `>= 58 FPS` | `>= 50 FPS` (`BALANCED`) / `>= 45 FPS` (`LITE`) | `FpsWatchdog` + Playwright trace |
 | **Long Tasks (`> 50ms` na Main Thread)** | `<= 2` no boot | `<= 3` no boot; `0` durante scroll/abertura | `PerformanceObserver('longtask')` |
-| **Vazamento de Memória GPU (WebGL)** | `0` objetos retidos após unmount | `0` objetos retidos após unmount | `renderer.info.memory` no E2E |
+| **Vazamento de Memória GPU (WebGL)** | `0` objetos retidos após unmount | `0` objetos retidos após unmount | Contadores Babylon `scene.meshes`/`textures` + `dispose()` no E2E |
 
 ### 4.2. Back-end NestJS, PostgreSQL, Redis e Kafka
 
@@ -130,7 +130,7 @@ Nenhuma estimativa subjetiva: toda camada tem metas numéricas verificáveis.
    - Um atalho discreto (`Ctrl+Shift+P` ou opção de diagnóstico no HUD) exibe um medidor compacto ao vivo com:
      - **FPS atual e frame time (ms)**;
      - **Hardware Tier ativo (`ULTRA` / `BALANCED` / `LITE`)** com alternância imediata para comparação ao vivo;
-     - **Uso de memória JS (`performance.memory` quando disponível)** e contadores do Three.js (`geometries`, `textures`, `calls`);
+     - **Uso de memória JS (`performance.memory` quando disponível)** e contadores do Babylon.js (`scene.meshes.length`, `scene.textures.length`, `drawCalls`);
      - **Últimas latências HTTP/WebSocket e Cache Hit/Miss**.
 
 ---
@@ -158,13 +158,13 @@ flowchart LR
 ### Especificação de cada Gate
 
 1. **Gate 1 — Orçamento de Bundle & Dependências (`angular.json` + Script CI):**
-   - Reprova automaticamente o build caso o JavaScript inicial ultrapasse `220 KB` gzipados ou se bibliotecas pesadas (`three`, `phaser`, cores WASM) vazarem para o bundle principal em vez de *lazy chunks*.
+   - Reprova automaticamente o build caso o JavaScript inicial ultrapasse `220 KB` gzipados ou se bibliotecas pesadas (`@babylonjs/*`, `phaser`, cores WASM) vazarem para o bundle principal em vez de *lazy chunks*.
 2. **Gate 2 — Lighthouse CI no Perfil Mobile Emulado (`Moto G Power / Slow 4G`):**
    - Executa auditoria automatizada na rota pública (`/`, `/pokedex`, `/museu`) exigindo `Performance >= 90`, `Accessibility >= 95`, `LCP <= 2.5s`, `CLS <= 0.05`.
 3. **Gate 3 — Suíte Playwright de Renderização, FPS e Vazamento WebGL:**
    - Emula viewport mobile `375×812` com throttling de CPU `4x`:
      - Abre e fecha a Pokédex 3D validando que o tempo de layout/reflow durante a transição fica dentro do limite (garantindo que nenhum `padding`/`height` esteja sendo animado);
-     - Navega Title Screen -> Holocron 3D -> desmonta -> verifica via janela de inspeção de teste que `renderer.info.memory.geometries` e `textures` foram devidamente descartados (`dispose()`).
+     - Navega Title Screen -> Holocron 3D / Estúdio 3D -> desmonta -> verifica via inspeção da cena que `scene.dispose()` e `engine.dispose()` liberam malhas, materiais e texturas WebGL sem retenção.
 4. **Gate 4 — Auditoria de Queries SQL & Anti-N+1 em Integração:**
    - Executa suíte de testes contra PostgreSQL real usando `prisma.$on('query')`: cada endpoint crítico declara um teto máximo de queries (ex.: listar times com membros <= `2` queries; carregar slots <= `1` query). Consultas fora do orçamento ou planos `EXPLAIN ANALYZE` acusando `Seq Scan` em índices obrigatórios quebram o teste.
 5. **Gate 5 — Teste de Carga (`k6`) e Resiliência sob Caos:**

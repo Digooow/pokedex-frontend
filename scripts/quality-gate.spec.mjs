@@ -545,7 +545,7 @@ test('Suite 3 — Historical CI Pipeline Failure Invariants', () => {
   assert.match(
     cspLine,
     /connect-src[^;]*\bblob:/,
-    'connect-src must allow blob: so Three.js ImageBitmapLoader can decode embedded GLB WebP textures.',
+    'connect-src must allow blob: so Babylon.js GLTF loader can decode embedded GLB WebP textures.',
   );
   assert.match(cspLine, /connect-src[^;]*https:\/\/pokeapi\.co/);
   assert.match(cspLine, /connect-src[^;]*https:\/\/raw\.githubusercontent\.com/);
@@ -587,8 +587,13 @@ test('Suite 3 — Historical CI Pipeline Failure Invariants', () => {
   const sonarProps = fs.readFileSync(path.join(REPO_ROOT, '.sonarcloud.properties'), 'utf8');
   assert.match(sonarProps, /apps\/api\/prisma\/migrations\/\*\*/);
   assert.match(sonarProps, /apps\/web\/public\/assets\/draco\/\*\*/);
+  assert.match(sonarProps, /apps\/web\/public\/assets\/havok\/\*\*/);
   assert.match(sonarProps, /sonar\.cpd\.exclusions=.*\*\*\/\*\.spec\.ts/);
   assert.match(sonarProps, /sonar\.cpd\.exclusions=.*\*\*\/\*\.e2e-spec\.ts/);
+
+  const mcpCfg = JSON.parse(fs.readFileSync(path.join(REPO_ROOT, '.vscode', 'mcp.json'), 'utf8'));
+  assert.ok(mcpCfg.servers?.['pokeverse-devkit'], '.vscode/mcp.json must register pokeverse-devkit.');
+  assert.ok(mcpCfg.servers?.blender, '.vscode/mcp.json must register blender.');
 });
 
 test('Suite 4 — Live Codebase SonarCloud Parity Smoke Check', () => {
@@ -729,14 +734,17 @@ test('Suite 7 — Deploy Workflow, Edge Config, Prisma & Full-Stage Hook Parity'
     'typecheck:shared',
     'typecheck:api',
     'typecheck:web',
+    'typecheck:mcp',
     'lint:shared',
     'lint:api',
     'lint:web',
+    'lint:mcp',
     'audit:duplication',
     'test:quality-gates',
     'test:unit:shared',
     'test:unit:api',
     'test:unit:web',
+    'test:unit:mcp',
   ];
   const localTestStages = getAllStagesForMode('test', false);
   for (const stage of expectedLocalTestStages) {
@@ -752,6 +760,7 @@ test('Suite 7 — Deploy Workflow, Edge Config, Prisma & Full-Stage Hook Parity'
     'test:unit:shared',
     'test:unit:api',
     'test:unit:web',
+    'test:unit:mcp',
   ]) {
     assert.ok(ciTestStages.includes(stage), `CI npm test missing stage: ${stage}`);
   }
@@ -767,6 +776,7 @@ test('Suite 7 — Deploy Workflow, Edge Config, Prisma & Full-Stage Hook Parity'
     'audit:deps',
     'test:e2e:api',
     'build:api',
+    'build:mcp',
     'build:web',
     'audit:ui',
     'test:e2e:web',

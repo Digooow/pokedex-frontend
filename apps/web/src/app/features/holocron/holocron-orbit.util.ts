@@ -1,4 +1,5 @@
-import type { PerspectiveCamera } from 'three';
+import type { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
 
 export interface StageOrbitState {
   autoRotate: boolean;
@@ -146,15 +147,17 @@ export function advanceStageFpsWatchdog(
 }
 
 export function applyCameraOrbit(
-  camera: PerspectiveCamera,
+  camera: FreeCamera,
   state: StageOrbitState,
   targetY: number,
 ): void {
   const horiz = Math.cos(state.orbitPitch) * state.cameraRadius;
-  camera.position.x = Math.sin(state.orbitAngle) * horiz;
-  camera.position.z = Math.cos(state.orbitAngle) * horiz;
-  camera.position.y = targetY + Math.sin(state.orbitPitch) * state.cameraRadius;
-  camera.lookAt(0, targetY, 0);
+  camera.position.set(
+    Math.sin(state.orbitAngle) * horiz,
+    targetY + Math.sin(state.orbitPitch) * state.cameraRadius,
+    Math.cos(state.orbitAngle) * horiz,
+  );
+  camera.setTarget(new Vector3(0, targetY, 0));
 }
 
 export function startStageRafLoop(params: {
@@ -176,5 +179,34 @@ export function startStageRafLoop(params: {
     state.fpsWindowStart = state.lastFrameMs;
     state.fpsFrames = 0;
     state.rafId = requestAnimationFrame(loop);
+  };
+}
+
+export function createBaseOrbitControls(params: {
+  readonly state: StageOrbitState;
+  readonly renderFrame: (now: number) => void;
+  readonly defaultPitch: number;
+  readonly defaultRadius: number;
+  readonly resize: () => void;
+}) {
+  const { state, renderFrame, defaultPitch, defaultRadius, resize } = params;
+  return {
+    setAutoRotate: (enabled: boolean) => {
+      state.autoRotate = enabled;
+    },
+    setReducedMotion: (reduced: boolean) => {
+      state.reducedMotion = reduced;
+    },
+    nudgeOrbit: (deltaRad: number) => {
+      state.orbitAngle += deltaRad;
+      renderFrame(performance.now());
+    },
+    resetCamera: () => {
+      state.orbitAngle = 0;
+      state.orbitPitch = defaultPitch;
+      state.cameraRadius = defaultRadius;
+      renderFrame(performance.now());
+    },
+    resize,
   };
 }

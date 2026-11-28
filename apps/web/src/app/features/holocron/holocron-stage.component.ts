@@ -20,7 +20,7 @@ import { QualityStore } from '../../core/stores/quality.store';
 import type { PokemonDetailView } from '../pokedex-device/services/pokedex-view-mapper.util';
 import type { HolocronMediaState } from './holocron-animation.util';
 import { resolveHolocronTextures, resolvePokemonGlbCandidates } from './holocron-palette.util';
-import type { HolocronSceneController, HolocronSceneOptions } from './holocron-three.renderer';
+import type { HolocronSceneController, HolocronSceneOptions } from './holocron-babylon.renderer';
 import { HolocronStore } from './holocron.store';
 
 export type HolocronSceneMounter = (options: HolocronSceneOptions) => HolocronSceneController;
@@ -29,7 +29,8 @@ export const HOLOCRON_SCENE_MOUNTER = new InjectionToken<() => Promise<HolocronS
   'HOLOCRON_SCENE_MOUNTER',
   {
     providedIn: 'root',
-    factory: () => async () => (await import('./holocron-three.renderer')).mountHolocronThreeScene,
+    factory: () => async () =>
+      (await import('./holocron-babylon.renderer')).mountHolocronBabylonScene,
   },
 );
 

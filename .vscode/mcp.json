@@ -1,0 +1,15 @@
+{
+  "servers": {
+    "pokeverse-devkit": {
+      "command": "node",
+      "args": ["${workspaceFolder}/apps/mcp/dist/index.js"],
+      "env": {
+        "POKEVERSE_REPO_ROOT": "${workspaceFolder}"
+      }
+    },
+    "blender": {
+      "command": "uvx",
+      "args": ["mcp-for-blender"]
+    }
+  }
+}

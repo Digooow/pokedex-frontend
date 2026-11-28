@@ -29,7 +29,7 @@ A Pokédex construída inicialmente na Fase 0 (`index.html`, `css/style.css` e `
   - **Treinador Logado:** grava, renomeia, abre instantaneamente sem modal de confirmação e reordena via Drag & Drop / `↑`/`↓` seus 10 Pokémon favoritos diretamente na nuvem (`PokedexSlot` no PostgreSQL via `PATCH /api/v1/pokedex/slots/swap`), sincronizando entre dispositivos e publicando eventos de captura rara no Feed Global.
 
 ### 2.2. Expansão Holocron 3D (Embutida no Visor da Pokédex)
-Ao clicar em **3D** na barra de modos do visor ou no atalho **Holocron 3D** diretamente na busca/ficha de qualquer Pokémon, o palco **Three.js** é montado dentro do próprio Visor LCD (`/pokedex?q=<nome>&mode=holocron`):
+Ao clicar em **3D** na barra de modos do visor ou no atalho **Holocron 3D** diretamente na busca/ficha de qualquer Pokémon, o palco **Babylon.js 9 + Havok** é montado dentro do próprio Visor LCD (`/pokedex?q=<nome>&mode=holocron`):
 1. **Pedestal Holográfico Elemental & Giro 360° Real:** base em metal escuro com shader de energia parametrizado pelo tipo, prisma holográfico duplo estacionário (sem contra-rotação) + hook lazy `GLTFLoader` (`LOCAL_POKEMON_GLB_MODELS`) para modelos `.glb` leves locais, giro orbital 360° e inclinação vertical suaves, além de partículas atmosféricas por elemento.
 2. **Sintetizador & Analisador de Grito (*Cry* via Web Audio API):** reproduz o áudio oficial (`.ogg`/`.mp3`) capturado da PokéAPI ligado a um `AnalyserNode`, desenhando barras/ondas de frequência em tempo real diretamente no HUD do Holocron.
 3. **Árvore Evolutiva Completa:** grafo interativo mostrando pré-evoluções, ramificações (ex.: Eevee, Tyrogue, Wurmple) e gatilhos exatos (*nível*, *pedra evolutiva*, *amizade*, *horário dia/noite*, *troca*).

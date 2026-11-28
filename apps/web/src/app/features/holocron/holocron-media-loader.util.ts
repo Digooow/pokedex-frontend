@@ -1,45 +1,46 @@
-import {
-  type AnimationAction,
-  type AnimationClip,
-  AnimationMixer,
-  type Group,
-  type MeshBasicMaterial,
-  type Object3D,
-  SRGBColorSpace,
-  type Texture,
-  TextureLoader,
-} from 'three';
-import type { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup';
+import type { AssetContainer } from '@babylonjs/core/assetContainer';
+import { Constants } from '@babylonjs/core/Engines/constants';
+import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial';
+import { Texture } from '@babylonjs/core/Materials/Textures/texture';
+import { Color3 } from '@babylonjs/core/Maths/math.color';
+import { CreateBox } from '@babylonjs/core/Meshes/Builders/boxBuilder';
+import { CreatePlane } from '@babylonjs/core/Meshes/Builders/planeBuilder';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
+import { color3FromHexInt } from '../../core/engine-ports/babylon-stage.util';
 import {
   type HolocronMediaState,
   type LoadedGlbPayload,
   type ProceduralRig,
+  activateAnimationGroup,
   applyProceduralIdleMotion,
-  createLazyGlbLoader,
   fetchFirstValidGlb,
   fitLoadedGlbModel,
   formatAnimationClipLabel,
   pickDefaultClipIndex,
+  syncAnimationGroupsMotion,
 } from './holocron-animation.util';
-import type { HolocronTexturePair } from './holocron-palette.util';
+import type { HolocronPalette, HolocronTexturePair } from './holocron-palette.util';
 
 export interface HologramPrismRig {
-  readonly hologramGroup: Group;
-  readonly prismGroup: Group;
-  readonly modelAnchor: Group;
-  readonly frontMat: MeshBasicMaterial;
-  readonly backMat: MeshBasicMaterial;
-  readonly coreMat: MeshBasicMaterial;
+  readonly hologramGroup: TransformNode;
+  readonly prismGroup: TransformNode;
+  readonly modelAnchor: TransformNode;
+  readonly frontMat: StandardMaterial;
+  readonly backMat: StandardMaterial;
+  readonly coreMat: StandardMaterial;
 }
 
 interface MediaLoaderState {
   activeFront: Texture | null;
   activeBack: Texture | null;
   activeGlbUrl: string | null;
+  activeContainer: AssetContainer | null;
+  activeRoot: TransformNode | null;
   requestEpoch: number;
   abortController: AbortController | null;
-  mixer: AnimationMixer | null;
-  actions: AnimationAction[];
+  animationGroups: AnimationGroup[];
   activeClipIndex: number;
   proceduralRig: ProceduralRig | null;
 }
@@ -49,87 +50,133 @@ function createInitialLoaderState(): MediaLoaderState {
     activeFront: null,
     activeBack: null,
     activeGlbUrl: null,
+    activeContainer: null,
+    activeRoot: null,
     requestEpoch: 0,
     abortController: null,
-    mixer: null,
-    actions: [],
+    animationGroups: [],
     activeClipIndex: -1,
     proceduralRig: null,
   };
 }
 
+export function createHologramPrism(scene: Scene, palette: HolocronPalette): HologramPrismRig {
+  const hologramGroup = new TransformNode('holocron-group', scene);
+  hologramGroup.position.y = 0.34;
+
+  const prismGroup = new TransformNode('holocron-prism', scene);
+  prismGroup.parent = hologramGroup;
+
+  const frontMat = new StandardMaterial('holo-prism-front', scene);
+  frontMat.disableLighting = true;
+  frontMat.emissiveColor = Color3.White();
+  frontMat.alpha = 0.96;
+  frontMat.backFaceCulling = true;
+  frontMat.disableDepthWrite = true;
+
+  const backMat = new StandardMaterial('holo-prism-back', scene);
+  backMat.disableLighting = true;
+  backMat.emissiveColor = color3FromHexInt(0x93c5fd);
+  backMat.alpha = 0.92;
+  backMat.backFaceCulling = true;
+  backMat.disableDepthWrite = true;
+
+  const frontMesh = CreatePlane('holo-front-plane', { size: 1.65 }, scene);
+  frontMesh.position.z = 0.04;
+  frontMesh.rotation.y = Math.PI;
+  frontMesh.material = frontMat;
+  frontMesh.parent = prismGroup;
+
+  const backMesh = CreatePlane('holo-back-plane', { size: 1.65 }, scene);
+  backMesh.position.z = -0.04;
+  backMesh.material = backMat;
+  backMesh.parent = prismGroup;
+
+  const coreMat = new StandardMaterial('holo-prism-core', scene);
+  coreMat.disableLighting = true;
+  coreMat.emissiveColor = color3FromHexInt(palette.primary);
+  coreMat.alpha = 0.16;
+  coreMat.alphaMode = Constants.ALPHA_ADD;
+  coreMat.disableDepthWrite = true;
+
+  const coreMesh = CreateBox('holo-core-box', { width: 1.56, height: 1.56, depth: 0.06 }, scene);
+  coreMesh.material = coreMat;
+  coreMesh.parent = prismGroup;
+
+  const modelAnchor = new TransformNode('holo-model-anchor', scene);
+  modelAnchor.parent = hologramGroup;
+
+  return { hologramGroup, prismGroup, modelAnchor, frontMat, backMat, coreMat };
+}
+
 function loadTextureAsync(
-  texLoader: TextureLoader,
+  scene: Scene,
   url: string,
+  isStale: () => boolean,
   onLoaded: (tex: Texture) => void,
 ): void {
-  texLoader.load(
+  const tex = new Texture(
     url,
-    (tex) => {
-      tex.colorSpace = SRGBColorSpace;
+    scene,
+    false,
+    true,
+    Texture.TRILINEAR_SAMPLINGMODE,
+    () => {
+      if (isStale()) {
+        tex.dispose();
+        return;
+      }
+      tex.hasAlpha = true;
       onLoaded(tex);
     },
-    undefined,
-    () => undefined,
+    () => tex.dispose(),
   );
 }
 
-function resetAnimationState(state: MediaLoaderState): void {
-  state.mixer?.stopAllAction();
-  state.mixer = null;
-  state.actions = [];
+function clearActiveGlb(prism: HologramPrismRig, state: MediaLoaderState): void {
+  for (const group of state.animationGroups) {
+    group.stop();
+  }
+  state.animationGroups = [];
   state.activeClipIndex = -1;
   state.proceduralRig = null;
-}
-
-function clearAnchorChildren(
-  prism: HologramPrismRig,
-  state: MediaLoaderState,
-  onDispose: (obj: Object3D) => void,
-): void {
-  resetAnimationState(state);
-  for (let i = prism.modelAnchor.children.length - 1; i >= 0; i -= 1) {
-    const child = prism.modelAnchor.children[i];
-    if (child) {
-      onDispose(child);
-      prism.modelAnchor.remove(child);
-    }
-  }
-  prism.prismGroup.visible = true;
+  state.activeRoot?.dispose();
+  state.activeContainer?.dispose();
+  state.activeRoot = null;
+  state.activeContainer = null;
+  prism.prismGroup.setEnabled(true);
 }
 
 function applyTexturesForEpoch(params: {
-  readonly texLoader: TextureLoader;
+  readonly scene: Scene;
   readonly prism: HologramPrismRig;
   readonly state: MediaLoaderState;
   readonly textures: HolocronTexturePair;
   readonly isStale: () => boolean;
 }): void {
-  const { texLoader, prism, state, textures, isStale } = params;
+  const { scene, prism, state, textures, isStale } = params;
   if (textures.frontUrl) {
-    loadTextureAsync(texLoader, textures.frontUrl, (tex) => {
-      if (isStale()) return tex.dispose();
+    loadTextureAsync(scene, textures.frontUrl, isStale, (tex) => {
       state.activeFront?.dispose();
       state.activeFront = tex;
-      prism.frontMat.map = tex;
-      prism.frontMat.needsUpdate = true;
+      prism.frontMat.emissiveTexture = tex;
+      prism.frontMat.opacityTexture = tex;
       if (!textures.backUrl) {
         state.activeBack?.dispose();
         state.activeBack = null;
-        prism.backMat.map = tex;
-        prism.backMat.color.setHex(0x93c5fd);
-        prism.backMat.needsUpdate = true;
+        prism.backMat.emissiveTexture = tex;
+        prism.backMat.opacityTexture = tex;
+        prism.backMat.emissiveColor = color3FromHexInt(0x93c5fd);
       }
     });
   }
   if (textures.backUrl) {
-    loadTextureAsync(texLoader, textures.backUrl, (tex) => {
-      if (isStale()) return tex.dispose();
+    loadTextureAsync(scene, textures.backUrl, isStale, (tex) => {
       state.activeBack?.dispose();
       state.activeBack = tex;
-      prism.backMat.map = tex;
-      prism.backMat.color.setHex(0xffffff);
-      prism.backMat.needsUpdate = true;
+      prism.backMat.emissiveTexture = tex;
+      prism.backMat.opacityTexture = tex;
+      prism.backMat.emissiveColor = Color3.White();
     });
   }
 }
@@ -141,23 +188,23 @@ function attachLoadedModelToStage(params: {
   readonly onMediaState?: (media: HolocronMediaState) => void;
 }): void {
   const { prism, state, payload, onMediaState } = params;
-  const { scene, animations } = payload.gltf;
-  const { baseScale, baseY } = fitLoadedGlbModel(scene);
-  prism.modelAnchor.add(scene);
-  prism.prismGroup.visible = false;
+  const { container, root } = payload;
+  container.addAllToScene();
+  root.parent = prism.modelAnchor;
+  const { baseScale, baseY } = fitLoadedGlbModel(root);
+  prism.prismGroup.setEnabled(false);
+  state.activeContainer = container;
+  state.activeRoot = root;
   state.activeGlbUrl = payload.url;
 
-  if (animations.length > 0) {
-    const mixer = new AnimationMixer(scene);
-    const actions = animations.map((clip: AnimationClip) => mixer.clipAction(clip));
-    const defaultIndex = pickDefaultClipIndex(animations);
-    actions[defaultIndex]?.play();
-    state.mixer = mixer;
-    state.actions = actions;
-    state.activeClipIndex = defaultIndex;
+  const groups = container.animationGroups;
+  if (groups.length > 0) {
+    const defaultIndex = pickDefaultClipIndex(groups);
+    state.animationGroups = groups;
+    state.activeClipIndex = activateAnimationGroup(groups, -1, defaultIndex);
     onMediaState?.({
       kind: 'glb-animated',
-      animations: animations.map((clip, idx) => ({
+      animations: groups.map((clip, idx) => ({
         index: idx,
         label: formatAnimationClipLabel(clip.name, idx),
       })),
@@ -166,47 +213,34 @@ function attachLoadedModelToStage(params: {
     return;
   }
 
-  state.proceduralRig = { target: scene, baseScale, baseY };
+  state.proceduralRig = { target: root, baseScale, baseY };
   onMediaState?.({ kind: 'glb-procedural', animations: [], activeAnimationIndex: -1 });
 }
 
 async function syncGlbForEpoch(params: {
+  readonly scene: Scene;
   readonly prism: HologramPrismRig;
   readonly state: MediaLoaderState;
   readonly glbCandidates: readonly string[];
   readonly signal: AbortSignal;
   readonly isStale: () => boolean;
-  readonly getLoader: () => Promise<GLTFLoader>;
-  readonly onDisposeSubtree: (obj: Object3D) => void;
   readonly onMediaState?: (media: HolocronMediaState) => void;
 }): Promise<void> {
-  const {
-    prism,
-    state,
-    glbCandidates,
-    signal,
-    isStale,
-    getLoader,
-    onDisposeSubtree,
-    onMediaState,
-  } = params;
+  const { scene, prism, state, glbCandidates, signal, isStale, onMediaState } = params;
+  clearActiveGlb(prism, state);
+  state.activeGlbUrl = null;
   if (glbCandidates.length === 0) {
-    clearAnchorChildren(prism, state, onDisposeSubtree);
-    state.activeGlbUrl = null;
     onMediaState?.({ kind: 'prism-2d', animations: [], activeAnimationIndex: -1 });
     return;
   }
-  clearAnchorChildren(prism, state, onDisposeSubtree);
-  state.activeGlbUrl = null;
   onMediaState?.({ kind: 'loading', animations: [], activeAnimationIndex: -1 });
 
   const payload = await fetchFirstValidGlb({
     candidates: glbCandidates,
     index: 0,
     signal,
+    scene,
     isStale,
-    getLoader,
-    onDispose: onDisposeSubtree,
   });
   if (isStale()) return;
   if (!payload) {
@@ -217,14 +251,11 @@ async function syncGlbForEpoch(params: {
 }
 
 export function createHologramMediaLoader(
+  scene: Scene,
   prism: HologramPrismRig,
   isDisposed: () => boolean,
-  onDisposeSubtree: (obj: Object3D) => void,
   onMediaState?: (media: HolocronMediaState) => void,
 ) {
-  const texLoader = new TextureLoader();
-  texLoader.setCrossOrigin('anonymous');
-  const glbLoader = createLazyGlbLoader();
   const state = createInitialLoaderState();
 
   return {
@@ -235,28 +266,26 @@ export function createHologramMediaLoader(
       state.abortController = controller;
       const epoch = ++state.requestEpoch;
       const isStale = () => isDisposed() || epoch !== state.requestEpoch;
-      applyTexturesForEpoch({ texLoader, prism, state, textures, isStale });
+      applyTexturesForEpoch({ scene, prism, state, textures, isStale });
       void syncGlbForEpoch({
+        scene,
         prism,
         state,
         glbCandidates,
         signal: controller.signal,
         isStale,
-        getLoader: () => glbLoader.getLoader(),
-        onDisposeSubtree,
         onMediaState,
       });
     },
     selectAnimation(index: number) {
-      const next = state.actions[index];
-      if (!next || index === state.activeClipIndex) return;
-      const current = state.actions[state.activeClipIndex];
-      next.reset().play();
-      if (current) current.crossFadeTo(next, 0.25, false);
-      state.activeClipIndex = index;
+      state.activeClipIndex = activateAnimationGroup(
+        state.animationGroups,
+        state.activeClipIndex,
+        index,
+      );
     },
-    tick(dt: number, elapsedSec: number, energy: number, reducedMotion: boolean) {
-      if (state.mixer && !reducedMotion) state.mixer.update(dt);
+    tick(elapsedSec: number, energy: number, reducedMotion: boolean) {
+      syncAnimationGroupsMotion(state.animationGroups, state.activeClipIndex, reducedMotion);
       if (state.proceduralRig) {
         applyProceduralIdleMotion(state.proceduralRig, elapsedSec, energy, reducedMotion);
       }
@@ -270,9 +299,8 @@ export function createHologramMediaLoader(
       state.activeBack?.dispose();
       state.activeFront = null;
       state.activeBack = null;
-      clearAnchorChildren(prism, state, onDisposeSubtree);
+      clearActiveGlb(prism, state);
       state.activeGlbUrl = null;
-      glbLoader.dispose();
     },
   };
 }

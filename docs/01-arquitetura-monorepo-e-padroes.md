@@ -7,8 +7,8 @@ Para suportar a evolução incremental em fases sem acoplamento destrutivo entre
 ```text
 pokedex-frontend/ (Monorepo PokéVerse OS)
 ├── apps/
-│   ├── web/                               # Front-end Angular + Phaser 3 + Three.js
-│   │   ├── public/                        # Assets estáticos (tilemaps, fontes, shaders, backgrounds)
+│   ├── web/                               # Front-end Angular + Babylon.js 9 + Havok WASM + Phaser 3
+│   │   ├── public/                        # Assets estáticos (tilemaps, fontes, draco/, havok/, backgrounds)
 │   │   └── src/app/
 │   │       ├── core/                      # AuthGuard, HTTP Interceptors, EventBus, Signal Stores
 │   │       ├── shared/                    # Design System HUD, botões, modais, pipes e estados UI
@@ -18,7 +18,7 @@ pokedex-frontend/ (Monorepo PokéVerse OS)
 │   │       │   ├── pokedex-device/        # Módulo 02: Pokédex 3D skeuomórfica (inclui Holocron, 1v1, Calc, Enciclo e Atlas das Regiões)
 │   │       │   ├── encyclopedia/          # Stores e painéis de detalhe da Enciclopédia (embutidos na Pokédex)
 │   │       │   ├── regions-museum/        # Atlas das 9 regiões + linha do tempo (embutido na Enciclopédia da Pokédex; /museu redireciona)
-│   │       │   ├── retro-arcade/          # Console 3D (Three.js) + EmulatorJS/WASM + Save Cloud
+│   │       │   ├── retro-arcade/          # Console 3D (Babylon.js 9) + EmulatorJS/WASM + Save Cloud
 │   │       │   └── battle-arena/          # Team Builder, Mini-Games e Simulador PvE/PvP
 │   │       └── app.routes.ts
 │   │
@@ -37,6 +37,12 @@ pokedex-frontend/ (Monorepo PokéVerse OS)
 │               ├── minigames/             # Sessões anti-cheat + Leaderboard Redis
 │               ├── battle/                # Engine PvE/PvP + Matchmaking Kafka + WebSocket Gateway
 │               └── world/                 # WorldGateway (presença Overworld + Ticker de eventos)
+│   └── mcp/                               # Servidor MCP Game Devkit (@pokeverse/mcp, stdio)
+│       └── src/
+│           ├── services/                  # GLB Inspector, Texture Toolkit, Babylon/Havok Scaffold, HUD/WCAG, Runner
+│           ├── tools/                     # 12 ferramentas tipadas (Zod) para 3D, física, tokens e verify:*
+│           ├── resources/                 # 5 recursos pokeverse:// para snapshot, tokens e budgets
+│           └── prompts/                   # 3 prompts guiados de devkit & Blender -> Babylon.js
 │
 ├── packages/
 │   └── shared/                            # Contratos únicos compartilhados entre Web e API
@@ -48,6 +54,8 @@ pokedex-frontend/ (Monorepo PokéVerse OS)
 ├── infra/
 │   └── docker/                            # docker-compose.yml, init buckets S3 e api.Dockerfile multi-stage não-root
 ├── assets/                                # Cenários WebP e texturas usados na documentação/galeria
+├── .vscode/mcp.json                       # Registro VS Code dos MCP servers (pokeverse-devkit + blender)
+├── .mcp.json                              # Registro portável MCP (pokeverse-devkit + blender)
 └── README.md
 ```
 
@@ -136,7 +144,7 @@ A fonte única da verdade (**Single Source of Truth**) mora em `packages/shared`
 
 O repositório utiliza **npm workspaces** (`package.json` raiz, sem Turborepo neste estágio) e o prefixo Angular **`pv-*`** (`[pvRequiresTrainer]`). Já estão ativos no código-fonte:
 
-- **Qualidade unificada nos 3 workspaces:** `npm run lint` executa ESLint 9 com TypeScript estrito (`no-explicit-any: error`) em `@pokeverse/shared`, `pokeverse-api` e `pokeverse-web`; `npm run typecheck` valida todos os workspaces e `npm run build:shared` compila ESM/CJS/`.d.ts` com `tsup`.
+- **Qualidade unificada nos 4 workspaces:** `npm run lint` executa ESLint 9 com TypeScript estrito (`no-explicit-any: error`) em `@pokeverse/shared`, `pokeverse-api`, `pokeverse-web` e `@pokeverse/mcp`; `npm run typecheck` valida todos os workspaces, `npm run build:shared` compila ESM/CJS/`.d.ts` com `tsup` e `npm run build:mcp` gera o binário `stdio` de `apps/mcp/dist/index.js`.
 - `packages/shared`: schemas Zod v4 (Auth, Pokédex/Slots, Criação de Personagem Livre em `character.schemas.ts`/`character-presets.ts`/`character-rules.ts`, Saúde, Sistema, LGPD/Cookies, Eventos Kafka), busca fonética/Damerau-Levenshtein portada e testada em Vitest, catálogo dos `51` endpoints da PokéAPI v2 ([pokeapi-endpoints.ts](../packages/shared/src/domain/pokeapi-endpoints.ts)) e regras puras do Laboratório Genético ([pokemon-lab.ts](../packages/shared/src/domain/pokemon-lab.ts)).
 - `apps/api`: arquitetura **IAM Enterprise BFF** decomposta segundo **SOLID** (`AuthService` como fachada sobre `CredentialsAuthService`, `TokenRefreshService`, `AccountRecoveryService`, `SessionManagementService` + expurgo temporal, `TrainerGdprService` com exportação e `DELETE /api/v1/auth/me`, `TrainerSessionIssuer`, `AuthOutboxPublisher`, `GoogleOAuthService` + `GoogleOidcVerifier` + `GoogleAccountLinker` + `GoogleOAuthHttpClient`, `MfaTotpService`, `PasskeyService`, `OtpService`, `SessionService`), `PokedexModule` (`stale-fallback` 7d e slots ACID), `CharactersModule` (`CharacterRepository`, `CharactersService` e `CharactersController` com criação livre sem classes e alocação atômica de atributos), `EventsModule` (`OutboxRelayService` com *atomic lease* `UPDATE ... RETURNING` + consumidores idempotentes com rollback no `catch`), `NotificationsModule` (`MailService` com tabela OCP), `WorldModule` (`WorldGateway`), `HealthModule` e `SystemModule` (`POKEVERSE_PHASE` dinâmico) sobre Prisma `6.19.3` (16 modelos, 6 enums, 4 migrações), Redis (`ioredis` + Lua atômico) e Kafka (`kafkajs`). Módulos `trainers/`, `museum/`, `arcade/`, `teams/`, `minigames/` e `battle/` pertencem às **Fases 4B–6**.
 - `apps/web`: Shell Angular 22 Standalone/Zoneless com `core/http/api-error.util.ts`, `AuthStore` + `AuthCrossTabSyncService` + `AuthRecoveryService`, `SecurityIamStore` (inclusa exclusão LGPD em 2 etapas), `PrivacyConsentStore` (consentimento extensível), `PokedexDevicePageComponent` + `PokedexLidPhysicsService` + diretiva declarativa `[pvRpgFocusable]` / `[pvRpgContainer]` (DIP) + parciais SCSS em [styles/pokedex/](../apps/web/src/styles/pokedex), `TitleScreenComponent`, `HomeHubComponent`, `CharacterStudioPageComponent` (`/personagem`) e `RegionsAtlasPanelComponent` (embutido na Enciclopédia da Pokédex; `/museu` redireciona). As features `overworld/`, `retro-arcade/` e `battle-arena/` pertencem às **Fases 4B–6**.

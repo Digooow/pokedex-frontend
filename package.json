@@ -14,19 +14,23 @@
     "build:shared": "npm run build --workspace=@pokeverse/shared",
     "build:api": "npm run build --workspace=pokeverse-api",
     "build:web": "npm run build --workspace=pokeverse-web",
-    "build": "npm run build:shared && npm run build:api && npm run build:web",
+    "build:mcp": "npm run build --workspace=@pokeverse/mcp",
+    "build": "npm run build:shared && npm run build:api && npm run build:web && npm run build:mcp",
     "dev:api": "npm run start:dev --workspace=pokeverse-api",
     "dev:web": "npm run start --workspace=pokeverse-web",
+    "dev:mcp": "npm run dev --workspace=@pokeverse/mcp",
     "prepare": "node -e \"const fs=require('node:fs'),cp=require('node:child_process');if(fs.existsSync('scripts/setup-git-hooks.mjs'))cp.execFileSync(process.execPath,['scripts/setup-git-hooks.mjs'],{stdio:'inherit'})\"",
     "typecheck:shared": "npm run typecheck --workspace=@pokeverse/shared",
     "typecheck:api": "npm run typecheck --workspace=pokeverse-api",
     "typecheck:web": "npm run typecheck --workspace=pokeverse-web",
-    "typecheck": "npm run typecheck:shared && npm run typecheck:api && npm run typecheck:web",
+    "typecheck:mcp": "npm run typecheck --workspace=@pokeverse/mcp",
+    "typecheck": "npm run typecheck:shared && npm run typecheck:api && npm run typecheck:web && npm run typecheck:mcp",
     "test:quality-gates": "node --test scripts/quality-gate.spec.mjs",
     "test:unit:shared": "npm run test --workspace=@pokeverse/shared",
     "test:unit:api": "npm run test --workspace=pokeverse-api",
     "test:unit:web": "npm run test --workspace=pokeverse-web -- --watch=false",
-    "test:unit": "npm run test:unit:shared && npm run test:unit:api && npm run test:unit:web",
+    "test:unit:mcp": "npm run test --workspace=@pokeverse/mcp",
+    "test:unit": "npm run test:unit:shared && npm run test:unit:api && npm run test:unit:web && npm run test:unit:mcp",
     "test": "node scripts/run-verify-suite.mjs --mode=test",
     "test:e2e:api": "npm run test:e2e --workspace=pokeverse-api",
     "test:e2e:web": "npm run test:e2e --workspace=pokeverse-web",
@@ -34,8 +38,9 @@
     "lint:shared": "npm run lint --workspace=@pokeverse/shared",
     "lint:api": "npm run lint --workspace=pokeverse-api",
     "lint:web": "npm run lint --workspace=pokeverse-web",
-    "lint": "npm run lint:shared && npm run lint:api && npm run lint:web",
-    "format:check": "prettier --check \"packages/shared/src/**/*.ts\" \"apps/api/{src,test}/**/*.ts\" \"apps/web/{src,cloudflare,e2e}/**/*.ts\" \"apps/web/playwright.config.ts\"",
+    "lint:mcp": "npm run lint --workspace=@pokeverse/mcp",
+    "lint": "npm run lint:shared && npm run lint:api && npm run lint:web && npm run lint:mcp",
+    "format:check": "prettier --check \"packages/shared/src/**/*.ts\" \"apps/api/{src,test}/**/*.ts\" \"apps/web/{src,cloudflare,e2e}/**/*.ts\" \"apps/web/playwright.config.ts\" \"apps/mcp/src/**/*.ts\"",
     "audit:secrets": "node scripts/ci-parity-checks.mjs --secrets",
     "audit:prisma": "node scripts/ci-parity-checks.mjs --prisma",
     "audit:deps": "npm audit --omit=dev --audit-level=high",
@@ -57,5 +62,8 @@
   "overrides": {
     "deepmerge-ts": "^8.0.2",
     "effect": "^3.22.5"
+  },
+  "dependencies": {
+    "gltfpack": "^1.3.0"
   }
 }

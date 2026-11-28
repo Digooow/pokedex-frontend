@@ -1,22 +1,29 @@
-import { type Color, type PerspectiveCamera, Scene, type WebGLRenderer } from 'three';
 import type { HardwareTier } from '@pokeverse/shared';
+import type { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
+import type { Engine } from '@babylonjs/core/Engines/engine';
+import type { Scene } from '@babylonjs/core/scene';
+import {
+  addBabylonStageLights,
+  color3FromHexInt,
+  createBabylonBeamCone,
+  createBabylonParticleField,
+  createBabylonPedestal,
+  createBabylonStageAndCamera,
+  disposeBabylonStage,
+  resizeBabylonCanvas,
+} from '../../core/engine-ports/babylon-stage.util';
 import type { HolocronMediaState } from './holocron-animation.util';
-import { createHologramMediaLoader } from './holocron-media-loader.util';
+import { createHologramMediaLoader, createHologramPrism } from './holocron-media-loader.util';
 import {
   type StageOrbitState,
   advanceStageFpsWatchdog,
   applyCameraOrbit,
   bindStageCanvasListeners,
+  createBaseOrbitControls,
   createStageOrbitState,
   startStageRafLoop,
 } from './holocron-orbit.util';
 import { type HolocronTexturePair, resolveHolocronPalette } from './holocron-palette.util';
-import {
-  buildStageObjects,
-  createRendererAndCamera,
-  disposeObjectSubtree,
-  disposeThreeScene,
-} from './holocron-three-scene.util';
 
 export interface HolocronSceneOptions {
   readonly canvas: HTMLCanvasElement;
@@ -47,127 +54,134 @@ export interface HolocronSceneController {
   readonly dispose: () => void;
 }
 
-function createFrameRenderer(
-  options: HolocronSceneOptions,
+function buildHolocronStageObjects(
   scene: Scene,
-  camera: PerspectiveCamera,
-  renderer: WebGLRenderer,
-  stage: ReturnType<typeof buildStageObjects>,
-  mediaLoader: ReturnType<typeof createHologramMediaLoader>,
-  state: StageOrbitState,
+  types: readonly string[],
+  tier: HardwareTier,
+  reducedMotion: boolean,
 ) {
+  const palette = resolveHolocronPalette(types);
+  const rimLight = addBabylonStageLights(scene, palette.primary);
+  const pedestal = createBabylonPedestal(scene, palette);
+  const beamMat = createBabylonBeamCone(scene, palette);
+  const prism = createHologramPrism(scene, palette);
+  let particleCount = 0;
+  if (!reducedMotion) {
+    particleCount = tier === 'ultra' ? 140 : 64;
+  }
+  const particles =
+    particleCount > 0 ? createBabylonParticleField(scene, palette, particleCount) : null;
+  return { rimLight, pedestal, beamMat, prism, particles };
+}
+
+function createFrameRenderer(params: {
+  readonly options: HolocronSceneOptions;
+  readonly scene: Scene;
+  readonly camera: FreeCamera;
+  readonly stage: ReturnType<typeof buildHolocronStageObjects>;
+  readonly mediaLoader: ReturnType<typeof createHologramMediaLoader>;
+  readonly state: StageOrbitState;
+}) {
+  const { options, scene, camera, stage, mediaLoader, state } = params;
   return (now: number) => {
     if (state.disposed) return;
     const dt = Math.min(0.05, Math.max(0.001, (now - state.lastFrameMs) / 1000));
     state.lastFrameMs = now;
     const energy = options.readEnergy(now);
-    const uTime = stage.beamMat.uniforms['uTime'];
-    const uEnergy = stage.beamMat.uniforms['uEnergy'];
-    if (uTime) uTime.value = now * 0.001;
-    if (uEnergy) uEnergy.value = energy;
+    stage.beamMat.setFloat('uTime', now * 0.001);
+    stage.beamMat.setFloat('uEnergy', energy);
     if (!state.reducedMotion && state.autoRotate && !state.dragging) state.orbitAngle += dt * 0.72;
-    mediaLoader.tick(dt, now * 0.001, energy, state.reducedMotion);
+    mediaLoader.tick(now * 0.001, energy, state.reducedMotion);
     const bob = state.reducedMotion ? 0 : Math.sin(now * 0.0022) * 0.05 + energy * 0.08;
     stage.prism.hologramGroup.position.y = mediaLoader.hasLoadedGlb() ? 0 : 0.34 + bob;
     if (stage.particles && !state.reducedMotion) {
-      stage.particles.points.rotation.y = state.orbitAngle * 0.65;
+      stage.particles.mesh.rotation.y = state.orbitAngle * 0.65;
     }
     applyCameraOrbit(camera, state, 0.14);
-    renderer.render(scene, camera);
+    scene.render();
     advanceStageFpsWatchdog(state, now, options.onLowFps);
   };
 }
 
 function buildSceneController(params: {
   readonly scene: Scene;
-  readonly renderer: WebGLRenderer;
-  readonly stage: ReturnType<typeof buildStageObjects>;
+  readonly engine: Engine;
+  readonly stage: ReturnType<typeof buildHolocronStageObjects>;
   readonly state: StageOrbitState;
   readonly mediaLoader: ReturnType<typeof createHologramMediaLoader>;
   readonly renderFrame: (now: number) => void;
   readonly cleanupListeners: () => void;
   readonly resize: () => void;
 }): HolocronSceneController {
-  const { scene, renderer, stage, state, mediaLoader, renderFrame, cleanupListeners, resize } =
+  const { scene, engine, stage, state, mediaLoader, renderFrame, cleanupListeners, resize } =
     params;
   return {
     updatePokemon(textures, glbCandidates, types) {
       const next = resolveHolocronPalette(types);
-      stage.pedestal.ringMat.color.setHex(next.primary);
-      stage.pedestal.innerMat.color.setHex(next.accent);
-      stage.prism.coreMat.color.setHex(next.primary);
-      stage.rimLight.color.setHex(next.primary);
-      const uColor = stage.beamMat.uniforms['uColor'];
-      if (uColor) (uColor.value as Color).setHex(next.primary);
-      stage.particles?.material.color.setHex(next.secondary);
+      const primary = color3FromHexInt(next.primary);
+      stage.pedestal.ringMat.emissiveColor = primary;
+      stage.pedestal.innerMat.emissiveColor = color3FromHexInt(next.accent);
+      stage.prism.coreMat.emissiveColor = primary;
+      stage.rimLight.diffuse = primary;
+      stage.beamMat.setColor3('uColor', primary);
+      if (stage.particles) {
+        stage.particles.material.emissiveColor = color3FromHexInt(next.secondary);
+      }
       mediaLoader.load(textures, glbCandidates);
     },
     selectAnimation: (index) => mediaLoader.selectAnimation(index),
-    setAutoRotate: (enabled) => {
-      state.autoRotate = enabled;
-    },
-    setReducedMotion: (reduced) => {
-      state.reducedMotion = reduced;
-    },
-    nudgeOrbit: (deltaRad) => {
-      state.orbitAngle += deltaRad;
-      renderFrame(performance.now());
-    },
-    resetCamera: () => {
-      state.orbitAngle = 0;
-      state.orbitPitch = 0.16;
-      state.cameraRadius = 3.65;
-      renderFrame(performance.now());
-    },
-    resize,
+    ...createBaseOrbitControls({
+      state,
+      renderFrame,
+      defaultPitch: 0.16,
+      defaultRadius: 3.65,
+      resize,
+    }),
     dispose() {
       if (state.disposed) return;
       state.disposed = true;
       if (state.rafId !== null) cancelAnimationFrame(state.rafId);
       cleanupListeners();
       mediaLoader.disposeCurrent();
-      disposeThreeScene(scene, renderer);
+      disposeBabylonStage(scene, engine);
     },
   };
 }
 
-export function mountHolocronThreeScene(options: HolocronSceneOptions): HolocronSceneController {
+export function mountHolocronBabylonScene(options: HolocronSceneOptions): HolocronSceneController {
   const { canvas } = options;
-  const scene = new Scene();
-  const { camera, renderer } = createRendererAndCamera(canvas, options.tier);
-  const stage = buildStageObjects(scene, options.types, options.tier, options.reducedMotion);
+  const { engine, scene, camera } = createBabylonStageAndCamera(canvas, options.tier);
+  const stage = buildHolocronStageObjects(
+    scene,
+    options.types,
+    options.tier,
+    options.reducedMotion,
+  );
   const state = createStageOrbitState({
     autoRotate: options.autoRotate,
     reducedMotion: options.reducedMotion,
   });
   const mediaLoader = createHologramMediaLoader(
+    scene,
     stage.prism,
     () => state.disposed,
-    disposeObjectSubtree,
     options.onMediaStateChange,
   );
   mediaLoader.load(options.textures, options.glbCandidates);
 
-  const resize = () => {
-    const parent = canvas.parentElement;
-    const width = Math.max(220, parent?.clientWidth ?? canvas.clientWidth ?? 320);
-    const height = Math.max(200, parent?.clientHeight ?? canvas.clientHeight ?? 260);
-    renderer.setSize(width, height, false);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
-  };
+  const resize = () => resizeBabylonCanvas(canvas, engine, 200);
   resize();
 
-  const renderFrame = createFrameRenderer(
+  const renderFrame = createFrameRenderer({
     options,
     scene,
     camera,
-    renderer,
     stage,
     mediaLoader,
     state,
-  );
+  });
   const startLoop = startStageRafLoop({ state, renderFrame });
+  const contextObs = engine.onContextLostObservable.add(() => options.onContextLost());
   const cleanupListeners = bindStageCanvasListeners({
     canvas,
     state,
@@ -181,12 +195,15 @@ export function mountHolocronThreeScene(options: HolocronSceneOptions): Holocron
 
   return buildSceneController({
     scene,
-    renderer,
+    engine,
     stage,
     state,
     mediaLoader,
     renderFrame,
-    cleanupListeners,
+    cleanupListeners: () => {
+      engine.onContextLostObservable.remove(contextObs);
+      cleanupListeners();
+    },
     resize,
   });
 }

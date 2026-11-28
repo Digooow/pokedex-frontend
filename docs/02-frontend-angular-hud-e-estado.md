@@ -4,9 +4,9 @@
 
 ## 1. Papel do Angular na Plataforma
 
-Enquanto **Phaser 3 / PixiJS** desenha o mundo explorável 2D/HD-2D e **Three.js** renderiza cenas 3D e hardwares virtuais em WebGL2, o **Angular** atua como o **Sistema Operacional (Shell + HUD)** de toda a aplicação:
+Enquanto **Phaser 3 / PixiJS** desenha o mundo explorável 2D/HD-2D e **Babylon.js 9 + Havok WASM** renderiza cenas 3D e hardwares virtuais em WebGL2, o **Angular** atua como o **Sistema Operacional (Shell + HUD)** de toda a aplicação:
 
-- **Standalone Components + Signals + Zoneless Change Detection:** elimina o custo global de `Zone.js` durante loops gráficos de `60–120 FPS` nos canvas do Phaser e Three.js. As atualizações da interface reagem apenas aos *Signals* explicitamente alterados.
+- **Standalone Components + Signals + Zoneless Change Detection:** elimina o custo global de `Zone.js` durante loops gráficos de `60–120 FPS` nos canvas do Phaser e Babylon.js. As atualizações da interface reagem apenas aos *Signals* explicitamente alterados.
 - **Roteamento Modular com Lazy Loading:** cada grande área (*Title Screen*, *Overworld*, *Pokédex/Holocron*, *Museu*, *Arcade*, *Battle Frontier*) é carregada sob demanda via `loadComponent` / `loadChildren`, mantendo o bundle inicial enxuto para rápido **LCP**.
 
 ---
@@ -62,7 +62,7 @@ O HUD envolve o canvas sem bloquear cliques nos momentos de exploração e segue
 2. **Rodapé Discreto (`.app-footer`):**
    - Barra compacta centralizada na base da tela exibindo atribuição resumida (`PokéAPI v2 · Pokémon © Nintendo / Game Freak / TPC`) e links diretos para os modais **Créditos & APIs** e **Cookies & LGPD**, sem duplicação no cabeçalho, no visor da Pokédex ou no Museu.
 3. **Overlay Dinâmico de Módulos (`.hud-stage-overlay`):**
-   - Quando o treinador entra em um prédio no Overworld ou clica na Viagem Rápida, o Phaser pausa seu loop de física/renderização enquanto o módulo Angular/Three.js abre suavemente sobre o palco (e retoma instantaneamente ao fechar com `Escape` ou botão *Voltar ao Mapa*).
+   - Quando o treinador entra em um prédio no Overworld ou clica na Viagem Rápida, o Phaser pausa seu loop de física/renderização enquanto o módulo Angular/Babylon.js abre suavemente sobre o palco (e retoma instantaneamente ao fechar com `Escape` ou botão *Voltar ao Mapa*).
 
 ---
 
@@ -99,7 +99,7 @@ export class AuthStore {
 | **`PokedexStore`, `PokedexFiltersStore`, `PokedexCompareStore`, `PokedexVisorDetailStore`, `PokedexSlotsStore`, `PokedexApiClient` & `PokedexRpgNavService`** | **Implementadas + UX Unificada** | Catálogo/detalhes via `PokedexApiClient`, filtros combinados (`/catalog/enriched` + `/meta/filters`), 5 modos integrados no visor (**Ficha 5 abas**, **Holocron 3D**, **Comparador 1v1**, **Calculadora de Atributos** via `@pokeverse/shared` e **Enciclopédia Global**), abertura instantânea nos 10 slots + reordenação Drag & Drop/`↑`/`↓` (`PATCH /slots/swap`) e foco declarativo via `[pvRpgFocusable]` | NestJS `/api/v1/pokedex/*` + PokéAPI fallback + `localStorage` (visitante) |
 | **`EncyclopediaStore` & `EncyclopediaApiClient`** | **Implementadas + Integradas no Visor** | 11 recursos do BFF (`move`, `ability`, `item`, `berry`, `type`, `nature`, `region`, `pokedex`, `location`, `egg-group`, `growth-rate`) embutidos dentro do visor da Pokédex (`/enciclopedia` redireciona para `/pokedex?mode=enciclopedia`) com busca reversa direta para a ficha | NestJS `/api/v1/pokedex/{moves,abilities,items,berries,regions,pokedexes,locations,egg-groups,growth-rates,natures,types}` |
 | **`AudioStore` & `AudioEngineService`** | **Implementadas (Passo 2B.3)** | Controle global de mudo (`pokeverse_audio_muted`) e efeitos táteis (`pokeverse_audio_sfx`) registrados em `PrivacyConsentStore`, reprodução de *cries* com `AnalyserNode` + espectrograma Canvas 2D (`CrySpectrogramComponent`) e osciladores Web Audio respeitando `LITE`/`reduced-motion` | Web Audio API + `localStorage` sob consentimento LGPD |
-| **`HolocronStore`** | **Implementada + Giro 3D Real & `GLTFLoader`** | Estado do modo **Holocron 3D** embutido no visor (`@defer`, `three` + `GLTFLoader` sob demanda em `holocron-media-loader.util.ts`), prisma 3D sem contra-rotação de sprite, rotação orbital 360° e inclinação vertical, alternância Shiny/Auto-Giro e fallback 2D em `LITE`/`webglcontextlost` | `PokedexApiClient` (`/pokemon/:idOrName/bundle`) + `holocron-three.renderer.ts` |
+| **`HolocronStore`** | **Implementada + Giro 3D Real & Babylon.js 9** | Estado do modo **Holocron 3D** embutido no visor (`@defer`, `@babylonjs/core` + `@babylonjs/loaders` + `@babylonjs/havok` via `holocron-media-loader.util.ts` e `babylon-stage.util.ts`), prisma 3D sem contra-rotação de sprite, rotação orbital 360° (`ArcRotateCamera`), alternância Shiny/Auto-Giro e fallback 2D em `LITE`/`webglcontextlost` | `PokedexApiClient` (`/pokemon/:idOrName/bundle`) + `holocron-babylon.renderer.ts` |
 | **`MuseumStore`** | **Implementada + Unificada na Pokédex (`ENT-19`)** | Estado do Atlas das 9 Regiões (`Kanto–Paldea`) dentro de `Enciclopédia -> Regiões & História` (`RegionsAtlasPanelComponent`), linha do tempo única `1996–2022`, cache em memória de regiões/pokédexes regionais, filtro de localizações e navegação direta sem recarregamento para Ficha, Holocron 3D, Pokédexes e Localizações (`/museu` redireciona) | `EncyclopediaApiClient` (`/regions/:id` e `/pokedexes/:id`) |
 | **`QualityStore` & `ScenarioStore`** | **Implementadas (Fases 1–4A)** | Perfil gráfico detectado (`ULTRA`, `BALANCED`, `LITE`) com `FpsWatchdog` e rotação de cenários WebP (`-desktop`/`-mobile`) com opt-in LGPD | Hardware probe + preferências opcionais via `PrivacyConsentStore` |
 | **`SystemStatusStore`** | **Implementada (Fase 1)** | Sonda visual de saúde de PostgreSQL, Redis, Kafka e S3 no Título e Topbar + fase dinâmica (`POKEVERSE_PHASE`) | NestJS `/health/ready` e `/api/v1/system/bootstrap` |
@@ -120,14 +120,14 @@ export class AuthStore {
   4. `success`: tratamento de nomes extensos (`min-width: 0`, `truncate`, `overflow-wrap: anywhere`), `tabular-nums` em estatísticas e fallback de imagens;
   5. `mutating`: desabilitação imediata durante envio (prevenção de duplo clique em gravação de slot, save state ou envio de jogada).
 - **Acessibilidade WCAG 2.2 AA:**
-  - Todo canvas (Phaser e Three.js) é acompanhado de controles alternativos completos em HTML semântico (`<nav>`, `<button>`, `<dialog>` nativo, listas `<ul>`) para garantir **100% de operação por teclado e leitores de tela** mesmo quando o usuário preferir navegar pelo HUD de Viagem Rápida em vez de caminhar com setas no canvas.
+  - Todo canvas (Phaser e Babylon.js) é acompanhado de controles alternativos completos em HTML semântico (`<nav>`, `<button>`, `<dialog>` nativo, listas `<ul>`) para garantir **100% de operação por teclado e leitores de tela** mesmo quando o usuário preferir navegar pelo HUD de Viagem Rápida em vez de caminhar com setas no canvas.
   - Suporte nativo a `:focus-visible`, `@media (prefers-reduced-motion: reduce)` (suspende partículas, câmera cinemática e shaders pesados) e `@media (forced-colors: active)`.
 
 ---
 
 ## 6. Ponte de Comunicação com Motores Gráficos
 
-O Angular **nunca** manipula variáveis internas do Three.js ou do Phaser dentro de templates diretamente. A comunicação acontece por um **Barramento de Eventos Tipado (`WorldEngineBridge`)** + adaptadores dedicados:
+O Angular **nunca** manipula variáveis internas do Babylon.js ou do Phaser dentro de templates diretamente. A comunicação acontece por um **Barramento de Eventos Tipado (`WorldEngineBridge`)** + adaptadores dedicados:
 
 - **Angular -> Engine:** comandos imperativos (`enterBuilding('arcade')`, `inspectPokemon3d(25)`, `mountWasmCanvasToHandheld(canvas)`, `setWeather('rain')`).
 - **Engine -> Angular:** eventos emitidos para atualizar Signals (`onPortalEntered`, `onPlayerMoved`, `onTitleStartPressed`, `onWebGlContextLost`).

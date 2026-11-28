@@ -23,7 +23,7 @@ import {
   resolvePokemonGlbCandidates,
 } from './holocron-palette.util';
 import { HOLOCRON_SCENE_MOUNTER } from './holocron-stage.component';
-import type { HolocronSceneController } from './holocron-three.renderer';
+import type { HolocronSceneController } from './holocron-babylon.renderer';
 import { HolocronStore } from './holocron.store';
 
 function createWebGlStageTestHarness() {

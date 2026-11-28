@@ -8,7 +8,13 @@ const DEFAULT_CONCURRENCY = 4;
 const PUSH_STAMP_FILENAME = '.pokeverse-verify-push-stamp';
 
 export const TEST_CI_WAVES = [
-  ['test:quality-gates', 'test:unit:shared', 'test:unit:api', 'test:unit:web'],
+  [
+    'test:quality-gates',
+    'test:unit:shared',
+    'test:unit:api',
+    'test:unit:web',
+    'test:unit:mcp',
+  ],
 ];
 
 export const TEST_LOCAL_WAVES = [
@@ -17,14 +23,17 @@ export const TEST_LOCAL_WAVES = [
     'typecheck:shared',
     'typecheck:api',
     'typecheck:web',
+    'typecheck:mcp',
     'lint:shared',
     'lint:api',
     'lint:web',
+    'lint:mcp',
     'audit:duplication',
     'test:quality-gates',
     'test:unit:shared',
     'test:unit:api',
     'test:unit:web',
+    'test:unit:mcp',
   ],
 ];
 
@@ -40,16 +49,20 @@ export const PUSH_WAVES = [
     'typecheck:shared',
     'typecheck:api',
     'typecheck:web',
+    'typecheck:mcp',
     'lint:shared',
     'lint:api',
     'lint:web',
+    'lint:mcp',
     'audit:duplication',
     'test:quality-gates',
     'test:unit:shared',
     'test:unit:api',
     'test:unit:web',
+    'test:unit:mcp',
     'test:e2e:api',
     'build:api',
+    'build:mcp',
   ],
   ['build:web'],
   ['audit:ui', 'test:e2e:web', 'audit:docker'],

@@ -10,7 +10,7 @@
 
 ```mermaid
 flowchart TB
-  Browser["Browser (Angular + Three.js + Phaser + WASM)"] -->|"HTTPS / Cookies / CORS"| Edge["Borda HTTP (Proxy / CDN / Helmet)"]
+  Browser["Browser (Angular + Babylon.js 9 + Havok + Phaser + WASM)"] -->|"HTTPS / Cookies / CORS"| Edge["Borda HTTP (Proxy / CDN / Helmet)"]
   Browser -->|"WSS / Socket.IO"| WS["Gateways WebSocket (/ws/world e /ws/battle)"]
   Edge -->|"JSON / Zod"| API["API NestJS (apps/api)"]
   WS -->|"Handshake + Payload Zod"| API
@@ -29,7 +29,7 @@ flowchart TB
 | **Controle de Acesso** | **BOLA / IDOR** (*Broken Object Level Authorization*) e escalonamento entre Visitante e Treinador | `PokedexSlotsService`, futuros `Teams`, `ArcadeSaveState`, `BattleMatch` | Um treinador ler/alterar slots, times ou *cloud saves* de outro usuário |
 | **Proxy PokéAPI** | **SSRF**, poluição de cache no Redis, esgotamento de banda/slots por parâmetros gigantes | `PokeApiCacheService` (`GET /pokedex/pokemon/:idOrName`) | Indisponibilidade da Pokédex, explosão de chaves no Redis ou redirecionamento malicioso |
 | **WebSockets** | Conexão anônima em ações privadas, *flood* de pacotes de movimento/batalha, fraude de score/dano | `WorldGateway` (`/ws/world`) e futuro `BattleGateway` | Cheating no Overworld/Arena, crash por broadcast em massa |
-| **Front-end / 3D / WASM** | **XSS**, injeção de URL (`javascript:`), **Open Redirect** em `returnUrl`, abuso de memória GPU/WASM | `apps/web`, templates Angular, Three.js, Phaser, emulador WASM (Fase 5) | Execução de script no navegador, phishing de redirecionamento, travamento do cliente |
+| **Front-end / 3D / WASM** | **XSS**, injeção de URL (`javascript:`), **Open Redirect** em `returnUrl`, abuso de memória GPU/WASM | `apps/web`, templates Angular, Babylon.js 9 + Havok, Phaser, emulador WASM (Fase 5) | Execução de script no navegador, phishing de redirecionamento, travamento do cliente |
 | **Dados, Cache & Kafka** | SQL Injection, vazamento de hash/segredo em erro ou log, *poison pill* no Kafka, *eviction* silenciosa | `PrismaService`, `RedisService`, `OutboxRelayService`, `WorldEventsConsumerService`, `GlobalExceptionFilter` | Perda de integridade, negação de serviço em partições Kafka, vazamento de PII/credenciais |
 | **Storage S3/R2 & Docker** | Path traversal em chaves de arquivo, ROM/Save malicioso (zip-bomb), container como `root`, segredos em Git | `docker-compose.yml`, futuros `Dockerfiles`, módulo Arcade (Fase 5) | Exaustão de disco/RAM, download não autorizado, comprometimento de runtime |
 
@@ -141,17 +141,17 @@ Como cookies `HttpOnly` são anexados automaticamente pelo navegador, todas as r
 
 ### 4.2. Content Security Policy (CSP) e Hardening HTTP
 
-O `helmet()` atual precisa de configuração explícita por ambiente para proteger o **Angular + Three.js + Phaser + WebAssembly** sem enfraquecer diretivas:
+O `helmet()` atual precisa de configuração explícita por ambiente para proteger o **Angular + Babylon.js 9 + Havok + Phaser + WebAssembly** sem enfraquecer diretivas:
 
 | Diretiva / Header | Valor Recomendado em Produção | Justificativa Técnica no PokéVerse |
 | :--- | :--- | :--- |
 | `default-src` | `'self'` | Bloqueia qualquer origem externa não autorizada por padrão |
-| `script-src` | `'self' 'wasm-unsafe-eval'` | Zero `'unsafe-inline'` e zero `'unsafe-eval'` JS; `'wasm-unsafe-eval'` habilitado para decodificação WASM do Draco (`DRACOLoader` em `/assets/draco/`) e futuro Arcade WASM; `ngCspNonce` no Angular caso estilos/scripts precisem de nonce |
+| `script-src` | `'self' 'wasm-unsafe-eval'` | Zero `'unsafe-inline'` e zero `'unsafe-eval'` JS; `'wasm-unsafe-eval'` habilitado para decodificação WASM do Draco (`DracoDecoder` em `/assets/draco/`), física Havok (`/assets/havok/HavokPhysics.wasm`) e futuro Arcade WASM; `ngCspNonce` no Angular caso estilos/scripts precisem de nonce |
 | `style-src` | `'self' 'unsafe-inline'` (ou preferencialmente **nonces via `ngCspNonce`** + hashes) | Eliminar `'unsafe-inline'` completamente usando nonce dinâmico do Angular (`CSP_NONCE`) |
-| `img-src` | `'self' https://raw.githubusercontent.com data: blob:` | Sprites oficiais da PokéAPI, texturas locais WebP e snapshots `CanvasTexture`/Blob do WebGL/Arcade |
+| `img-src` | `'self' https://raw.githubusercontent.com data: blob:` | Sprites oficiais da PokéAPI, texturas locais WebP/SVG e snapshots `DynamicTexture`/Blob do WebGL/Arcade |
 | `media-src` | `'self' https://raw.githubusercontent.com blob:` | *Cries* de Pokémon e trilhas locais via Web Audio |
-| `connect-src` | `'self' blob: https://pokeapi.co https://raw.githubusercontent.com` (com `wss://<seu-dominio>` / bucket R2 na Fase 6) | Proxy `/api/v1/pokedex/*`, fallback PokéAPI, download CORS de modelos 3D `.glb` (`Pokemon-3D-api/assets`) e decodificação `fetch('blob:...')` de texturas WebP `bufferView` embutidas pelo `GLTFLoader`/`ImageBitmapLoader` |
-| `worker-src` | `'self' blob:` | Web Workers do `DRACOLoader` (Holocron 3D) e futuro emulador WASM (Fase 6) |
+| `connect-src` | `'self' blob: https://pokeapi.co https://raw.githubusercontent.com` (com `wss://<seu-dominio>` / bucket R2 na Fase 6) | Proxy `/api/v1/pokedex/*`, fallback PokéAPI, download CORS de modelos 3D `.glb` (`Pokemon-3D-api/assets`) e leitura local de `.wasm`/texturas `blob:` via `@babylonjs/loaders` |
+| `worker-src` | `'self' blob:` | Web Workers do `DracoDecoder` (Babylon.js) e futuro emulador WASM (Fase 6) |
 | `frame-ancestors` | `'none'` | Previne **Clickjacking** |
 | `object-src` | `'none'` | Bloqueia plugins legados (Flash/PDF embutido) |
 | `base-uri` | `'self'` | Impede ataques de hijacking de `<base href>` |

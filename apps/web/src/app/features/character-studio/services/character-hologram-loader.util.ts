@@ -1,100 +1,139 @@
+import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup';
+import type { AssetContainer } from '@babylonjs/core/assetContainer';
+import { Axis } from '@babylonjs/core/Maths/math.axis';
+import { Quaternion, Vector3 } from '@babylonjs/core/Maths/math.vector';
+import type { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
 import { type CharacterBodyModel, getCharacterBodyModelMeta } from '@pokeverse/shared';
-import { type AnimationClip, AnimationMixer, Group, type Object3D } from 'three';
 import type { CharacterHologramMediaState } from '../../../core/engine-ports/avatar-stage.port';
 import {
-  createLazyGlbLoader,
+  activateAnimationGroup,
   fetchFirstValidGlb,
   fitLoadedGlbModel,
   formatAnimationClipLabel,
   pickDefaultClipIndex,
 } from '../../holocron/holocron-animation.util';
-import { disposeObjectSubtree } from '../../holocron/holocron-three-scene.util';
 
 export interface ProceduralCharacterPose {
-  readonly chest: Object3D | null;
-  readonly head: Object3D | null;
-  readonly upperArmL: Object3D | null;
-  readonly upperArmR: Object3D | null;
-  readonly chestBaseX: number;
-  readonly headBaseX: number;
-  readonly armLBaseX: number;
-  readonly armRBaseX: number;
+  readonly chest: TransformNode | null;
+  readonly head: TransformNode | null;
+  readonly upperArmL: TransformNode | null;
+  readonly upperArmR: TransformNode | null;
+  readonly chestBaseQuat: Quaternion | null;
+  readonly headBaseQuat: Quaternion | null;
+  readonly armLBaseQuat: Quaternion | null;
+  readonly armRBaseQuat: Quaternion | null;
 }
 
 export interface CharacterStageRuntime {
-  readonly modelAnchor: Group;
-  readonly loader: ReturnType<typeof createLazyGlbLoader>;
+  readonly scene: Scene;
+  readonly modelAnchor: TransformNode;
   requestEpoch: number;
   abortController: AbortController | null;
-  mixer: AnimationMixer | null;
-  actions: ReturnType<AnimationMixer['clipAction']>[];
+  activeContainer: AssetContainer | null;
+  activeRoot: TransformNode | null;
+  animationGroups: AnimationGroup[];
   activeClipIndex: number;
   proceduralPose: ProceduralCharacterPose | null;
 }
 
-export function createCharacterStageRuntime(modelAnchor: Group): CharacterStageRuntime {
+export function createCharacterStageRuntime(
+  scene: Scene,
+  modelAnchor: TransformNode,
+): CharacterStageRuntime {
   return {
+    scene,
     modelAnchor,
-    loader: createLazyGlbLoader(),
     requestEpoch: 0,
     abortController: null,
-    mixer: null,
-    actions: [],
+    activeContainer: null,
+    activeRoot: null,
+    animationGroups: [],
     activeClipIndex: -1,
     proceduralPose: null,
   };
 }
 
 export function clearCharacterAnchor(runtime: CharacterStageRuntime): void {
-  runtime.mixer?.stopAllAction();
-  runtime.mixer = null;
-  runtime.actions = [];
+  for (const group of runtime.animationGroups) {
+    group.stop();
+  }
+  runtime.animationGroups = [];
   runtime.activeClipIndex = -1;
   runtime.proceduralPose = null;
-  for (let i = runtime.modelAnchor.children.length - 1; i >= 0; i -= 1) {
-    const child = runtime.modelAnchor.children[i];
-    if (child) {
-      disposeObjectSubtree(child);
-      runtime.modelAnchor.remove(child);
-    }
-  }
+  runtime.activeRoot?.dispose();
+  runtime.activeContainer?.dispose();
+  runtime.activeRoot = null;
+  runtime.activeContainer = null;
 }
 
 export function selectRuntimeAnimation(runtime: CharacterStageRuntime, index: number): void {
-  const next = runtime.actions[index];
-  if (!next || index === runtime.activeClipIndex) return;
-  const current = runtime.actions[runtime.activeClipIndex];
-  next.reset().play();
-  if (current) current.crossFadeTo(next, 0.22, false);
-  runtime.activeClipIndex = index;
+  runtime.activeClipIndex = activateAnimationGroup(
+    runtime.animationGroups,
+    runtime.activeClipIndex,
+    index,
+  );
 }
 
-function findBone(sceneRoot: Object3D, name: string): Object3D | null {
-  return sceneRoot.getObjectByName(name) ?? null;
+function findBone(nodes: readonly TransformNode[], name: string): TransformNode | null {
+  const sanitizedTarget = name.replaceAll('.', '');
+  return (
+    nodes.find((node) => node.name === name || node.name.replaceAll('.', '') === sanitizedTarget) ??
+    null
+  );
 }
 
-function applyRelaxedHeroicPose(sceneRoot: Object3D): ProceduralCharacterPose {
-  const upperArmL = findBone(sceneRoot, 'UpperArmL');
-  const upperArmR = findBone(sceneRoot, 'UpperArmR');
-  const lowerArmL = findBone(sceneRoot, 'LowerArmL');
-  const lowerArmR = findBone(sceneRoot, 'LowerArmR');
-  const chest = findBone(sceneRoot, 'Chest');
-  const head = findBone(sceneRoot, 'Head');
+function snapshotAndRotateLocal(
+  node: TransformNode | null,
+  axis: Vector3,
+  angleRad: number,
+): Quaternion | null {
+  if (!node) return null;
+  const base = node.rotationQuaternion
+    ? node.rotationQuaternion.clone()
+    : Quaternion.FromEulerVector(node.rotation);
+  const delta = Quaternion.RotationAxis(axis, angleRad);
+  const next = base.multiply(delta);
+  node.rotationQuaternion = next.clone();
+  return next;
+}
 
-  upperArmL?.rotateX(-1.22);
-  upperArmR?.rotateX(-1.22);
-  lowerArmL?.rotateZ(-0.22);
-  lowerArmR?.rotateZ(0.22);
+function applyAxisOffset(
+  node: TransformNode | null,
+  baseQuat: Quaternion | null,
+  angleX: number,
+): void {
+  if (!node || !baseQuat) return;
+  if (angleX === 0) {
+    node.rotationQuaternion = baseQuat.clone();
+    return;
+  }
+  const delta = Quaternion.RotationAxis(Axis.X, angleX);
+  node.rotationQuaternion = baseQuat.multiply(delta);
+}
+
+function applyRelaxedHeroicPose(nodes: readonly TransformNode[]): ProceduralCharacterPose {
+  const upperArmL = findBone(nodes, 'UpperArmL');
+  const upperArmR = findBone(nodes, 'UpperArmR');
+  const lowerArmL = findBone(nodes, 'LowerArmL');
+  const lowerArmR = findBone(nodes, 'LowerArmR');
+  const chest = findBone(nodes, 'Chest');
+  const head = findBone(nodes, 'Head');
+
+  const armLBaseQuat = snapshotAndRotateLocal(upperArmL, Axis.X, -1.22);
+  const armRBaseQuat = snapshotAndRotateLocal(upperArmR, Axis.X, -1.22);
+  snapshotAndRotateLocal(lowerArmL, Axis.Z, -0.22);
+  snapshotAndRotateLocal(lowerArmR, Axis.Z, 0.22);
 
   return {
     chest,
     head,
     upperArmL,
     upperArmR,
-    chestBaseX: chest ? chest.rotation.x : 0,
-    headBaseX: head ? head.rotation.x : 0,
-    armLBaseX: upperArmL ? upperArmL.rotation.x : 0,
-    armRBaseX: upperArmR ? upperArmR.rotation.x : 0,
+    chestBaseQuat: snapshotAndRotateLocal(chest, Axis.X, 0),
+    headBaseQuat: snapshotAndRotateLocal(head, Axis.X, 0),
+    armLBaseQuat,
+    armRBaseQuat,
   };
 }
 
@@ -105,46 +144,46 @@ export function tickCharacterProceduralIdle(
 ): void {
   if (!pose) return;
   if (reducedMotion) {
-    if (pose.chest) pose.chest.rotation.x = pose.chestBaseX;
-    if (pose.head) pose.head.rotation.x = pose.headBaseX;
-    if (pose.upperArmL) pose.upperArmL.rotation.x = pose.armLBaseX;
-    if (pose.upperArmR) pose.upperArmR.rotation.x = pose.armRBaseX;
+    applyAxisOffset(pose.chest, pose.chestBaseQuat, 0);
+    applyAxisOffset(pose.head, pose.headBaseQuat, 0);
+    applyAxisOffset(pose.upperArmL, pose.armLBaseQuat, 0);
+    applyAxisOffset(pose.upperArmR, pose.armRBaseQuat, 0);
     return;
   }
   const breath = Math.sin(elapsedSec * 2.1);
-  if (pose.chest) pose.chest.rotation.x = pose.chestBaseX + breath * 0.025;
-  if (pose.head) pose.head.rotation.x = pose.headBaseX - breath * 0.018;
-  if (pose.upperArmL) pose.upperArmL.rotation.x = pose.armLBaseX + breath * 0.03;
-  if (pose.upperArmR) pose.upperArmR.rotation.x = pose.armRBaseX + breath * 0.03;
+  applyAxisOffset(pose.chest, pose.chestBaseQuat, breath * 0.025);
+  applyAxisOffset(pose.head, pose.headBaseQuat, -breath * 0.018);
+  applyAxisOffset(pose.upperArmL, pose.armLBaseQuat, breath * 0.03);
+  applyAxisOffset(pose.upperArmR, pose.armRBaseQuat, breath * 0.03);
 }
 
 function attachCharacterModel(params: {
   readonly runtime: CharacterStageRuntime;
-  readonly sceneRoot: Object3D;
-  readonly animations: readonly AnimationClip[];
+  readonly container: AssetContainer;
+  readonly root: TransformNode;
   readonly onMediaState?: (media: CharacterHologramMediaState) => void;
 }): void {
-  const { runtime, sceneRoot, animations, onMediaState } = params;
-  const boxFit = fitLoadedGlbModel(sceneRoot);
-  sceneRoot.position.y = boxFit.baseY - 0.12;
-  runtime.modelAnchor.add(sceneRoot);
+  const { runtime, container, root, onMediaState } = params;
+  container.addAllToScene();
+  root.parent = runtime.modelAnchor;
+  const boxFit = fitLoadedGlbModel(root);
+  root.position.y = boxFit.baseY - 0.12;
+  runtime.activeContainer = container;
+  runtime.activeRoot = root;
 
-  if (animations.length === 0) {
-    runtime.proceduralPose = applyRelaxedHeroicPose(sceneRoot);
+  const groups = container.animationGroups;
+  if (groups.length === 0) {
+    runtime.proceduralPose = applyRelaxedHeroicPose(container.transformNodes);
     onMediaState?.({ kind: 'glb-procedural', animations: [], activeAnimationIndex: -1 });
     return;
   }
 
-  const mixer = new AnimationMixer(sceneRoot);
-  const actions = animations.map((clip) => mixer.clipAction(clip));
-  const defaultIndex = pickDefaultClipIndex(animations);
-  actions[defaultIndex]?.play();
-  runtime.mixer = mixer;
-  runtime.actions = actions;
-  runtime.activeClipIndex = defaultIndex;
+  const defaultIndex = pickDefaultClipIndex(groups);
+  runtime.animationGroups = groups;
+  runtime.activeClipIndex = activateAnimationGroup(groups, -1, defaultIndex);
   onMediaState?.({
     kind: 'glb-animated',
-    animations: animations.map((clip, index) => ({
+    animations: groups.map((clip, index) => ({
       index,
       label: formatAnimationClipLabel(clip.name, index),
     })),
@@ -171,9 +210,8 @@ export async function loadCharacterModelForBody(params: {
     candidates: [getCharacterBodyModelMeta(bodyModel).modelUrl],
     index: 0,
     signal: controller.signal,
+    scene: runtime.scene,
     isStale,
-    getLoader: () => runtime.loader.getLoader(),
-    onDispose: disposeObjectSubtree,
   });
   if (isStale()) return;
   if (!payload) {
@@ -182,8 +220,8 @@ export async function loadCharacterModelForBody(params: {
   }
   attachCharacterModel({
     runtime,
-    sceneRoot: payload.gltf.scene,
-    animations: payload.gltf.animations,
+    container: payload.container,
+    root: payload.root,
     onMediaState,
   });
 }

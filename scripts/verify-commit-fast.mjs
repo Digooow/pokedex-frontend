@@ -20,6 +20,7 @@ const PRETTIER_PATTERNS = [
   /^apps\/api\/(?:src|test)\/.*\.ts$/,
   /^apps\/web\/(?:src|cloudflare|e2e)\/.*\.ts$/,
   /^apps\/web\/playwright\.config\.ts$/,
+  /^apps\/mcp\/src\/.*\.ts$/,
 ];
 
 const PARITY_SKIP_SEGMENTS = new Set([

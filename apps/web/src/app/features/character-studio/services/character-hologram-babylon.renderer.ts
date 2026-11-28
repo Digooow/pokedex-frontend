@@ -1,33 +1,34 @@
-import { type CharacterBodyModel, type CharacterOriginKey } from '@pokeverse/shared';
+import type { FreeCamera } from '@babylonjs/core/Cameras/freeCamera';
+import type { Engine } from '@babylonjs/core/Engines/engine';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
+import type { CharacterBodyModel, CharacterOriginKey } from '@pokeverse/shared';
+import { enableStageHavokPhysics } from '../../../core/engine-ports/babylon-physics.util';
 import {
-  ConeGeometry,
-  Group,
-  Mesh,
-  type PerspectiveCamera,
-  Scene,
-  type WebGLRenderer,
-} from 'three';
+  addBabylonStageLights,
+  color3FromHexInt,
+  createBabylonBeamCone,
+  createBabylonParticleField,
+  createBabylonPedestal,
+  createBabylonStageAndCamera,
+  disposeBabylonStage,
+  resizeBabylonCanvas,
+} from '../../../core/engine-ports/babylon-stage.util';
 import type {
   CharacterHologramSceneController,
   CharacterHologramSceneOptions,
 } from '../../../core/engine-ports/avatar-stage.port';
+import { syncAnimationGroupsMotion } from '../../holocron/holocron-animation.util';
 import {
   type StageOrbitState,
   advanceStageFpsWatchdog,
   applyCameraOrbit,
   bindStageCanvasListeners,
+  createBaseOrbitControls,
   createStageOrbitState,
   startStageRafLoop,
 } from '../../holocron/holocron-orbit.util';
 import type { HolocronPalette } from '../../holocron/holocron-palette.util';
-import {
-  addHolocronLights,
-  createHologramBeamMaterial,
-  createParticleField,
-  createPedestalGroup,
-  createRendererAndCamera,
-  disposeThreeScene,
-} from '../../holocron/holocron-three-scene.util';
 import {
   type CharacterStageRuntime,
   clearCharacterAnchor,
@@ -53,51 +54,45 @@ function resolvePalette(body: CharacterBodyModel, origin: CharacterOriginKey): H
 
 function buildStageObjects(scene: Scene, options: CharacterHologramSceneOptions) {
   const palette = resolvePalette(options.bodyModel, options.originKey);
-  const rimLight = addHolocronLights(scene, palette.primary);
-  const pedestal = createPedestalGroup(palette);
-  scene.add(pedestal.group);
-  const beamMat = createHologramBeamMaterial(palette);
-  const beamMesh = new Mesh(new ConeGeometry(1.02, 2.1, 24, 1, true), beamMat);
-  beamMesh.position.y = 0.4;
-  beamMesh.rotation.x = Math.PI;
-  scene.add(beamMesh);
+  const rimLight = addBabylonStageLights(scene, palette.primary);
+  const pedestal = createBabylonPedestal(scene, palette);
+  const beamMat = createBabylonBeamCone(scene, palette);
   let count = 0;
   if (!options.reducedMotion) {
     count = options.tier === 'ultra' ? 110 : 54;
   }
-  const particles = count > 0 ? createParticleField(palette, count) : null;
-  if (particles) scene.add(particles.points);
-  const modelAnchor = new Group();
-  scene.add(modelAnchor);
+  const particles = count > 0 ? createBabylonParticleField(scene, palette, count) : null;
+  const modelAnchor = new TransformNode('char-model-anchor', scene);
   return { rimLight, pedestal, beamMat, particles, modelAnchor };
 }
 
 function createFrameRenderer(params: {
   readonly scene: Scene;
-  readonly camera: PerspectiveCamera;
-  readonly renderer: WebGLRenderer;
+  readonly camera: FreeCamera;
   readonly stage: ReturnType<typeof buildStageObjects>;
   readonly runtime: CharacterStageRuntime;
   readonly state: StageOrbitState;
   readonly onLowFps: () => void;
 }) {
-  const { scene, camera, renderer, stage, runtime, state, onLowFps } = params;
+  const { scene, camera, stage, runtime, state, onLowFps } = params;
   return (now: number) => {
     if (state.disposed) return;
     const dt = Math.min(0.05, Math.max(0.001, (now - state.lastFrameMs) / 1000));
     state.lastFrameMs = now;
-    const uTime = stage.beamMat.uniforms['uTime'];
-    const uEnergy = stage.beamMat.uniforms['uEnergy'];
-    if (uTime) uTime.value = now * 0.001;
-    if (uEnergy) uEnergy.value = 0.35;
+    stage.beamMat.setFloat('uTime', now * 0.001);
+    stage.beamMat.setFloat('uEnergy', 0.35);
     if (!state.reducedMotion && state.autoRotate && !state.dragging) state.orbitAngle += dt * 0.58;
-    if (runtime.mixer && !state.reducedMotion) runtime.mixer.update(dt);
+    syncAnimationGroupsMotion(
+      runtime.animationGroups,
+      runtime.activeClipIndex,
+      state.reducedMotion,
+    );
     tickCharacterProceduralIdle(runtime.proceduralPose, now * 0.001, state.reducedMotion);
     if (stage.particles && !state.reducedMotion) {
-      stage.particles.points.rotation.y = state.orbitAngle * 0.65;
+      stage.particles.mesh.rotation.y = state.orbitAngle * 0.65;
     }
     applyCameraOrbit(camera, state, 0.16);
-    renderer.render(scene, camera);
+    scene.render();
     advanceStageFpsWatchdog(state, now, onLowFps);
   };
 }
@@ -108,16 +103,20 @@ function applyStagePalette(
   origin: CharacterOriginKey,
 ): void {
   const next = resolvePalette(body, origin);
-  stage.pedestal.ringMat.color.setHex(next.primary);
-  stage.pedestal.innerMat.color.setHex(next.accent);
-  stage.rimLight.color.setHex(next.primary);
-  stage.particles?.material.color.setHex(next.secondary);
+  const primary = color3FromHexInt(next.primary);
+  stage.pedestal.ringMat.emissiveColor = primary;
+  stage.pedestal.innerMat.emissiveColor = color3FromHexInt(next.accent);
+  stage.rimLight.diffuse = primary;
+  stage.beamMat.setColor3('uColor', primary);
+  if (stage.particles) {
+    stage.particles.material.emissiveColor = color3FromHexInt(next.secondary);
+  }
 }
 
 function buildController(params: {
   readonly options: CharacterHologramSceneOptions;
   readonly scene: Scene;
-  readonly renderer: WebGLRenderer;
+  readonly engine: Engine;
   readonly stage: ReturnType<typeof buildStageObjects>;
   readonly runtime: CharacterStageRuntime;
   readonly state: StageOrbitState;
@@ -125,7 +124,7 @@ function buildController(params: {
   readonly cleanupListeners: () => void;
   readonly resize: () => void;
 }): CharacterHologramSceneController {
-  const { options, scene, renderer, stage, runtime, state, renderFrame, cleanupListeners, resize } =
+  const { options, scene, engine, stage, runtime, state, renderFrame, cleanupListeners, resize } =
     params;
   let activeBody = options.bodyModel;
   let activeOrigin = options.originKey;
@@ -146,23 +145,13 @@ function buildController(params: {
       applyStagePalette(stage, activeBody, activeOrigin);
     },
     selectAnimation: (index) => selectRuntimeAnimation(runtime, index),
-    setAutoRotate: (enabled) => {
-      state.autoRotate = enabled;
-    },
-    setReducedMotion: (reduced) => {
-      state.reducedMotion = reduced;
-    },
-    nudgeOrbit: (deltaRad) => {
-      state.orbitAngle += deltaRad;
-      renderFrame(performance.now());
-    },
-    resetCamera: () => {
-      state.orbitAngle = 0;
-      state.orbitPitch = 0.14;
-      state.cameraRadius = 3.45;
-      renderFrame(performance.now());
-    },
-    resize,
+    ...createBaseOrbitControls({
+      state,
+      renderFrame,
+      defaultPitch: 0.14,
+      defaultRadius: 3.45,
+      resize,
+    }),
     dispose() {
       if (state.disposed) return;
       state.disposed = true;
@@ -171,9 +160,7 @@ function buildController(params: {
       if (state.rafId !== null) cancelAnimationFrame(state.rafId);
       cleanupListeners();
       clearCharacterAnchor(runtime);
-      runtime.loader.dispose();
-      stage.beamMat.dispose();
-      disposeThreeScene(scene, renderer);
+      disposeBabylonStage(scene, engine);
     },
   };
 }
@@ -182,8 +169,10 @@ export function mountCharacterHologramScene(
   options: CharacterHologramSceneOptions,
 ): CharacterHologramSceneController {
   const { canvas } = options;
-  const scene = new Scene();
-  const { camera, renderer } = createRendererAndCamera(canvas, options.tier);
+  const { engine, scene, camera } = createBabylonStageAndCamera(canvas, options.tier);
+  if (options.enablePhysics) {
+    void enableStageHavokPhysics(scene);
+  }
   const stage = buildStageObjects(scene, options);
   const state = createStageOrbitState({
     autoRotate: options.autoRotate,
@@ -191,29 +180,20 @@ export function mountCharacterHologramScene(
     orbitPitch: 0.14,
     cameraRadius: 3.45,
   });
-  const runtime = createCharacterStageRuntime(stage.modelAnchor);
-  const resize = () => {
-    const parent = canvas.parentElement;
-    renderer.setSize(
-      Math.max(220, parent?.clientWidth ?? canvas.clientWidth ?? 320),
-      Math.max(240, parent?.clientHeight ?? canvas.clientHeight ?? 280),
-      false,
-    );
-    camera.aspect =
-      Math.max(220, parent?.clientWidth ?? 320) / Math.max(240, parent?.clientHeight ?? 280);
-    camera.updateProjectionMatrix();
-  };
+  const runtime = createCharacterStageRuntime(scene, stage.modelAnchor);
+  const resize = () => resizeBabylonCanvas(canvas, engine, 240);
   resize();
+
   const renderFrame = createFrameRenderer({
     scene,
     camera,
-    renderer,
     stage,
     runtime,
     state,
     onLowFps: options.onLowFps,
   });
   const startLoop = startStageRafLoop({ state, renderFrame });
+  const contextObs = engine.onContextLostObservable.add(() => options.onContextLost());
   const cleanupListeners = bindStageCanvasListeners({
     canvas,
     state,
@@ -233,12 +213,15 @@ export function mountCharacterHologramScene(
   return buildController({
     options,
     scene,
-    renderer,
+    engine,
     stage,
     runtime,
     state,
     renderFrame,
-    cleanupListeners,
+    cleanupListeners: () => {
+      engine.onContextLostObservable.remove(contextObs);
+      cleanupListeners();
+    },
     resize,
   });
 }

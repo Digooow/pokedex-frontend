@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "pokeverse-devkit": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["apps/mcp/dist/index.js"],
+      "env": {
+        "POKEVERSE_REPO_ROOT": "."
+      }
+    },
+    "blender": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["mcp-for-blender"]
+    }
+  }
+}

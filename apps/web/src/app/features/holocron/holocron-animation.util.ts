@@ -1,6 +1,11 @@
-import { type AnimationClip, Box3, type Object3D, Vector3 } from 'three';
-import type { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
-import type { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { AnimationGroup } from '@babylonjs/core/Animations/animationGroup';
+import type { AssetContainer } from '@babylonjs/core/assetContainer';
+import { LoadAssetContainerAsync } from '@babylonjs/core/Loading/sceneLoader';
+import { Vector3 } from '@babylonjs/core/Maths/math.vector';
+import { TransformNode } from '@babylonjs/core/Meshes/transformNode';
+import type { Scene } from '@babylonjs/core/scene';
+import '@babylonjs/loaders/glTF';
+import { ensureSelfHostedDraco } from '../../core/engine-ports/babylon-stage.util';
 
 export interface HolocronAnimationClipInfo {
   readonly index: number;
@@ -16,18 +21,18 @@ export interface HolocronMediaState {
 }
 
 export interface ProceduralRig {
-  readonly target: Object3D;
+  readonly target: TransformNode;
   readonly baseScale: number;
   readonly baseY: number;
 }
 
 export interface LoadedGlbPayload {
   readonly url: string;
-  readonly gltf: GLTF;
+  readonly container: AssetContainer;
+  readonly root: TransformNode;
 }
 
 const IDLE_CLIP_HINTS = ['idle', 'stand', 'wait', 'breathe'];
-const DRACO_DECODER_PATH = '/assets/draco/';
 const ASCII_DIGIT_MIN = 48;
 const ASCII_DIGIT_MAX = 57;
 
@@ -58,13 +63,45 @@ export function formatAnimationClipLabel(rawName: string, index: number): string
     .join(' ');
 }
 
-export function pickDefaultClipIndex(clips: readonly AnimationClip[]): number {
-  if (clips.length === 0) return -1;
-  const preferredIdx = clips.findIndex((clip) => {
-    const lower = clip.name.toLowerCase();
+export function pickDefaultClipIndex(groups: ReadonlyArray<{ readonly name: string }>): number {
+  if (groups.length === 0) return -1;
+  const preferredIdx = groups.findIndex((group) => {
+    const lower = group.name.toLowerCase();
     return IDLE_CLIP_HINTS.some((hint) => lower.includes(hint));
   });
   return Math.max(preferredIdx, 0);
+}
+
+export function activateAnimationGroup(
+  groups: readonly AnimationGroup[],
+  activeIndex: number,
+  nextIndex: number,
+): number {
+  const next = groups[nextIndex];
+  if (!next || nextIndex === activeIndex) return activeIndex;
+  for (const group of groups) {
+    if (group !== next) {
+      group.stop();
+    }
+  }
+  next.reset();
+  next.start(true);
+  return nextIndex;
+}
+
+export function syncAnimationGroupsMotion(
+  groups: readonly AnimationGroup[],
+  activeClipIndex: number,
+  reducedMotion: boolean,
+): void {
+  const activeGroup = activeClipIndex >= 0 ? groups[activeClipIndex] : undefined;
+  for (const group of groups) {
+    if (reducedMotion && group.isPlaying) {
+      group.pause();
+    } else if (!reducedMotion && group === activeGroup && !group.isPlaying) {
+      group.play(true);
+    }
+  }
 }
 
 export function applyProceduralIdleMotion(
@@ -74,7 +111,7 @@ export function applyProceduralIdleMotion(
   reducedMotion: boolean,
 ): void {
   if (reducedMotion) {
-    rig.target.scale.setScalar(rig.baseScale);
+    rig.target.scaling.setAll(rig.baseScale);
     rig.target.position.y = rig.baseY;
     rig.target.rotation.set(0, 0, 0);
     return;
@@ -82,95 +119,94 @@ export function applyProceduralIdleMotion(
   const breath = Math.sin(elapsedSec * 2.6);
   const scaleY = rig.baseScale * (1 + breath * 0.032 + energy * 0.065);
   const scaleXz = rig.baseScale * (1 - breath * 0.015);
-  rig.target.scale.set(scaleXz, scaleY, scaleXz);
+  rig.target.scaling.set(scaleXz, scaleY, scaleXz);
   rig.target.rotation.z = Math.sin(elapsedSec * 1.55) * 0.045;
   rig.target.rotation.x = Math.sin(elapsedSec * 2.1) * 0.03;
   rig.target.position.y = rig.baseY + Math.abs(Math.sin(elapsedSec * 2.1)) * 0.04 + energy * 0.07;
 }
 
-export function fitLoadedGlbModel(model: Object3D): {
+function measureHierarchyBounds(root: TransformNode) {
+  root.computeWorldMatrix(true);
+  for (const child of root.getChildTransformNodes(false)) {
+    child.computeWorldMatrix(true);
+  }
+  const { min, max } = root.getHierarchyBoundingVectors(true);
+  const valid =
+    Number.isFinite(min.x) &&
+    Number.isFinite(max.x) &&
+    max.x >= min.x &&
+    max.y >= min.y &&
+    max.z >= min.z;
+  return { valid, min, max };
+}
+
+export function fitLoadedGlbModel(root: TransformNode): {
   readonly baseScale: number;
   readonly baseY: number;
 } {
-  model.updateMatrixWorld(true);
-  const box = new Box3().setFromObject(model);
-  if (box.isEmpty()) return { baseScale: 1, baseY: -0.58 };
-  const size = new Vector3();
-  const center = new Vector3();
-  box.getSize(size);
-  box.getCenter(center);
+  const { valid, min, max } = measureHierarchyBounds(root);
+  if (!valid) return { baseScale: 1, baseY: -0.58 };
+  const size = max.subtract(min);
+  const center = min.add(max).scale(0.5);
   const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+  if (maxDim <= 0.002) return { baseScale: 1, baseY: -0.58 };
   const scale = 1.52 / maxDim;
-  const baseY = -0.54 - box.min.y * scale;
-  model.scale.setScalar(scale);
-  model.position.set(-center.x * scale, baseY, -center.z * scale);
+  const baseY = -0.54 - min.y * scale;
+  root.scaling.setAll(scale);
+  root.position.set(-center.x * scale, baseY, -center.z * scale);
   return { baseScale: scale, baseY };
 }
 
-export function hasRenderableGeometry(model: Object3D): boolean {
-  model.updateMatrixWorld(true);
-  const box = new Box3().setFromObject(model);
-  if (box.isEmpty()) return false;
-  const size = new Vector3();
-  box.getSize(size);
-  return size.lengthSq() > 0.0001;
+export function hasRenderableGeometry(root: TransformNode): boolean {
+  const { valid, min, max } = measureHierarchyBounds(root);
+  if (!valid) return false;
+  const size = max.subtract(min);
+  return Vector3.Dot(size, size) > 0.0001;
 }
 
-export function createLazyGlbLoader() {
-  let cachedLoader: GLTFLoader | null = null;
-  let cachedDraco: DRACOLoader | null = null;
-
-  return {
-    async getLoader(): Promise<GLTFLoader> {
-      if (cachedLoader) return cachedLoader;
-      const [{ GLTFLoader }, { DRACOLoader }] = await Promise.all([
-        import('three/examples/jsm/loaders/GLTFLoader.js'),
-        import('three/examples/jsm/loaders/DRACOLoader.js'),
-      ]);
-      const draco = new DRACOLoader();
-      draco.setDecoderPath(DRACO_DECODER_PATH);
-      draco.setWorkerLimit(2);
-      const gltfLoader = new GLTFLoader();
-      gltfLoader.setDRACOLoader(draco);
-      cachedDraco = draco;
-      cachedLoader = gltfLoader;
-      return gltfLoader;
-    },
-    dispose() {
-      cachedDraco?.dispose();
-      cachedDraco = null;
-      cachedLoader = null;
-    },
-  };
+function wrapContainerRootNodes(container: AssetContainer, scene: Scene): TransformNode {
+  const wrapper = new TransformNode('glb-model-root', scene);
+  for (const rootNode of container.rootNodes) {
+    rootNode.parent = wrapper;
+  }
+  return wrapper;
 }
 
 export async function fetchFirstValidGlb(params: {
   readonly candidates: readonly string[];
   readonly index: number;
   readonly signal: AbortSignal;
+  readonly scene: Scene;
   readonly isStale: () => boolean;
-  readonly getLoader: () => Promise<GLTFLoader>;
-  readonly onDispose: (obj: Object3D) => void;
 }): Promise<LoadedGlbPayload | null> {
-  const { candidates, index, signal, isStale, getLoader, onDispose } = params;
+  const { candidates, index, signal, scene, isStale } = params;
   const url = candidates[index];
   if (!url || isStale() || signal.aborted) return null;
 
   try {
+    ensureSelfHostedDraco();
     const response = await fetch(url, { signal, mode: 'cors' });
     if (!response.ok || isStale()) {
       return fetchFirstValidGlb({ ...params, index: index + 1 });
     }
     const buffer = await response.arrayBuffer();
     if (isStale()) return null;
-    const loader = await getLoader();
-    if (isStale()) return null;
-    const gltf = await loader.parseAsync(buffer, '');
-    if (isStale() || !hasRenderableGeometry(gltf.scene)) {
-      onDispose(gltf.scene);
+
+    const container = await LoadAssetContainerAsync(new Uint8Array(buffer), scene, {
+      pluginExtension: '.glb',
+    });
+    if (isStale()) {
+      container.dispose();
+      return null;
+    }
+
+    const root = wrapContainerRootNodes(container, scene);
+    if (!hasRenderableGeometry(root)) {
+      root.dispose();
+      container.dispose();
       return isStale() ? null : fetchFirstValidGlb({ ...params, index: index + 1 });
     }
-    return { url, gltf };
+    return { url, container, root };
   } catch {
     if (isStale() || signal.aborted) return null;
     return fetchFirstValidGlb({ ...params, index: index + 1 });
