@@ -215,6 +215,7 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await expect(page.locator('.creator-classless-banner')).toContainText('Sem Classes');
 
     await page.locator('#char-name').fill('Kael Norte');
+    await page.locator('.creator-model-card', { hasText: 'Aventureira' }).click();
     await page.locator('.creator-origin-card', { hasText: 'Aprendiz de Porto' }).click();
     await page.locator('.creator-submit-btn').click();
 
@@ -235,6 +236,12 @@ test.describe('PokéVerse OS Real Browser E2E Journeys', () => {
     await page.locator('button[aria-label="Adicionar ponto em Percepção"]').click();
     await page.getByRole('button', { name: /Confirmar Alocação/ }).click();
     await expect(page.locator('.sheet-card__head .pv-badge')).toContainText('Pontos livres: 0');
+
+    await page.locator('.skill-train-btn').first().click();
+    await expect(page.locator('.trainer-feed')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Bazar de Chars' }).click();
+    await expect(page.locator('.bazaar-card').first()).toBeVisible();
 
     await page.setViewportSize({ width: 375, height: 812 });
     const hasOverflow = await page.evaluate(

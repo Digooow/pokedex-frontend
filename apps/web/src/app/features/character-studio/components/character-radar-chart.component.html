@@ -1,0 +1,35 @@
+<figure class="radar-card">
+  <figcaption class="radar-card__title">{{ caption() }}</figcaption>
+  <svg
+    class="radar-card__svg"
+    viewBox="0 0 260 226"
+    aria-hidden="true"
+    focusable="false"
+  >
+    @for (ring of ringPolygons; track $index) {
+      <polygon class="radar-ring" [attr.points]="ring" />
+    }
+    @for (vertex of vertices(); track vertex.key) {
+      <line
+        class="radar-axis"
+        x1="130"
+        y1="112"
+        [attr.x2]="vertex.outerX"
+        [attr.y2]="vertex.outerY"
+      />
+    }
+    <polygon class="radar-fill" [attr.points]="dataPolygon()" />
+    @for (vertex of vertices(); track vertex.key) {
+      <circle class="radar-dot" [attr.cx]="vertex.x" [attr.cy]="vertex.y" r="3.5" />
+      <text
+        class="radar-label"
+        [attr.x]="vertex.labelX"
+        [attr.y]="vertex.labelY"
+        text-anchor="middle"
+        dominant-baseline="middle"
+      >
+        {{ vertex.shortLabel }} {{ vertex.value }}
+      </text>
+    }
+  </svg>
+</figure>

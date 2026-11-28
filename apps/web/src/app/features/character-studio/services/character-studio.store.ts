@@ -7,12 +7,18 @@ import {
   type CharacterAppearance,
   type CharacterAttributeAllocation,
   type CharacterAttributeKey,
+  type CharacterBodyModel,
   type CharacterOriginKey,
   type CharacterSheet,
+  type CharacterTrainingState,
+  DEFAULT_EMERGENT_ARCHETYPE,
+  type SkillTrainingResult,
   ZERO_ATTRIBUTE_ALLOCATION,
+  applySkillTrainingAction,
   buildInitialAttributes,
   computeCharacterDerivedVitals,
   computeStarterKitWeightKg,
+  createInitialTrainingState,
   getCharacterOriginByKey,
   sumAttributeAllocation,
 } from '@pokeverse/shared';
@@ -23,10 +29,12 @@ import {
   DEFAULT_CHARACTER_APPEARANCE,
   adjustAllocationPoint,
   buildVisitorPreviewSheet,
+  computeTrainingEffectiveVitals,
+  resolveSheetTrainingState,
   validateCharacterDraftPayload,
 } from './character-studio.constants';
 
-export type CharacterStudioTab = 'create' | 'sheet';
+export type CharacterStudioTab = 'create' | 'sheet' | 'bazaar';
 
 export type CharacterMutationState =
   | { readonly status: 'idle' }
@@ -49,6 +57,8 @@ export class CharacterStudioStore {
   private readonly activeTabSignal = signal<CharacterStudioTab>('create');
   private readonly mutationSignal = signal<CharacterMutationState>({ status: 'idle' });
   private readonly visitorPreviewSignal = signal<CharacterSheet | null>(null);
+  private readonly trainingMapSignal = signal<Readonly<Record<string, CharacterTrainingState>>>({});
+  private readonly lastTrainingSignal = signal<SkillTrainingResult | null>(null);
 
   private readonly draftNameSignal = signal('');
   private readonly draftOriginSignal = signal<CharacterOriginKey>('settler');
@@ -67,6 +77,7 @@ export class CharacterStudioStore {
   readonly draftOriginKey = this.draftOriginSignal.asReadonly();
   readonly draftAppearance = this.draftAppearanceSignal.asReadonly();
   readonly draftAllocation = this.draftAllocationSignal.asReadonly();
+  readonly lastTrainingResult = this.lastTrainingSignal.asReadonly();
 
   readonly isSubmitting = computed(() => this.mutationSignal().status === 'submitting');
   readonly savedCharacters = computed<readonly CharacterSheet[]>(() => {
@@ -91,19 +102,34 @@ export class CharacterStudioStore {
   );
 
   readonly activeSheet = computed<CharacterSheet | null>(() => {
-    if (!this.auth.isAuthenticated()) {
-      return this.visitorPreviewSignal();
-    }
+    if (!this.auth.isAuthenticated()) return this.visitorPreviewSignal();
     const list = this.savedCharacters();
-    if (list.length === 0) {
-      return null;
-    }
+    if (list.length === 0) return null;
     const selectedId = this.selectedIdSignal();
     return list.find((item) => item.id === selectedId) ?? list[0] ?? null;
   });
 
   readonly isShowingPreview = computed(
     () => !this.auth.isAuthenticated() && this.visitorPreviewSignal() !== null,
+  );
+
+  readonly activeTrainingState = computed<CharacterTrainingState | null>(() =>
+    resolveSheetTrainingState(this.activeSheet(), this.trainingMapSignal()),
+  );
+
+  readonly activeEffectiveAttributes = computed(
+    () =>
+      this.activeTrainingState()?.attributes ??
+      this.activeSheet()?.attributes ??
+      this.draftAttributes(),
+  );
+
+  readonly activeEffectiveVitals = computed(() =>
+    computeTrainingEffectiveVitals(this.activeSheet(), this.activeTrainingState()),
+  );
+
+  readonly activeEmergentArchetype = computed(
+    () => this.activeTrainingState()?.emergentArchetype ?? DEFAULT_EMERGENT_ARCHETYPE,
   );
 
   loadCharacters(): void {
@@ -116,13 +142,8 @@ export class CharacterStudioStore {
       next: (res) => {
         this.charactersSignal.set({ status: 'success', data: res.items });
         const first = res.items[0];
-        if (first) {
-          this.selectedIdSignal.set(first.id);
-          this.activeTabSignal.set('sheet');
-          return;
-        }
-        this.selectedIdSignal.set(null);
-        this.activeTabSignal.set('create');
+        this.selectedIdSignal.set(first ? first.id : null);
+        this.activeTabSignal.set(first ? 'sheet' : 'create');
       },
       error: (err: unknown) => {
         this.charactersSignal.set({
@@ -147,6 +168,11 @@ export class CharacterStudioStore {
     this.clearFeedback();
   }
 
+  setDraftBodyModel(bodyModel: CharacterBodyModel): void {
+    this.draftAppearanceSignal.update((current) => ({ ...current, bodyModel }));
+    this.clearFeedback();
+  }
+
   updateAppearance(patch: Partial<CharacterAppearance>): void {
     this.draftAppearanceSignal.update((current) => ({ ...current, ...patch }));
     this.clearFeedback();
@@ -166,9 +192,7 @@ export class CharacterStudioStore {
 
   applyInitialPreset(presetKey: 'balanced' | 'vanguard' | 'arcanist'): void {
     const preset = CHARACTER_INITIAL_PRESETS.find((item) => item.key === presetKey);
-    if (!preset) {
-      return;
-    }
+    if (!preset) return;
     this.draftAllocationSignal.set({ ...preset.allocation });
     this.clearFeedback();
   }
@@ -194,42 +218,45 @@ export class CharacterStudioStore {
     this.openVisitorPreview();
   }
 
-  selectCharacter(characterId: string): void {
-    this.selectedIdSignal.set(characterId);
-    this.activeTabSignal.set('sheet');
+  openBazaarTab(): void {
+    this.activeTabSignal.set('bazaar');
     this.clearFeedback();
   }
 
+  selectCharacter(characterId: string): void {
+    this.selectedIdSignal.set(characterId);
+    this.activeTabSignal.set('sheet');
+    this.lastTrainingSignal.set(null);
+    this.clearFeedback();
+  }
+
+  trainSkill(skillId: string): void {
+    const sheet = this.activeSheet();
+    const current = this.activeTrainingState();
+    if (!sheet || !current) return;
+    const result = applySkillTrainingAction(current, skillId, 32);
+    this.trainingMapSignal.update((map) => ({ ...map, [sheet.id]: result.nextState }));
+    this.lastTrainingSignal.set(result);
+  }
+
   openVisitorPreview(): void {
-    const parsed = validateCharacterDraftPayload({
-      rawName: this.draftNameSignal(),
-      originKey: this.draftOriginSignal(),
-      appearance: this.draftAppearanceSignal(),
-      initialAttributes: this.draftAllocationSignal(),
-      requireName: false,
-    });
+    const parsed = this.validateDraft(false);
     if (!parsed.valid) {
       this.mutationSignal.set({ status: 'error', message: parsed.message });
       return;
     }
-
-    const preview = buildVisitorPreviewSheet({
-      name: parsed.payload.name,
-      originKey: parsed.payload.originKey,
-      appearance: parsed.payload.appearance,
-      allocation: parsed.payload.initialAttributes,
-    });
-
-    this.visitorPreviewSignal.set(preview);
+    this.visitorPreviewSignal.set(
+      buildVisitorPreviewSheet({
+        ...parsed.payload,
+        allocation: parsed.payload.initialAttributes,
+      }),
+    );
     this.activeTabSignal.set('sheet');
     this.clearFeedback();
   }
 
   submitCreate(): void {
-    if (this.isSubmitting()) {
-      return;
-    }
-
+    if (this.isSubmitting()) return;
     if (!this.auth.isAuthenticated()) {
       this.auth.requestTrainerAccess(
         'Salvar Personagem na Conta',
@@ -238,45 +265,32 @@ export class CharacterStudioStore {
       );
       return;
     }
-
-    const parsed = validateCharacterDraftPayload({
-      rawName: this.draftNameSignal(),
-      originKey: this.draftOriginSignal(),
-      appearance: this.draftAppearanceSignal(),
-      initialAttributes: this.draftAllocationSignal(),
-      requireName: true,
-    });
+    const parsed = this.validateDraft(true);
     if (!parsed.valid) {
       this.mutationSignal.set({ status: 'error', message: parsed.message });
       return;
     }
-
     this.mutationSignal.set({ status: 'submitting' });
     this.api.createCharacter(parsed.payload).subscribe({
       next: (created) => {
-        const nextList = [created, ...this.savedCharacters()];
-        this.charactersSignal.set({ status: 'success', data: nextList });
+        this.charactersSignal.set({
+          status: 'success',
+          data: [created, ...this.savedCharacters()],
+        });
         this.selectedIdSignal.set(created.id);
         this.activeTabSignal.set('sheet');
         this.draftNameSignal.set('');
         this.mutationSignal.set({
           status: 'success',
-          message: `${created.name} criado sem restrição de classe!`,
+          message: `${created.name} criado sem classe fixa e pronto para treinar!`,
         });
       },
-      error: (err: unknown) => {
-        this.mutationSignal.set({
-          status: 'error',
-          message: extractApiErrorMessage(err, 'Não foi possível criar o personagem.'),
-        });
-      },
+      error: (err: unknown) => this.setMutationError(err, 'Não foi possível criar o personagem.'),
     });
   }
 
   allocatePoints(characterId: string, allocations: CharacterAttributeAllocation): void {
-    if (this.isSubmitting()) {
-      return;
-    }
+    if (this.isSubmitting()) return;
     this.mutationSignal.set({ status: 'submitting' });
     this.api.allocateAttributes(characterId, { allocations }).subscribe({
       next: (updated) => {
@@ -285,24 +299,35 @@ export class CharacterStudioStore {
         );
         this.charactersSignal.set({ status: 'success', data: replaced });
         this.selectedIdSignal.set(updated.id);
-        this.mutationSignal.set({
-          status: 'success',
-          message: 'Pontos de atributo alocados com sucesso.',
-        });
+        this.trainingMapSignal.update((map) => ({
+          ...map,
+          [updated.id]: createInitialTrainingState(
+            updated.attributes,
+            updated.totalSkillMilestones,
+          ),
+        }));
+        this.mutationSignal.set({ status: 'success', message: 'Pontos alocados com sucesso.' });
       },
-      error: (err: unknown) => {
-        this.mutationSignal.set({
-          status: 'error',
-          message: extractApiErrorMessage(err, 'Não foi possível alocar os pontos.'),
-        });
-      },
+      error: (err: unknown) => this.setMutationError(err, 'Não foi possível alocar os pontos.'),
     });
   }
 
   clearFeedback(): void {
     const status = this.mutationSignal().status;
-    if (status === 'error' || status === 'success') {
-      this.mutationSignal.set({ status: 'idle' });
-    }
+    if (status === 'error' || status === 'success') this.mutationSignal.set({ status: 'idle' });
+  }
+
+  private validateDraft(requireName: boolean) {
+    return validateCharacterDraftPayload({
+      rawName: this.draftNameSignal(),
+      originKey: this.draftOriginSignal(),
+      appearance: this.draftAppearanceSignal(),
+      initialAttributes: this.draftAllocationSignal(),
+      requireName,
+    });
+  }
+
+  private setMutationError(err: unknown, fallback: string): void {
+    this.mutationSignal.set({ status: 'error', message: extractApiErrorMessage(err, fallback) });
   }
 }

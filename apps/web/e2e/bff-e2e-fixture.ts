@@ -36,6 +36,7 @@ const MIME_TYPES: Readonly<Record<string, string>> = {
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
   '.wasm': 'application/wasm',
+  '.glb': 'model/gltf-binary',
   '.woff2': 'font/woff2',
   '.ico': 'image/x-icon',
 };

@@ -1,9 +1,12 @@
 <div class="sheet-wrap">
   @if (isPreview()) {
-    <div class="pv-glass-card sheet-preview-banner" role="note">
+    <div class="pv-glass-card sheet-preview-banner">
       <div class="sheet-preview-banner__copy">
-        <strong>Prévia de Visitante (Não Persistida):</strong>
-        <span>Faça login ou crie sua conta para gravar este personagem no banco de dados.</span>
+        <strong>Prévia Interativa (Visitante):</strong>
+        <span>
+          Treine skills e teste a evolução sem nível à vontade. Entre na sua conta para salvar no
+          banco de dados.
+        </span>
       </div>
       <div class="sheet-preview-banner__actions">
         <button type="button" class="pv-btn pv-btn--primary" (click)="requestLoginFromPreview()">
@@ -21,32 +24,39 @@
       [appearance]="character().appearance"
       [displayName]="character().name"
       [originKey]="character().originKey"
-      [level]="character().level"
+      [archetypeLabel]="trainingState().emergentArchetype.label"
       [compact]="true"
     />
 
-    <dl class="sheet-meta-grid">
-      <div class="sheet-meta-item">
-        <dt>Presença</dt>
-        <dd>{{ presenceLabel() }}</dd>
-      </div>
-      <div class="sheet-meta-item">
-        <dt>Posição Hex</dt>
-        <dd class="tabular-nums">
-          q={{ character().hexQ }}, r={{ character().hexR }}, z={{ character().hexZ }}
-        </dd>
-      </div>
-      <div class="sheet-meta-item">
-        <dt>Capacidade de Carga</dt>
-        <dd class="tabular-nums">
-          {{ character().vitals.starterKitWeightKg }} / {{ character().vitals.carryCapacityKg }} kg
-        </dd>
-      </div>
-      <div class="sheet-meta-item">
-        <dt>Marcos de Skill</dt>
-        <dd class="tabular-nums">{{ character().totalSkillMilestones }}</dd>
-      </div>
-    </dl>
+    <div class="sheet-hero__right">
+      <dl class="sheet-meta-grid">
+        <div class="sheet-meta-item">
+          <dt>Presença</dt>
+          <dd>{{ presenceLabel() }}</dd>
+        </div>
+        <div class="sheet-meta-item">
+          <dt>Posição Hex</dt>
+          <dd class="tabular-nums">
+            q={{ character().hexQ }}, r={{ character().hexR }}, z={{ character().hexZ }}
+          </dd>
+        </div>
+        <div class="sheet-meta-item">
+          <dt>Capacidade de Carga</dt>
+          <dd class="tabular-nums">
+            {{ effectiveVitals().starterKitWeightKg }} / {{ effectiveVitals().carryCapacityKg }} kg
+          </dd>
+        </div>
+        <div class="sheet-meta-item">
+          <dt>Marcos de Skill</dt>
+          <dd class="tabular-nums">{{ trainingState().totalMilestones }}</dd>
+        </div>
+      </dl>
+
+      <pv-character-radar-chart
+        [attributes]="effectiveAttributes()"
+        caption="Perfil Atual dos 7 Atributos"
+      />
+    </div>
   </header>
 
   <div class="sheet-columns">
@@ -74,26 +84,26 @@
       <dl class="tactical-grid">
         <div class="tactical-stat">
           <dt>Esquiva Base</dt>
-          <dd class="tabular-nums">{{ character().vitals.baseDodgeRating }}</dd>
+          <dd class="tabular-nums">{{ effectiveVitals().baseDodgeRating }}</dd>
         </div>
         <div class="tactical-stat">
           <dt>Detecção</dt>
-          <dd class="tabular-nums">{{ character().vitals.baseDetectionRadius }} m</dd>
+          <dd class="tabular-nums">{{ effectiveVitals().baseDetectionRadius }} m</dd>
         </div>
         <div class="tactical-stat">
           <dt>Res. Maldições</dt>
-          <dd class="tabular-nums">{{ character().vitals.curseResistanceBase }}</dd>
+          <dd class="tabular-nums">{{ effectiveVitals().curseResistanceBase }}</dd>
         </div>
         <div class="tactical-stat">
           <dt>Auxiliares / Pets</dt>
-          <dd class="tabular-nums">Até {{ character().vitals.companionSlots }}</dd>
+          <dd class="tabular-nums">Até {{ effectiveVitals().companionSlots }}</dd>
         </div>
       </dl>
     </section>
 
-    <section class="pv-glass-card sheet-card" aria-label="Atributos primários do personagem">
+    <section class="pv-glass-card sheet-card" aria-label="Atributos evoluídos por treino">
       <div class="sheet-card__head">
-        <h2 class="sheet-card__title">7 Atributos Primários</h2>
+        <h2 class="sheet-card__title">7 Atributos (Evolução por Treino)</h2>
         <span class="pv-badge tabular-nums">
           Pontos livres: {{ remainingLevelPoints() }}
         </span>
@@ -107,11 +117,23 @@
                 {{ meta.label }} <span class="sheet-attr-row__short">({{ meta.shortLabel }})</span>
               </strong>
               <span class="sheet-attr-row__impact">{{ meta.mechanicalImpact }}</span>
+              <div class="attr-train-bar">
+                <div class="attr-train-track">
+                  <div
+                    class="attr-train-fill"
+                    [style.inline-size.%]="attrBarPercent(meta.key)"
+                  ></div>
+                </div>
+                <span class="attr-train-label tabular-nums">
+                  Treino: {{ trainingState().attributeBars[meta.key].xp }} /
+                  {{ trainingState().attributeBars[meta.key].xpToNext }}
+                </span>
+              </div>
             </div>
 
             <div class="sheet-attr-row__right">
               <strong class="sheet-attr-row__value tabular-nums">
-                {{ character().attributes[meta.key] + pendingAllocations()[meta.key] }}
+                {{ effectiveAttributes()[meta.key] + pendingAllocations()[meta.key] }}
               </strong>
               @if (!isPreview() && character().availableAttributePoints > 0) {
                 <div class="sheet-attr-steppers">
@@ -167,11 +189,13 @@
     </section>
   </div>
 
+  <pv-character-skill-trainer [training]="trainingState()" />
+
   <section class="pv-glass-card sheet-card" aria-label="Equipamento rudimentar de largada">
     <div class="sheet-card__head">
       <h2 class="sheet-card__title">Kit Rudimentar de Largada</h2>
       <span class="sheet-kit-weight tabular-nums">
-        Peso total: {{ character().vitals.starterKitWeightKg }} kg
+        Peso total: {{ effectiveVitals().starterKitWeightKg }} kg
       </span>
     </div>
 

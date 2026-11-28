@@ -1,0 +1,94 @@
+<section class="pv-glass-card trainer-card" aria-label="Árvore de habilidades e treino sem nível">
+  <header class="trainer-head">
+    <div class="trainer-head__copy">
+      <h2 class="trainer-head__title">Árvore em Cascata &amp; Evolução Sem Nível</h2>
+      <p class="trainer-head__sub">
+        Pratique qualquer arma, magia ou profissão: a folha propaga XP aos troncos pais
+        (100% → 65% → 45% → ...) e evolui os atributos vinculados automaticamente.
+      </p>
+    </div>
+
+    <div class="trainer-archetype">
+      <span class="trainer-archetype__tag">Classe Livre Emergente</span>
+      <strong class="trainer-archetype__name">{{ training().emergentArchetype.label }}</strong>
+      <span class="trainer-archetype__desc">{{ training().emergentArchetype.roleSummary }}</span>
+    </div>
+  </header>
+
+  <nav class="trainer-tabs" aria-label="Pilares de habilidades">
+    @for (pillar of pillars; track pillar.key) {
+      <button
+        type="button"
+        class="pv-chip"
+        [attr.aria-pressed]="activePillar() === pillar.key"
+        (click)="selectPillar(pillar.key)"
+      >
+        {{ pillar.label }}
+      </button>
+    }
+  </nav>
+
+  <p class="trainer-pillar-hint">{{ activePillarHint() }}</p>
+
+  @if (lastResult(); as result) {
+    <div class="trainer-feed" aria-live="polite">
+      <div class="trainer-feed__head">
+        <strong>Último treino: {{ result.trainedSkillLabel }}</strong>
+        <span class="pv-badge tabular-nums">Modificador: {{ result.chainModifier }}×</span>
+      </div>
+      <div class="trainer-feed__chips">
+        @for (gain of result.skillGains; track gain.skillId) {
+          <span class="trainer-feed__pill tabular-nums">
+            {{ gain.label }} +{{ gain.xpAdded }} XP
+            @if (gain.ranksGained > 0) {
+              <strong>(Rank {{ gain.newRank }}!)</strong>
+            }
+          </span>
+        }
+        @for (attrGain of result.attributeGains; track attrGain.attributeKey) {
+          <span class="trainer-feed__attr tabular-nums">
+            {{ attrLabel(attrGain.attributeKey) }} +{{ attrGain.xpAdded }} treino
+            @if (attrGain.pointsGained > 0) {
+              <strong>(+{{ attrGain.pointsGained }} Atributo!)</strong>
+            }
+          </span>
+        }
+      </div>
+    </div>
+  }
+
+  <ul class="trainer-grid">
+    @for (row of skillRows(); track row.node.id) {
+      <li class="trainer-row">
+        <div class="trainer-row__head">
+          <div class="trainer-row__title-wrap">
+            <strong class="trainer-row__name">{{ row.node.label }}</strong>
+            <span class="trainer-row__chain">{{ row.chainLabel }}</span>
+          </div>
+          <span class="trainer-row__mod tabular-nums">{{ row.chainModifier }}×</span>
+        </div>
+
+        <p class="trainer-row__desc">{{ row.node.description }}</p>
+
+        <div class="trainer-row__meter">
+          <div class="trainer-row__meta tabular-nums">
+            <span>Prática {{ row.rank }}</span>
+            <span>{{ row.attrPairLabel }}</span>
+            <span>{{ row.xp }} / {{ row.xpToNext }} XP</span>
+          </div>
+          <div class="trainer-row__track">
+            <div class="trainer-row__fill" [style.inline-size.%]="row.xpPercent"></div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="pv-btn pv-btn--secondary skill-train-btn"
+          (click)="onTrainSkill(row.node.id)"
+        >
+          Treinar (+32 XP)
+        </button>
+      </li>
+    }
+  </ul>
+</section>

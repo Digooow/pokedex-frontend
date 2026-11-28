@@ -1,13 +1,13 @@
 <section class="studio-page" aria-labelledby="main-heading">
   <header class="pv-glass-card studio-header">
     <div class="studio-header__copy">
-      <span class="pv-badge">PASSO 1 · IDENTIDADE &amp; ATRIBUTOS</span>
+      <span class="pv-badge">ESTÚDIO HOLOGRÁFICO · EVOLUÇÃO SEM NÍVEL</span>
       <h1 id="main-heading" tabindex="-1" pvMainHeading class="studio-header__title">
-        Criação &amp; Ficha de Personagem
+        Criação, Treino &amp; Bazar de Personagem
       </h1>
       <p class="studio-header__subtitle">
-        Defina aparência modular, origem de largada e 10 pontos iniciais entre os 7 atributos sem
-        restrições de classe.
+        Escolha seu modelo 3D no estilo do Holocron, distribua os 7 atributos iniciais, evolua sem
+        nível pela prática de skills e negocie personagens veteranos no Bazar.
       </p>
     </div>
 
@@ -29,7 +29,16 @@
         [disabled]="!store.activeSheet()"
         (click)="store.openSheetTab()"
       >
-        Ficha Viva
+        Ficha &amp; Treino
+      </button>
+      <button
+        type="button"
+        class="pv-btn"
+        [class.pv-btn--primary]="store.activeTab() === 'bazaar'"
+        [class.pv-btn--secondary]="store.activeTab() !== 'bazaar'"
+        (click)="store.openBazaarTab()"
+      >
+        Bazar de Chars
       </button>
     </div>
   </header>
@@ -67,7 +76,7 @@
                   "
                   (click)="store.selectCharacter(item.id)"
                 >
-                  {{ item.name }} (Nv. {{ item.level }})
+                  {{ item.name }} · {{ item.appearance.bodyModel === 'female' ? 'Fem' : 'Masc' }}
                 </button>
               }
             </div>
@@ -84,7 +93,9 @@
     }
   }
 
-  @if (store.activeTab() === 'sheet' && store.activeSheet(); as sheet) {
+  @if (store.activeTab() === 'bazaar') {
+    <pv-character-bazaar-panel />
+  } @else if (store.activeTab() === 'sheet' && store.activeSheet(); as sheet) {
     <pv-character-sheet-view [character]="sheet" [isPreview]="store.isShowingPreview()" />
   } @else {
     <pv-character-creator-form />

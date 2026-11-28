@@ -6,7 +6,7 @@
 
 @media (min-width: 60rem) {
   .creator-grid {
-    grid-template-columns: 22rem minmax(0, 1fr);
+    grid-template-columns: 23rem minmax(0, 1fr);
   }
 }
 
@@ -35,10 +35,13 @@
   margin: 0;
 }
 
-.creator-metric {
+.creator-metric,
+.creator-model-card,
+.creator-origin-card,
+.creator-ref-item {
   display: grid;
-  gap: 0.15rem;
-  padding: var(--pv-space-2);
+  gap: 0.2rem;
+  padding: var(--pv-space-2) var(--pv-space-3);
   border-radius: var(--pv-radius-sm);
   border: 1px solid var(--pv-border-subtle);
   background: var(--pv-surface-solid);
@@ -78,9 +81,11 @@
   font-size: 0.875rem;
 }
 
-.creator-kit__list {
+.creator-kit__list,
+.creator-attr-list,
+.creator-ref-grid {
   display: grid;
-  gap: var(--pv-space-1);
+  gap: var(--pv-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -117,15 +122,21 @@
 }
 
 .creator-legend {
-  padding-inline: var(--pv-space-2);
+  margin: 0;
+  padding-inline: var(--pv-space-1);
   font-size: 0.9375rem;
   font-weight: 800;
   color: var(--pv-ink-primary);
 }
 
-.creator-field {
+.creator-field,
+.creator-appearance-group {
   display: grid;
   gap: var(--pv-space-1);
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-inline-size: 0;
 }
 
 .creator-label,
@@ -145,88 +156,10 @@
   color: var(--pv-ink-primary);
 }
 
-.creator-appearance-group {
+.creator-models {
   display: grid;
-  gap: var(--pv-space-1);
-  border: 0;
-  margin: 0;
-  padding: 0;
-  min-inline-size: 0;
-}
-
-.creator-chips {
-  display: flex;
-  flex-wrap: wrap;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: var(--pv-space-2);
-}
-
-.creator-chip {
-  gap: var(--pv-space-1);
-}
-
-.creator-swatch {
-  inline-size: 0.875rem;
-  block-size: 0.875rem;
-  border-radius: var(--pv-radius-pill);
-  border: 1px solid var(--pv-border-strong);
-  flex-shrink: 0;
-}
-
-.creator-swatch[data-swatch-kind='skin'][data-swatch-value='porcelain'] {
-  background: var(--pv-char-skin-porcelain);
-}
-.creator-swatch[data-swatch-kind='skin'][data-swatch-value='sand'] {
-  background: var(--pv-char-skin-sand);
-}
-.creator-swatch[data-swatch-kind='skin'][data-swatch-value='ochre'] {
-  background: var(--pv-char-skin-ochre);
-}
-.creator-swatch[data-swatch-kind='skin'][data-swatch-value='bronze'] {
-  background: var(--pv-char-skin-bronze);
-}
-.creator-swatch[data-swatch-kind='skin'][data-swatch-value='umber'] {
-  background: var(--pv-char-skin-umber);
-}
-.creator-swatch[data-swatch-kind='skin'][data-swatch-value='ebony'] {
-  background: var(--pv-char-skin-ebony);
-}
-
-.creator-swatch[data-swatch-kind='hair'][data-swatch-value='obsidian'] {
-  background: var(--pv-char-hair-obsidian);
-}
-.creator-swatch[data-swatch-kind='hair'][data-swatch-value='chestnut'] {
-  background: var(--pv-char-hair-chestnut);
-}
-.creator-swatch[data-swatch-kind='hair'][data-swatch-value='copper'] {
-  background: var(--pv-char-hair-copper);
-}
-.creator-swatch[data-swatch-kind='hair'][data-swatch-value='wheat'] {
-  background: var(--pv-char-hair-wheat);
-}
-.creator-swatch[data-swatch-kind='hair'][data-swatch-value='ash'] {
-  background: var(--pv-char-hair-ash);
-}
-.creator-swatch[data-swatch-kind='hair'][data-swatch-value='indigo'] {
-  background: var(--pv-char-hair-indigo);
-}
-
-.creator-swatch[data-swatch-kind='outfit'][data-swatch-value='forest'] {
-  background: var(--pv-char-outfit-forest);
-}
-.creator-swatch[data-swatch-kind='outfit'][data-swatch-value='slate'] {
-  background: var(--pv-char-outfit-slate);
-}
-.creator-swatch[data-swatch-kind='outfit'][data-swatch-value='crimson'] {
-  background: var(--pv-char-outfit-crimson);
-}
-.creator-swatch[data-swatch-kind='outfit'][data-swatch-value='ochre'] {
-  background: var(--pv-char-outfit-ochre);
-}
-.creator-swatch[data-swatch-kind='outfit'][data-swatch-value='cobalt'] {
-  background: var(--pv-char-outfit-cobalt);
-}
-.creator-swatch[data-swatch-kind='outfit'][data-swatch-value='linen'] {
-  background: var(--pv-char-outfit-linen);
 }
 
 .creator-origins {
@@ -235,27 +168,31 @@
   gap: var(--pv-space-2);
 }
 
+.creator-model-card,
 .creator-origin-card {
-  display: grid;
-  gap: var(--pv-space-1);
   text-align: start;
   align-content: start;
-  padding: var(--pv-space-3);
-  border-radius: var(--pv-radius-sm);
-  border: 1px solid var(--pv-border-subtle);
-  background: var(--pv-surface-solid);
   color: var(--pv-ink-primary);
   cursor: pointer;
   transition: border-color var(--pv-motion-fast-ms) ease;
 }
 
+.creator-model-card.is-selected,
 .creator-origin-card.is-selected {
   border-color: var(--pv-border-gold);
   background: var(--pv-surface-elevated);
 }
 
+.creator-model-card__title,
 .creator-origin-card__title {
   font-size: 0.9375rem;
+}
+
+.creator-model-card__sub,
+.creator-origin-card__desc,
+.creator-ref-item span {
+  font-size: 0.8rem;
+  color: var(--pv-ink-muted);
 }
 
 .creator-origin-card__region {
@@ -264,12 +201,8 @@
   color: var(--pv-sapphire);
 }
 
-.creator-origin-card__desc {
-  font-size: 0.8125rem;
-  color: var(--pv-ink-muted);
-}
-
-.creator-pool-bar {
+.creator-pool-bar,
+.creator-ref-head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -282,18 +215,13 @@
   color: var(--pv-ink-primary);
 }
 
-.creator-presets {
+.creator-presets,
+.creator-ref-tabs,
+.creator-ref-pills,
+.creator-actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--pv-space-2);
-}
-
-.creator-attr-list {
-  display: grid;
-  gap: var(--pv-space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
 }
 
 .creator-attr-row {
@@ -356,6 +284,25 @@
   color: var(--pv-ink-muted);
 }
 
+.creator-ref-grid {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+.creator-ref-item strong {
+  font-size: 0.875rem;
+  color: var(--pv-ink-primary);
+}
+
+.creator-mini-pill {
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-surface-solid);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pv-ink-primary);
+}
+
 .creator-feedback {
   margin: 0;
   padding: var(--pv-space-2) var(--pv-space-3);
@@ -376,12 +323,6 @@
   color: var(--pv-hud-ok-ink);
 }
 
-.creator-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--pv-space-2);
-}
-
 .creator-actions .pv-btn:disabled {
   opacity: 1;
   background: var(--pv-surface-solid);
@@ -390,6 +331,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .creator-model-card,
   .creator-origin-card {
     transition: none;
   }

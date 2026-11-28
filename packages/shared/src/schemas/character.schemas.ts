@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import {
+  CHARACTER_BODY_MODELS,
   CHARACTER_HAIR_COLORS,
   CHARACTER_HAIR_STYLES,
   CHARACTER_INITIAL_ATTRIBUTE_POOL,
@@ -37,11 +38,12 @@ export const CharacterPresenceModeSchema = z.enum(CHARACTER_PRESENCE_MODES);
 
 export const CharacterAppearanceSchema = z
   .object({
-    skinTone: z.enum(CHARACTER_SKIN_TONES),
-    hairStyle: z.enum(CHARACTER_HAIR_STYLES),
-    hairColor: z.enum(CHARACTER_HAIR_COLORS),
-    outfitStyle: z.enum(CHARACTER_OUTFIT_STYLES),
-    outfitColor: z.enum(CHARACTER_OUTFIT_COLORS),
+    bodyModel: z.enum(CHARACTER_BODY_MODELS).default('male'),
+    skinTone: z.enum(CHARACTER_SKIN_TONES).default('ochre'),
+    hairStyle: z.enum(CHARACTER_HAIR_STYLES).default('short'),
+    hairColor: z.enum(CHARACTER_HAIR_COLORS).default('obsidian'),
+    outfitStyle: z.enum(CHARACTER_OUTFIT_STYLES).default('tunic'),
+    outfitColor: z.enum(CHARACTER_OUTFIT_COLORS).default('forest'),
   })
   .strict();
 

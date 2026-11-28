@@ -2,73 +2,23 @@ import {
   type CharacterAppearance,
   type CharacterAttributeAllocation,
   type CharacterAttributeKey,
-  type CharacterHairColor,
-  type CharacterHairStyle,
   type CharacterOriginKey,
-  type CharacterOutfitColor,
-  type CharacterOutfitStyle,
   type CharacterPresenceMode,
   type CharacterSheet,
   CharacterSheetSchema,
-  type CharacterSkinTone,
+  type CharacterTrainingState,
   type CreateCharacterInput,
   CreateCharacterSchema,
   buildCharacterVitalsState,
   buildInitialAttributes,
   computeCharacterDerivedVitals,
+  createInitialTrainingState,
   getCharacterOriginByKey,
   sanitizeCharacterDisplayName,
 } from '@pokeverse/shared';
 
-export interface LabeledOption<T extends string> {
-  readonly value: T;
-  readonly label: string;
-}
-
-export const SKIN_TONE_OPTIONS: readonly LabeledOption<CharacterSkinTone>[] = [
-  { value: 'porcelain', label: 'Claro' },
-  { value: 'sand', label: 'Areia' },
-  { value: 'ochre', label: 'Ocre' },
-  { value: 'bronze', label: 'Bronze' },
-  { value: 'umber', label: 'Terra' },
-  { value: 'ebony', label: 'Ébano' },
-] as const;
-
-export const HAIR_STYLE_OPTIONS: readonly LabeledOption<CharacterHairStyle>[] = [
-  { value: 'short', label: 'Curto' },
-  { value: 'long', label: 'Longo' },
-  { value: 'braid', label: 'Trança' },
-  { value: 'curly', label: 'Cacheado' },
-  { value: 'hooded', label: 'Capuz' },
-  { value: 'shaved', label: 'Raspado' },
-] as const;
-
-export const HAIR_COLOR_OPTIONS: readonly LabeledOption<CharacterHairColor>[] = [
-  { value: 'obsidian', label: 'Obsidiana' },
-  { value: 'chestnut', label: 'Castanho' },
-  { value: 'copper', label: 'Cobre' },
-  { value: 'wheat', label: 'Trigo' },
-  { value: 'ash', label: 'Cinza' },
-  { value: 'indigo', label: 'Índigo' },
-] as const;
-
-export const OUTFIT_STYLE_OPTIONS: readonly LabeledOption<CharacterOutfitStyle>[] = [
-  { value: 'tunic', label: 'Túnica' },
-  { value: 'cloak', label: 'Manto' },
-  { value: 'apron', label: 'Avental' },
-  { value: 'vest', label: 'Colete' },
-] as const;
-
-export const OUTFIT_COLOR_OPTIONS: readonly LabeledOption<CharacterOutfitColor>[] = [
-  { value: 'forest', label: 'Floresta' },
-  { value: 'slate', label: 'Ardósia' },
-  { value: 'crimson', label: 'Carmesim' },
-  { value: 'ochre', label: 'Mostarda' },
-  { value: 'cobalt', label: 'Cobalto' },
-  { value: 'linen', label: 'Linho' },
-] as const;
-
 export const DEFAULT_CHARACTER_APPEARANCE: CharacterAppearance = {
+  bodyModel: 'male',
   skinTone: 'ochre',
   hairStyle: 'short',
   hairColor: 'obsidian',
@@ -165,4 +115,39 @@ export function validateCharacterDraftPayload(params: {
     };
   }
   return { valid: true, payload: result.data };
+}
+
+export function extractTopTrainedSkills(
+  training: CharacterTrainingState,
+  skillLabels: ReadonlyMap<string, string>,
+): readonly string[] {
+  const ranked = Object.entries(training.skills)
+    .filter(([, entry]) => entry.rank > 0 || entry.xp > 0)
+    .sort(([, a], [, b]) => b.rank * 1000 + b.xp - (a.rank * 1000 + a.xp))
+    .slice(0, 3)
+    .map(([id, entry]) => `${skillLabels.get(id) ?? id} (${entry.rank})`);
+  return ranked.length > 0 ? ranked : ['Viajante Recém-Chegado (0)'];
+}
+
+export function resolveSheetTrainingState(
+  sheet: CharacterSheet | null,
+  trainingMap: Readonly<Record<string, CharacterTrainingState>>,
+): CharacterTrainingState | null {
+  if (!sheet) return null;
+  return (
+    trainingMap[sheet.id] ??
+    createInitialTrainingState(sheet.attributes, sheet.totalSkillMilestones)
+  );
+}
+
+export function computeTrainingEffectiveVitals(
+  sheet: CharacterSheet | null,
+  training: CharacterTrainingState | null,
+) {
+  if (!sheet || !training) return null;
+  return buildCharacterVitalsState({
+    originKey: sheet.originKey,
+    derived: computeCharacterDerivedVitals(1, training.attributes),
+    current: sheet.vitals,
+  });
 }

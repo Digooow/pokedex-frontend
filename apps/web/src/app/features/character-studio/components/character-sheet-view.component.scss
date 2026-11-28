@@ -35,8 +35,14 @@
 
 @media (min-width: 56rem) {
   .sheet-hero {
-    grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+    grid-template-columns: minmax(19rem, 23rem) minmax(0, 1fr);
   }
+}
+
+.sheet-hero__right {
+  display: grid;
+  gap: var(--pv-space-3);
+  min-inline-size: 0;
 }
 
 .sheet-meta-grid {
@@ -207,6 +213,30 @@
   color: var(--pv-ink-muted);
 }
 
+.attr-train-bar {
+  display: grid;
+  gap: 0.2rem;
+  margin-block-start: 0.25rem;
+}
+
+.attr-train-track {
+  block-size: 0.35rem;
+  border-radius: var(--pv-radius-pill);
+  background: var(--pv-vital-track-bg);
+  overflow: hidden;
+}
+
+.attr-train-fill {
+  block-size: 100%;
+  background: var(--pv-rpg-attr-xp);
+  transition: inline-size var(--pv-motion-fast-ms) ease;
+}
+
+.attr-train-label {
+  font-size: 0.68rem;
+  color: var(--pv-ink-muted);
+}
+
 .sheet-attr-row__right {
   display: inline-flex;
   align-items: center;
@@ -259,7 +289,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vital-fill {
+  .vital-fill,
+  .attr-train-fill {
     transition: none;
   }
 }

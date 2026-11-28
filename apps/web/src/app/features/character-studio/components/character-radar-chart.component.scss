@@ -1,0 +1,59 @@
+.radar-card {
+  display: grid;
+  gap: var(--pv-space-1);
+  margin: 0;
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-md);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-surface-solid);
+}
+
+.radar-card__title {
+  font-size: 0.8125rem;
+  font-weight: 800;
+  color: var(--pv-ink-primary);
+  text-align: center;
+}
+
+.radar-card__svg {
+  inline-size: min(16.25rem, 100%);
+  block-size: auto;
+  margin-inline: auto;
+}
+
+.radar-ring {
+  fill: none;
+  stroke: var(--pv-rpg-radar-grid);
+  stroke-width: 1;
+}
+
+.radar-axis {
+  stroke: var(--pv-rpg-radar-axis);
+  stroke-width: 1;
+}
+
+.radar-fill {
+  fill: var(--pv-rpg-radar-fill);
+  stroke: var(--pv-rpg-radar-stroke);
+  stroke-width: 2;
+  transition: all var(--pv-motion-fast-ms) ease;
+}
+
+.radar-dot {
+  fill: var(--pv-rpg-brass);
+  stroke: var(--pv-surface-solid);
+  stroke-width: 1.5;
+}
+
+.radar-label {
+  fill: var(--pv-ink-primary);
+  font-family: var(--pv-font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .radar-fill {
+    transition: none;
+  }
+}

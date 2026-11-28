@@ -523,6 +523,15 @@
   --pv-vital-hunger: oklch(78% 0.15 78);
   --pv-vital-thirst: oklch(74% 0.14 205);
   --pv-vital-fatigue: oklch(68% 0.13 305);
+  --pv-rpg-brass: oklch(78% 0.14 82);
+  --pv-rpg-radar-grid: oklch(54% 0.05 230 / 0.35);
+  --pv-rpg-radar-axis: oklch(62% 0.06 225 / 0.45);
+  --pv-rpg-radar-fill: oklch(72% 0.16 205 / 0.28);
+  --pv-rpg-radar-stroke: oklch(82% 0.14 202);
+  --pv-rpg-skill-xp: oklch(74% 0.15 208);
+  --pv-rpg-attr-xp: oklch(80% 0.16 84);
+  --pv-rpg-bazaar-fee: oklch(78% 0.14 68);
+  --pv-rpg-bazaar-net: oklch(74% 0.17 152);
 }
 
 @media (forced-colors: active) {
@@ -679,5 +688,14 @@
     --pv-vital-hunger: Highlight;
     --pv-vital-thirst: Highlight;
     --pv-vital-fatigue: Highlight;
+    --pv-rpg-brass: Highlight;
+    --pv-rpg-radar-grid: CanvasText;
+    --pv-rpg-radar-axis: CanvasText;
+    --pv-rpg-radar-fill: Highlight;
+    --pv-rpg-radar-stroke: Highlight;
+    --pv-rpg-skill-xp: Highlight;
+    --pv-rpg-attr-xp: Highlight;
+    --pv-rpg-bazaar-fee: Highlight;
+    --pv-rpg-bazaar-net: Highlight;
   }
 }

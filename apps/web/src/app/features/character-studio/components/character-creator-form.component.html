@@ -1,14 +1,19 @@
 <div class="creator-grid">
-  <aside class="creator-aside" aria-label="Prévia do personagem">
+  <aside class="creator-aside" aria-label="Holograma 3D e radar de atributos">
     <pv-character-avatar-preview
       [appearance]="store.draftAppearance()"
       [displayName]="store.draftName()"
       [originKey]="store.draftOriginKey()"
-      [level]="1"
+      archetypeLabel="Viajante Livre"
     />
 
-    <section class="pv-glass-card creator-preview-card" aria-label="Atributos derivados ao vivo">
-      <h2 class="creator-card-title">Projeção Inicial (Nível 1)</h2>
+    <pv-character-radar-chart
+      [attributes]="store.draftAttributes()"
+      caption="Radar dos 7 Atributos"
+    />
+
+    <section class="pv-glass-card creator-preview-card" aria-label="HUD vital inicial">
+      <h2 class="creator-card-title">HUD Vital Inicial (Sem Nível)</h2>
       <dl class="creator-metrics">
         <div class="creator-metric">
           <dt>HP Máximo</dt>
@@ -54,16 +59,16 @@
   </aside>
 
   <form class="pv-glass-card creator-form" (submit)="onSubmit($event)" novalidate>
-    <div class="creator-classless-banner" role="note">
-      <strong>Sistema 100% Livre (Sem Classes):</strong>
+    <div class="creator-classless-banner">
+      <strong>Sistema 100% Sem Classes &amp; Sem Nível Geral:</strong>
       <span>
-        Você nunca fica preso a "Guerreiro" ou "Mago". Qualquer personagem pode treinar qualquer
-        arma, magia ou ofício pelo uso real.
+        Todos começam com potencial aberto. Seus atributos e habilidades evoluem organicamente
+        conforme você treina e pratica no mundo.
       </span>
     </div>
 
     <fieldset class="creator-fieldset">
-      <legend class="creator-legend">1. Identidade</legend>
+      <legend class="creator-legend">1. Identidade &amp; Modelo 3D</legend>
       <div class="creator-field">
         <label for="char-name" class="creator-label">
           Nome único do personagem ({{ minNameLength }}–{{ maxNameLength }} caracteres)
@@ -80,104 +85,20 @@
           (input)="onNameInput($event)"
         />
       </div>
-    </fieldset>
-
-    <fieldset class="creator-fieldset">
-      <legend class="creator-legend">2. Aparência Modular</legend>
 
       <fieldset class="creator-appearance-group">
-        <legend class="creator-sublabel">Tom de pele</legend>
-        <div class="creator-chips">
-          @for (opt of skinOptions; track opt.value) {
+        <legend class="creator-sublabel">Modelo Base no Holograma (2 Modelos)</legend>
+        <div class="creator-models">
+          @for (model of bodyModels; track model.key) {
             <button
               type="button"
-              class="pv-chip creator-chip"
-              [attr.aria-pressed]="store.draftAppearance().skinTone === opt.value"
-              (click)="onSkinSelect(opt.value)"
+              class="creator-model-card"
+              [class.is-selected]="(store.draftAppearance().bodyModel ?? 'male') === model.key"
+              [attr.aria-pressed]="(store.draftAppearance().bodyModel ?? 'male') === model.key"
+              (click)="onBodyModelSelect(model.key)"
             >
-              <span
-                class="creator-swatch"
-                [attr.data-swatch-kind]="'skin'"
-                [attr.data-swatch-value]="opt.value"
-                aria-hidden="true"
-              ></span>
-              <span>{{ opt.label }}</span>
-            </button>
-          }
-        </div>
-      </fieldset>
-
-      <fieldset class="creator-appearance-group">
-        <legend class="creator-sublabel">Cabelo</legend>
-        <div class="creator-chips">
-          @for (opt of hairStyleOptions; track opt.value) {
-            <button
-              type="button"
-              class="pv-chip"
-              [attr.aria-pressed]="store.draftAppearance().hairStyle === opt.value"
-              (click)="onHairStyleSelect(opt.value)"
-            >
-              {{ opt.label }}
-            </button>
-          }
-        </div>
-      </fieldset>
-
-      <fieldset class="creator-appearance-group">
-        <legend class="creator-sublabel">Cor do cabelo</legend>
-        <div class="creator-chips">
-          @for (opt of hairColorOptions; track opt.value) {
-            <button
-              type="button"
-              class="pv-chip creator-chip"
-              [attr.aria-pressed]="store.draftAppearance().hairColor === opt.value"
-              (click)="onHairColorSelect(opt.value)"
-            >
-              <span
-                class="creator-swatch"
-                [attr.data-swatch-kind]="'hair'"
-                [attr.data-swatch-value]="opt.value"
-                aria-hidden="true"
-              ></span>
-              <span>{{ opt.label }}</span>
-            </button>
-          }
-        </div>
-      </fieldset>
-
-      <fieldset class="creator-appearance-group">
-        <legend class="creator-sublabel">Vestimenta</legend>
-        <div class="creator-chips">
-          @for (opt of outfitStyleOptions; track opt.value) {
-            <button
-              type="button"
-              class="pv-chip"
-              [attr.aria-pressed]="store.draftAppearance().outfitStyle === opt.value"
-              (click)="onOutfitStyleSelect(opt.value)"
-            >
-              {{ opt.label }}
-            </button>
-          }
-        </div>
-      </fieldset>
-
-      <fieldset class="creator-appearance-group">
-        <legend class="creator-sublabel">Cor da vestimenta</legend>
-        <div class="creator-chips">
-          @for (opt of outfitColorOptions; track opt.value) {
-            <button
-              type="button"
-              class="pv-chip creator-chip"
-              [attr.aria-pressed]="store.draftAppearance().outfitColor === opt.value"
-              (click)="onOutfitColorSelect(opt.value)"
-            >
-              <span
-                class="creator-swatch"
-                [attr.data-swatch-kind]="'outfit'"
-                [attr.data-swatch-value]="opt.value"
-                aria-hidden="true"
-              ></span>
-              <span>{{ opt.label }}</span>
+              <strong class="creator-model-card__title">{{ model.label }}</strong>
+              <span class="creator-model-card__sub">{{ model.subtitle }}</span>
             </button>
           }
         </div>
@@ -185,7 +106,7 @@
     </fieldset>
 
     <fieldset class="creator-fieldset">
-      <legend class="creator-legend">3. Origem de Largada (Cosmética — Sem Bônus Oculto)</legend>
+      <legend class="creator-legend">2. Origem de Largada (Cosmética — Sem Bônus Oculto)</legend>
       <div class="creator-origins">
         @for (origin of origins; track origin.key) {
           <button
@@ -205,7 +126,7 @@
 
     <fieldset class="creator-fieldset">
       <legend class="creator-legend">
-        4. Distribuição dos {{ initialPool }} Pontos Iniciais (Base {{ baseAttributeValue }})
+        3. Os 7 Atributos Iniciais ({{ initialPool }} Pontos · Base {{ baseAttributeValue }})
       </legend>
 
       <div class="creator-pool-bar">
@@ -268,6 +189,73 @@
       </ul>
     </fieldset>
 
+    <section class="creator-fieldset" aria-label="Mapa de classes livres, profissões e skills">
+      <div class="creator-ref-head">
+        <h2 class="creator-legend">4. Caminhos Livres, Profissões &amp; Árvore de Skills</h2>
+        <nav class="creator-ref-tabs" aria-label="Categorias de evolução">
+          <button
+            type="button"
+            class="pv-chip"
+            [attr.aria-pressed]="activeRefTab() === 'archetypes'"
+            (click)="setRefTab('archetypes')"
+          >
+            Classes Livres ({{ archetypes.length }})
+          </button>
+          <button
+            type="button"
+            class="pv-chip"
+            [attr.aria-pressed]="activeRefTab() === 'professions'"
+            (click)="setRefTab('professions')"
+          >
+            Profissões (15)
+          </button>
+          <button
+            type="button"
+            class="pv-chip"
+            [attr.aria-pressed]="activeRefTab() === 'skills'"
+            (click)="setRefTab('skills')"
+          >
+            Skills ({{ skillPreviewNodes.length }})
+          </button>
+        </nav>
+      </div>
+
+      @switch (activeRefTab()) {
+        @case ('archetypes') {
+          <ul class="creator-ref-grid">
+            @for (arch of archetypes; track arch.key) {
+              <li class="creator-ref-item">
+                <strong>{{ arch.label }}</strong>
+                <span>{{ arch.roleSummary }}</span>
+              </li>
+            }
+          </ul>
+        }
+        @case ('professions') {
+          <ul class="creator-ref-grid">
+            @for (group of professionGroups; track group.key) {
+              <li class="creator-ref-item">
+                <strong>{{ group.label }}</strong>
+                <span>{{ group.summary }}</span>
+                <div class="creator-ref-pills">
+                  @for (id of group.skillIds; track id) {
+                    <span class="creator-mini-pill">{{ skillLabel(id) }}</span>
+                  }
+                </div>
+              </li>
+            }
+          </ul>
+        }
+        @case ('skills') {
+          <div class="creator-ref-pills">
+            @for (node of skillPreviewNodes; track node.id) {
+              <span class="creator-mini-pill">{{ node.label }}</span>
+            }
+          </div>
+        }
+      }
+    </section>
+
     @if (store.mutationState(); as mut) {
       @if (mut.status === 'error') {
         <p class="creator-feedback creator-feedback--error" role="alert">{{ mut.message }}</p>
@@ -305,7 +293,7 @@
           [disabled]="store.remainingInitialPoints() !== 0"
           (click)="store.openVisitorPreview()"
         >
-          Visualizar Ficha em Prévia
+          Abrir Ficha &amp; Treinar em Prévia
         </button>
       }
     </div>

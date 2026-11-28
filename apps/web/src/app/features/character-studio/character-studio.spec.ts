@@ -12,6 +12,7 @@ import {
 import { AuthStore } from '../../core/stores/auth.store';
 import { createTrainerFixture } from '../../testing/test-fixtures.spec-helper';
 import { CharacterStudioPageComponent } from './character-studio-page.component';
+import { CharacterBazaarStore } from './services/character-bazaar.store';
 import { CharacterStudioStore } from './services/character-studio.store';
 
 function createCharacterSheetFixture(overrides?: Partial<CharacterSheet>): CharacterSheet {
@@ -20,7 +21,7 @@ function createCharacterSheetFixture(overrides?: Partial<CharacterSheet>): Chara
     throw new Error('Missing default balanced preset.');
   }
   const attrs = buildInitialAttributes(balanced.allocation);
-  const vitals = computeCharacterDerivedVitals(2, attrs);
+  const vitals = computeCharacterDerivedVitals(1, attrs);
   const origin = getCharacterOriginByKey('settler');
   const now = new Date().toISOString();
 
@@ -33,13 +34,14 @@ function createCharacterSheetFixture(overrides?: Partial<CharacterSheet>): Chara
     startingRegionName: origin.startingRegionName,
     classlessMode: true,
     appearance: {
+      bodyModel: 'male',
       skinTone: 'ochre',
       hairStyle: 'short',
       hairColor: 'obsidian',
       outfitStyle: 'tunic',
       outfitColor: 'forest',
     },
-    level: 2,
+    level: 1,
     totalSkillMilestones: 12,
     availableAttributePoints: 2,
     hexQ: origin.startingHex.q,
@@ -82,7 +84,7 @@ describe('CharacterStudioPageComponent', () => {
     }).compileComponents();
   });
 
-  it('allows visitor to customize appearance/attributes, preview sheet, and preserves draft on login prompt', () => {
+  it('supports 2 body models, visitor preview with level-less skill training, and Bazaar commission simulator', () => {
     const fixture = TestBed.createComponent(CharacterStudioPageComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -90,18 +92,38 @@ describe('CharacterStudioPageComponent', () => {
     expect(compiled.querySelector('.creator-classless-banner')?.textContent).toContain(
       'Sem Classes',
     );
+    expect(compiled.querySelectorAll('.creator-model-card')).toHaveLength(2);
+    expect(compiled.querySelector('pv-character-radar-chart')).not.toBeNull();
 
     const store = TestBed.inject(CharacterStudioStore);
     store.setDraftName('Lyra Brisa');
     store.setDraftOrigin('harbor');
-    store.updateAppearance({ hairStyle: 'braid', outfitColor: 'cobalt' });
+    store.setDraftBodyModel('female');
     store.openVisitorPreview();
     fixture.detectChanges();
 
-    expect(compiled.querySelector('.sheet-preview-banner')?.textContent).toContain(
-      'Prévia de Visitante',
-    );
+    expect(compiled.querySelector('.sheet-preview-banner')?.textContent).toContain('Prévia');
     expect(compiled.querySelector('.char-portrait__name')?.textContent).toContain('Lyra Brisa');
+    expect(compiled.querySelector('.char-portrait__origin')?.textContent).toContain('Aventureira');
+
+    const initialPhysique = store.activeEffectiveAttributes().physique;
+    for (let i = 0; i < 15; i += 1) {
+      store.trainSkill('mastery_excalibur');
+    }
+    fixture.detectChanges();
+
+    expect(store.activeEffectiveAttributes().physique).toBeGreaterThan(initialPhysique);
+    expect(store.activeEmergentArchetype().key).toBe('duelist');
+    expect(compiled.querySelector('.trainer-feed')?.textContent).toContain('Excalibur');
+
+    store.openBazaarTab();
+    fixture.detectChanges();
+    expect(compiled.querySelectorAll('.bazaar-card').length).toBeGreaterThanOrEqual(4);
+
+    const bazaarStore = TestBed.inject(CharacterBazaarStore);
+    bazaarStore.listActiveCharacter(10_000);
+    fixture.detectChanges();
+    expect(compiled.querySelector('.bazaar-feedback')?.textContent).toContain('taxa 8% = 800');
 
     const auth = TestBed.inject(AuthStore);
     store.submitCreate();

@@ -5,6 +5,7 @@ import {
   type CharacterAttributeKey,
   type CharacterSheet,
   ZERO_ATTRIBUTE_ALLOCATION,
+  createInitialTrainingState,
   sumAttributeAllocation,
 } from '@pokeverse/shared';
 import { AuthStore } from '../../../core/stores/auth.store';
@@ -14,6 +15,8 @@ import {
   adjustAllocationPoint,
 } from '../services/character-studio.constants';
 import { CharacterAvatarPreviewComponent } from './character-avatar-preview.component';
+import { CharacterRadarChartComponent } from './character-radar-chart.component';
+import { CharacterSkillTrainerComponent } from './character-skill-trainer.component';
 
 interface VitalBarSpec {
   readonly key: string;
@@ -25,15 +28,17 @@ interface VitalBarSpec {
 }
 
 function toPercent(current: number, max: number): number {
-  if (max <= 0) {
-    return 0;
-  }
+  if (max <= 0) return 0;
   return Math.max(0, Math.min(100, Math.round((current / max) * 100)));
 }
 
 @Component({
   selector: 'pv-character-sheet-view',
-  imports: [CharacterAvatarPreviewComponent],
+  imports: [
+    CharacterAvatarPreviewComponent,
+    CharacterRadarChartComponent,
+    CharacterSkillTrainerComponent,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './character-sheet-view.component.html',
   styleUrl: './character-sheet-view.component.scss',
@@ -50,6 +55,18 @@ export class CharacterSheetViewComponent {
     ...ZERO_ATTRIBUTE_ALLOCATION,
   });
 
+  readonly trainingState = computed(
+    () =>
+      this.store.activeTrainingState() ??
+      createInitialTrainingState(
+        this.character().attributes,
+        this.character().totalSkillMilestones,
+      ),
+  );
+  readonly effectiveAttributes = computed(() => this.trainingState().attributes);
+  readonly effectiveVitals = computed(
+    () => this.store.activeEffectiveVitals() ?? this.character().vitals,
+  );
   readonly pendingTotal = computed(() => sumAttributeAllocation(this.pendingAllocations()));
   readonly remainingLevelPoints = computed(() =>
     Math.max(0, this.character().availableAttributePoints - this.pendingTotal()),
@@ -57,58 +74,29 @@ export class CharacterSheetViewComponent {
   readonly presenceLabel = computed(() => PRESENCE_MODE_LABELS[this.character().presenceMode]);
 
   readonly vitalBars = computed<readonly VitalBarSpec[]>(() => {
-    const v = this.character().vitals;
-    return [
-      {
-        key: 'hp',
-        label: 'Vida (HP)',
-        current: v.hpCurrent,
-        max: v.hpMax,
-        percent: toPercent(v.hpCurrent, v.hpMax),
-        tone: 'hp',
-      },
-      {
-        key: 'stamina',
-        label: 'Fôlego',
-        current: v.staminaCurrent,
-        max: v.staminaMax,
-        percent: toPercent(v.staminaCurrent, v.staminaMax),
-        tone: 'stamina',
-      },
-      {
-        key: 'mana',
-        label: 'Mana',
-        current: v.manaCurrent,
-        max: v.manaMax,
-        percent: toPercent(v.manaCurrent, v.manaMax),
-        tone: 'mana',
-      },
-      {
-        key: 'hunger',
-        label: 'Saciedade',
-        current: v.hungerCurrent,
-        max: v.hungerMax,
-        percent: toPercent(v.hungerCurrent, v.hungerMax),
-        tone: 'hunger',
-      },
-      {
-        key: 'thirst',
-        label: 'Hidratação',
-        current: v.thirstCurrent,
-        max: v.thirstMax,
-        percent: toPercent(v.thirstCurrent, v.thirstMax),
-        tone: 'thirst',
-      },
-      {
-        key: 'fatigue',
-        label: 'Fadiga',
-        current: v.fatigueCurrent,
-        max: v.fatigueMax,
-        percent: toPercent(v.fatigueCurrent, v.fatigueMax),
-        tone: 'fatigue',
-      },
+    const v = this.effectiveVitals();
+    const specs: ReadonlyArray<readonly [string, string, number, number, VitalBarSpec['tone']]> = [
+      ['hp', 'Vida (HP)', v.hpCurrent, v.hpMax, 'hp'],
+      ['stamina', 'Fôlego', v.staminaCurrent, v.staminaMax, 'stamina'],
+      ['mana', 'Mana', v.manaCurrent, v.manaMax, 'mana'],
+      ['hunger', 'Saciedade', v.hungerCurrent, v.hungerMax, 'hunger'],
+      ['thirst', 'Hidratação', v.thirstCurrent, v.thirstMax, 'thirst'],
+      ['fatigue', 'Fadiga', v.fatigueCurrent, v.fatigueMax, 'fatigue'],
     ];
+    return specs.map(([key, label, current, max, tone]) => ({
+      key,
+      label,
+      current,
+      max,
+      percent: toPercent(current, max),
+      tone,
+    }));
   });
+
+  attrBarPercent(key: CharacterAttributeKey): number {
+    const bar = this.trainingState().attributeBars[key];
+    return Math.min(100, Math.round((bar.xp / Math.max(1, bar.xpToNext)) * 100));
+  }
 
   stepPendingPoint(key: CharacterAttributeKey, delta: number): void {
     this.pendingAllocations.update((current) =>
@@ -127,9 +115,7 @@ export class CharacterSheetViewComponent {
 
   confirmAllocation(): void {
     const allocations = this.pendingAllocations();
-    if (sumAttributeAllocation(allocations) <= 0 || this.store.isSubmitting()) {
-      return;
-    }
+    if (sumAttributeAllocation(allocations) <= 0 || this.store.isSubmitting()) return;
     this.store.allocatePoints(this.character().id, allocations);
     this.resetPending();
   }

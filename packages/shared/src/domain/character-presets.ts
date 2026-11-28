@@ -30,74 +30,60 @@ export interface CharacterAttributeMeta {
   readonly mechanicalImpact: string;
 }
 
-type CharacterAttributeTuple = readonly [
-  key: CharacterAttributeKey,
-  label: string,
-  shortLabel: string,
-  subtitle: string,
-  mechanicalImpact: string,
-];
-
-const CHARACTER_ATTRIBUTE_TUPLES: readonly CharacterAttributeTuple[] = [
-  [
-    'physique',
-    'Físico',
-    'FIS',
-    'Força & Porte',
-    'Dano corpo a corpo, limite de carga (kg) e esforço bruto.',
-  ],
-  [
-    'dexterity',
-    'Destreza',
-    'DES',
-    'Agilidade & Coordenação',
-    'Velocidade de ataque, esquiva base e precisão manual.',
-  ],
-  [
-    'stamina',
-    'Fôlego',
-    'FOL',
-    'Vitalidade & Vigor',
-    'HP máximo, reserva de fôlego, marchas e trabalho contínuo.',
-  ],
-  [
-    'magic',
-    'Magia',
-    'MAG',
-    'Intelecto & Canalização',
-    'Reserva de mana, potência arcana e sustentação de encantos.',
-  ],
-  [
-    'perception',
-    'Percepção',
-    'PER',
-    'Sentidos & Leitura',
-    'Raio de detecção, chance de crítico e leitura de rastros.',
-  ],
-  [
-    'willpower',
-    'Vontade',
-    'VON',
-    'Estabilidade & Espírito',
-    'Resistência a maldições, foco sob dano e força de bênçãos.',
-  ],
-  [
-    'handling',
-    'Manejo',
-    'MAN',
-    'Liderança & Empatia',
-    'Limite de auxiliares/pets, adestramento e gestão de caravana.',
-  ],
+const CHARACTER_ATTRIBUTE_RAW: readonly string[] = [
+  'physique|Físico|FIS|Força & Porte|Dano corpo a corpo, limite de carga (kg) e esforço bruto.',
+  'dexterity|Destreza|DES|Agilidade & Coordenação|Velocidade de ataque, esquiva base e precisão manual.',
+  'stamina|Fôlego|FOL|Vitalidade & Vigor|HP máximo, reserva de fôlego, marchas e trabalho contínuo.',
+  'magic|Magia|MAG|Intelecto & Canalização|Reserva de mana, potência arcana e sustentação de encantos.',
+  'perception|Percepção|PER|Sentidos & Leitura|Raio de detecção, chance de crítico e leitura de rastros.',
+  'willpower|Vontade|VON|Estabilidade & Espírito|Resistência a maldições, foco sob dano e força de bênçãos.',
+  'handling|Manejo|MAN|Liderança & Empatia|Limite de auxiliares/pets, adestramento e gestão de caravana.',
 ];
 
 export const CHARACTER_ATTRIBUTES_META: readonly CharacterAttributeMeta[] =
-  CHARACTER_ATTRIBUTE_TUPLES.map(([key, label, shortLabel, subtitle, mechanicalImpact]) => ({
-    key,
-    label,
-    shortLabel,
-    subtitle,
-    mechanicalImpact,
-  }));
+  CHARACTER_ATTRIBUTE_RAW.map((raw) => {
+    const [key, label, shortLabel, subtitle, mechanicalImpact] = raw.split('|') as [
+      CharacterAttributeKey,
+      string,
+      string,
+      string,
+      string,
+    ];
+    return { key, label, shortLabel, subtitle, mechanicalImpact };
+  });
+
+export const CHARACTER_BODY_MODELS = ['male', 'female'] as const;
+export type CharacterBodyModel = (typeof CHARACTER_BODY_MODELS)[number];
+
+export interface CharacterBodyModelMeta {
+  readonly key: CharacterBodyModel;
+  readonly label: string;
+  readonly subtitle: string;
+  readonly modelUrl: string;
+}
+
+const MALE_BODY_MODEL: CharacterBodyModelMeta = {
+  key: 'male',
+  label: 'Aventureiro',
+  subtitle: 'Modelo 3D Masculino · Quaternius CC0',
+  modelUrl: '/assets/models/characters/adventurer-male.glb',
+};
+
+const FEMALE_BODY_MODEL: CharacterBodyModelMeta = {
+  key: 'female',
+  label: 'Aventureira',
+  subtitle: 'Modelo 3D Feminino · Quaternius CC0',
+  modelUrl: '/assets/models/characters/adventurer-female.glb',
+};
+
+export const CHARACTER_BODY_MODEL_META: readonly CharacterBodyModelMeta[] = [
+  MALE_BODY_MODEL,
+  FEMALE_BODY_MODEL,
+] as const;
+
+export function getCharacterBodyModelMeta(model: CharacterBodyModel): CharacterBodyModelMeta {
+  return model === 'female' ? FEMALE_BODY_MODEL : MALE_BODY_MODEL;
+}
 
 export const CHARACTER_SKIN_TONES = [
   'porcelain',

@@ -1,0 +1,161 @@
+<section class="bazaar-wrap" aria-label="Bazar de Personagens Veteranos">
+  <header class="pv-glass-card bazaar-hero">
+    <div class="bazaar-hero__copy">
+      <span class="pv-badge">ECONOMIA P2P · ESCROW DE PERSONAGENS</span>
+      <h2 class="bazaar-hero__title">Bazar de Personagens Veteranos</h2>
+      <p class="bazaar-hero__sub">
+        Jogadores que precisam se aposentar podem vender personagens cuidados por anos para outros
+        jogadores com custódia segura e comissão transparente de
+        <strong>{{ commissionPreview().feePercent }}%</strong> da plataforma.
+      </p>
+    </div>
+
+    <div class="bazaar-sell-box">
+      <div class="bazaar-sell-box__field">
+        <label for="bazaar-price-input" class="bazaar-sell-box__label">
+          Anunciar personagem ativo ({{ minPrice }}–{{ maxPrice }} moedas)
+        </label>
+        <input
+          id="bazaar-price-input"
+          type="number"
+          class="bazaar-sell-box__input tabular-nums"
+          [min]="minPrice"
+          [max]="maxPrice"
+          [value]="askingPrice()"
+          (input)="onPriceInput($event)"
+        />
+      </div>
+
+      <dl class="bazaar-fee-grid tabular-nums">
+        <div>
+          <dt>Taxa ({{ commissionPreview().feePercent }}%)</dt>
+          <dd class="bazaar-fee">{{ commissionPreview().platformFeeCoins }} moedas</dd>
+        </div>
+        <div>
+          <dt>Líquido vendedor</dt>
+          <dd class="bazaar-net">{{ commissionPreview().sellerNetCoins }} moedas</dd>
+        </div>
+      </dl>
+
+      <button
+        type="button"
+        class="pv-btn pv-btn--primary"
+        [disabled]="!store.activeSheet()"
+        (click)="onPublishActiveCharacter()"
+      >
+        {{
+          store.activeSheet()
+            ? 'Simular Anúncio de ' + store.activeSheet()?.name
+            : 'Crie ou abra uma ficha para anunciar'
+        }}
+      </button>
+    </div>
+  </header>
+
+  @if (store.feedback(); as msg) {
+    <p class="pv-glass-card bazaar-feedback" aria-live="polite">{{ msg }}</p>
+  }
+
+  <nav class="pv-glass-card bazaar-filters" aria-label="Filtros do bazar">
+    <button
+      type="button"
+      class="pv-chip"
+      [attr.aria-pressed]="activeFilter() === 'all'"
+      (click)="setFilter('all')"
+    >
+      Todos ({{ store.listings().length }})
+    </button>
+    <button
+      type="button"
+      class="pv-chip"
+      [attr.aria-pressed]="activeFilter() === 'male'"
+      (click)="setFilter('male')"
+    >
+      Aventureiro
+    </button>
+    <button
+      type="button"
+      class="pv-chip"
+      [attr.aria-pressed]="activeFilter() === 'female'"
+      (click)="setFilter('female')"
+    >
+      Aventureira
+    </button>
+    <button
+      type="button"
+      class="pv-chip"
+      [attr.aria-pressed]="activeFilter() === 'mine'"
+      (click)="setFilter('mine')"
+    >
+      Meus Anúncios
+    </button>
+  </nav>
+
+  @if (filteredListings().length === 0) {
+    <div class="pv-glass-card bazaar-empty">
+      <p>Nenhum personagem encontrado para este filtro.</p>
+    </div>
+  } @else {
+    <ul class="bazaar-grid">
+      @for (item of filteredListings(); track item.id) {
+        <li class="pv-glass-card bazaar-card">
+          <div class="bazaar-card__head">
+            <div>
+              <span class="pv-badge">
+                {{ item.bodyModel === 'female' ? 'Aventureira' : 'Aventureiro' }} · {{ item.ageLabel }}
+              </span>
+              <h3 class="bazaar-card__name">{{ item.characterName }}</h3>
+              <span class="bazaar-card__arch">
+                {{ item.archetypeLabel }} · {{ item.originLabel }}
+              </span>
+            </div>
+            <div class="bazaar-card__price tabular-nums">
+              <strong>{{ item.askingPriceCoins }} moedas</strong>
+              <small>Comissão: {{ commissionFor(item.askingPriceCoins).platformFeeCoins }}</small>
+            </div>
+          </div>
+
+          <p class="bazaar-card__history">{{ item.historyNote }}</p>
+
+          <div class="bazaar-card__skills">
+            @for (skill of item.topSkills; track skill) {
+              <span class="bazaar-skill-pill">{{ skill }}</span>
+            }
+          </div>
+
+          <dl class="bazaar-attr-mini tabular-nums">
+            @for (meta of attributesMeta; track meta.key) {
+              <div class="bazaar-attr-cell">
+                <dt>{{ meta.shortLabel }}</dt>
+                <dd>{{ item.attributes[meta.key] }}</dd>
+              </div>
+            }
+          </dl>
+
+          <div class="bazaar-card__actions">
+            <span class="bazaar-card__seller">
+              Vendedor: <strong>{{ item.sellerAlias }}</strong> · {{ item.totalMilestones }} marcos
+            </span>
+            @if (item.isPlayerListing) {
+              <button
+                type="button"
+                class="pv-btn pv-btn--secondary"
+                (click)="onRemoveListing(item.id)"
+              >
+                Retirar do Bazar
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="pv-btn pv-btn--primary"
+                (click)="onSimulateBuy(item.id)"
+              >
+                Simular Compra (Escrow)
+              </button>
+            }
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</section>

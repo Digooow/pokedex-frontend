@@ -1,0 +1,5 @@
+3D Character Models (adventurer-male.glb, adventurer-female.glb)
+Author: Quaternius (https://quaternius.com)
+Packs: Ultimate Modular Men & Ultimate Modular Women
+License: CC0 1.0 Universal (Public Domain)
+Source mirror: https://github.com/trebeljahr/quaternius-showcase

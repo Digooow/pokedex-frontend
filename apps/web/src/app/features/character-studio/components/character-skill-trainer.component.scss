@@ -1,0 +1,200 @@
+.trainer-card {
+  display: grid;
+  gap: var(--pv-space-3);
+  padding: var(--pv-space-4);
+}
+
+.trainer-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--pv-space-3);
+}
+
+.trainer-head__copy {
+  display: grid;
+  gap: var(--pv-space-1);
+  max-inline-size: 38rem;
+}
+
+.trainer-head__title {
+  margin: 0;
+  font-size: 1.0625rem;
+  color: var(--pv-ink-primary);
+}
+
+.trainer-head__sub,
+.trainer-pillar-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--pv-ink-muted);
+}
+
+.trainer-archetype {
+  display: grid;
+  gap: 0.15rem;
+  max-inline-size: 22rem;
+  padding: var(--pv-space-2) var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-rpg-brass);
+  background: var(--pv-surface-solid);
+}
+
+.trainer-archetype__tag {
+  font-family: var(--pv-font-mono);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--pv-rpg-brass);
+}
+
+.trainer-archetype__name {
+  font-size: 0.95rem;
+  color: var(--pv-ink-primary);
+}
+
+.trainer-archetype__desc {
+  font-size: 0.75rem;
+  color: var(--pv-ink-muted);
+}
+
+.trainer-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pv-space-2);
+}
+
+.trainer-feed {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-holo-border);
+  background: var(--pv-holo-surface);
+}
+
+.trainer-feed__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--pv-space-2);
+  font-size: 0.875rem;
+  color: var(--pv-ink-primary);
+}
+
+.trainer-feed__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pv-space-1);
+}
+
+.trainer-feed__pill,
+.trainer-feed__attr {
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-surface-solid);
+  font-size: 0.72rem;
+  color: var(--pv-ink-primary);
+}
+
+.trainer-feed__attr {
+  border-color: var(--pv-rpg-brass);
+}
+
+.trainer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17.5rem, 1fr));
+  gap: var(--pv-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trainer-row {
+  display: grid;
+  gap: var(--pv-space-2);
+  padding: var(--pv-space-3);
+  border-radius: var(--pv-radius-sm);
+  border: 1px solid var(--pv-border-subtle);
+  background: var(--pv-surface-solid);
+}
+
+.trainer-row__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: var(--pv-space-2);
+}
+
+.trainer-row__title-wrap {
+  display: grid;
+  gap: 0.15rem;
+  min-inline-size: 0;
+}
+
+.trainer-row__name {
+  font-size: 0.9375rem;
+  color: var(--pv-ink-primary);
+}
+
+.trainer-row__chain {
+  font-size: 0.72rem;
+  color: var(--pv-cyan);
+  overflow-wrap: anywhere;
+}
+
+.trainer-row__mod {
+  padding: 0.15rem 0.5rem;
+  border-radius: var(--pv-radius-pill);
+  border: 1px solid var(--pv-border-strong);
+  font-family: var(--pv-font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--pv-rpg-brass);
+}
+
+.trainer-row__desc {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--pv-ink-muted);
+}
+
+.trainer-row__meter {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.trainer-row__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--pv-space-2);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--pv-ink-muted);
+}
+
+.trainer-row__track {
+  block-size: 0.5rem;
+  border-radius: var(--pv-radius-pill);
+  background: var(--pv-vital-track-bg);
+  border: 1px solid var(--pv-border-subtle);
+  overflow: hidden;
+}
+
+.trainer-row__fill {
+  block-size: 100%;
+  background: var(--pv-rpg-skill-xp);
+  transition: inline-size var(--pv-motion-fast-ms) ease;
+}
+
+.skill-train-btn {
+  min-block-size: 2.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trainer-row__fill {
+    transition: none;
+  }
+}
