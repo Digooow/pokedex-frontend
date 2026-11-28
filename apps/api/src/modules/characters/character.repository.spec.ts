@@ -83,6 +83,7 @@ describe('CharacterRepository', () => {
       normalizedName: 'sexto',
       originKey: 'settler',
       appearance: {
+        bodyModel: 'female',
         skinTone: 'sand',
         hairStyle: 'long',
         hairColor: 'copper',
@@ -123,6 +124,7 @@ describe('CharacterRepository', () => {
       normalizedName: 'kael norte',
       originKey: 'settler',
       appearance: {
+        bodyModel: 'male',
         skinTone: 'ochre',
         hairStyle: 'short',
         hairColor: 'obsidian',

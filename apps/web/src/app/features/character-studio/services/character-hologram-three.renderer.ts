@@ -34,6 +34,7 @@ import {
   createCharacterStageRuntime,
   loadCharacterModelForBody,
   selectRuntimeAnimation,
+  tickCharacterProceduralIdle,
 } from './character-hologram-loader.util';
 
 const ORIGIN_ACCENT: Readonly<Record<CharacterOriginKey, number>> = {
@@ -91,6 +92,7 @@ function createFrameRenderer(params: {
     if (uEnergy) uEnergy.value = 0.35;
     if (!state.reducedMotion && state.autoRotate && !state.dragging) state.orbitAngle += dt * 0.58;
     if (runtime.mixer && !state.reducedMotion) runtime.mixer.update(dt);
+    tickCharacterProceduralIdle(runtime.proceduralPose, now * 0.001, state.reducedMotion);
     if (stage.particles && !state.reducedMotion) {
       stage.particles.points.rotation.y = state.orbitAngle * 0.65;
     }

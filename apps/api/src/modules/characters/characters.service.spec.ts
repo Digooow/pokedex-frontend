@@ -91,6 +91,7 @@ describe('CharactersService', () => {
       name: '  Lyra   Norte ',
       originKey: 'highlands',
       appearance: {
+        bodyModel: 'female',
         skinTone: 'sand',
         hairStyle: 'braid',
         hairColor: 'copper',
@@ -130,6 +131,7 @@ describe('CharactersService', () => {
         name: 'Lyra Norte',
         originKey: 'settler',
         appearance: {
+          bodyModel: 'male',
           skinTone: 'ochre',
           hairStyle: 'short',
           hairColor: 'obsidian',
@@ -148,6 +150,7 @@ describe('CharactersService', () => {
         name: 'Outro Nome',
         originKey: 'settler',
         appearance: {
+          bodyModel: 'male',
           skinTone: 'ochre',
           hairStyle: 'short',
           hairColor: 'obsidian',
@@ -165,6 +168,7 @@ describe('CharactersService', () => {
         name: 'Invalido',
         originKey: 'settler',
         appearance: {
+          bodyModel: 'male',
           skinTone: 'ochre',
           hairStyle: 'short',
           hairColor: 'obsidian',

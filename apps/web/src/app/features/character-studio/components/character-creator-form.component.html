@@ -93,8 +93,8 @@
             <button
               type="button"
               class="creator-model-card"
-              [class.is-selected]="(store.draftAppearance().bodyModel ?? 'male') === model.key"
-              [attr.aria-pressed]="(store.draftAppearance().bodyModel ?? 'male') === model.key"
+              [class.is-selected]="store.draftAppearance().bodyModel === model.key"
+              [attr.aria-pressed]="store.draftAppearance().bodyModel === model.key"
               (click)="onBodyModelSelect(model.key)"
             >
               <strong class="creator-model-card__title">{{ model.label }}</strong>
