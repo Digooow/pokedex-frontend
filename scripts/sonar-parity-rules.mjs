@@ -180,6 +180,64 @@ function checkSomePreferIncludes(rel, content, findings) {
   }
 }
 
+function checkNativeCoercionFunctions(rel, content, findings) {
+  const arrowCoercionRegex =
+    /(?:\(\s*([a-zA-Z_$][\w$]*)(?:\s*:[^,)=]+|\s*)\)|(?<![\w$.])([a-zA-Z_$][\w$]*))\s*=>\s*(?:\{\s*return\s+(String|Number|BigInt|Boolean|Symbol)\(\s*([a-zA-Z_$][\w$]*)\s*\)\s*;?\s*\}|(String|Number|BigInt|Boolean|Symbol)\(\s*([a-zA-Z_$][\w$]*)\s*\)(?!\s*(?:\?\.|[.([?+\-*/%&|^=!<>]|\b(?:as|satisfies|in|instanceof)\b)))/g;
+  for (const m of content.matchAll(arrowCoercionRegex)) {
+    const param = m[1] ?? m[2] ?? '';
+    const fnName = m[3] ?? m[5] ?? '';
+    const arg = m[4] ?? m[6] ?? '';
+    if (!param || arg !== param) {
+      continue;
+    }
+    const index = m.index ?? 0;
+    const prefix = content.slice(Math.max(0, index - 12), index);
+    if (/\basync\s*$/.test(prefix)) {
+      continue;
+    }
+    findings.push({
+      rule: 'typescript:S7770',
+      file: rel,
+      line: lineNumberAt(content, index),
+      message: `arrow function is equivalent to \`${fnName}\`. Use \`${fnName}\` directly.`,
+    });
+  }
+
+  const funcCoercionRegex =
+    /\bfunction\s*\(\s*([a-zA-Z_$][\w$]*)(?:\s*:[^,)=]+|\s*)\)\s*\{\s*return\s+(String|Number|BigInt|Boolean|Symbol)\(\s*([a-zA-Z_$][\w$]*)\s*\)\s*;?\s*\}/g;
+  for (const m of content.matchAll(funcCoercionRegex)) {
+    if (m[1] !== m[3]) {
+      continue;
+    }
+    const index = m.index ?? 0;
+    const prefix = content.slice(Math.max(0, index - 12), index);
+    if (/\basync\s*$/.test(prefix)) {
+      continue;
+    }
+    findings.push({
+      rule: 'typescript:S7770',
+      file: rel,
+      line: lineNumberAt(content, index),
+      message: `function is equivalent to \`${m[2]}\`. Use \`${m[2]}\` directly.`,
+    });
+  }
+
+  const identityPredicateRegex =
+    /\.(?:filter|some|every|find|findIndex|findLast|findLastIndex)\(\s*(?:\(\s*([a-zA-Z_$][\w$]*)(?:\s*:[^,)=]+|\s*)\)|([a-zA-Z_$][\w$]*))\s*=>\s*(?:\{\s*return\s+([a-zA-Z_$][\w$]*)\s*;?\s*\}|([a-zA-Z_$][\w$]*))\s*\)/g;
+  for (const m of content.matchAll(identityPredicateRegex)) {
+    const param = m[1] ?? m[2] ?? '';
+    const ret = m[3] ?? m[4] ?? '';
+    if (param && ret === param) {
+      findings.push({
+        rule: 'typescript:S7770',
+        file: rel,
+        line: lineNumberAt(content, m.index ?? 0),
+        message: 'arrow function is equivalent to `Boolean`. Use `Boolean` directly.',
+      });
+    }
+  }
+}
+
 export function checkTypeScriptParity(rel, content) {
   const findings = [];
   checkReexports(rel, content, findings);
@@ -255,6 +313,7 @@ export function checkTypeScriptParity(rel, content) {
   checkRegexReplaceAll(rel, content, findings);
   checkStringRawCandidates(rel, content, findings);
   checkSomePreferIncludes(rel, content, findings);
+  checkNativeCoercionFunctions(rel, content, findings);
   return findings;
 }
 

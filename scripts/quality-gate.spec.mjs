@@ -60,7 +60,7 @@ function assertHasRule(findings, ruleId) {
   );
 }
 
-test('Suite 1 — SonarCloud Parity Engine: TypeScript rules (S6582, S7747, S7763, S7758, S7765, S7766, S7727, S7649, S7781, S7780, suppression)', () => {
+test('Suite 1 — SonarCloud Parity Engine: TypeScript rules (S6582, S7747, S7763, S7758, S7765, S7766, S7727, S7770, S7649, S7781, S7780, suppression)', () => {
   assertHasRule(
     checkTypeScriptParity('apps/web/src/a.ts', 'if (active && active.name === q) {}'),
     'typescript:S6582',
@@ -163,6 +163,51 @@ test('Suite 1 — SonarCloud Parity Engine: TypeScript rules (S6582, S7747, S776
     checkTypeScriptParity(
       'apps/web/src/a.ts',
       'const out = items.map((item) => formatPokeApiText(item)).filter(Boolean);',
+    ).length,
+    0,
+  );
+
+  assertHasRule(
+    checkTypeScriptParity(
+      'packages/shared/src/domain/character-bazaar.ts',
+      "const nums = csv.split(',').map((val) => Number(val));",
+    ),
+    'typescript:S7770',
+  );
+  assertHasRule(
+    checkTypeScriptParity('apps/web/src/a.ts', 'const strs = ids.map(id => String(id));'),
+    'typescript:S7770',
+  );
+  assertHasRule(
+    checkTypeScriptParity(
+      'apps/web/src/a.ts',
+      'const flags = values.map((v: unknown) => { return Boolean(v); });',
+    ),
+    'typescript:S7770',
+  );
+  assertHasRule(
+    checkTypeScriptParity(
+      'apps/web/src/a.ts',
+      'const bigs = values.map(function (v) { return BigInt(v); });',
+    ),
+    'typescript:S7770',
+  );
+  assertHasRule(
+    checkTypeScriptParity('apps/web/src/a.ts', 'const truthy = items.filter((item) => item);'),
+    'typescript:S7770',
+  );
+  assert.equal(
+    checkTypeScriptParity(
+      'packages/shared/src/domain/character-bazaar.ts',
+      [
+        "const nums = csv.split(',').map(Number);",
+        'const strs = ids.map(String).filter(Boolean);',
+        "const padded = ids.map((id) => String(id).padStart(2, '0'));",
+        'const plusOne = ids.map((id) => Number(id) + 1);',
+        'const narrowed = items.filter((item): item is string => Boolean(item));',
+        'const asyncWrap = async (val: string) => Number(val);',
+        'const nested = list.some((item) => Boolean(item.eggGroups?.length));',
+      ].join('\n'),
     ).length,
     0,
   );

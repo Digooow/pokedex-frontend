@@ -50,7 +50,7 @@ const VETERAN_RAW_ENTRIES: readonly string[] = [
 ];
 
 function parseVeteranAttributes(csv: string): CharacterAttributes {
-  const nums = csv.split(',').map((val) => Number(val));
+  const nums = csv.split(',').map(Number);
   return {
     physique: nums[0] ?? 10,
     dexterity: nums[1] ?? 10,
